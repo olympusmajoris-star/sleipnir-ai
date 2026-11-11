@@ -1,0 +1,13 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<canvas id="c"></canvas>
+<script src="bh-engine.js"></script>
+<script>
+const q=new URLSearchParams(location.search);
+const W=+(q.get('w')||640),H=+(q.get('h')||400);
+const sc=new BH.BHScene(document.getElementById('c'),{scale:1}); sc.resize(W,H);
+const holes=JSON.parse(q.get('holes')||'[{"preset":"gargantua"}]');
+sc.holes=holes.map((h,i)=>Object.assign({},BH.BH_PRESETS[h.preset||'gargantua']||BH.BH_DEFAULTS,{x:.5,y:.5,size:70},h));
+const img=new Image();
+const fi=new Image(); fi.onload=()=>{sc.setFace(0,fi); sc.render(+(q.get('t')||1)); window.done=true;}; img.onload=()=>{sc.setBackground('A',img);sc.coverFit('A'); if(q.get('face')) fi.src='faces/'+q.get('face')+'.jpg'; else {sc.render(+(q.get('t')||1));window.done=true;}};
+img.src='bg/'+(q.get('bg')||'bg13.jpg');
+</script></body></html>

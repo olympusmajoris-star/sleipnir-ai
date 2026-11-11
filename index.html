@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asgard Studio — Raven</title>
+<link rel="stylesheet" href="studio.css?v=1794402815">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">A</span><span>ASGARD <small>STUDIO</small></span></div>
+  <div class="doc"><b id="docTitle">My Raven design</b><span id="saveState" class="saved">● All changes saved</span></div>
+  <div class="spacer"></div>
+  <button class="icon" id="undoBtn" title="Undo">↶</button>
+  <button class="icon" id="redoBtn" title="Redo">↷</button>
+  <button class="ghost" id="boardBtn" title="Shared job board for Danny, Claude and ChatGPT">Board</button>
+  <button class="ghost" id="exportBtn" title="Download your settings file">Export</button>
+  <label class="ghost" title="Load a settings file">Import<input type="file" id="importFile" accept=".json" hidden></label>
+  <button class="ghost" id="saveBtn">💾 Save version</button>
+  <button class="primary" id="dartBtn">⤓ Get Dart</button>
+</header>
+<main>
+  <nav class="left">
+    <div class="cap">YOUR DESIGN</div>
+    <button class="sec" data-sec="sphere"><i>◯</i><span><b>Sphere</b><small>Surface, position & spin</small></span></button>
+    <button class="sec" data-sec="tabs"><i>▭</i><span><b>Message tabs</b><small>Names, lines & messages</small></span></button>
+    <button class="sec" data-sec="background"><i>✦</i><span><b>Background</b><small>Stars, galaxies & fading</small></span></button>
+    <button class="sec" data-sec="holes"><i>◉</i><span><b>Black holes</b><small>Disks, travel & light</small></span></button>
+    <button class="sec" data-sec="media"><i>▣</i><span><b>Images & videos</b><small>Uploads & clips</small></span></button>
+    <button class="cosmic" id="openLib"><b>✦ Cosmic clips & stills</b><small>Browse every black hole cut from your videos</small></button>
+    <div class="cap row">YOUR LAYERS <button class="mini" id="addLayerBtn" title="Add image or video">＋</button></div>
+    <div id="layerList" class="layers"></div>
+    <div class="cap">SAVED VERSIONS</div>
+    <div id="versionList" class="versions"></div>
+  </nav>
+  <section class="center">
+    <div class="ctitle"><div><small>LIVE PHONE PREVIEW</small><h1>Your Raven, your way.</h1></div>
+      <div class="viewbtns"><button id="modeSky" class="seg on">Whole sky</button><button id="modeFocus" class="seg">Edit one hole</button></div></div>
+    <div class="phonewrap"><div class="phone"><div id="stage" class="stage"></div><div class="notch"></div></div></div>
+    <div class="hint" id="hint">● Real light-bending black holes · drag the busts to browse · click a black hole to edit its tier</div>
+    <div class="transport">
+      <button id="playBtn" class="icon">❚❚</button><span id="playLbl">Moving</span>
+      <input type="range" id="speed" min="0" max="3" step="0.05" value="1" title="Speed"><span id="tLbl">0.0s</span>
+      <button id="snapBtn" class="icon" title="Save a picture of the phone">📷</button>
+    </div>
+  </section>
+  <aside class="right">
+    <div class="rhead"><span>☰ Make it yours</span><span class="zoom"><button id="zm">−</button><span id="zv">100%</span><button id="zp">+</button></span></div>
+    <div id="panel" class="panel"></div>
+  </aside>
+</main>
+
+<div id="board" class="modal" hidden>
+  <div class="mbox" style="max-width:760px">
+    <div class="mhead"><div><h2>Shared board</h2><small>Danny, Claude and ChatGPT all read and write here. Design + files live in Supabase.</small></div><button class="icon" id="boardClose">✕</button></div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px;max-height:72vh;overflow:auto">
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="bWho"><option>Danny</option><option>ChatGPT</option><option>Claude</option></select><input id="bTitle" placeholder="What is it? (e.g. 6 gas clouds ready)" style="flex:1;min-width:220px"><button class="primary" id="bPost">Post</button></div>
+      <textarea id="bBody" rows="3" placeholder="Details, links to files, what the other one should do next"></textarea>
+      <div id="bList"></div>
+    </div>
+  </div>
+</div>
+<div id="lib" class="modal" hidden>
+  <div class="mbox">
+    <div class="mhead"><div><h2 id="libTitle">Cosmic clips & stills</h2><small id="libSub"></small></div><button class="icon" id="libClose">✕</button></div>
+    <div class="mbody">
+      <div class="cats"><input id="libFind" placeholder="Find a look..."><div id="catList"></div></div>
+      <div class="grid" id="libGrid"></div>
+      <div class="detail" id="libDetail"><h3>Choose a scene</h3><p>Every card is a clip and a full-resolution still cut from your videos. Pick one to preview it, use it as a black hole (rebuilt in real 3D with real light bending), or add it as a background.</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="dartModal" class="modal" hidden>
+  <div class="mbox small">
+    <div class="mhead"><div><h2>Get Dart</h2><small id="dartSub"></small></div><button class="icon" id="dartClose">✕</button></div>
+    <div class="dbody" id="dartBody"></div>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="bh-engine.js?v=1794402815"></script>
+<script src="raven-scene.js?v=1794402815"></script>
+<script src="library.js?v=1794402815"></script>
+<script src="chat-import.js?v=1794402815"></script>
+<script src="studio.js?v=1794402815"></script>
+</body>
+</html>
