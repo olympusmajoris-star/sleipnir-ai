@@ -370,7 +370,16 @@ class RavenScene {
             h.disk = 1; h.dust = RU.dust; h.diskIn = 3.0; h.diskOut = 3.0 + (RU.dustSize ?? 1.6) * (1 + 0.2 * (ft + 1 - (RU.dustFrom ?? 3))); h.diskBright = 0.35; h.diskFalloff = 0.8;
             h.diskColorIn = '#3a2a1e'; h.diskColorOut = '#120c08'; h.diskTexture = 0.95; h.diskStreaks = 0.7; h.diskOpacity = 0.7; h.diskThick = 0.03; h.diskSpin = RU.dustSpin ?? 0.6; h.doppler = 0.2; h.clumps = 0.3;
           } else { h.disk = 0; h.dust = 0; } }
-        h.crest = h._pairB ? [0, 0, 0.02, 0] : [RU.crest ?? 1.4, -Math.PI / 2 + (h.rotZ * Math.PI / 180) * 0.6 + (rnd(7) - 0.5) * 0.9, RU.crestWidth ?? 0.025, 1]; } }
+        // warp zone squashed along the disk's axis when tilted (circle only when seen from above)
+        const rz = h.rotZ * Math.PI / 180, flat = 0.3 + 0.7 * Math.sin(h.rotX * Math.PI / 180);
+        h.fa = [Math.cos(rz), Math.sin(rz), flat, 0];
+        // crest of shine only when there is light to reflect (its own disk, or bright sky/gas near it) and only on tilted holes
+        let lit = 0; const px = this._sampleSky();
+        if (px) { let s = 0, n = 0; for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283, X = h.x * W + Math.cos(a) * h.size * 2.4, Y = h.y * H + Math.sin(a) * h.size * 2.4; if (X < 0 || X > W || Y < 0 || Y > H) continue;
+            const ii = (Math.floor(Y * 169 / H) * 78 + Math.floor(X * 78 / W)) * 4; s += (px[ii] * .3 + px[ii + 1] * .59 + px[ii + 2] * .11) / 255; n++; } lit = n ? s / n : 0; }
+        const glowDisk = (h.disk > 0 && !(h.dust > 0)) ? Math.min(1, (h.diskBright || 1) * 0.5) : 0;
+        const light = Math.min(1.5, Math.max(0, lit - 0.08) * 6 + glowDisk), tiltF = 1 - Math.min(1, Math.max(0, (h.rotX - 12) / 35));
+        h.crest = h._pairB ? [0, 0, 0.02, 0] : [(RU.crest ?? 1.4) * light * tiltF, -Math.PI / 2 + rz, RU.crestWidth ?? 0.025, 1]; } }
     const CL = this.s.holes.clips; if (CL && CL.on !== false) { for (const h of holes) if (h._vi >= 0) { h.disk = 0; h.ring = 0; h.corona = 0; h.glow = 0; h.jets = 0; h.flare = 0; h.envFeed = 0; } return holes; }
     const F = this.s.holes.feed; this._fuel = this._fuel || {};
     if (!F || F.on === false) return holes;

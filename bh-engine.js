@@ -91,7 +91,7 @@ uniform vec4 uH6[MAXH];   // corona, coronaWidth, shellMotion, glow
 uniform vec4 uH7[MAXH];   // flare, flareLen, flareWidth, jets
 uniform vec4 uH8[MAXH];   // jetLen, jetWidth, exposure, opacity
 uniform vec4 uH9[MAXH];   // faceZoom, seed, -, -
-uniform vec4 uFL[MAXH]; uniform vec4 uDust[MAXH]; uniform vec4 uCR[MAXH];
+uniform vec4 uFL[MAXH]; uniform vec4 uDust[MAXH]; uniform vec4 uCR[MAXH]; uniform vec4 uFA[MAXH];
  uniform vec4 uRefl; uniform vec4 uRefl2;   // reflection: amount, face size, gloss, rim sky | catchlight, face brightness, blur, -   // follower rule: funnel darkness, influence width (hole radii), swirl smear, edge glare
 uniform vec4 uHF[MAXH]; uniform vec4 uFaceEdge; uniform float uEdgeW[MAXH]; uniform vec4 uEnv[MAXH]; uniform float uMutual;   // env: colorFromSky, sampleRadius, feedFromSky, -   // faceSphere, faceShade, -, -
 uniform vec3 uCDin[MAXH], uCDout[MAXH], uCRing[MAXH], uCCor[MAXH], uCFlare[MAXH], uCJet[MAXH], uCGlow[MAXH], uCHor[MAXH];
@@ -297,7 +297,10 @@ void main(){
   // follower rule (like the reference): stars smeared round the hole, space sinking into a darker inward curve just before the black, a soft glare on the rim
   if(!captured){
     for(int i=0;i<MAXH;i++){ if(i>=uN) break; vec4 fl = uFL[i]; if(fl.x + fl.z + fl.w <= 0.) continue;
-      vec2 c = uH0[i].xy; float R = uH0[i].z; float dl = length(px - c) / R; float W = max(fl.y, 1.2);
+      vec2 c = uH0[i].xy; float R = uH0[i].z; float dlc = length(px - c) / R; float W = max(fl.y, 1.2);
+      // tilted holes: the warp zone follows the disk plane, so it is an ellipse, not a perfect circle
+      vec4 fa = uFA[i]; vec2 q0 = px - c; vec2 qe = vec2(q0.x*fa.x + q0.y*fa.y, -q0.x*fa.y + q0.y*fa.x); qe.y /= max(fa.z, 0.2);
+      float dl = max(length(qe) / R, dlc);
       if(dl > W) continue;
       float t = clamp((W - dl) / (W - 1.0), 0., 1.);
 
@@ -314,7 +317,7 @@ void main(){
       // crest of shine: one clean bright line hugging the lit side of the ball's edge (shows it is round), shimmering as the disk turns
       vec4 cr = uCR[i];
       if(cr.x > 0.){ vec2 dd = px - c; float an = atan(dd.y, dd.x); float side = pow(max(0., cos(an - cr.y)), 2.5);
-        float band = exp(-pow((dl - 1.0 - cr.z * 1.5) / max(cr.z, 0.004), 2.));
+        float band = exp(-pow((dlc - 1.0 - cr.z * 1.5) / max(cr.z, 0.004), 2.));
         float shim = 0.88 + 0.12 * sin(an * 9.0 - uTime * 2.2 + float(i) * 1.7);
         vec3 loc2 = bgAtG(c + normalize(dd + 1e-4) * R * 2.6, vec2(10.,0.), vec2(0.,10.));
         vec3 cc = mix(loc2 * 1.8 + vec3(0.22, 0.2, 0.18), uCDin[i], clamp(uH2[i].x * (1.0 - uDust[i].x), 0., 1.) * 0.6);
@@ -462,7 +465,7 @@ class BHScene {
     gl.uniform1f(u.uMutual, this.mutual ?? 0.6);
     A('uEnv',h=>[h.envColor ?? 0, h.envRadius ?? 2.4, h.envFeed ?? 0, 0]);
     A('uHF',h=>[h.faceSphere ?? 0, h.faceShade ?? 0, h.faceTurn ?? 0, h.faceCover ?? 1.0]);
-    A('uFL',h=>h.fl||[0,3.6,0,0]); A('uDust',h=>[h.dust||0,0,0,0]); A('uCR',h=>h.crest||[0,0,0.02,0]);
+    A('uFL',h=>h.fl||[0,3.6,0,0]); A('uDust',h=>[h.dust||0,0,0,0]); A('uCR',h=>h.crest||[0,0,0.02,0]); A('uFA',h=>h.fa||[1,0,1,0]);
     A('uH9',(h,i)=>[h.faceZoom,(h.seed!==undefined?h.seed:i*7.31),h.arms||0,h.armSharp||3]);
     C('uCDin',h=>lin(h.diskColorIn)); C('uCDout',h=>lin(h.diskColorOut)); C('uCRing',h=>lin(h.ringColor)); C('uCCor',h=>lin(h.coronaColor));
     C('uCFlare',h=>lin(h.flareColor)); C('uCJet',h=>lin(h.jetColor)); C('uCGlow',h=>lin(h.glowColor)); C('uCHor',h=>lin(h.horizonColor));
