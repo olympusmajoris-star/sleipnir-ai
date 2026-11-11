@@ -31,7 +31,7 @@ const DEFAULT_SETTINGS = {
     gas: { on: true, bright: 1, speed: 1, scale: 1.1, layers: [
       { src: 'gas/dust_lanes.webp', a: 0.8, sp: 3, y: 0.0 }, { src: 'gas/gas_teal.webp', a: 0.7, sp: 5, y: 0.12 }, { src: 'gas/gas_amber.webp', a: 0.7, sp: 7, y: -0.08 },
       { src: 'gas/gas_magenta.webp', a: 0.6, sp: 4, y: 0.2 }, { src: 'gas/gas_mixed.webp', a: 0.75, sp: 10, y: 0.05 } ] },
-    rule: { on: true, lens: 0.9, reach: 0.6, edge: 1.6, taper: 0.7, funnel: 0.45, width: 3.8, smear: 0.7, glare: 0.9 },
+    rule: { on: true, lens: 0.9, reach: 0.6, edge: 1.6, taper: 0.7, funnel: 0.45, width: 3.8, smear: 0.7, glare: 0.9, tiltMin: 4, tiltMax: 70, tumble: 0.4, tumbleSpeed: 0.12, dustFrom: 3, dust: 0.5, dustSize: 1.6, dustSpin: 0.6, crest: 2.2, crestWidth: 0.035 },
     clips: { on: true, scale: 1, bright: 1, turn: 1 },
     feed: { on: false, ambient: 5, pull: 1, pieceSize: 1, spiralSeconds: 7, amount: 1, drift: 6 },
     callout: {
@@ -109,6 +109,7 @@ function ensureDashboards(s) {
   if (!(s.layoutV >= 7)) { Object.assign(s.rolodex, { side: -70, bulge: 1, offsetX: 0, pathR: 0.98 }); s.sphere.x = 0.55; s.layoutV = 7; }
   if (!(s.layoutV >= 8)) s.layoutV = 8;
   if (!(s.layoutV >= 10) && s.holes.dashboards && s.holes.dashboards.friends) { s.holes.dashboards.friends.tiers.forEach((t, i) => Object.assign(t.look, { reach: +(0.14 + 0.016 * i).toFixed(3), lens: 1, disk: 0, ring: 0, corona: 0, glow: 0, flare: 0, jets: 0, shellMotion: 0 })); s.layoutV = Math.max(s.layoutV || 0, 10); s.friendsTight = 1; }
+  if (!(s.layoutV >= 37)) { if (s.holes && s.holes.rule) Object.assign(s.holes.rule, { tiltMin: 4, tiltMax: 70, tumble: 0.4, tumbleSpeed: 0.12, dustFrom: 3, dust: 0.5, dustSize: 1.6, dustSpin: 0.6, crest: 2.2, crestWidth: 0.035, glare: 0 }); s.layoutV = Math.max(s.layoutV || 0, 37); }
   if (!(s.layoutV >= 35)) { if (s.holes && s.holes.refl) Object.assign(s.holes.refl, { catch: 0, rimSky: 0.5 }); s.layoutV = Math.max(s.layoutV || 0, 35); }
   if (!(s.layoutV >= 34)) { if (s.holes) s.holes.rule = { on: true, lens: 0.9, reach: 0.6, edge: 1.6, taper: 0.7, funnel: 0.45, width: 3.8, smear: 0.7, glare: 0.9 }; s.layoutV = Math.max(s.layoutV || 0, 34); }
   if (!(s.layoutV >= 32)) { if (s.holes) { s.holes.feed = Object.assign(s.holes.feed || {}, { on: false }); s.holes.clips = Object.assign({ on: true, scale: 1, bright: 1, turn: 1 }, s.holes.clips || {}); } s.layoutV = Math.max(s.layoutV || 0, 32); }
@@ -355,7 +356,21 @@ class RavenScene {
     // one rule for every follower hole (only the size differs): bending tapered so a big hole doesn't warp the whole sky
     const RU = this.s.holes.rule; if (RU && RU.on !== false) { const s0 = Math.max(4, this.friendSizeAt(0) * this.s.holes.behavior.sizeScale);
       for (const h of holes) { h.lens = RU.lens; h.reach = RU.reach; h.edgeWidth = RU.edge * Math.pow(s0 / Math.max(s0, h.size), RU.taper);
-        h.fl = h._pairB ? [0, 3.6, 0, 0] : [RU.funnel, RU.width, RU.smear, RU.glare]; h.ring = 0; h.corona = 0; } }
+        h.fl = h._pairB ? [0, 3.6, 0, 0] : [RU.funnel, RU.width, RU.smear, RU.glare]; h.ring = 0; h.corona = 0;
+        // every hole its own angle; some slowly tumble as they float; the face always stays facing you
+        const sd = (h.seed || 0) * 12.9898, rnd = k => { const v = Math.sin(sd * 78.233 + k * 37.719) * 43758.5453; return v - Math.floor(v); };
+        let tilt = (RU.tiltMin ?? 4) + ((RU.tiltMax ?? 70) - (RU.tiltMin ?? 4)) * rnd(1);
+        if (rnd(2) < (RU.tumble ?? 0.4)) tilt += Math.sin(this.time * (RU.tumbleSpeed ?? 0.12) * (0.6 + rnd(3)) + rnd(4) * 6.28) * 22;
+        h.rotX = clamp(tilt, 1, 88); h.rotZ = (rnd(5) - 0.5) * 50; h.diskDir = rnd(6) < 0.5 ? -1 : 1;
+        // which follower tier this hole is (by size)
+        let ft = 0, best = 1e9; const nT = this.s.holes.dashboards.friends.tiers.length;
+        for (let k = 0; k < nT; k++) { const dd = Math.abs(this.friendSizeAt(k) * this.s.holes.behavior.sizeScale - h.size); if (dd < best) { best = dd; ft = k; } }
+        // the disk depends on the tier: low tiers only the warp, higher tiers a dark revolving dust disk
+        if (!(h._vi > 0) && !h._pairB) { if (ft + 1 >= (RU.dustFrom ?? 3) && (RU.dust ?? 0) > 0) {
+            h.disk = 1; h.dust = RU.dust; h.diskIn = 3.0; h.diskOut = 3.0 + (RU.dustSize ?? 1.6) * (1 + 0.2 * (ft + 1 - (RU.dustFrom ?? 3))); h.diskBright = 0.35; h.diskFalloff = 0.8;
+            h.diskColorIn = '#3a2a1e'; h.diskColorOut = '#120c08'; h.diskTexture = 0.95; h.diskStreaks = 0.7; h.diskOpacity = 0.7; h.diskThick = 0.03; h.diskSpin = RU.dustSpin ?? 0.6; h.doppler = 0.2; h.clumps = 0.3;
+          } else { h.disk = 0; h.dust = 0; } }
+        h.crest = h._pairB ? [0, 0, 0.02, 0] : [RU.crest ?? 1.4, -Math.PI / 2 + (h.rotZ * Math.PI / 180) * 0.6 + (rnd(7) - 0.5) * 0.9, RU.crestWidth ?? 0.025, 1]; } }
     const CL = this.s.holes.clips; if (CL && CL.on !== false) { for (const h of holes) if (h._vi >= 0) { h.disk = 0; h.ring = 0; h.corona = 0; h.glow = 0; h.jets = 0; h.flare = 0; h.envFeed = 0; } return holes; }
     const F = this.s.holes.feed; this._fuel = this._fuel || {};
     if (!F || F.on === false) return holes;

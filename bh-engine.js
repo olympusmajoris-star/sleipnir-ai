@@ -91,7 +91,8 @@ uniform vec4 uH6[MAXH];   // corona, coronaWidth, shellMotion, glow
 uniform vec4 uH7[MAXH];   // flare, flareLen, flareWidth, jets
 uniform vec4 uH8[MAXH];   // jetLen, jetWidth, exposure, opacity
 uniform vec4 uH9[MAXH];   // faceZoom, seed, -, -
-uniform vec4 uFL[MAXH]; uniform vec4 uRefl; uniform vec4 uRefl2;   // reflection: amount, face size, gloss, rim sky | catchlight, face brightness, blur, -   // follower rule: funnel darkness, influence width (hole radii), swirl smear, edge glare
+uniform vec4 uFL[MAXH]; uniform vec4 uDust[MAXH]; uniform vec4 uCR[MAXH];
+ uniform vec4 uRefl; uniform vec4 uRefl2;   // reflection: amount, face size, gloss, rim sky | catchlight, face brightness, blur, -   // follower rule: funnel darkness, influence width (hole radii), swirl smear, edge glare
 uniform vec4 uHF[MAXH]; uniform vec4 uFaceEdge; uniform float uEdgeW[MAXH]; uniform vec4 uEnv[MAXH]; uniform float uMutual;   // env: colorFromSky, sampleRadius, feedFromSky, -   // faceSphere, faceShade, -, -
 uniform vec3 uCDin[MAXH], uCDout[MAXH], uCRing[MAXH], uCCor[MAXH], uCFlare[MAXH], uCJet[MAXH], uCGlow[MAXH], uCHor[MAXH];
 
@@ -151,8 +152,9 @@ vec3 diskEm(int i, vec3 p, vec3 n, out float alpha){
   vec3 col = mix(mix(uCDin[i], gEnvIn, gEnvK), mix(uCDout[i], gEnvOut, gEnvK), pow(x, mix(0.3, 1.0, h5.x)));
   col = mix(col, col*vec3(0.75,0.85,1.25), clamp((g-1.0)*1.5*h4.w,0.,1.));
   col = mix(col, col*vec3(1.2,0.85,0.6), clamp((1.0-g)*1.2*h4.w,0.,1.));
-  alpha = clamp(I*3.5, 0., h4.z);
-  return col * I * gI;
+  float dk = uDust[i].x;   // dark dust disk: absorbs the sky behind it instead of glowing
+  alpha = clamp(I*3.5*(1.0 + dk*40.0), 0., h4.z);
+  return col * I * gI * (1.0 - dk*0.8);
 }
 
 void main(){
@@ -298,6 +300,7 @@ void main(){
       vec2 c = uH0[i].xy; float R = uH0[i].z; float dl = length(px - c) / R; float W = max(fl.y, 1.2);
       if(dl > W) continue;
       float t = clamp((W - dl) / (W - 1.0), 0., 1.);
+
       if(fl.z > 0.){ vec2 rel = src - c; float a = fl.z * 0.55 * pow(t, 1.4); vec3 acc = skyC; float n = 1.;
         for(int k=1;k<=5;k++){ float aa = a * float(k) / 5.; float cs = cos(aa), sn = sin(aa);
           acc += bgAtG(c + mat2(cs, sn, -sn, cs) * rel, sdx, sdy); acc += bgAtG(c + mat2(cs, -sn, sn, cs) * rel, sdx, sdy); n += 2.; }
@@ -308,6 +311,14 @@ void main(){
         float g = fl.w * exp(-pow((dl - 1.04) / 0.05, 2.)) * side;
         vec3 loc = bgAtG(c + dir * R * 2.2, vec2(8.,0.), vec2(0.,8.));
         skyC += g * (loc * 1.6 + vec3(0.10, 0.09, 0.08)); }
+      // crest of shine: one clean bright line hugging the lit side of the ball's edge (shows it is round), shimmering as the disk turns
+      vec4 cr = uCR[i];
+      if(cr.x > 0.){ vec2 dd = px - c; float an = atan(dd.y, dd.x); float side = pow(max(0., cos(an - cr.y)), 2.5);
+        float band = exp(-pow((dl - 1.0 - cr.z * 1.5) / max(cr.z, 0.004), 2.));
+        float shim = 0.88 + 0.12 * sin(an * 9.0 - uTime * 2.2 + float(i) * 1.7);
+        vec3 loc2 = bgAtG(c + normalize(dd + 1e-4) * R * 2.6, vec2(10.,0.), vec2(0.,10.));
+        vec3 cc = mix(loc2 * 1.8 + vec3(0.22, 0.2, 0.18), uCDin[i], clamp(uH2[i].x * (1.0 - uDust[i].x), 0., 1.) * 0.6);
+        skyC += cc * cr.x * band * side * shim; }
     }
   }
   vec3 col;
@@ -451,7 +462,7 @@ class BHScene {
     gl.uniform1f(u.uMutual, this.mutual ?? 0.6);
     A('uEnv',h=>[h.envColor ?? 0, h.envRadius ?? 2.4, h.envFeed ?? 0, 0]);
     A('uHF',h=>[h.faceSphere ?? 0, h.faceShade ?? 0, h.faceTurn ?? 0, h.faceCover ?? 1.0]);
-    A('uFL',h=>h.fl||[0,3.6,0,0]);
+    A('uFL',h=>h.fl||[0,3.6,0,0]); A('uDust',h=>[h.dust||0,0,0,0]); A('uCR',h=>h.crest||[0,0,0.02,0]);
     A('uH9',(h,i)=>[h.faceZoom,(h.seed!==undefined?h.seed:i*7.31),h.arms||0,h.armSharp||3]);
     C('uCDin',h=>lin(h.diskColorIn)); C('uCDout',h=>lin(h.diskColorOut)); C('uCRing',h=>lin(h.ringColor)); C('uCCor',h=>lin(h.coronaColor));
     C('uCFlare',h=>lin(h.flareColor)); C('uCJet',h=>lin(h.jetColor)); C('uCGlow',h=>lin(h.glowColor)); C('uCHor',h=>lin(h.horizonColor));
