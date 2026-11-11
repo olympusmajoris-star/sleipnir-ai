@@ -31,7 +31,7 @@ const DEFAULT_SETTINGS = {
     gas: { on: true, bright: 1, speed: 1, scale: 1.1, layers: [
       { src: 'gas/dust_lanes.webp', a: 0.8, sp: 3, y: 0.0 }, { src: 'gas/gas_teal.webp', a: 0.7, sp: 5, y: 0.12 }, { src: 'gas/gas_amber.webp', a: 0.7, sp: 7, y: -0.08 },
       { src: 'gas/gas_magenta.webp', a: 0.6, sp: 4, y: 0.2 }, { src: 'gas/gas_mixed.webp', a: 0.75, sp: 10, y: 0.05 } ] },
-    rule: { on: true, lens: 0.9, reach: 0.6, edge: 1.6, taper: 0.7, funnel: 0.45, width: 3.8, smear: 0.7, glare: 0.9, tiltMin: 4, tiltMax: 70, tumble: 0.4, tumbleSpeed: 0.12, dustFrom: 3, dust: 0.5, dustSize: 1.6, dustSpin: 0.6, crest: 2.2, crestWidth: 0.035 },
+    rule: { on: true, lens: 0.9, reach: 0.6, edge: 1.6, taper: 0.7, funnel: 0.45, width: 3.8, smear: 0.7, glare: 0.9, tiltMin: 4, tiltMax: 70, tumble: 0.4, tumbleSpeed: 0.12, dustFrom: 1, dust: 0, dustSize: 1.6, dustSpin: 0.6, crest: 2.2, crestWidth: 0.035 },
     clips: { on: true, scale: 1, bright: 1, turn: 1 },
     feed: { on: false, ambient: 5, pull: 1, pieceSize: 1, spiralSeconds: 7, amount: 1, drift: 6 },
     callout: {
@@ -109,7 +109,9 @@ function ensureDashboards(s) {
   if (!(s.layoutV >= 7)) { Object.assign(s.rolodex, { side: -70, bulge: 1, offsetX: 0, pathR: 0.98 }); s.sphere.x = 0.55; s.layoutV = 7; }
   if (!(s.layoutV >= 8)) s.layoutV = 8;
   if (!(s.layoutV >= 10) && s.holes.dashboards && s.holes.dashboards.friends) { s.holes.dashboards.friends.tiers.forEach((t, i) => Object.assign(t.look, { reach: +(0.14 + 0.016 * i).toFixed(3), lens: 1, disk: 0, ring: 0, corona: 0, glow: 0, flare: 0, jets: 0, shellMotion: 0 })); s.layoutV = Math.max(s.layoutV || 0, 10); s.friendsTight = 1; }
-  if (!(s.layoutV >= 37)) { if (s.holes && s.holes.rule) Object.assign(s.holes.rule, { tiltMin: 4, tiltMax: 70, tumble: 0.4, tumbleSpeed: 0.12, dustFrom: 3, dust: 0.5, dustSize: 1.6, dustSpin: 0.6, crest: 2.2, crestWidth: 0.035, glare: 0 }); s.layoutV = Math.max(s.layoutV || 0, 37); }
+  if (!(s.layoutV >= 39)) { if (s.holes && s.holes.rule) s.holes.rule.dust = 0; s.layoutV = Math.max(s.layoutV || 0, 39); }
+  if (!(s.layoutV >= 38)) { if (s.holes && s.holes.rule) Object.assign(s.holes.rule, { dustFrom: 1, dust: 0.6, dustSize: 1.6, tiltMin: 5, tiltMax: 60 }); s.layoutV = Math.max(s.layoutV || 0, 38); }
+  if (!(s.layoutV >= 37)) { if (s.holes && s.holes.rule) Object.assign(s.holes.rule, { tiltMin: 4, tiltMax: 70, tumble: 0.4, tumbleSpeed: 0.12, dustFrom: 1, dust: 0.6, dustSize: 1.6, dustSpin: 0.6, crest: 2.2, crestWidth: 0.035, glare: 0 }); s.layoutV = Math.max(s.layoutV || 0, 37); }
   if (!(s.layoutV >= 35)) { if (s.holes && s.holes.refl) Object.assign(s.holes.refl, { catch: 0, rimSky: 0.5 }); s.layoutV = Math.max(s.layoutV || 0, 35); }
   if (!(s.layoutV >= 34)) { if (s.holes) s.holes.rule = { on: true, lens: 0.9, reach: 0.6, edge: 1.6, taper: 0.7, funnel: 0.45, width: 3.8, smear: 0.7, glare: 0.9 }; s.layoutV = Math.max(s.layoutV || 0, 34); }
   if (!(s.layoutV >= 32)) { if (s.holes) { s.holes.feed = Object.assign(s.holes.feed || {}, { on: false }); s.holes.clips = Object.assign({ on: true, scale: 1, bright: 1, turn: 1 }, s.holes.clips || {}); } s.layoutV = Math.max(s.layoutV || 0, 32); }
@@ -367,13 +369,21 @@ class RavenScene {
         for (let k = 0; k < nT; k++) { const dd = Math.abs(this.friendSizeAt(k) * this.s.holes.behavior.sizeScale - h.size); if (dd < best) { best = dd; ft = k; } }
         // the disk depends on the tier: low tiers only the warp, higher tiers a dark revolving dust disk
         if (!(h._vi > 0) && !h._pairB) { if (ft + 1 >= (RU.dustFrom ?? 3) && (RU.dust ?? 0) > 0) {
-            h.disk = 1; h.dust = RU.dust; h.diskIn = 3.0; h.diskOut = 3.0 + (RU.dustSize ?? 1.6) * (1 + 0.2 * (ft + 1 - (RU.dustFrom ?? 3))); h.diskBright = 0.35; h.diskFalloff = 0.8;
-            h.diskColorIn = '#3a2a1e'; h.diskColorOut = '#120c08'; h.diskTexture = 0.95; h.diskStreaks = 0.7; h.diskOpacity = 0.7; h.diskThick = 0.03; h.diskSpin = RU.dustSpin ?? 0.6; h.doppler = 0.2; h.clumps = 0.3;
+            // grows with the tier: tiers 1-2 a thin see-through warped ring, 3-4 darker and thicker, 5-6 wide and heavy
+            const k = ft / Math.max(1, nT - 1);
+            h.disk = 1; h.dust = Math.min(1, (RU.dust ?? 0.5) * (0.5 + 0.6 * k)); h.diskIn = 3.2; h.diskOut = 3.2 + (RU.dustSize ?? 1.6) * (0.9 + 1.1 * k); h.diskBright = 0.6; h.diskFalloff = 0.6;
+            h.diskColorIn = '#5a4634'; h.diskColorOut = '#1c140e'; h.envColor = 0.6; h.diskTexture = 1.0; h.diskStreaks = 0.85; h.diskOpacity = 0.28 + 0.27 * k; h.diskThick = 0.0; h.diskSpin = RU.dustSpin ?? 0.6; h.doppler = 0.25; h.clumps = 0.35;
           } else { h.disk = 0; h.dust = 0; } }
         // warp zone squashed along the disk's axis when tilted (circle only when seen from above)
         const rz = h.rotZ * Math.PI / 180, flat = 0.3 + 0.7 * Math.sin(h.rotX * Math.PI / 180);
         h.fa = [Math.cos(rz), Math.sin(rz), flat, 0];
-      } }
+        // crest of shine only when there is light to reflect (its own disk, or bright sky/gas near it) and only on tilted holes
+        let lit = 0; const px = this._sampleSky();
+        if (px) { let s = 0, n = 0; for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283, X = h.x * W + Math.cos(a) * h.size * 2.4, Y = h.y * H + Math.sin(a) * h.size * 2.4; if (X < 0 || X > W || Y < 0 || Y > H) continue;
+            const ii = (Math.floor(Y * 169 / H) * 78 + Math.floor(X * 78 / W)) * 4; s += (px[ii] * .3 + px[ii + 1] * .59 + px[ii + 2] * .11) / 255; n++; } lit = n ? s / n : 0; }
+        const glowDisk = (h.disk > 0 && !(h.dust > 0)) ? Math.min(1, (h.diskBright || 1) * 0.5) : 0;
+        const light = Math.min(1.5, Math.max(0, lit - 0.08) * 6 + glowDisk), tiltF = 1 - Math.min(1, Math.max(0, (h.rotX - 12) / 35));
+        h.crest = h._pairB ? [0, 0, 0.02, 0] : [(RU.crest ?? 1.4) * light * tiltF, -Math.PI / 2 + rz, RU.crestWidth ?? 0.025, 1]; } }
     const CL = this.s.holes.clips; if (CL && CL.on !== false) { for (const h of holes) if (h._vi >= 0) { h.disk = 0; h.ring = 0; h.corona = 0; h.glow = 0; h.jets = 0; h.flare = 0; h.envFeed = 0; } return holes; }
     const F = this.s.holes.feed; this._fuel = this._fuel || {};
     if (!F || F.on === false) return holes;
@@ -381,27 +391,6 @@ class RavenScene {
         h.disk = 0; h.jets = 0; h.ring = 0.45 * e0; h.ringWidth = 0.22; h.ringColor = '#f3e9ff'; h.corona = 0.35 * e0; h.coronaWidth = 1.1; h.coronaColor = '#d9d2e6'; h.glow = 0.12 * e0; h.glowColor = '#e8dcff'; h.envColor = 1; h.envFeed = 0.4 * e0; continue; }
       if (!(h._vi > 0)) continue; const g = Math.min(1, Math.max(0, this._fuel[h._fid] || 0)); const e = g * g * (3 - 2 * g);
       h.disk = (h.disk || 0) * e; h.ring = (h.ring || 0) * (0.25 + 0.75 * e); h.corona = (h.corona || 0) * e; h.glow = (h.glow || 0) * (0.15 + 0.85 * e); h.jets = (h.jets || 0) * e; h.envFeed = (h.envFeed || 0) * e; }
-    return holes;
-  }
-  _lightHoles(holes) {
-    // Run after clip/fuel gating: an invisible or unlit disk cannot cast a crest.
-    const pixels = this._sampleSky(), rule = this.s.holes.rule || {};
-    const previous = this._holeLights || (this._holeLights = new Map()), live = new Set();
-    const blend = 1 - Math.exp(-Math.min(.05, this._dtLast || .016) * 18);
-    for (const h of holes) {
-      const light = G.BH.surfaceLighting(h, holes, pixels, W, H, rule);
-      if (rule.on === false) light.crest[0] = 0;
-      const key = (h._fid || h.seed || 0) + (h._pairB ? ':pair' : ':main'); live.add(key);
-      const old = previous.get(key);
-      if (old && light.surfaceLight[3] > 0 && old.surfaceLight[3] > 0) {
-        for (let j = 0; j < 3; j++) {
-          light.surfaceLight[j] = lerp(old.surfaceLight[j], light.surfaceLight[j], blend);
-          light.surfaceColor[j] = lerp(old.surfaceColor[j], light.surfaceColor[j], blend);
-        }
-      }
-      previous.set(key, light); Object.assign(h, light);
-    }
-    for (const key of previous.keys()) if (!live.has(key)) previous.delete(key);
     return holes;
   }
   _newPiece(target) {
@@ -890,7 +879,7 @@ class RavenScene {
       this._updateSky(sdt);
       this._frameN = (this._frameN || 0) + 1; this._updateFeed(sdt);
       this._composeBg();
-      this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6; this.engine.holes = this._lightHoles(this._gateByFuel(this._holesForEngine())); this.engine.refl = this.s.holes.refl;
+      this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6; this.engine.holes = this._gateByFuel(this._holesForEngine()); this.engine.refl = this.s.holes.refl;
       this.engine.render(this.time);
       this._drawClips();
       this._drawOverlay();
