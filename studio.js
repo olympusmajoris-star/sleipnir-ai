@@ -86,7 +86,7 @@ async function applyToScene(full){
 }
 applyToScene(true);
 scene.onHoleTap = h => { const d = S.holes.dashboards[S.holes.active]; S.holes.selTier = parseInt(h.tier) || 0; testContact = h.c; showSec('holes'); toast(`${h.c.name}: ${DASH[S.holes.active]} tier ${(parseInt(h.tier)||0)+1} (${h.c.counts[S.holes.active]} ${COUNT_WORD[S.holes.active]})`); applyToScene(); };
-scene.onTurn = (dx, dy) => { const L = curLook(); L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
+scene.onTurn = (dx, dy) => { if(scene.anglePractice)return; const L = curLook(); L.angleManual=true; L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
 scene.onFrame = sc => { $('#tLbl').textContent = sc.time.toFixed(1)+'s'; };
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
@@ -120,6 +120,7 @@ function wire(el){
       let v = inp.type==='range' ? +inp.value : inp.type==='checkbox' ? inp.checked : inp.value;
       if(inp.tagName==='SELECT' && !isNaN(+v) && v!=='') v = +v;
       setPath(o, p, v); const em = el.querySelector(`em[data-v="${CSS.escape(path)}"]`); if(em) em.textContent = fmtv(v, {step:+inp.step||0.01});
+      if(/^look\.rot[XYZ]$/.test(path)) {o.angleManual=true;setAnglePractice(null);}
       change(); if(inp.dataset.re || path==='sphere.autoLight') render();
       if(path.indexOf('band')>=0) scene._bandFlash = performance.now();
       if(path==='holes.friendSize.min' || path==='holes.friendSize.max'){ const n=S.holes.dashboards.friends.tiers.length; if(S.holes.mode==='friendsOne' || S.holes.mode==='focus'){ S.holes.selTier = path.endsWith('min') ? 0 : n-1; scene.s.holes.selTier = S.holes.selTier; } fsReadout(); }
@@ -203,7 +204,7 @@ function secHoles(){
      + group('Glow, flare & jets', LOOK.extra, 'hExtra') + group('Exposure & forming', LOOK.finish, 'hFin') + group('Pair — two holes orbiting', LOOK.pair, 'hPair');
   if(hs.active==='viewers') h += group('Feeding from the sky around it', LOOK.sky, 'hSky');
   if(hs.active==='friends') h += group('Face as a reflection on a glossy black ball', [K('holes.refl.on','Show the face as a reflection'), R('holes.refl.size','How much of the ball the face covers (smaller = bigger face)',0.3,1.6,.01), R('holes.refl.bright','Face brightness',0,1.6,.01), R('holes.refl.blur','Face softness',0,3,.05), R('holes.refl.rimSky','Sky mirrored around the rim',0,2,.01), R('holes.refl.catch','Catchlight (light caught on the ball)',0,3,.01), R('holes.refl.gloss','Catchlight size',0.2,4,.01)], 'hRefl');
-  if(hs.active==='friends') h += group('How every follower hole bends space (one rule, all sizes)', [K('holes.rule.on','Use one rule for all follower holes'), R('holes.rule.lens','Bending strength',0,2.5,.01), R('holes.rule.reach','Ring size',0.1,2,.01), R('holes.rule.edge','How far the bending reaches',0.3,6,.05), R('holes.rule.taper','Big holes: keep bending tight (taper)',0,1.5,.01), R('holes.rule.funnel','Inward curve: how dark/deep before the black',0,1,.01), R('holes.rule.width','Inward curve: how far out it starts',1.3,8,.05), R('holes.rule.smear','Stars swirled around the hole',0,1.5,.01), R('holes.rule.glare','Glare on the rim',0,2,.01), R('holes.rule.crest','Crest of shine on the edge',0,4,.01), R('holes.rule.crestWidth','Crest thickness',0.005,0.12,.001), R('holes.rule.tiltMin','Flattest angle (0 = seen from above)',0,88,1), R('holes.rule.tiltMax','Most tilted angle (88 = edge-on)',0,88,1), R('holes.rule.tumble','How many slowly change angle',0,1,.01), R('holes.rule.tumbleSpeed','How fast they change angle',0,1,.01), R('holes.rule.dustFrom','Dark dust disk starts at tier',1,7,1), R('holes.rule.dust','Dust disk darkness',0,1,.01), R('holes.rule.dustSize','Dust disk size',0.3,6,.05), R('holes.rule.dustSpin','Dust disk spin',0,3,.01)], 'hRule');
+  if(hs.active==='friends') h += group('How every follower hole bends space (one rule, all sizes)', [K('holes.rule.on','Use one rule for all follower holes'), R('holes.rule.lens','Bending strength',0,2.5,.01), R('holes.rule.reach','Ring size',0.1,2,.01), R('holes.rule.edge','How far the bending reaches',0.3,6,.05), R('holes.rule.taper','Big holes: keep bending tight (taper)',0,1.5,.01), R('holes.rule.funnel','Inward curve: how dark/deep before the black',0,1,.01), R('holes.rule.width','Inward curve: how far out it starts',1.3,8,.05), R('holes.rule.smear','Stars swirled around the hole',0,1.5,.01), R('holes.rule.glare','Glare on the rim',0,2,.01), R('holes.rule.crest','Crest of shine on the edge',0,4,.01), R('holes.rule.crestWidth','Crest thickness',0.005,0.12,.001), R('holes.rule.tiltMin','Lowest view (0 = along the disk)',0,88,1), R('holes.rule.tiltMax','Highest view (90 = from above)',0,88,1), R('holes.rule.tumble','How many slowly change angle',0,1,.01), R('holes.rule.tumbleSpeed','How fast they change angle',0,1,.01), R('holes.rule.dustFrom','Dark dust disk starts at tier',1,7,1), R('holes.rule.dust','Dust disk darkness',0,1,.01), R('holes.rule.dustSize','Dust disk size',0.3,6,.05), R('holes.rule.dustSpin','Dust disk spin',0,3,.01)], 'hRule');
   h += group('Gas & dust always in the sky (ChatGPT layers)', [K('holes.gas.on','Show the gas & dust'), R('holes.gas.bright','Brightness',0,3,.01), R('holes.gas.speed','Drift speed',0,5,.01), R('holes.gas.scale','Size',0.6,3,.01), ...S.holes.gas.layers.map((L,i)=>R('holes.gas.layers.'+i+'.a', L.src.split('/').pop().replace('.webp','').replace('_',' ')+': strength',0,2,.01))], 'hGas');
   if(hs.mode==='viewsTour' && ui.open.hTour===undefined) ui.open.hTour = true;
   if(hs.mode==='viewsTour') h += group('One after another', [R('holes.behavior.tourGap','Space between one hole and the next',0,500,1), R('holes.behavior.tourSpeed','Drift speed',5,200,1), R('holes.behavior.tourY','Height on screen',0.05,0.6,.005), R('holes.behavior.tourZig','Up/down offset between holes',0,0.2,.005)], 'hTour', true);
@@ -233,7 +234,7 @@ function render(){
   const p = $('#panel'); const st = p.scrollTop;
   p.innerHTML = ({ sphere:secSphere, tabs:secTabs, background:secBackground, holes:secHoles, media:secMedia })[secNow]();
   wire(p); bindPanel(p); fsReadout(); p.scrollTop = st; renderLayers(); renderVersions();
-  $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus');
+  $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus'); if(scene.anglePractice)setAnglePractice(scene.anglePractice);
 }
 function fsReadout(){ const el=document.getElementById('fsRead'); if(!el) return; const fs=S.holes.friendSize, n=S.holes.dashboards.friends.tiers.length; el.innerHTML = Array.from({length:n},(_,i)=>`<span>T${i+1}: ${(fs.auto? fs.min+(fs.max-fs.min)*(n>1?i/(n-1):0) : S.holes.dashboards.friends.tiers[i].look.size).toFixed(1)}</span>`).join(''); }
 function showSec(s){ secNow = s; render(); }
@@ -456,8 +457,18 @@ $('#dartBtn').onclick=getDart;
 $('#boardBtn').onclick=boardShow; $('#boardClose').onclick=()=>$('#board').hidden=true;
 $('#bPost').onclick=async()=>{ const o={ who:$('#bWho').value, title:$('#bTitle').value.trim(), body:$('#bBody').value.trim() }; if(!o.title) return toast('Give it a title'); if(await boardPost(o)){ $('#bTitle').value=''; $('#bBody').value=''; boardShow(); toast('Posted'); } else toast('Could not reach the board'); };
 $('#addLayerBtn').onclick=()=>openLib('bg');
-$('#modeSky').onclick=()=>{ S.holes.mode='sky'; change(); render(); };
-$('#modeFocus').onclick=()=>{ S.holes.mode='focus'; change(); render(); };
+function setAnglePractice(view){
+  scene.anglePractice=BH.ANGLE_STUDIES[view]?view:null;
+  $('#angleViews').hidden=!scene.anglePractice;
+  $('#modeAngles').classList.toggle('on',!!scene.anglePractice);
+  $('#angleLow').classList.toggle('on',scene.anglePractice==='low');$('#angleDiagonal').classList.toggle('on',scene.anglePractice==='diagonal');
+  $('#modeSky').classList.toggle('on',!scene.anglePractice&&S.holes.mode!=='focus');$('#modeFocus').classList.toggle('on',!scene.anglePractice&&S.holes.mode==='focus');
+  $('#hint').textContent=scene.anglePractice?BH.ANGLE_STUDIES[scene.anglePractice].label+' · the disk and opening share this viewing angle':'● Real light-bending black holes · drag the busts to browse · click a black hole to edit its tier';
+}
+$('#modeAngles').onclick=()=>setAnglePractice(scene.anglePractice?null:'low');
+$('#angleLow').onclick=()=>setAnglePractice('low');$('#angleDiagonal').onclick=()=>setAnglePractice('diagonal');
+$('#modeSky').onclick=()=>{setAnglePractice(null);S.holes.mode='sky'; change(); render();};
+$('#modeFocus').onclick=()=>{setAnglePractice(null);S.holes.mode='focus'; change(); render();};
 $('#playBtn').onclick=()=>{ scene.playing=!scene.playing; $('#playBtn').textContent=scene.playing?'❚❚':'▶'; $('#playLbl').textContent=scene.playing?'Moving':'Paused'; };
 $('#speed').oninput=e=>scene.speed=+e.target.value;
 $('#snapBtn').onclick=async ()=>{ const b = await (await fetch(scene.snapshot())).blob(); saveFile('raven-'+Date.now()+'.png', b); };
@@ -465,6 +476,7 @@ const setFs=()=>{ document.documentElement.style.setProperty('--fs', ui.fs); $('
 $('#zm').onclick=()=>{ ui.fs=Math.max(.8,ui.fs-.1); setFs(); }; $('#zp').onclick=()=>{ ui.fs=Math.min(1.6,ui.fs+.1); setFs(); }; setFs();
 window.addEventListener('beforeunload', ()=>{ store.set(KEY, S); });
 render();
+setAnglePractice(new URLSearchParams(location.search).get('angles'));
 capReady.then(async () => {
   const remote = (await sbLoad()) || (await dbLoad());
   if(remote){ const was = remote.chatImported >= 3; S = applyChatImport(Raven.ensureDashboards(remote)); hist=[clone(S)]; hi=0; store.set(KEY,S); if(!was) dbSave(); applyToScene(true); render(); }

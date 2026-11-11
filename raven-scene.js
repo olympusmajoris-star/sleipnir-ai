@@ -356,13 +356,14 @@ class RavenScene {
   _gateByFuel(holes) {
     // one rule for every follower hole (only the size differs): bending tapered so a big hole doesn't warp the whole sky
     const RU = this.s.holes.rule; if (RU && RU.on !== false) { const s0 = Math.max(4, this.friendSizeAt(0) * this.s.holes.behavior.sizeScale);
-      for (const h of holes) { h.lens = RU.lens; h.reach = RU.reach; h.edgeWidth = RU.edge * Math.pow(s0 / Math.max(s0, h.size), RU.taper);
+      for (const h of holes) { if(h._angleStudy) continue; h.lens = RU.lens; h.reach = RU.reach; h.edgeWidth = RU.edge * Math.pow(s0 / Math.max(s0, h.size), RU.taper);
         h.fl = h._pairB ? [0, 3.6, 0, 0] : [RU.funnel, RU.width, RU.smear, RU.glare]; h.ring = 0; h.corona = 0;
         // every hole its own angle; some slowly tumble as they float; the face always stays facing you
         const sd = (h.seed || 0) * 12.9898, rnd = k => { const v = Math.sin(sd * 78.233 + k * 37.719) * 43758.5453; return v - Math.floor(v); };
         let tilt = (RU.tiltMin ?? 4) + ((RU.tiltMax ?? 70) - (RU.tiltMin ?? 4)) * rnd(1);
-        if (rnd(2) < (RU.tumble ?? 0.4)) tilt += Math.sin(this.time * (RU.tumbleSpeed ?? 0.12) * (0.6 + rnd(3)) + rnd(4) * 6.28) * 22;
-        h.rotX = clamp(tilt, 1, 88); h.rotZ = (rnd(5) - 0.5) * 50; h.diskDir = rnd(6) < 0.5 ? -1 : 1;
+        if (rnd(2) < (RU.tumble ?? 0.4)) tilt += Math.sin(this.time * Math.min(.035,RU.tumbleSpeed ?? .025) * (0.6 + rnd(3)) + rnd(4) * 6.28) * 8;
+        if(!h.angleManual && this.s.holes.mode!=='focus') { h.rotX = clamp(tilt, 7, 78); h.rotZ = (rnd(5) - 0.5) * 90; }
+        h.diskDir = rnd(6) < 0.5 ? -1 : 1;
         // which follower tier this hole is (by size)
         let ft = 0, best = 1e9; const nT = this.s.holes.dashboards.friends.tiers.length;
         for (let k = 0; k < nT; k++) { const dd = Math.abs(this.friendSizeAt(k) * this.s.holes.behavior.sizeScale - h.size); if (dd < best) { best = dd; ft = k; } }
@@ -388,18 +389,11 @@ class RavenScene {
     // Run after clip/fuel gating: an invisible or unlit disk cannot cast a crest.
     const pixels = this._sampleSky(), rule = this.s.holes.rule || {};
     const previous = this._holeLights || (this._holeLights = new Map()), live = new Set();
-    const blend = 1 - Math.exp(-Math.min(.05, this._dtLast || .016) * 18);
     for (const h of holes) {
-      const light = G.BH.surfaceLighting(h, holes, pixels, W, H, rule);
+      let light = G.BH.surfaceLighting(h, holes, pixels, W, H, h._angleStudy?{...rule,crest:1,crestWidth:.018}:rule);
       if (rule.on === false) light.crest[0] = 0;
       const key = (h._fid || h.seed || 0) + (h._pairB ? ':pair' : ':main'); live.add(key);
-      const old = previous.get(key);
-      if (old && light.surfaceLight[3] > 0 && old.surfaceLight[3] > 0) {
-        for (let j = 0; j < 3; j++) {
-          light.surfaceLight[j] = lerp(old.surfaceLight[j], light.surfaceLight[j], blend);
-          light.surfaceColor[j] = lerp(old.surfaceColor[j], light.surfaceColor[j], blend);
-        }
-      }
+      light=G.BH.settleLighting(light,previous.get(key),this.playing===false?0:(this._dtLast||.016));
       previous.set(key, light); Object.assign(h, light);
     }
     for (const key of previous.keys()) if (!live.has(key)) previous.delete(key);
@@ -626,6 +620,12 @@ class RavenScene {
   }
   _holesForEngine() {
     const hs = this.s.holes, B = hs.behavior, out = [], faces = [];
+    if(this.anglePractice && G.BH.ANGLE_STUDIES[this.anglePractice]) {
+      const study=G.BH.ANGLE_STUDIES[this.anglePractice], contact=this._testContact||this.contacts[0];
+      const look={...G.BH.BH_DEFAULTS,...study,x:this.anglePractice==='low'?.59:.5,y:.24,size:69,lens:1,reach:.55,faceAmt:.8,faceZoom:1,_vi:-1,_fid:'angle-'+this.anglePractice,_angleStudy:true,angleManual:true,fl:[.12,3.8,.06,0]};
+      this._expand(look,contact,out,faces);this._faceSlots(faces);
+      this._tagged=[];return out;
+    }
     if (hs.mode === 'focus') {
       const TT = hs.dashboards[hs.active].tiers; const t = TT[Math.min(TT.length - 1, Math.max(0, parseInt(hs.selTier) || 0))]; const look = this.focusLook || t.look;
       const sz = hs.active === 'friends' ? this.friendSizeAt(hs.selTier) : look.size;

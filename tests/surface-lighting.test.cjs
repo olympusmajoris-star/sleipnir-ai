@@ -7,7 +7,7 @@ const context = vm.createContext({ window: {} });
 for (const file of ['bh-engine.js', 'raven-scene.js']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), context);
 }
-const { BH_DEFAULTS, surfaceLighting } = context.window.BH;
+const { BH_DEFAULTS, surfaceLighting, projectedProfile, settleLighting, ANGLE_STUDIES } = context.window.BH;
 const hole = changes => ({ ...BH_DEFAULTS, x:.5, y:.5, size:32.5, disk:0, ...changes });
 const light = (h, pixels=null, others=[]) => surfaceLighting(h, [h,...others], pixels,390,844,{crest:2.2});
 function sky(value=0, spot=null, spotRadius=4) {
@@ -69,4 +69,38 @@ test('clip gating is applied before lighting, preventing a phantom disk crest',(
   const h=hole({_vi:1,seed:1,disk:1});
   const result=scene._lightHoles(scene._gateByFuel([h]));
   assert.equal(result[0].disk,0); assert.equal(result[0].crest[0],0);
+});
+test('oblique opening projects as an oval, aligned with the disk rather than a circle',()=>{
+  const h=hole({...ANGLE_STUDIES.diagonal});const p=projectedProfile(h);
+  assert.ok(p[2]<.7);assert.ok(Math.abs(Math.atan2(p[1],p[0])-h.rotZ*Math.PI/180)<1e-6);
+  assert.equal(projectedProfile(hole({rotX:90}))[2],1);
+  assert.equal(projectedProfile({...h,_vi:2})[2],1);
+});
+test('the crest stays on the exposed rim when competing source positions change',()=>{
+  const h=hole({rotX:38,rotZ:-37,disk:1});
+  const left=light(h,sky(0,[29,84])),right=light(h,sky(0,[49,84]));
+  assert.equal(left.crest[1],right.crest[1]);
+});
+test('light does not blink or chase a source that switches sides every quarter-second',()=>{
+  const h=hole({rotX:38,rotZ:-37,disk:1});
+  const left=light(h,sky(0,[29,84])),right=light(h,sky(0,[49,84]));
+  let p=settleLighting(left,null,1/60);
+  for(let i=0;i<600;i++){
+    const n=settleLighting(Math.floor(i/15)%2?right:left,p,1/60);
+    assert.ok(Math.abs(n.crest[0]-p.crest[0])<.04);
+    assert.ok(n.surfaceLight[0]<0,'reflection must not chase brief opposite flashes');p=n;
+  }
+  const off=light(hole({rotX:90}),sky());
+  for(let i=0;i<600;i++)p=settleLighting(off,p,1/60);
+  assert.equal(p.crest[0],0);assert.equal(p.surfaceLight[3],0);
+});
+test('angle practice keeps its chosen perspective and luminous disk without changing saved settings',()=>{
+  const scene=Object.create(context.window.Raven.RavenScene.prototype);
+  scene.time=0;scene.friendSizeAt=()=>32.5;
+  scene.s={holes:{rule:{on:true,lens:1,reach:1,edge:1,taper:0,tiltMin:4,tiltMax:70},behavior:{sizeScale:1},dashboards:{friends:{tiers:[{}]}},clips:{on:true}}};
+  const before=JSON.stringify(scene.s);
+  const h=hole({...ANGLE_STUDIES.diagonal,_angleStudy:true,_vi:-1});
+  const result=scene._gateByFuel([h])[0];
+  assert.equal(result.rotX,38);assert.equal(result.rotZ,-37);assert.equal(result.disk,1);
+  assert.equal(JSON.stringify(scene.s),before);
 });
