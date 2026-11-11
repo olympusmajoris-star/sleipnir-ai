@@ -373,13 +373,7 @@ class RavenScene {
         // warp zone squashed along the disk's axis when tilted (circle only when seen from above)
         const rz = h.rotZ * Math.PI / 180, flat = 0.3 + 0.7 * Math.sin(h.rotX * Math.PI / 180);
         h.fa = [Math.cos(rz), Math.sin(rz), flat, 0];
-        // crest of shine only when there is light to reflect (its own disk, or bright sky/gas near it) and only on tilted holes
-        let lit = 0; const px = this._sampleSky();
-        if (px) { let s = 0, n = 0; for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283, X = h.x * W + Math.cos(a) * h.size * 2.4, Y = h.y * H + Math.sin(a) * h.size * 2.4; if (X < 0 || X > W || Y < 0 || Y > H) continue;
-            const ii = (Math.floor(Y * 169 / H) * 78 + Math.floor(X * 78 / W)) * 4; s += (px[ii] * .3 + px[ii + 1] * .59 + px[ii + 2] * .11) / 255; n++; } lit = n ? s / n : 0; }
-        const glowDisk = (h.disk > 0 && !(h.dust > 0)) ? Math.min(1, (h.diskBright || 1) * 0.5) : 0;
-        const light = Math.min(1.5, Math.max(0, lit - 0.08) * 6 + glowDisk), tiltF = 1 - Math.min(1, Math.max(0, (h.rotX - 12) / 35));
-        h.crest = h._pairB ? [0, 0, 0.02, 0] : [(RU.crest ?? 1.4) * light * tiltF, -Math.PI / 2 + rz, RU.crestWidth ?? 0.025, 1]; } }
+      } }
     const CL = this.s.holes.clips; if (CL && CL.on !== false) { for (const h of holes) if (h._vi >= 0) { h.disk = 0; h.ring = 0; h.corona = 0; h.glow = 0; h.jets = 0; h.flare = 0; h.envFeed = 0; } return holes; }
     const F = this.s.holes.feed; this._fuel = this._fuel || {};
     if (!F || F.on === false) return holes;
@@ -387,6 +381,27 @@ class RavenScene {
         h.disk = 0; h.jets = 0; h.ring = 0.45 * e0; h.ringWidth = 0.22; h.ringColor = '#f3e9ff'; h.corona = 0.35 * e0; h.coronaWidth = 1.1; h.coronaColor = '#d9d2e6'; h.glow = 0.12 * e0; h.glowColor = '#e8dcff'; h.envColor = 1; h.envFeed = 0.4 * e0; continue; }
       if (!(h._vi > 0)) continue; const g = Math.min(1, Math.max(0, this._fuel[h._fid] || 0)); const e = g * g * (3 - 2 * g);
       h.disk = (h.disk || 0) * e; h.ring = (h.ring || 0) * (0.25 + 0.75 * e); h.corona = (h.corona || 0) * e; h.glow = (h.glow || 0) * (0.15 + 0.85 * e); h.jets = (h.jets || 0) * e; h.envFeed = (h.envFeed || 0) * e; }
+    return holes;
+  }
+  _lightHoles(holes) {
+    // Run after clip/fuel gating: an invisible or unlit disk cannot cast a crest.
+    const pixels = this._sampleSky(), rule = this.s.holes.rule || {};
+    const previous = this._holeLights || (this._holeLights = new Map()), live = new Set();
+    const blend = 1 - Math.exp(-Math.min(.05, this._dtLast || .016) * 18);
+    for (const h of holes) {
+      const light = G.BH.surfaceLighting(h, holes, pixels, W, H, rule);
+      if (rule.on === false) light.crest[0] = 0;
+      const key = (h._fid || h.seed || 0) + (h._pairB ? ':pair' : ':main'); live.add(key);
+      const old = previous.get(key);
+      if (old && light.surfaceLight[3] > 0 && old.surfaceLight[3] > 0) {
+        for (let j = 0; j < 3; j++) {
+          light.surfaceLight[j] = lerp(old.surfaceLight[j], light.surfaceLight[j], blend);
+          light.surfaceColor[j] = lerp(old.surfaceColor[j], light.surfaceColor[j], blend);
+        }
+      }
+      previous.set(key, light); Object.assign(h, light);
+    }
+    for (const key of previous.keys()) if (!live.has(key)) previous.delete(key);
     return holes;
   }
   _newPiece(target) {
@@ -875,7 +890,7 @@ class RavenScene {
       this._updateSky(sdt);
       this._frameN = (this._frameN || 0) + 1; this._updateFeed(sdt);
       this._composeBg();
-      this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6; this.engine.holes = this._gateByFuel(this._holesForEngine()); this.engine.refl = this.s.holes.refl;
+      this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6; this.engine.holes = this._lightHoles(this._gateByFuel(this._holesForEngine())); this.engine.refl = this.s.holes.refl;
       this.engine.render(this.time);
       this._drawClips();
       this._drawOverlay();

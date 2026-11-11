@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8"><title>Asgard lighting verification</title>
+<style>body{margin:24px;background:#10141a;color:#e9eff7;font:14px system-ui}h1{font-size:22px}main{display:grid;grid-template-columns:repeat(3,280px);gap:18px}figure{margin:0}canvas{width:280px;height:250px;background:#000;border:1px solid #26313d}figcaption{line-height:1.6}output{display:block;color:#96c5dc;font:12px monospace}button{padding:10px;margin:0 10px 18px 0}</style>
+<h1>Asgard — lighting follows its source</h1>
+<p>65-pixel dark center. These isolated renderer checks do not load or save studio settings.</p>
+<button id="left">Move light left</button><button id="right">Move light right</button><button id="off">Turn passing light off</button>
+<main></main><p id="status">Compiling renderer…</p>
+<script src="../bh-engine.js"></script>
+<script>
+const configs=[
+ ['Head-on · no source',{rotX:90,disk:0}],['Angled · no source',{rotX:12,disk:0}],['Angled · luminous disk',{rotX:12,rotZ:24,disk:1}],
+ ['Head-on · luminous disk',{rotX:90,disk:1}],['Head-on · passing source',{rotX:90,disk:0,source:true}],['Angled · passing source',{rotX:12,rotZ:-25,disk:0,source:true}]
+];
+let sourceSide=-1;
+const scenes=[];
+try {
+ for(const [name,change] of configs){
+  const f=document.createElement('figure'), canvas=document.createElement('canvas'), caption=document.createElement('figcaption'), output=document.createElement('output');
+  caption.textContent=name;f.append(canvas,caption,output);document.querySelector('main').append(f);
+  const engine=new BH.BHScene(canvas,{scale:2});engine.resize(280,250);engine.mutual=0;engine.refl={on:true,size:.7,bright:.8,rimSky:.5,catch:0,gloss:.7};
+  const background=document.createElement('canvas');background.width=280;background.height=250;
+  const sample=document.createElement('canvas');sample.width=78;sample.height=169;
+  scenes.push({engine,background,sample,output,h:{...BH.BH_DEFAULTS,x:.5,y:.5,size:32.5,faceAmt:.85,faceZoom:1,fl:[.3,3.8,.25,0],...change}});
+ }
+ const face=new Image();face.onload=()=>{for(const s of scenes)s.engine.setFace(0,face);draw();};face.src='../faces/Freya.jpg';
+ function draw(){
+  for(const s of scenes){const x=s.background.getContext('2d');x.fillStyle='#03050a';x.fillRect(0,0,280,250);
+   if(s.h.source&&sourceSide){const px=140+sourceSide*65,py=105,g=x.createRadialGradient(px,py,0,px,py,19);g.addColorStop(0,'#fff8da');g.addColorStop(.45,'#fff0bb');g.addColorStop(1,'#03050a');x.fillStyle=g;x.fillRect(px-20,py-20,40,40);}
+   const sx=s.sample.getContext('2d',{willReadFrequently:true});sx.drawImage(s.background,0,0,78,169);
+   Object.assign(s.h,BH.surfaceLighting(s.h,[s.h],sx.getImageData(0,0,78,169).data,280,250,{crest:2.2,crestWidth:.025}));
+   s.engine.setBackground('A',s.background);s.engine.holes=[s.h];s.engine.render(0);
+   const error=s.engine.gl.getError();if(error)throw Error('WebGL error '+error);
+   s.output.textContent='crest '+s.h.crest[0].toFixed(3)+' · reflection '+s.h.surfaceLight[3].toFixed(3)+' · direction '+s.h.surfaceLight[0].toFixed(2);
+  }
+  document.querySelector('#status').textContent='PASS — all six WebGL scenes compiled and rendered.';
+ }
+ document.querySelector('#left').onclick=()=>{sourceSide=-1;draw();};document.querySelector('#right').onclick=()=>{sourceSide=1;draw();};document.querySelector('#off').onclick=()=>{sourceSide=0;draw();};draw();
+}catch(e){document.querySelector('#status').textContent='FAIL — '+e.message;console.error(e);}
+</script>

@@ -92,6 +92,8 @@ uniform vec4 uH7[MAXH];   // flare, flareLen, flareWidth, jets
 uniform vec4 uH8[MAXH];   // jetLen, jetWidth, exposure, opacity
 uniform vec4 uH9[MAXH];   // faceZoom, seed, -, -
 uniform vec4 uFL[MAXH]; uniform vec4 uDust[MAXH]; uniform vec4 uCR[MAXH]; uniform vec4 uFA[MAXH];
+uniform vec3 uCrestColor[MAXH], uSurfaceColor[MAXH];
+uniform vec4 uSurfaceLight[MAXH]; // direction in camera coordinates, incident brightness
  uniform vec4 uRefl; uniform vec4 uRefl2;   // reflection: amount, face size, gloss, rim sky | catchlight, face brightness, blur, -   // follower rule: funnel darkness, influence width (hole radii), swirl smear, edge glare
 uniform vec4 uHF[MAXH]; uniform vec4 uFaceEdge; uniform float uEdgeW[MAXH]; uniform vec4 uEnv[MAXH]; uniform float uMutual;   // env: colorFromSky, sampleRadius, feedFromSky, -   // faceSphere, faceShade, -, -
 uniform vec3 uCDin[MAXH], uCDout[MAXH], uCRing[MAXH], uCCor[MAXH], uCFlare[MAXH], uCJet[MAXH], uCGlow[MAXH], uCHor[MAXH];
@@ -296,7 +298,7 @@ void main(){
   vec3 skyC = mix(bgAtG(src, sdx, sdy), bgAtG(srcSmooth, dFdx(srcSmooth), dFdy(srcSmooth)), smoothstep(0.15, 0.85, photonK));
   // follower rule (like the reference): stars smeared round the hole, space sinking into a darker inward curve just before the black, a soft glare on the rim
   if(!captured){
-    for(int i=0;i<MAXH;i++){ if(i>=uN) break; vec4 fl = uFL[i]; if(fl.x + fl.z + fl.w <= 0.) continue;
+    for(int i=0;i<MAXH;i++){ if(i>=uN) break; vec4 fl = uFL[i]; vec4 cr = uCR[i]; if(fl.x + fl.z + fl.w + cr.x <= 0.) continue;
       vec2 c = uH0[i].xy; float R = uH0[i].z; float dlc = length(px - c) / R; float W = max(fl.y, 1.2);
       // tilted holes: the warp zone follows the disk plane, so it is an ellipse, not a perfect circle
       vec4 fa = uFA[i]; vec2 q0 = px - c; vec2 qe = vec2(q0.x*fa.x + q0.y*fa.y, -q0.x*fa.y + q0.y*fa.x); qe.y /= max(fa.z, 0.2);
@@ -310,18 +312,14 @@ void main(){
         skyC = mix(skyC, acc / n, clamp(fl.z, 0., 1.)); }
       float f = pow(t, 1.8);                                   // gentle far out, curving down hard right before the edge
       skyC *= 1.0 - fl.x * f;
-      if(fl.w > 0.){ vec2 dir = normalize(px - c + 1e-4); float side = pow(max(0., dot(dir, normalize(vec2(-0.35, 1.0)))), 1.6);
-        float g = fl.w * exp(-pow((dl - 1.04) / 0.05, 2.)) * side;
-        vec3 loc = bgAtG(c + dir * R * 2.2, vec2(8.,0.), vec2(0.,8.));
-        skyC += g * (loc * 1.6 + vec3(0.10, 0.09, 0.08)); }
-      // crest of shine: one clean bright line hugging the lit side of the ball's edge (shows it is round), shimmering as the disk turns
-      vec4 cr = uCR[i];
-      if(cr.x > 0.){ vec2 dd = px - c; float an = atan(dd.y, dd.x); float side = pow(max(0., cos(an - cr.y)), 2.5);
-        float band = exp(-pow((dlc - 1.0 - cr.z * 1.5) / max(cr.z, 0.004), 2.));
-        float shim = 0.88 + 0.12 * sin(an * 9.0 - uTime * 2.2 + float(i) * 1.7);
-        vec3 loc2 = bgAtG(c + normalize(dd + 1e-4) * R * 2.6, vec2(10.,0.), vec2(0.,10.));
-        vec3 cc = mix(loc2 * 1.8 + vec3(0.22, 0.2, 0.18), uCDin[i], clamp(uH2[i].x * (1.0 - uDust[i].x), 0., 1.) * 0.6);
-        skyC += cc * cr.x * band * side * shim; }
+      // A smooth crest needs incident light and an inclined disk. No ambient rim,
+      // fixed upper-left light, or independent sparkle animation.
+      if(cr.x > 0.){ vec2 dd = px - c; float an = atan(dd.y, dd.x);
+        float side = pow(max(0., cos(an - cr.y)), max(cr.w, 1.));
+        float width = max(cr.z, 0.65 / max(R, 1.));
+        float band = exp(-pow((dlc - 1.0 - width * 0.65) / width, 2.));
+        skyC += uCrestColor[i] * cr.x * side * band;
+        if(fl.w > 0.) skyC += uCrestColor[i] * cr.x * side * fl.w * 0.2 * exp(-pow((dlc - 1.04) / (width * 2.5), 2.)); }
     }
   }
   vec3 col;
@@ -357,10 +355,9 @@ void main(){
         vec3 sky = bgAtG(uH0[capI].xy + vec2(rf.x, -rf.y) * uH0[capI].z * 3.5, vec2(6.,0.), vec2(0.,6.));
         float fres = 0.05 + 0.95 * pow(1.0 - n.z, 4.0);
         vec3 c = face * uRefl2.y * win * (0.55 + 0.45 * n.z);
-        c += sky * (fres * uRefl.w + 0.08) * (1.0 - win * 0.85);
-        // soft window-like catchlight, upper left, like light caught on an eye
-        vec3 L = normalize(vec3(-0.45, 0.55, 0.7)); float sp = pow(max(dot(rf, L), 0.), 90.0 / max(uRefl.z, 0.05));
-        c += vec3(1.0, 0.97, 0.92) * sp * uRefl2.x;
+        vec4 light = uSurfaceLight[capI];
+        float mirror = light.w * pow(max(dot(rf, normalize(light.xyz + vec3(0.,0.,1e-5))), 0.), 6.);
+        c += sky * fres * uRefl.w * mirror * (1.0 - win * 0.85);
         c *= smoothstep(1.0, 0.94, pr);                                   // crisp dark edge of the ball
         fc = c;
         hor = mix(hor, fc, fa);
@@ -368,15 +365,25 @@ void main(){
 
       if(uRefl.x <= 0.){
       float z = sqrt(max(0., 1. - qr*qr));
-      float lam = max(0., dot(nb, normalize(vec3(-0.45, 0.5, 0.74))));
+      vec4 light = uSurfaceLight[capI];
+      float lam = max(0., dot(nb, normalize(light.xyz + vec3(0.,0.,1e-5)))) * min(light.w, 1.);
       float limb = pow(nb.z, 0.9);                                     // edges of the ball fall into shadow
-      float spec = pow(max(0., dot(reflect(-normalize(vec3(-0.45, 0.5, 0.74)), nb), vec3(0,0,1))), 40.);
-      float shade = mix(1.0, (0.35 + 0.8*lam) * (0.55 + 0.45*limb), uHF[capI].y);
-      fc = fc * shade + vec3(spec) * 0.35 * uHF[capI].y;
+      float shade = mix(1.0, (0.65 + 0.5*lam) * (0.55 + 0.45*limb), uHF[capI].y);
+      fc = fc * shade;
       float edge = smoothstep(1.0, 0.985, qr);
       fc *= mix(1.0, 0.0, uHF[capI].y * smoothstep(0.86, 1.0, qr) * 0.0);
       hor = mix(hor, fc, fa*edge);
       }
+    }
+    // A nearby visible source can reflect on a head-on ball too. This lobe follows
+    // that source, and has exactly zero energy when no source is present.
+    vec4 light = uSurfaceLight[capI];
+    if(light.w > 0. && uRefl.x > 0.){
+      vec2 p = capD / uH0[capI].z; float pr = min(length(p), 0.999);
+      vec3 n = normalize(vec3(p.x, -p.y, sqrt(max(0., 1. - pr*pr))));
+      vec3 rf = reflect(vec3(0,0,-1), n);
+      float sp = pow(max(dot(rf, normalize(light.xyz)), 0.), 70. / max(uRefl.z, 0.1));
+      hor += uSurfaceColor[capI] * light.w * sp * (uRefl.w + uRefl2.x) * smoothstep(1., 0.94, pr);
     }
     col = hor + em;
   } else {
@@ -385,8 +392,7 @@ void main(){
   // per-hole exposure folded globally (holes rarely overlap)
   float ex = 1.0; for(int i=0;i<MAXH;i++){ if(i>=uN) break; float dl=length(px-uH0[i].xy)/uH0[i].z; ex = mix(ex, uH8[i].z, smoothstep(12.0,3.0,dl)); }
   // emission tone-mapped, background left untouched
-  vec3 base = captured ? uCHor[capI] : skyC;
-  if(captured && uH1[capI].z > 0.) base = col - em;
+  vec3 base = captured ? col - em : skyC;
   vec3 lit = (em + overlay) * ex;
   lit = 1.0 - exp(-lit*1.6);
   vec3 outc = base*T*(captured?1.0:1.0) + lit*(1.0 - 0.5*clamp(dot(base*T,vec3(.33)),0.,1.));
@@ -401,6 +407,74 @@ function rotM(rx,ry,rz){ // degrees -> mat3 (column-major) mapping camera frame 
   const X=[1,0,0, 0,ca,sa, 0,-sa,ca], Y=[cb,0,-sb, 0,1,0, sb,0,cb], Z=[cc,sc,0, -sc,cc,0, 0,0,1];
   const mul=(A,B)=>{const R=new Array(9);for(let i=0;i<3;i++)for(let j=0;j<3;j++){let s=0;for(let k=0;k<3;k++)s+=A[k*3+i]*B[j*3+k];R[j*3+i]=s;}return R;};
   return mul(X,mul(Y,Z));
+}
+
+// Lighting uses the same orientation as the ray-traced disk (its normal is +Y).
+// rotX=90 is face-on; rotX=0 is edge-on. A dark/distortion-only disk emits no light.
+function surfaceLighting(h, holes, pixels, sceneW, sceneH, rule = {}) {
+  const limit = (x, a=0, b=1) => Math.max(a, Math.min(b, x));
+  const smooth = (a,b,x) => { const t=limit((x-a)/(b-a)); return t*t*(3-2*t); };
+  const lum = c => c[0]*0.2126+c[1]*0.7152+c[2]*0.0722;
+  const visible = q => limit(q.form ?? 1)*limit(q.opacity ?? 1);
+  const radiance = q => (q.disk > 0 && !(q.dust > 0)) ? Math.max(0,q.disk)*Math.max(0,q.diskBright ?? 0)*limit(q.diskOpacity ?? 1)*visible(q) : 0;
+  const cx=h.x*sceneW, cy=h.y*sceneH, radius=Math.max(1,h.size);
+  const read = (x,y) => {
+    if(!pixels || x<0 || y<0 || x>=sceneW || y>=sceneH) return [0,0,0];
+    const fx=limit(x/sceneW*78-.5,0,77), fy=limit(y/sceneH*169-.5,0,168);
+    const x0=Math.floor(fx), y0=Math.floor(fy), tx=fx-x0, ty=fy-y0, c=[0,0,0];
+    for(let dy=0;dy<2;dy++) for(let dx=0;dx<2;dx++) {
+      const at=(Math.min(168,y0+dy)*78+Math.min(77,x0+dx))*4, w=(dx?tx:1-tx)*(dy?ty:1-ty);
+      for(let j=0;j<3;j++) c[j]+=pixels[at+j]/255*w;
+    } return c;
+  };
+  const samples=[], mean=[0,0,0];
+  for(let k=0;k<32;k++) for(const reach of [1.5,2.5,4]) {
+    const a=k*Math.PI/16, dx=Math.cos(a), dy=Math.sin(a), c=read(cx+dx*radius*reach,cy+dy*radius*reach);
+    samples.push({dx,dy,c,l:lum(c),reach}); for(let j=0;j<3;j++) mean[j]+=c[j]/96;
+  }
+  // A diffuse sky is not an extra lamp. Require a bright, localized patch.
+  const threshold=Math.max(.42,lum(mean)+.16);
+  let strongest=null, score=0;
+  for(const p of samples) {
+    p.energy=Math.max(0,p.l-threshold)*smooth(threshold,threshold+.16,p.l)*3/(p.reach*p.reach);
+    if(p.energy>score) { strongest=p; score=p.energy; }
+  }
+  let direction=[0,0,1], color=[0,0,0], strength=0;
+  if(strongest) {
+    let dx=0,dy=0,sum=0; const rgb=[0,0,0];
+    for(const p of samples) {
+      const alignment=p.dx*strongest.dx+p.dy*strongest.dy;
+      const e=p.energy*smooth(.8,1,alignment);
+      dx+=p.dx*e; dy+=p.dy*e; sum+=e; for(let j=0;j<3;j++) rgb[j]+=p.c[j]*e;
+    }
+    const len=Math.max(1e-6,Math.hypot(dx,dy)); direction=[dx/len,-dy/len,.25];
+    color=rgb.map(v=>v/Math.max(sum,1e-6)); strength=Math.min(1.5,score*3);
+  }
+  // Other glowing holes are explicit light sources, with distance falloff.
+  for(const other of holes) {
+    if(other===h) continue;
+    const dx=(other.x-h.x)*sceneW, dy=(other.y-h.y)*sceneH, d=Math.hypot(dx,dy);
+    if(d<=radius+Math.max(1,other.size)*.5) continue;
+    const power=radiance(other)+((other.glow||0)*.5+(other.ring||0)*.15+(other.corona||0)*.2)*visible(other);
+    const energy=power*Math.pow(Math.max(1,other.size)/Math.max(d-radius,1),2);
+    if(energy>strength) { direction=[dx/d,-dy/d,.25]; strength=Math.min(1.5,energy); color=hex(other.disk>0?other.diskColorIn:(other.glowColor||other.ringColor||'#000000')); }
+  }
+  const norm=Math.hypot(...direction); direction=direction.map(v=>v/norm);
+  strength*=visible(h);
+  const R=rotM(h.rotX||0,h.rotY||0,h.rotZ||0), nx=R[1], ny=R[4];
+  const inclination=smooth(.3,.85,Math.hypot(nx,ny));
+  let diskColor=lin(h.diskColorIn||'#000000');
+  const mx=Math.max(...mean,.02), env=mean.map(v=>v/mx*.82+.18);
+  diskColor=diskColor.map((v,j)=>v*(1-limit(h.envColor||0))+env[j]*limit(h.envColor||0));
+  const diskPower=radiance(h)*lum(diskColor)*.65;
+  const flip=R[7]>0?-1:1;
+  let crestAngle=Math.atan2(-ny*flip,nx*flip), crestColor=diskColor, crestPower=diskPower, span=2.5;
+  if(strength>diskPower) { crestAngle=Math.atan2(-direction[1],direction[0]); crestColor=color; crestPower=strength; span=8; }
+  return {
+    crest: [Math.min(2,crestPower)*inclination*Math.max(0,rule.crest??1.4),crestAngle,rule.crestWidth??.025,span],
+    crestColor,
+    surfaceLight: [...direction,strength], surfaceColor: color,
+  };
 }
 
 class BHScene {
@@ -466,6 +540,8 @@ class BHScene {
     A('uEnv',h=>[h.envColor ?? 0, h.envRadius ?? 2.4, h.envFeed ?? 0, 0]);
     A('uHF',h=>[h.faceSphere ?? 0, h.faceShade ?? 0, h.faceTurn ?? 0, h.faceCover ?? 1.0]);
     A('uFL',h=>h.fl||[0,3.6,0,0]); A('uDust',h=>[h.dust||0,0,0,0]); A('uCR',h=>h.crest||[0,0,0.02,0]); A('uFA',h=>h.fa||[1,0,1,0]);
+    C('uCrestColor',h=>h.crestColor||[0,0,0]);
+    A('uSurfaceLight',h=>h.surfaceLight||[0,0,1,0]); C('uSurfaceColor',h=>h.surfaceColor||[0,0,0]);
     A('uH9',(h,i)=>[h.faceZoom,(h.seed!==undefined?h.seed:i*7.31),h.arms||0,h.armSharp||3]);
     C('uCDin',h=>lin(h.diskColorIn)); C('uCDout',h=>lin(h.diskColorOut)); C('uCRing',h=>lin(h.ringColor)); C('uCCor',h=>lin(h.coronaColor));
     C('uCFlare',h=>lin(h.flareColor)); C('uCJet',h=>lin(h.jetColor)); C('uCGlow',h=>lin(h.glowColor)); C('uCHor',h=>lin(h.horizonColor));
@@ -473,5 +549,5 @@ class BHScene {
   }
 }
 
-G.BH = { BHScene, BH_DEFAULTS, BH_PRESETS, LIB_TO_PRESET, MAXH, rotM };
+G.BH = { BHScene, BH_DEFAULTS, BH_PRESETS, LIB_TO_PRESET, MAXH, rotM, surfaceLighting };
 })(window);
