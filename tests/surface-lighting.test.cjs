@@ -10,10 +10,10 @@ for (const file of ['bh-engine.js', 'raven-scene.js']) {
 const { BH_DEFAULTS, surfaceLighting } = context.window.BH;
 const hole = changes => ({ ...BH_DEFAULTS, x:.5, y:.5, size:32.5, disk:0, ...changes });
 const light = (h, pixels=null, others=[]) => surfaceLighting(h, [h,...others], pixels,390,844,{crest:2.2});
-function sky(value=0, spot=null) {
+function sky(value=0, spot=null, spotRadius=4) {
   const p=new Uint8ClampedArray(78*169*4);
   for(let y=0;y<169;y++) for(let x=0;x<78;x++) {
-    const i=(y*78+x)*4, bright=spot && Math.hypot(x-spot[0],y-spot[1])<4;
+    const i=(y*78+x)*4, bright=spot && Math.hypot(x-spot[0],y-spot[1])<spotRadius;
     p[i]=p[i+1]=p[i+2]=bright?255:value; p[i+3]=255;
   } return p;
 }
@@ -50,6 +50,11 @@ test('nearby emitting holes illuminate, hidden or dust-only neighbors do not',()
   assert.ok(light(h,null,[other]).surfaceLight[3]>0);
   assert.equal(light(h,null,[{...other,opacity:0}]).surfaceLight[3],0);
   assert.equal(light(h,null,[{...other,dust:1}]).surfaceLight[3],0);
+});
+test('small nearby lights between the old sampling rings are detected',()=>{
+  const h=hole({rotX:90});
+  const l=light(h,sky(0,[52,84],1.5));
+  assert.ok(l.surfaceLight[3]>0); assert.ok(l.surfaceLight[0]>.5);
 });
 test('disabled, zero-brightness, unformed and invisible disks cannot light themselves',()=>{
   for(const change of [{disk:0},{diskBright:0},{diskOpacity:0},{opacity:0},{form:0}]) {

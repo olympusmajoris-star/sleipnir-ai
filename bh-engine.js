@@ -428,9 +428,9 @@ function surfaceLighting(h, holes, pixels, sceneW, sceneH, rule = {}) {
     } return c;
   };
   const samples=[], mean=[0,0,0];
-  for(let k=0;k<32;k++) for(const reach of [1.5,2.5,4]) {
+  for(let k=0;k<32;k++) for(const reach of [1.3,1.65,2,2.5,3.2,4]) {
     const a=k*Math.PI/16, dx=Math.cos(a), dy=Math.sin(a), c=read(cx+dx*radius*reach,cy+dy*radius*reach);
-    samples.push({dx,dy,c,l:lum(c),reach}); for(let j=0;j<3;j++) mean[j]+=c[j]/96;
+    samples.push({dx,dy,c,l:lum(c),reach}); for(let j=0;j<3;j++) mean[j]+=c[j]/192;
   }
   // A diffuse sky is not an extra lamp. Require a bright, localized patch.
   const threshold=Math.max(.42,lum(mean)+.16);
