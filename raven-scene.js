@@ -1007,8 +1007,9 @@ class RavenScene {
         const hs=this.s.holes,followers=hs.together.followers??50;
         const radius=this.friendSizeAt(tierAt(hs.dashboards.friends.tiers,followers))*(hs.behavior.sizeScale??1);
         const pair=this._together=G.AsgardModelPreview.together(hs,this.time,radius);
-        this.engine.holes=[pair.model];
+        this.engine.holes=[pair.model,pair.quiet];
         this._tagged=[
+          {c:{id:'tier1'},x:pair.quiet.x*W,y:pair.quiet.y*H,r:radius,form:1,label:'Tier 1',sub:'0–20 views',tier:1},
           {c:{id:pair.id2,counts:{viewers:pair.views2}},x:pair.reference.x*W,y:pair.reference.y*H,r:radius,form:1,label:'Tier 2',sub:pair.views2+' views',tier:2},
           {c:{id:pair.id3,counts:{viewers:pair.views3}},x:pair.model.x*W,y:pair.model.y*H,r:radius,form:1,label:'Tier 3',sub:pair.views3+' views',tier:3}
         ];
