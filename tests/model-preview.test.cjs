@@ -7,6 +7,30 @@ test('selected model copies the exact library preset without mutating tier 2',()
  assert.deepEqual(plain(m.look),{...plain(G.BH.BH_PRESETS['orange-garg']),size:40,faceAmt:0});assert.deepEqual(previous,saved);
  m.look.diskBright=0;assert.equal(G.BH.BH_PRESETS['orange-garg'].diskBright,3);
 });
+test('adding growth controls preserves the currently edited look until endpoints change',()=>{
+ const m=M.create(item);m.look.diskOut=5.6;m.look.size=35.5;m.look.diskSpin=1.75;m.growth=M.growth(m);
+ assert.equal(m.growth.ringStart,5.6);assert.equal(m.growth.ringEnd,5.6);
+ assert.equal(M.hole(m).diskOut,5.6);assert.equal(M.hole(m).size,35.5);assert.equal(M.hole(m).diskSpin,1.75);
+});
+test('tier 3 grows between exact endpoints without changing sphere size or axes',()=>{
+ const m=M.create(item);m.growth={on:true,ringStart:4,ringEnd:12,views:150};const start=M.hole(m);
+ assert.equal(start.diskOut,4);m.growth.views=499;assert.equal(M.hole(m).diskOut,12);
+ m.growth.views=324.5;const mid=M.hole(m);assert.equal(mid.diskOut,8);
+ for(const k of ['size','rotX','rotY','rotZ','diskSpin','diskOpacity'])assert.equal(mid[k],start[k]);
+});
+test('editing an endpoint previews it, keeps smallest below largest, and avoids collapsing the disk',()=>{
+ const m=M.create(item);M.setEndpoint(m,'ringStart',18);assert.equal(m.growth.views,150);assert.equal(m.growth.ringEnd,18);
+ M.setEndpoint(m,'ringEnd',5);assert.equal(m.growth.views,499);assert.equal(m.growth.ringStart,5);
+ m.look.diskIn=8;assert.ok(M.hole(m).diskOut>m.look.diskIn);assert.equal(M.growth(m).ringStart,8.1);
+});
+test('growth clamps to tier 3 and manual ring sizing remains available',()=>{
+ const m=M.create(item);m.growth={on:true,ringStart:4,ringEnd:12,views:0};assert.equal(M.hole(m).diskOut,4);
+ m.growth.views=1000;assert.equal(M.hole(m).diskOut,12);m.growth.on=false;m.look.diskOut=7;assert.equal(M.hole(m).diskOut,7);
+});
+test('growth endpoints and per-streamer fixed axes survive saved variants',()=>{
+ const m=M.create(item);m.randomAxis=true;m.growth={on:true,ringStart:4,ringEnd:11,views:300};
+ assert.deepEqual(plain(M.hole(plain(m),10)),plain(M.hole(m,10)));
+});
 test('every model control reaches the live hole with no clip or fuel override',()=>{
  const m=M.create(item);Object.assign(m.look,{size:25,diskSpin:2,diskOpacity:.4,rotX:60,rotY:20,rotZ:-50,diskOut:21,lens:1.6,ring:2.1});
  const h=M.hole(m,10);for(const [k,v]of Object.entries(m.look))if(!['x','y'].includes(k))assert.equal(h[k],v,k);

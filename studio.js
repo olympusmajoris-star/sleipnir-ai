@@ -102,6 +102,8 @@ function referenceLiveSettings(){
   return AsgardVariants.liveSettings(S.holes.referencePreview,S.holes.referenceGrowth?.streamerId??'freya',S.holes.orientation,S.holes.referenceGrowth);
 }
 function referenceReadout(){
+  const modelNode=$('#modelGrowthReadout'),m=S.holes.modelPreview;
+  if(modelNode&&m){const g=AsgardModelPreview.growth(m),h=AsgardModelPreview.hole(m);const label=(g.on?Math.round(g.views)+' views':'Manual disk')+' · ring size '+h.diskOut.toFixed(2);if(modelNode.textContent!==label)modelNode.textContent=label;}
   const node=$('#refLiveReadout');if(!node)return;
   const live=referenceLiveSettings(),growth=S.holes.referenceGrowth;
   const label=(growth.on?Math.round(growth.views)+' views':'Manual disk')+' · ring '+live.ringSize.toFixed(2)+' · density '+live.density.toFixed(2)+' · angle '+Math.round(live.tilt)+'° · axis '+Math.round(live.axisY)+'° · rotation '+Math.round(live.axisZ)+'°';
@@ -115,7 +117,7 @@ const SEL = (path, label, opts) => ({ t:'s', path, label, opts });
 function ctlHtml(c, i){
   const [o, p] = root(c.path); if(!o) return ''; const liveKeys=['ringSize','density','view3d','tilt','axisY','axisZ'];
   const key=c.path.slice('holes.referencePreview.'.length);
-  const modelAngle=/^holes\.modelPreview\.look\.rot[XYZ]$/.test(c.path)&&S.holes.modelPreview?.randomAxis;
+  const modelAngle=(/^holes\.modelPreview\.look\.rot[XYZ]$/.test(c.path)&&S.holes.modelPreview?.randomAxis)||(c.path==='holes.modelPreview.look.diskOut'&&S.holes.modelPreview?.growth?.on);
   const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[c.path.split('.').pop()]:c.path.startsWith('holes.referencePreview.')&&liveKeys.includes(key)?referenceLiveSettings()[key]:getPath(o,p); const id = 'c'+i+Math.random().toString(36).slice(2,6);
   if(c.t==='r') return `<div class="c"><label for="${id}">${c.label}<em data-v="${c.path}">${fmtv(v,c)}</em></label><input type="range" id="${id}" data-p="${c.path}" min="${c.min}" max="${c.max}" step="${c.step}" value="${v}"></div>`;
   if(c.t==='c') return `<div class="c col"><label for="${id}">${c.label}<input type="color" id="${id}" data-p="${c.path}" value="${toHex(v)}"></label></div>`;
@@ -150,7 +152,12 @@ function wire(el){
         S.holes.referenceGrowth.on=false;
         const growth=el.querySelector('[data-p="holes.referenceGrowth.on"]');if(growth)growth.checked=false;
       }
-      setPath(o, p, v); const em = el.querySelector(`em[data-v="${CSS.escape(path)}"]`); if(em) em.textContent = fmtv(v, {step:+inp.step||0.01});
+      if(path==='holes.modelPreview.look.diskOut')S.holes.modelPreview.growth.on=false;
+      setPath(o, p, v);
+      if(/^holes\.modelPreview\.growth\.ring(Start|End)$/.test(path))AsgardModelPreview.setEndpoint(S.holes.modelPreview,path.split('.').pop(),v);
+      if(path==='holes.modelPreview.look.diskIn')S.holes.modelPreview.growth=AsgardModelPreview.growth(S.holes.modelPreview);
+      if(/^holes\.referenceGrowth\.ring(Start|End)$/.test(path)){const g=S.holes.referenceGrowth;g.on=true;if(path.endsWith('Start')){g.ringEnd=Math.max(g.ringEnd,g.ringStart);g.views=21;}else{g.ringStart=Math.min(g.ringStart,g.ringEnd);g.views=149;}}
+      const em = el.querySelector(`em[data-v="${CSS.escape(path)}"]`); if(em) em.textContent = fmtv(v, {step:+inp.step||0.01});
       if(/^look\.rot[XYZ]$/.test(path)) {o.angleManual=true;setAnglePractice(null);}
       let refRefresh=false;
       if(path==='holes.referencePreview.tilt'||path==='holes.referencePreview.axisY'||path==='holes.referencePreview.axisZ'||path==='holes.referencePreview.thickness'){
@@ -166,7 +173,7 @@ function wire(el){
   });
   el.querySelectorAll('details.grp').forEach(d => d.addEventListener('toggle', () => { ui.open[d.dataset.k] = d.open; store.set(KEY+'-ui', ui); }));
 }
-function refreshValues(){ const live=referenceLiveSettings();$$('#panel [data-p]').forEach(inp => { const [o,p] = root(inp.dataset.p); if(!o) return; const key=inp.dataset.p.slice('holes.referencePreview.'.length),use=inp.dataset.p.startsWith('holes.referencePreview.')&&['ringSize','density','tilt','axisY','axisZ','view3d'].includes(key); const modelAngle=/^holes\.modelPreview\.look\.rot[XYZ]$/.test(inp.dataset.p)&&S.holes.modelPreview?.randomAxis; const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[inp.dataset.p.split('.').pop()]:use?live[key]:getPath(o,p); if(inp.type==='range'){ inp.value=v; const em=$(`#panel em[data-v="${CSS.escape(inp.dataset.p)}"]`); if(em)em.textContent=fmtv(v,{step:+inp.step}); }else if(inp.type==='checkbox')inp.checked=!!v; }); }
+function refreshValues(){ const live=referenceLiveSettings();$$('#panel [data-p]').forEach(inp => { const [o,p] = root(inp.dataset.p); if(!o) return; const key=inp.dataset.p.slice('holes.referencePreview.'.length),use=inp.dataset.p.startsWith('holes.referencePreview.')&&['ringSize','density','tilt','axisY','axisZ','view3d'].includes(key); const modelAngle=(/^holes\.modelPreview\.look\.rot[XYZ]$/.test(inp.dataset.p)&&S.holes.modelPreview?.randomAxis)||(inp.dataset.p==='holes.modelPreview.look.diskOut'&&S.holes.modelPreview?.growth?.on); const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[inp.dataset.p.split('.').pop()]:use?live[key]:getPath(o,p); if(inp.type==='range'){ inp.value=v; const em=$(`#panel em[data-v="${CSS.escape(inp.dataset.p)}"]`); if(em)em.textContent=fmtv(v,{step:+inp.step}); }else if(inp.type==='checkbox')inp.checked=!!v; }); }
 
 /* ---------------- sections ---------------- */
 function head(eyebrow, title, note){ return `<div class="eyebrow">${eyebrow}</div><h2>${title}</h2>${note?`<p class="note">${note}</p>`:''}`; }
@@ -228,19 +235,21 @@ function useModelPreview(item){
 }
 function tierQuickNav(){
   const stage=S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1);
-  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · draft</button></div></div>`;
+  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · draft</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
 }
 function secModelPreview(){
   const m=S.holes.modelPreview,p='holes.modelPreview.',l=p+'look.';
-  S.holes.modelVariants ||= [];
-  for(const key of ['modelSize','modelDisk','modelMotion'])if(ui.open[key]===undefined)ui.open[key]=true;
+  S.holes.modelVariants ||= [];m.growth=AsgardModelPreview.growth(m);
+  for(const key of ['modelSize','modelDisk','modelMotion','modelGrowth','modelAxisLimits'])if(ui.open[key]===undefined)ui.open[key]=true;
   let h=tierQuickNav()+head('LIVE 3D DRAFT',m.name,'The same animated model you chose in the library, now bending your live sky. Tier 2 is kept separately.');
   if(!scene.engine.gl)h+='<p role="status" class="note">This browser cannot display the 3D model because WebGL 2 is unavailable. Your settings remain editable.</p>';
   h+=`<div class="btnrow"><button class="btn" id="backToTier2">Back to tier 2</button><button class="btn" id="pickLib">Choose another 3D look</button></div>`;
+  h+=group('Smallest & largest ring · tier 3',[K(p+'growth.on','Grow the ring with views'),R(p+'growth.ringStart','Smallest ring · 150 views',3.2,40,.1),R(p+'growth.ringEnd','Largest ring · 499 views',3.2,40,.1),R(p+'growth.views','Preview views · tier 3',150,499,1)],'modelGrowth');
+  h+='<div class="btnrow"><button class="btn" id="modelSmall">Show smallest</button><button class="btn" id="modelLarge">Show largest</button></div><p id="modelGrowthReadout" class="note" role="status"></p><p class="note">Adjust either endpoint to preview it immediately. The ring grows between your two sizes; the black sphere keeps its follower size.</p>';
+  h+=group('Angle & axis',[K(p+'randomAxis','Different fixed axis for each streamer'),SEL(p+'streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),R(l+'rotX','View angle · side to above',3,90,1),R(l+'rotY','Turn the disk axis left / right',-80,80,1),R(l+'rotZ','Rotate the whole axis on screen',-180,180,1)],'modelAxisLimits');
   h+=group('Entire black hole',[R(l+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'modelSize');
-  h+=group('Ring size & density',[R(l+'diskOut','Ring size',3.2,40,.1),R(l+'diskIn','Inner edge of disk',2,8,.05),R(l+'diskOpacity','Gas density / opacity',0,1,.01),R(l+'diskThick','Disk thickness',.005,.3,.005)],'modelDisk');
+  h+=group('Ring size & density',[R(l+'diskOut','Current ring size · manual',3.2,40,.1),R(l+'diskIn','Inner edge of disk',2,8,.05),R(l+'diskOpacity','Gas density / opacity',0,1,.01),R(l+'diskThick','Disk thickness',.005,.3,.005)],'modelDisk');
   h+=group('Spin & drift',[R(l+'diskSpin','Ring spinning speed',0,4,.05),SEL(l+'diskDir','Spin direction',[[1,'Forward'],[-1,'Reverse']]),K(p+'drift','Let this black hole drift'),R(p+'driftSpeed','Drifting speed',0,3,.05)],'modelMotion');
-  h+=group('Angle & axis',[K(p+'randomAxis','Different fixed axis for each streamer'),SEL(p+'streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),R(l+'rotX','View angle · side to above',3,90,1),R(l+'rotY','Turn the disk axis left / right',-80,80,1),R(l+'rotZ','Rotate the whole axis on screen',-180,180,1)],'modelAngle');
   h+='<p class="note">The disk revolves while its axis stays fixed. Angle sliders switch to manual.</p>';
   h+=group('Color & glow',[C(l+'diskColorIn','Inner gas color'),C(l+'diskColorOut','Outer gas color'),R(l+'diskBright','Disk glow / brightness',0,6,.05),R(l+'diskFalloff','Fade toward the outer edge',.1,5,.05),R(l+'glow','Glow around the disk',0,2,.01),C(l+'glowColor','Outer glow color')],'modelColor');
   h+=group('Inner rings & fine detail',[R(l+'ring','Inner ring brightness',0,4,.05),R(l+'ringWidth','Inner ring thickness',.01,.5,.01),C(l+'ringColor','Inner ring color'),R(l+'corona','Soft light around the edge',0,2,.01),R(l+'coronaWidth','Soft light width',.1,3,.05),R(l+'diskTexture','Gas texture',0,1,.01),R(l+'diskStreaks','Fine gas streaks',0,1,.01),R(l+'doppler','Bright side of the spinning disk',0,1,.01)],'modelDetail');
@@ -271,9 +280,9 @@ function secHoles(){
   const ref='holes.referencePreview.';
   h += `<section class="grp" aria-label="Entire black hole"><div class="gb"><h3>Entire black hole</h3>${[K(ref+'on','Show this black hole live'),R(ref+'radius','Entire black hole size',12,80,.5)].map(ctlHtml).join('')}<p class="hint">Scales the black center and all its gas together. Ring size below changes only the disk.</p></div></section>`;
   h += `<div class="gb" style="padding:10px 14px"><label for="refVariant">Saved variants</label><select id="refVariant" style="width:100%;margin:8px 0;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px"><option value="">Current working look</option>${hs.referenceVariants.map(v=>`<option value="${esc(v.id)}" ${hs.referenceVariantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="refVariantName" aria-label="Variant name" placeholder="Name this variant" maxlength="80" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px" value="${esc(hs.referenceVariants.find(v=>v.id===hs.referenceVariantId)?.name||'')}"><div class="btnrow"><button class="btn acc" id="saveRefVariant">Save new variant</button><button class="btn" id="updateRefVariant" ${hs.referenceVariantId?'':'disabled'}>Update saved</button></div><button class="btn" id="refOriginal" style="margin-top:8px">Return to approved original</button></div>`;
-  h += group('Tier 2 · grow with views', [K('holes.referenceGrowth.on','Grow the disk with views'),R('holes.referenceGrowth.views','Preview views · tier 2',21,149,1)], 'hRefGrowth');
+  h += group('Tier 2 · grow with views', [K('holes.referenceGrowth.on','Grow the disk with views'),R('holes.referenceGrowth.ringStart','Smallest ring · 21 views',.45,1.8,.01),R('holes.referenceGrowth.ringEnd','Largest ring · 149 views',.45,1.8,.01),R('holes.referenceGrowth.views','Preview views · tier 2',21,149,1)], 'hRefGrowth');
   h += '<div class="btnrow"><button class="btn" id="tier2Start">21 views · start</button><button class="btn" id="tier2End">149 views · full disk</button></div>';
-  h += '<p class="note">21 views: ring 0.45, density 0.65. At 149 views: ring 1.26, density 1.05. Follower size stays independent. Tier 3 starts at 150 and awaits your next choice.</p><p class="note" id="refLiveReadout" role="status"></p>';
+  h += '<p class="note">Set your smallest ring at 21 views and your largest at 149. Moving an endpoint previews it immediately. Follower size stays independent.</p><p class="note" id="refLiveReadout" role="status"></p>';
   h += group('Ring size & density', [R(ref+'ringSize','Ring size',.45,1.8,.01),R(ref+'density','Gas density / opacity',0,3,.05)], 'hRefShape');
   h += group('Angle & axis', [K('holes.orientation.random','Different fixed axis for each black hole'),SEL('holes.referenceGrowth.streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),K(ref+'view3d','Adjust the viewing angle in 3D'),R(ref+'tilt','View angle · 3° side / 90° above',3,90,1),R(ref+'axisY','Turn the disk axis left / right',-80,80,1),R(ref+'axisZ','Rotate the whole axis on screen',-180,180,1),R(ref+'thickness','3D disk thickness',.3,2,.05)], 'hRefAngle');
   h += '<div class="btnrow"><button class="btn" id="newHoleAxes">Choose a new random set of axes</button></div><p class="note">Each streamer keeps the same angle while drifting and gaining views. Moving an angle slider switches to manual. Editing ring size or density switches off growth by views.</p>';
@@ -363,6 +372,9 @@ function bindPanel(p){
     S.holes.referencePreview.on=tier===2;
     setAnglePractice(null);change();render();$('#panel').scrollTop=0;
   });
+  p.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{const model=S.holes.modelPreview?.on,key=b.dataset.jump==='axis'?(model?'modelAxisLimits':'hRefAngle'):(model?'modelGrowth':'hRefGrowth'),d=p.querySelector('[data-k="'+key+'"]');if(!d)return;d.open=true;ui.open[key]=true;d.style.scrollMarginTop=((p.querySelector('[aria-label="Views tier selection"]')?.offsetHeight||100)+12)+'px';d.scrollIntoView({behavior:'smooth',block:'start'});});
+  on('modelSmall',()=>{const g=S.holes.modelPreview.growth;g.on=true;g.views=150;change();refreshValues();referenceReadout();});
+  on('modelLarge',()=>{const g=S.holes.modelPreview.growth;g.on=true;g.views=499;change();refreshValues();referenceReadout();});
   on('tier2Start',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;change();refreshValues();referenceReadout();});
   on('tier2End',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=149;change();refreshValues();referenceReadout();});
   on('backToTier2',()=>{S.holes.quickTier=2;S.holes.modelPreview.on=false;S.holes.referencePreview.on=true;change();render();$('#panel').scrollTop=0;});

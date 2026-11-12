@@ -2,6 +2,19 @@
 (function(G){
 'use strict';
 const copy=x=>JSON.parse(JSON.stringify(x));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function growth(model){
+  const g=model.growth||{},floor=Math.max(3.2,(model.look.diskIn??3)+.1),current=clamp(model.look.diskOut??14,floor,40);
+  const start=clamp(g.ringStart??current,floor,40),end=clamp(g.ringEnd??current,start,40);
+  return {on:g.on??true,views:clamp(g.views??150,150,499),ringStart:start,ringEnd:end};
+}
+function setEndpoint(model,key,value){
+  const g=growth(model),floor=Math.max(3.2,(model.look.diskIn??3)+.1);
+  g[key]=clamp(value,floor,40);g.on=true;
+  if(key==='ringStart'){g.ringEnd=Math.max(g.ringEnd,g.ringStart);g.views=150;}
+  else{g.ringStart=Math.min(g.ringStart,g.ringEnd);g.views=499;}
+  model.growth=g;return g;
+}
 function create(item,previous){
   const preset=G.BH.LIB_TO_PRESET[item.id];
   if(!preset||!G.BH.BH_PRESETS[preset])return null;
@@ -11,6 +24,8 @@ function create(item,previous){
 }
 function hole(model,time=0){
   const look={...G.BH.BH_DEFAULTS,...model.look};
+  if(model.growth?.on){const g=growth(model),t=(g.views-150)/349;look.diskOut=g.ringStart+(g.ringEnd-g.ringStart)*t;}
+  look.diskOut=Math.max(look.diskOut,look.diskIn+.1);
   if(model.randomAxis&&G.AsgardVariants){
     const a=G.AsgardVariants.orientationFor(model.streamerId,model.seed);
     look.rotX=a.tilt;look.rotY=a.axisY;look.rotZ=a.axisZ;
@@ -25,5 +40,5 @@ function quiet(settings){
   return {...G.BH.BH_DEFAULTS,...saved,x:q.x??ref.x??.5,y:q.y??ref.y??.235,size:q.size??ref.radius??40,
     lens:q.lens??saved.lens,reach:q.reach??saved.reach,disk:0,ring:0,corona:0,glow:0,jets:0,flare:0,envFeed:0,faceAmt:0,_quietPreview:true};
 }
-G.AsgardModelPreview={create,hole,quiet,copy};
+G.AsgardModelPreview={create,hole,quiet,copy,growth,setEndpoint};
 })(window);
