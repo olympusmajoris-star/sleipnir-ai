@@ -70,7 +70,7 @@ function commit(label){
   persist();
 }
 let pt;
-function persist(){ dirty = true; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving…'; clearTimeout(pt); pt = setTimeout(async () => { store.set(KEY, S); dbSave(); await dbWriting; dirty=false; $('#saveState').className='saved'; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving to shared studio…'; }, 700); }
+function persist(){ dirty = true; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving…'; clearTimeout(pt); pt = setTimeout(async () => { store.set(KEY, S); dbSave(); await dbWriting; dirty=false; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving to shared studio…'; }, 700); }
 let ct; function change(){ applyToScene(); clearTimeout(ct); ct = setTimeout(commit, 350); }
 function undo(){ if(hi>0){ hi--; S = clone(hist[hi]); persist(); applyToScene(true); render(); } }
 function redo(){ if(hi<hist.length-1){ hi++; S = clone(hist[hi]); persist(); applyToScene(true); render(); } }
@@ -525,7 +525,7 @@ capReady.then(async () => {
   const remote = (await sbLoad()) || (await dbLoad());
   if(remote){ const was = remote.chatImported >= 3; S = applyChatImport(Raven.ensureDashboards(remote)); hist=[clone(S)]; hi=0; store.set(KEY,S); if(!was) dbSave(); applyToScene(true); render(); }
   else if(P.db) dbSave();
-  $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving to shared studio…';
+  $('#saveState').className='saved'; $('#saveState').textContent=SB.ok?'● Loaded from shared studio':(P.db?'● All changes saved':'● Saved in this browser');
   renderVersions();
 });
 })();
