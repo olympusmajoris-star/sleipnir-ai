@@ -133,6 +133,355 @@ const PAGES = {
   },
 };
 
+/* ======================= SHARED STYLE TOOLS (boxes, text, backgrounds, image slots) ======================= */
+const X = (k, label) => ({ t:'x', k, label });
+const FONTS = [['system-ui','Clean (system)'],['Inter','Inter'],['Oswald','Oswald'],['Bebas Neue','Bebas Neue'],['Playfair Display','Playfair'],['Cinzel','Cinzel (Norse serif)'],['Cinzel Decorative','Cinzel Decorative'],['MedievalSharp','MedievalSharp'],['Uncial Antiqua','Uncial Antiqua']];
+(() => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Oswald:wght@300;400;600;700&family=Bebas+Neue&family=Playfair+Display:wght@400;600;800;900&family=Cinzel:wght@400;600;800;900&family=Cinzel+Decorative:wght@400;700;900&family=MedievalSharp&family=Uncial+Antiqua&display=swap'; document.head.appendChild(l); })();
+const BOX = (o) => Object.assign({ fill:'#15120d', fillA:0.92, tex:'', texA:1, radius:16, bw:1, bc:'#c9a46a', sh:0.5, shBlur:18, shY:8, glow:0, glowC:'#f0c070' }, o || {});
+const boxC = (p, n) => [C(p+'.fill', n+': fill color'), R(p+'.fillA', n+': fill see-through', 0, 1, .01), U(p+'.tex', n+': your texture / image'), R(p+'.texA', n+': texture strength', 0, 1, .01), R(p+'.radius', n+': corner rounding', 0, 60, 1), R(p+'.bw', n+': border thickness', 0, 12, .5), C(p+'.bc', n+': border color'), R(p+'.sh', n+': shadow darkness', 0, 1, .01), R(p+'.shBlur', n+': shadow softness', 0, 60, 1), R(p+'.shY', n+': shadow drop', 0, 40, 1), R(p+'.glow', n+': glow', 0, 1.5, .01), C(p+'.glowC', n+': glow color')];
+const TXT = (size, color, o) => Object.assign({ font:'system-ui', size, weight:600, color, shA:0, caps:false }, o || {});
+const txtC = (p, n) => [Sel(p+'.font', n+': font', FONTS), R(p+'.size', n+': size', 6, 64, .5), R(p+'.weight', n+': thickness', 300, 900, 100), C(p+'.color', n+': color'), R(p+'.shA', n+': shadow', 0, 1, .01), K(p+'.caps', n+': ALL CAPS')];
+const BG = (c) => ({ color:c, img:'', imgA:1, dim:0 });
+const bgC = (p) => [C(p+'.color','Background color'), U(p+'.img','Your background image'), R(p+'.imgA','Background image strength',0,1,.01), R(p+'.dim','Darken',0,1,.01)];
+const SLOTS = (n, size) => ({ n, size, gap:22, y:0.88, glow:0, glowC:'#ffffff', i1:'', i2:'', i3:'', i4:'', i5:'' });
+const slotC = (p, n) => [R(p+'.n', n+': how many', 0, 5, 1), R(p+'.size', n+': size', 16, 120, 1), R(p+'.gap', n+': spacing', 0, 80, 1), R(p+'.y', n+': height on screen', 0.4, 0.99, .002), R(p+'.glow', n+': glow', 0, 1.5, .01), C(p+'.glowC', n+': glow color'), U(p+'.i1', n+': image 1'), U(p+'.i2', n+': image 2'), U(p+'.i3', n+': image 3'), U(p+'.i4', n+': image 4'), U(p+'.i5', n+': image 5')];
+function hexA(h, a){ const n = parseInt(String(h || '#000000').slice(1, 7), 16) || 0; return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function box(x, X0, Y0, w, h, b){ if(w <= 0 || h <= 0) return; x.save(); const r = Math.max(0, Math.min(b.radius, w / 2, h / 2)); rr(x, X0, Y0, w, h, r);
+  if(b.sh > 0){ x.shadowColor = `rgba(0,0,0,${b.sh})`; x.shadowBlur = b.shBlur; x.shadowOffsetY = b.shY; }
+  x.fillStyle = hexA(b.fill, b.fillA); x.fill(); x.shadowColor = 'transparent'; x.shadowBlur = 0; x.shadowOffsetY = 0;
+  if(b.tex){ const t = img(b.tex); if(ok(t)){ x.save(); x.clip(); x.globalAlpha = b.texA; cover(x, t, X0, Y0, w, h); x.restore(); rr(x, X0, Y0, w, h, r); } }
+  if(b.glow > 0){ x.shadowColor = b.glowC; x.shadowBlur = 22 * b.glow; }
+  if(b.bw > 0){ x.lineWidth = b.bw; x.strokeStyle = b.bc; x.stroke(); } else if(b.glow > 0){ x.lineWidth = 1; x.strokeStyle = hexA(b.glowC, 0.4); x.stroke(); }
+  x.restore(); }
+function fontOf(t){ return `${t.weight} ${t.size}px "${t.font}", system-ui`; }
+function tx(x, t, str, X0, Y0, align, maxW){ x.save(); x.font = fontOf(t); x.fillStyle = t.color; x.textAlign = align || 'left'; x.textBaseline = 'alphabetic';
+  if(t.shA > 0){ x.shadowColor = `rgba(0,0,0,${t.shA})`; x.shadowBlur = 6; x.shadowOffsetY = 2; }
+  const full = t.caps ? String(str).toUpperCase() : String(str); let s = full;
+  if(maxW){ while(s.length > 1 && x.measureText(s + (s !== full ? '…' : '')).width > maxW) s = s.slice(0, -1); if(s !== full) s += '…'; }
+  x.fillText(s, X0, Y0); x.restore(); }
+function tw(x, t, str){ x.save(); x.font = fontOf(t); const w = x.measureText(t.caps ? String(str).toUpperCase() : String(str)).width; x.restore(); return w; }
+function bgDraw(x, b){ x.fillStyle = b.color; x.fillRect(0, 0, W, HH * 1.3); if(b.img){ const i = img(b.img); if(ok(i)){ x.save(); x.globalAlpha = b.imgA; cover(x, i, 0, 0, W, HH); x.restore(); } } if(b.dim > 0){ x.fillStyle = `rgba(0,0,0,${b.dim})`; x.fillRect(0, 0, W, HH); } }
+function dashed(x, X0, Y0, w, h, label){ x.save(); x.setLineDash([4, 4]); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.strokeRect(X0 + .5, Y0 + .5, w - 1, h - 1); if(label){ x.fillStyle = 'rgba(255,255,255,.45)'; x.font = '10px system-ui'; x.textAlign = 'center'; x.fillText(label, X0 + w / 2, Y0 + h / 2 + 3); } x.restore(); }
+function slotsDraw(x, s, Yc){ const n = Math.round(s.n); if(!n) return; const tot = n * s.size + (n - 1) * s.gap, Y0 = (Yc ?? HH * s.y) - s.size / 2;
+  for(let i = 0; i < n; i++){ const X0 = (W - tot) / 2 + i * (s.size + s.gap), u = s['i' + (i + 1)], im = u ? img(u) : null;
+    if(im && ok(im)){ x.save(); if(s.glow > 0){ x.shadowColor = s.glowC; x.shadowBlur = 14 * s.glow; } x.drawImage(im, X0, Y0, s.size, s.size); x.restore(); } else dashed(x, X0, Y0, s.size, s.size, 'slot ' + (i + 1)); } }
+function contain(x, im, X0, Y0, w, h, pad){ if(!ok(im)) return; const p = pad || 0, ww = w - 2 * p, hh = h - 2 * p, s = Math.min(ww / im.naturalWidth, hh / im.naturalHeight), dw = im.naturalWidth * s, dh = im.naturalHeight * s; x.drawImage(im, X0 + p + (ww - dw) / 2, Y0 + p + (hh - dh) / 2, dw, dh); }
+const ease = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+const money = (v) => '$' + (Math.round(v * 100) / 100).toFixed(2);
+
+/* real stores + products from the app (preview only) */
+const DATA = { items: [], rates: [] };
+const fixUrl = (u) => String(u || '').replace(/ /g, '%20').replace(/'/g, '%27');
+(async () => {
+  try { const r = await fetch(SB.url + '/rest/v1/products?select=name,price,image_url,stores!inner(name,logo_url,category,is_live)&image_url=like.*supabase.co*&price=gt.0&stores.is_live=is.true&stores.logo_url=like.*supabase.co*&order=id&limit=400', { headers: H() });
+    if(r.ok){ const j = await r.json(), seen = {}; j.forEach(p => { const s = p.stores; if(!s || seen[s.name]) return; seen[s.name] = 1; DATA.items.push({ name: p.name, price: +p.price, img: fixUrl(p.image_url), store: s.name, logo: fixUrl(s.logo_url), cat: s.category }); }); } } catch(e){}
+  try { const r = await fetch(SB.url + '/rest/v1/ad_rates?select=*', { headers: H() }); if(r.ok) DATA.rates = await r.json(); } catch(e){}
+})();
+const item = (i) => DATA.items.length ? DATA.items[((i % DATA.items.length) + DATA.items.length) % DATA.items.length] : { name:'Loading…', price:0, img:'', store:'', logo:'', cat:'' };
+const SELLERS = ['Freya','Loki','Baldr','Hel','Tyr','Sif','Gerd','Forseti','Skadi','Eir'];
+
+/* ======================= SHOPPING PAGES ======================= */
+Object.assign(PAGES, {
+  swap: {
+    title: 'Swap & Sell (swipe)',
+    defaults: {
+      bg: BG('#0b0d10'),
+      head: { show: true, text: 'Swap & Sell', y: 0.065, t: TXT(24, '#f2e6cf', { font: 'Cinzel', weight: 800 }) },
+      filter: { show: true, text: 'Within', miles: 10, y: 0.105, box: BOX({ radius: 20, fill: '#1d2026', bw: 1, bc: '#3a3f48', sh: 0 }), t: TXT(12, '#cfd6e0') },
+      card: { w: 0.88, h: 0.6, y: 0.135, photo: 0.66, photoBg: '#ffffff', photoPad: 18, box: BOX({ radius: 22 }) },
+      stack: { count: 3, drop: 12, shrink: 0.05, turn: 3, dim: 0.25 },
+      info: { pad: 16, used: 0.6, avatar: 26, showSeller: true, showMiles: true, title: TXT(18, '#f2e6cf'), price: TXT(24, '#e9c46a', { weight: 800 }), seller: TXT(12, '#aab3bf', { weight: 500 }) },
+      chip: { show: true, text: 'Deliver it', place: 'photo', box: BOX({ radius: 14, fill: '#e9c46a', fillA: 1, bw: 0, sh: 0.3, shBlur: 8, shY: 3 }), t: TXT(12, '#1b1406', { weight: 800 }) },
+      swipe: { auto: true, every: 2.6, speed: 0.45, tilt: 14, fly: 1.3, upFly: 1.2 },
+      stamp: { show: true, save: 'SAVE', skip: 'SKIP', offer: 'OFFER', saveC: '#4ade80', skipC: '#f87171', offerC: '#60a5fa', bw: 3, turn: -14, t: TXT(34, '#ffffff', { font: 'Bebas Neue', weight: 400 }) },
+      btns: SLOTS(3, 58),
+    },
+    sections: [
+      { id:'look', name:'Page', sub:'Background, title, distance filter', groups:[
+        { name:'Background', ctrls: bgC('bg') },
+        { name:'Title', ctrls: [K('head.show','Show title'), X('head.text','Title text'), R('head.y','Height',0.02,0.2,.002), ...txtC('head.t','Title')] },
+        { name:'Distance filter ("within X miles")', ctrls: [K('filter.show','Show'), X('filter.text','Word before the miles'), R('filter.miles','Miles',1,50,1), R('filter.y','Height',0.05,0.25,.002), ...txtC('filter.t','Filter text'), ...boxC('filter.box','Filter pill')] },
+      ]},
+      { id:'card', name:'Listing card', sub:'Size, photo, stack behind', groups:[
+        { name:'Card', ctrls: [R('card.w','Width',0.5,1,.005), R('card.h','Height',0.3,0.8,.005), R('card.y','Top position',0.05,0.4,.002), R('card.photo','Photo share of card',0.3,0.9,.005), C('card.photoBg','Photo background'), R('card.photoPad','Photo padding',0,60,1), ...boxC('card.box','Card')] },
+        { name:'Cards stacked behind', ctrls: [R('stack.count','How many show',1,5,1), R('stack.drop','Peek below',0,40,1), R('stack.shrink','Shrink each',0,0.15,.005), R('stack.turn','Fan angle',0,12,.5), R('stack.dim','Darken behind',0,0.8,.01)] },
+      ]},
+      { id:'info', name:'Item details', sub:'Title, price, seller', groups:[
+        { name:'Layout', ctrls: [R('info.pad','Inner spacing',4,40,1), R('info.used','Preview price (x store price)',0.1,1,.01), K('info.showSeller','Show seller'), K('info.showMiles','Show miles away'), R('info.avatar','Seller photo size',0,48,1)] },
+        { name:'Item name', ctrls: txtC('info.title','Name') }, { name:'Price', ctrls: txtC('info.price','Price') }, { name:'Seller line', ctrls: txtC('info.seller','Seller') },
+      ]},
+      { id:'chip', name:'"Deliver it" tag', sub:'Sleipnir driver brings it', groups:[
+        { name:'Tag', ctrls: [K('chip.show','Show'), X('chip.text','Tag text'), Sel('chip.place','Where',[['photo','On the photo'],['info','Next to the price'],['top','Top corner of card']]), ...txtC('chip.t','Tag text'), ...boxC('chip.box','Tag')] },
+      ]},
+      { id:'swipe', name:'Swiping', sub:'Save, skip, offer motion', groups:[
+        { name:'Motion', ctrls: [K('swipe.auto','Play swipes in the preview'), R('swipe.every','Seconds per card',1,8,.1), R('swipe.speed','Swipe speed (share of time)',0.15,0.9,.01), R('swipe.tilt','Tilt while swiping',0,40,.5), R('swipe.fly','Throw distance (sideways)',0.6,2,.01), R('swipe.upFly','Throw distance (up)',0.6,2,.01)] },
+        { name:'Stamps', ctrls: [K('stamp.show','Show stamps'), X('stamp.save','Right swipe word'), C('stamp.saveC','Right color'), X('stamp.skip','Left swipe word'), C('stamp.skipC','Left color'), X('stamp.offer','Up swipe word'), C('stamp.offerC','Up color'), R('stamp.bw','Stamp border',0,8,.5), R('stamp.turn','Stamp angle',-40,40,1), ...txtC('stamp.t','Stamp')] },
+      ]},
+      { id:'btns', name:'Buttons', sub:'Your images, empty until you add them', groups:[ { name:'Button slots', ctrls: slotC('btns','Buttons') } ]},
+    ],
+    draw: drawSwap,
+  },
+  ads: {
+    title: 'Ads for local businesses',
+    defaults: {
+      bg: BG('#07080b'),
+      label: { show: true, text: 'Sponsored', place: 'corner', t: TXT(10, '#e9c46a', { weight: 700, caps: true }), box: BOX({ radius: 8, fill: '#000000', fillA: 0.55, bw: 1, bc: '#e9c46a', sh: 0 }) },
+      feed: { every: 3, margin: 14, gap: 18, ratio: 1, scroll: 22, img: '', head: 'Fresh and hot, delivered', body: 'Free delivery on your first order', logo: 34, card: BOX({ radius: 18 }), normal: BOX({ radius: 18, fill: '#121418', bw: 0, sh: 0.3 }), headT: TXT(17, '#f2e6cf', { weight: 800 }), bodyT: TXT(13, '#cfc6b4', { weight: 400 }), nameT: TXT(13, '#ffffff', { weight: 700 }), photoBg: '#ffffff' },
+      cta: { text: 'Order now', w: 0.42, h: 40, box: BOX({ radius: 12, fill: '#e9c46a', fillA: 1, bw: 0, sh: 0 }), t: TXT(14, '#1b1406', { weight: 800 }) },
+      banner: { h: 0.14, y: 0.03, margin: 12, every: 4, trans: 'slide', transSec: 0.6, dots: true, dotC: '#e9c46a', img: '', text: 'Today only', box: BOX({ radius: 16 }), t: TXT(16, '#ffffff', { weight: 800, shA: 0.6 }), photoBg: '#ffffff' },
+      take: { every: 7, inSec: 0.6, kind: 'zoom', dim: 0.65, w: 0.9, h: 0.72, img: '', head: 'DEAL OF THE DAY', count: true, hours: 6, close: 30, box: BOX({ radius: 26 }), headT: TXT(34, '#ffffff', { font: 'Bebas Neue', weight: 400, shA: 0.5 }), countT: TXT(22, '#e9c46a', { weight: 800 }), photoBg: '#ffffff' },
+      book: { title: 'Advertise on Sleipnir', accent: '#e9c46a', box: BOX({ radius: 16, fill: '#14161b', bw: 1, bc: '#2b2f38', sh: 0 }), titleT: TXT(22, '#ffffff', { weight: 800 }), labelT: TXT(12, '#9aa3af', { weight: 500 }), priceT: TXT(18, '#e9c46a', { weight: 800 }), weeks: 2, pay: 'Start my ad' },
+    },
+    sections: [
+      { id:'feed', name:'Ad in the feed', sub:'A sponsored card every few posts', groups:[
+        { name:'Where & how often', ctrls: [R('feed.every','An ad every N posts',2,10,1), R('feed.margin','Side margin',0,40,1), R('feed.gap','Space between',0,50,1), R('feed.scroll','Preview scroll speed',0,80,1), C('bg.color','Page background')] },
+        { name:'Ad card', ctrls: [R('feed.ratio','Picture height (x width)',0.4,1.5,.01), U('feed.img','Ad picture (blank = real store product)'), C('feed.photoBg','Picture background'), R('feed.logo','Store logo size',0,60,1), X('feed.head','Headline'), X('feed.body','Line under it'), ...boxC('feed.card','Ad card')] },
+        { name:'Ad text', ctrls: [...txtC('feed.nameT','Store name'), ...txtC('feed.headT','Headline'), ...txtC('feed.bodyT','Line under')] },
+        { name:'Normal posts around it', ctrls: boxC('feed.normal','Normal post') },
+      ]},
+      { id:'banner', name:'Top banner', sub:'Rotating ads in the sky strip', groups:[
+        { name:'Banner', ctrls: [R('banner.h','Height',0.06,0.3,.002), R('banner.y','Top position',0,0.3,.002), R('banner.margin','Side margin',0,40,1), R('banner.every','Seconds per ad',1.5,12,.1), Sel('banner.trans','Change style',[['slide','Slide'],['fade','Fade'],['flip','Flip']]), R('banner.transSec','Change speed (s)',0.1,2,.05), K('banner.dots','Show dots'), C('banner.dotC','Dot color'), U('banner.img','Banner picture (blank = real stores)'), C('banner.photoBg','Picture background'), X('banner.text','Line of text'), ...txtC('banner.t','Banner text'), ...boxC('banner.box','Banner')] },
+      ]},
+      { id:'take', name:'Deal of the day', sub:'Full-screen takeover once a day', groups:[
+        { name:'Takeover', ctrls: [R('take.every','Preview: replay every (s)',3,20,.5), R('take.inSec','Open speed (s)',0.1,2,.05), Sel('take.kind','How it opens',[['zoom','Zoom up'],['rise','Rise from bottom'],['fade','Fade in'],['drop','Drop from top']]), R('take.dim','Darken behind',0,1,.01), R('take.w','Width',0.5,1,.005), R('take.h','Height',0.3,0.95,.005), U('take.img','Picture (blank = real store product)'), C('take.photoBg','Picture background'), X('take.head','Headline'), K('take.count','Show countdown'), R('take.hours','Countdown hours',1,24,1), R('take.close','Close button size',16,60,1), ...boxC('take.box','Takeover')] },
+        { name:'Takeover text', ctrls: [...txtC('take.headT','Headline'), ...txtC('take.countT','Countdown')] },
+      ]},
+      { id:'cta', name:'Button & label', sub:'"Order now" & "Sponsored"', groups:[
+        { name:'Button', ctrls: [X('cta.text','Button text'), R('cta.w','Width',0.2,0.9,.005), R('cta.h','Height',24,70,1), ...txtC('cta.t','Button text'), ...boxC('cta.box','Button')] },
+        { name:'"Sponsored" label', ctrls: [K('label.show','Show'), X('label.text','Label text'), Sel('label.place','Where',[['corner','Top corner of the picture'],['header','Next to the store name'],['bottom','Under the button']]), ...txtC('label.t','Label'), ...boxC('label.box','Label')] },
+      ]},
+      { id:'book', name:'Business buys an ad', sub:'Self-serve: pick area & weeks', groups:[
+        { name:'Booking screen', ctrls: [X('book.title','Title'), X('book.pay','Pay button text'), C('book.accent','Picked option color'), R('book.weeks','Preview weeks',1,12,1), ...boxC('book.box','Option boxes')] },
+        { name:'Booking text', ctrls: [...txtC('book.titleT','Title'), ...txtC('book.labelT','Small labels'), ...txtC('book.priceT','Prices')] },
+      ]},
+    ],
+    draw: drawAds,
+  },
+  shoppost: {
+    title: 'Shop the post',
+    defaults: {
+      bg: BG('#05070a'),
+      post: { margin: 14, y: 0.08, ratio: 1.15, img: '', photoBg: '#101114', box: BOX({ radius: 18 }), avatar: 30, nameT: TXT(14, '#f2e6cf', { weight: 700 }), caption: 'Best thing I ate all week', capT: TXT(13, '#e7dcc8', { weight: 400 }) },
+      pin: { x: 0.55, y: 0.6, size: 14, color: '#ffffff', ring: '#e9c46a', ringW: 2, pulse: 1, pulseSpeed: 1, img: '' },
+      card: { auto: true, every: 4, open: 0.65, place: 'over', w: 0.74, imgSize: 58, photoBg: '#ffffff', box: BOX({ radius: 16, fill: '#15120d', fillA: 0.95 }), nameT: TXT(14, '#ffffff', { weight: 700 }), storeT: TXT(11, '#aab3bf', { weight: 500 }), priceT: TXT(16, '#e9c46a', { weight: 800 }) },
+      btn: { text: 'Get it delivered', h: 36, box: BOX({ radius: 10, fill: '#e9c46a', fillA: 1, bw: 0, sh: 0 }), t: TXT(13, '#1b1406', { weight: 800 }) },
+      credit: { show: true, text: 'earns credit when you order', box: BOX({ radius: 12, fill: '#000000', fillA: 0.5, bw: 0, sh: 0 }), t: TXT(11, '#e9c46a', { weight: 600 }) },
+      bar: { show: true, text: 'Shop this post', y: 0.9, h: 50, box: BOX({ radius: 25, fill: '#e9c46a', fillA: 1, bw: 0, sh: 0.5 }), t: TXT(16, '#1b1406', { weight: 800 }) },
+    },
+    sections: [
+      { id:'post', name:'The post', sub:'Picture, name, caption', groups:[
+        { name:'Post', ctrls: [R('post.margin','Side margin',0,40,1), R('post.y','Top position',0,0.3,.002), R('post.ratio','Picture height (x width)',0.6,1.6,.01), U('post.img','Post picture (blank = real product)'), C('post.photoBg','Picture background'), R('post.avatar','Poster photo size',0,50,1), X('post.caption','Caption'), ...boxC('post.box','Post')] },
+        { name:'Post text', ctrls: [...txtC('post.nameT','Name'), ...txtC('post.capT','Caption')] },
+        { name:'Background', ctrls: bgC('bg') },
+      ]},
+      { id:'pin', name:'Product tag dot', sub:'Tap it to see the product', groups:[
+        { name:'Dot', ctrls: [R('pin.x','Left / right',0,1,.005), R('pin.y','Up / down',0,1,.005), R('pin.size','Size',4,40,.5), C('pin.color','Dot color'), C('pin.ring','Ring color'), R('pin.ringW','Ring thickness',0,8,.5), R('pin.pulse','Pulse',0,2,.01), R('pin.pulseSpeed','Pulse speed',0.1,3,.01), U('pin.img','Your dot image (optional)')] },
+      ]},
+      { id:'card', name:'Product card', sub:'Pops up from the dot', groups:[
+        { name:'Card', ctrls: [K('card.auto','Open and close in the preview'), R('card.every','Preview cycle (s)',1.5,10,.1), R('card.open','Time open (share)',0.2,1,.01), Sel('card.place','Where it opens',[['over','Over the picture by the dot'],['below','Under the picture'],['sheet','Slides up from the bottom']]), R('card.w','Width',0.4,1,.005), R('card.imgSize','Product picture size',0,100,1), C('card.photoBg','Product picture background'), ...boxC('card.box','Card')] },
+        { name:'Card text', ctrls: [...txtC('card.nameT','Product name'), ...txtC('card.storeT','Store name'), ...txtC('card.priceT','Price')] },
+        { name:'Button', ctrls: [X('btn.text','Button text'), R('btn.h','Height',22,60,1), ...txtC('btn.t','Button text'), ...boxC('btn.box','Button')] },
+      ]},
+      { id:'credit', name:'Creator credit', sub:'Poster earns when you order', groups:[
+        { name:'Credit tag', ctrls: [K('credit.show','Show'), X('credit.text','Text after the name'), ...txtC('credit.t','Credit text'), ...boxC('credit.box','Credit tag')] },
+        { name:'Bottom shop bar', ctrls: [K('bar.show','Show'), X('bar.text','Text'), R('bar.y','Height on screen',0.6,0.99,.002), R('bar.h','Bar thickness',30,80,1), ...txtC('bar.t','Bar text'), ...boxC('bar.box','Bar')] },
+      ]},
+    ],
+    draw: drawShopPost,
+  },
+  deals: {
+    title: 'Flash deals & near you now',
+    defaults: {
+      bg: BG('#0a0b0e'),
+      head: { text: 'Flash Deals', y: 0.06, t: TXT(26, '#f2e6cf', { font: 'Cinzel', weight: 800 }) },
+      near: { show: true, text: 'Near you now', miles: 5, y: 0.1, box: BOX({ radius: 16, fill: '#1d2026', bw: 1, bc: '#3a3f48', sh: 0 }), t: TXT(12, '#cfd6e0') },
+      list: { layout: 'grid', cols: 2, margin: 14, gap: 12, top: 0.14, ratio: 0.9, scroll: 14, photoBg: '#ffffff', photoPad: 10, card: BOX({ radius: 16, fill: '#15120d' }) },
+      txt: { nameT: TXT(13, '#f2e6cf', { weight: 600 }), priceT: TXT(17, '#e9c46a', { weight: 800 }), oldT: TXT(11, '#8a8f98', { weight: 500 }), storeT: TXT(10, '#aab3bf', { weight: 500 }), discount: 0.3, showOld: true, showStore: true },
+      off: { show: true, place: 'tl', box: BOX({ radius: 10, fill: '#dc2626', fillA: 1, bw: 0, sh: 0.3, shBlur: 6, shY: 2 }), t: TXT(12, '#ffffff', { weight: 800 }) },
+      timer: { show: true, hours: 3, place: 'photo', box: BOX({ radius: 8, fill: '#000000', fillA: 0.65, bw: 0, sh: 0 }), t: TXT(11, '#ffffff', { weight: 700, font: 'Oswald' }) },
+      qty: { show: true, total: 20, h: 6, bg: '#2a2d33', fill: '#e9c46a', label: 'left', t: TXT(10, '#cfd6e0', { weight: 600 }) },
+    },
+    sections: [
+      { id:'look', name:'Page', sub:'Background, title, near you', groups:[
+        { name:'Background', ctrls: bgC('bg') },
+        { name:'Title', ctrls: [X('head.text','Title text'), R('head.y','Height',0.02,0.2,.002), ...txtC('head.t','Title')] },
+        { name:'"Near you now" pill', ctrls: [K('near.show','Show'), X('near.text','Text'), R('near.miles','Miles',1,30,1), R('near.y','Height',0.05,0.25,.002), ...txtC('near.t','Pill text'), ...boxC('near.box','Pill')] },
+      ]},
+      { id:'list', name:'Deal cards', sub:'Grid, list or carousel', groups:[
+        { name:'Layout', ctrls: [Sel('list.layout','Layout',[['grid','Grid'],['list','List (one per row)'],['carousel','Sideways carousel']]), R('list.cols','Columns (grid)',1,3,1), R('list.margin','Side margin',0,40,1), R('list.gap','Space between',0,40,1), R('list.top','Where cards start',0.08,0.4,.002), R('list.ratio','Picture height (x width)',0.4,1.5,.01), R('list.scroll','Preview scroll speed',0,60,1), C('list.photoBg','Picture background'), R('list.photoPad','Picture padding',0,40,1), ...boxC('list.card','Card')] },
+      ]},
+      { id:'txt', name:'Prices & text', sub:'Deal price, old price, store', groups:[
+        { name:'What shows', ctrls: [R('txt.discount','Preview discount',0.05,0.8,.01), K('txt.showOld','Show crossed-out old price'), K('txt.showStore','Show store name')] },
+        { name:'Product name', ctrls: txtC('txt.nameT','Name') }, { name:'Deal price', ctrls: txtC('txt.priceT','Price') }, { name:'Old price', ctrls: txtC('txt.oldT','Old price') }, { name:'Store name', ctrls: txtC('txt.storeT','Store') },
+      ]},
+      { id:'badges', name:'Badges', sub:'% off, countdown, how many left', groups:[
+        { name:'% off badge', ctrls: [K('off.show','Show'), Sel('off.place','Corner',[['tl','Top left'],['tr','Top right'],['bl','Bottom left'],['br','Bottom right']]), ...txtC('off.t','Badge text'), ...boxC('off.box','Badge')] },
+        { name:'Countdown', ctrls: [K('timer.show','Show'), R('timer.hours','Hours left (preview)',1,48,1), Sel('timer.place','Where',[['photo','On the picture'],['under','Under the price']]), ...txtC('timer.t','Countdown text'), ...boxC('timer.box','Countdown')] },
+        { name:'How many left', ctrls: [K('qty.show','Show'), R('qty.total','Starting quantity',2,100,1), R('qty.h','Bar thickness',2,16,.5), C('qty.bg','Bar background'), C('qty.fill','Bar fill'), X('qty.label','Word after the number'), ...txtC('qty.t','Text')] },
+      ]},
+    ],
+    draw: drawDeals,
+  },
+});
+
+/* ---------- Swap & Sell ---------- */
+function drawSwapCard(x, it, i, cx, top, w, h, S){
+  const C2 = S.card, I = S.info, P = S.chip, X0 = cx - w / 2;
+  box(x, X0, top, w, h, C2.box);
+  const ph = h * C2.photo, r = Math.min(C2.box.radius, w / 2);
+  x.save(); rr(x, X0, top, w, h, r); x.clip(); x.fillStyle = C2.photoBg; x.fillRect(X0, top, w, ph); if(it.img) contain(x, img(it.img), X0, top, w, ph, C2.photoPad); x.restore();
+  let y = top + ph + I.pad + I.title.size;
+  tx(x, I.title, it.name, X0 + I.pad, y, 'left', w - I.pad * 2);
+  y += I.price.size + 6; const pr = money(it.price * I.used); tx(x, I.price, pr, X0 + I.pad, y);
+  const chipDraw = (cx2, cy2) => { const cw = tw(x, P.t, P.text) + 22, ch = P.t.size + 14; box(x, cx2, cy2, cw, ch, P.box); tx(x, P.t, P.text, cx2 + cw / 2, cy2 + ch / 2 + P.t.size * 0.36, 'center'); return cw; };
+  if(P.show && P.place === 'info') chipDraw(X0 + I.pad + tw(x, I.price, pr) + 10, y - I.price.size + 2);
+  if(I.showSeller){ y += 12 + Math.max(I.avatar, I.seller.size); const nm = SELLERS[i % SELLERS.length], ax = X0 + I.pad;
+    if(I.avatar > 0){ const av = img('faces/' + nm + '.jpg'); x.save(); x.beginPath(); x.arc(ax + I.avatar / 2, y - I.avatar / 2, I.avatar / 2, 0, 7); x.clip(); if(ok(av)) cover(x, av, ax, y - I.avatar, I.avatar, I.avatar); x.restore(); }
+    tx(x, I.seller, nm + (I.showMiles ? ' · ' + (1 + (i * 37 % 90) / 10).toFixed(1) + ' mi away' : ''), ax + I.avatar + (I.avatar ? 8 : 0), y - I.avatar / 2 + I.seller.size * 0.36, 'left', w - I.pad * 2 - I.avatar); }
+  if(P.show && P.place === 'photo') chipDraw(X0 + 12, top + ph - P.t.size - 26);
+  if(P.show && P.place === 'top'){ const cw = tw(x, P.t, P.text) + 22; chipDraw(X0 + w - cw - 12, top + 12); }
+}
+function drawSwap(x, t, S){
+  bgDraw(x, S.bg);
+  if(S.head.show) tx(x, S.head.t, S.head.text, W / 2, HH * S.head.y, 'center', W - 30);
+  if(S.filter.show){ const s = S.filter.text + ' ' + S.filter.miles + ' mi', fw = tw(x, S.filter.t, s) + 28, fh = S.filter.t.size + 14, fy = HH * S.filter.y; box(x, (W - fw) / 2, fy, fw, fh, S.filter.box); tx(x, S.filter.t, s, W / 2, fy + fh / 2 + S.filter.t.size * 0.36, 'center'); }
+  const C2 = S.card, Sw = S.swipe, St = S.stack, w = W * C2.w, h = HH * C2.h, top = HH * C2.y, cx = W / 2;
+  const k = Sw.auto ? Math.floor(t / Sw.every) : 0, ph = Sw.auto ? (t % Sw.every) / Sw.every : 0, p = ease(clamp((ph - (1 - Sw.speed)) / Sw.speed, 0, 1)), dir = k % 3; // 0 save(right) 1 skip(left) 2 offer(up)
+  const n = Math.round(St.count);
+  for(let j = n - 1; j >= 1; j--){ const jj = j - p, sc = 1 - jj * St.shrink, rot = (j % 2 ? 1 : -1) * St.turn * jj * Math.PI / 180;
+    x.save(); x.translate(cx, top + h / 2 + jj * St.drop); x.rotate(rot); x.scale(sc, sc); drawSwapCard(x, item(k + j), k + j, 0, -h / 2, w, h, S);
+    if(St.dim > 0){ rr(x, -w / 2, -h / 2, w, h, Math.min(C2.box.radius, w / 2)); x.fillStyle = `rgba(0,0,0,${St.dim * jj / Math.max(1, n - 1)})`; x.fill(); } x.restore(); }
+  const dx = dir === 0 ? p * W * Sw.fly : dir === 1 ? -p * W * Sw.fly : 0, dy = dir === 2 ? -p * HH * 0.6 * Sw.upFly : 0, rot = (dir === 2 ? 0 : (dir === 0 ? 1 : -1)) * Sw.tilt * p * Math.PI / 180;
+  x.save(); x.translate(cx + dx, top + h / 2 + dy); x.rotate(rot); drawSwapCard(x, item(k), k, 0, -h / 2, w, h, S);
+  if(S.stamp.show && p > 0){ const word = [S.stamp.save, S.stamp.skip, S.stamp.offer][dir], col = [S.stamp.saveC, S.stamp.skipC, S.stamp.offerC][dir], sw2 = tw(x, S.stamp.t, word) + 24, sh2 = S.stamp.t.size + 12;
+    x.save(); x.globalAlpha = clamp(p * 2.2, 0, 1); x.translate(dir === 1 ? w / 2 - sw2 / 2 - 20 : dir === 0 ? -w / 2 + sw2 / 2 + 20 : 0, -h / 2 + sh2 + 20); x.rotate(S.stamp.turn * Math.PI / 180 * (dir === 1 ? -1 : 1));
+    x.lineWidth = S.stamp.bw; x.strokeStyle = col; if(S.stamp.bw > 0) x.strokeRect(-sw2 / 2, -sh2 / 2, sw2, sh2); tx(x, Object.assign({}, S.stamp.t, { color: col }), word, 0, S.stamp.t.size * 0.36, 'center'); x.restore(); }
+  x.restore();
+  slotsDraw(x, S.btns);
+}
+
+/* ---------- Ads ---------- */
+function sponsored(x, S, X0, Y0, align){ const L = S.label; if(!L.show) return 0; const lw = tw(x, L.t, L.text) + 14, lh = L.t.size + 8, lx = align === 'right' ? X0 - lw : X0; box(x, lx, Y0, lw, lh, L.box); tx(x, L.t, L.text, lx + lw / 2, Y0 + lh / 2 + L.t.size * 0.36, 'center'); return lw; }
+function ctaDraw(x, S, cx, Y0, wMax){ const B = S.cta, bw = Math.min(wMax, W * B.w); box(x, cx - bw / 2, Y0, bw, B.h, B.box); tx(x, B.t, B.text, cx, Y0 + B.h / 2 + B.t.size * 0.36, 'center', bw - 10); return B.h; }
+function adCardH(S, cw){ const F = S.feed; return 50 + cw * F.ratio + 14 + F.headT.size + 6 + F.bodyT.size + 14 + S.cta.h + 16 + (S.label.show && S.label.place === 'bottom' ? S.label.t.size + 14 : 0); }
+function drawAdCard(x, S, it, X0, Y0, cw){
+  const F = S.feed, h = adCardH(S, cw); box(x, X0, Y0, cw, h, F.card);
+  if(F.logo > 0 && it.logo){ const lg = img(it.logo); x.save(); x.beginPath(); x.arc(X0 + 12 + F.logo / 2, Y0 + 25, F.logo / 2, 0, 7); x.fillStyle = '#fff'; x.fill(); x.clip(); contain(x, lg, X0 + 12, Y0 + 25 - F.logo / 2, F.logo, F.logo, 2); x.restore(); }
+  const nx = X0 + 12 + (F.logo > 0 ? F.logo + 10 : 0); tx(x, F.nameT, it.store, nx, Y0 + 25 + F.nameT.size * 0.36, 'left', cw - (nx - X0) - 100);
+  if(S.label.place === 'header') sponsored(x, S, X0 + cw - 12, Y0 + 25 - (S.label.t.size + 8) / 2, 'right');
+  const py = Y0 + 50, phh = cw * F.ratio; x.save(); x.beginPath(); x.rect(X0 + F.card.bw, py, cw - 2 * F.card.bw, phh); x.clip(); x.fillStyle = F.photoBg; x.fillRect(X0, py, cw, phh);
+  if(F.img) cover(x, img(F.img), X0, py, cw, phh); else if(it.img) contain(x, img(it.img), X0, py, cw, phh, 14); x.restore();
+  if(S.label.place === 'corner') sponsored(x, S, X0 + cw - 10, py + 10, 'right');
+  let y = py + phh + 14 + F.headT.size; tx(x, F.headT, F.head, X0 + 14, y, 'left', cw - 28); y += 6 + F.bodyT.size; tx(x, F.bodyT, F.body, X0 + 14, y, 'left', cw - 28);
+  y += 14; ctaDraw(x, S, X0 + cw / 2, y, cw - 28); y += S.cta.h + 8;
+  if(S.label.place === 'bottom'){ const lw = tw(x, S.label.t, S.label.text) + 14; sponsored(x, S, X0 + (cw - lw) / 2, y); }
+  return h; }
+function feedDraw(x, t, S, dim){
+  const F = S.feed, cw = W - F.margin * 2, normH = cw * 1.1 + 70; let entries = []; for(let k = 0; k < 24; k++) entries.push((k + 1) % Math.round(F.every) === 0 ? 'ad' : 'post');
+  const hs = entries.map(e => (e === 'ad' ? adCardH(S, cw) : normH) + F.gap), total = hs.reduce((a, b) => a + b, 0), sc = (t * F.scroll) % total;
+  let y = 20 - sc, ai = 0;
+  for(let rep = 0; rep < 2; rep++) entries.forEach((e, k) => { const hh = hs[k]; if(y < HH && y + hh > 0){
+      if(e === 'ad') drawAdCard(x, S, item(7 + ai * 3), F.margin, y, cw);
+      else { box(x, F.margin, y, cw, normH, F.normal); const it = item(k * 5 + 1), nm = SELLERS[k % SELLERS.length], av = img('faces/' + nm + '.jpg'); x.save(); x.beginPath(); x.arc(F.margin + 26, y + 24, 14, 0, 7); x.clip(); if(ok(av)) cover(x, av, F.margin + 12, y + 10, 28, 28); x.restore();
+        tx(x, F.nameT, nm, F.margin + 48, y + 29); x.save(); x.beginPath(); x.rect(F.margin, y + 48, cw, cw * 1.1 - 4); x.clip(); cover(x, img(bgSrc(1 + (k * 3) % 23)), F.margin, y + 48, cw, cw * 1.1 - 4); x.restore(); } }
+    if(e === 'ad') ai++; y += hh; });
+  if(dim){ x.fillStyle = `rgba(0,0,0,${dim})`; x.fillRect(0, 0, W, HH); }
+}
+function drawAds(x, t, S, since){
+  bgDraw(x, S.bg); const sec = STATE.sec;
+  if(sec === 'feed' || sec === 'cta'){ feedDraw(x, t, S); return; }
+  if(sec === 'banner'){ const B = S.banner, bw = W - B.margin * 2, bh = HH * B.h, by = HH * B.y;
+    feedDraw(x, t * 0.3, S); x.fillStyle = S.bg.color; x.fillRect(0, 0, W, by + bh + 12);
+    const n = Math.floor(t / B.every), ph = (t % B.every), tr = clamp(ph / B.transSec, 0, 1), e = ease(tr);
+    const drawB = (idx, ox, alpha, sy) => { const it = item(11 + idx * 2); x.save(); x.globalAlpha = alpha; x.translate(B.margin + ox + bw / 2, by + bh / 2); x.scale(1, sy); x.translate(-bw / 2, -bh / 2);
+      box(x, 0, 0, bw, bh, B.box); x.save(); rr(x, 0, 0, bw, bh, Math.min(B.box.radius, bh / 2)); x.clip(); x.fillStyle = B.photoBg; x.fillRect(bw * 0.55, 0, bw * 0.45, bh);
+      if(B.img) cover(x, img(B.img), 0, 0, bw, bh); else { if(it.img) contain(x, img(it.img), bw * 0.55, 0, bw * 0.45, bh, 6); if(it.logo){ const lg = img(it.logo); contain(x, lg, 12, 10, bh * 0.5, bh * 0.5, 0); } } x.restore();
+      tx(x, B.t, B.text, 14, bh - 14 - B.t.size - 4, 'left', bw * 0.5); tx(x, Object.assign({}, B.t, { size: B.t.size * 0.8, weight: 500 }), it.store, 14, bh - 12, 'left', bw * 0.5);
+      if(S.label.show) sponsored(x, S, bw * 0.55 - 8, 8, 'right'); x.restore(); };
+    if(B.trans === 'slide'){ drawB(n - 1, -e * (bw + B.margin), 1, 1); drawB(n, (1 - e) * (bw + B.margin), 1, 1); }
+    else if(B.trans === 'fade'){ drawB(n - 1, 0, 1 - e, 1); drawB(n, 0, e, 1); }
+    else { if(e < 0.5) drawB(n - 1, 0, 1, 1 - e * 2); else drawB(n, 0, 1, (e - 0.5) * 2); }
+    if(B.dots){ for(let i = 0; i < 5; i++){ x.fillStyle = i === n % 5 ? B.dotC : 'rgba(255,255,255,.3)'; x.beginPath(); x.arc(W / 2 + (i - 2) * 12, by + bh + 8, 3, 0, 7); x.fill(); } }
+    return; }
+  if(sec === 'take'){ const T = S.take; const ph = t % T.every, p = ease(clamp(ph / T.inSec, 0, 1)), out = ease(clamp((ph - (T.every - T.inSec)) / T.inSec, 0, 1)), v = p * (1 - out);
+    feedDraw(x, t * 0.2, S, T.dim * v);
+    const w = W * T.w, h = HH * T.h, cx = W / 2, cy = HH / 2, it = item(23);
+    x.save(); x.globalAlpha = T.kind === 'fade' ? v : clamp(v * 3, 0, 1); x.translate(cx, cy + (T.kind === 'rise' ? (1 - v) * HH : T.kind === 'drop' ? -(1 - v) * HH : 0)); const z = T.kind === 'zoom' ? 0.6 + 0.4 * v : 1; x.scale(z, z); x.translate(-w / 2, -h / 2);
+    box(x, 0, 0, w, h, T.box); x.save(); rr(x, 0, 0, w, h, Math.min(T.box.radius, w / 2)); x.clip(); x.fillStyle = T.photoBg; x.fillRect(0, 0, w, h * 0.55); if(T.img) cover(x, img(T.img), 0, 0, w, h * 0.55); else if(it.img) contain(x, img(it.img), 0, 0, w, h * 0.55, 20); x.restore();
+    let y = h * 0.55 + 16 + T.headT.size; tx(x, T.headT, T.head, w / 2, y, 'center', w - 24); y += 10 + S.feed.nameT.size; tx(x, S.feed.nameT, it.store + ' · ' + money(it.price), w / 2, y, 'center', w - 24);
+    if(T.count){ const left = Math.max(0, T.hours * 3600 - Math.floor(t)), hh = String(Math.floor(left / 3600)).padStart(2, '0'), mm = String(Math.floor(left / 60) % 60).padStart(2, '0'), ss = String(left % 60).padStart(2, '0'); y += 14 + T.countT.size; tx(x, T.countT, `${hh}:${mm}:${ss}`, w / 2, y, 'center'); }
+    ctaDraw(x, S, w / 2, h - S.cta.h - 18, w - 40);
+    const cs = T.close; x.fillStyle = 'rgba(0,0,0,.55)'; x.beginPath(); x.arc(w - cs * 0.8, cs * 0.8, cs / 2, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 2; x.beginPath(); x.moveTo(w - cs * 0.8 - cs * 0.18, cs * 0.8 - cs * 0.18); x.lineTo(w - cs * 0.8 + cs * 0.18, cs * 0.8 + cs * 0.18); x.moveTo(w - cs * 0.8 + cs * 0.18, cs * 0.8 - cs * 0.18); x.lineTo(w - cs * 0.8 - cs * 0.18, cs * 0.8 + cs * 0.18); x.stroke();
+    if(S.label.show) sponsored(x, S, 12, 12);
+    x.restore(); return; }
+  if(sec === 'book'){ const B = S.book, m = 18; let y = 70; tx(x, B.titleT, B.title, m, y, 'left', W - 2 * m);
+    const rates = DATA.rates.length ? DATA.rates : [{ scope:'county', weekly_cents:2500 }, { scope:'state', weekly_cents:7500 }, { scope:'all', weekly_cents:15000 }], names = { county:'My county', state:'All of Florida', all:'Everywhere' }, pick = Math.floor(t / 2.5) % rates.length;
+    y += 22; tx(x, B.labelT, 'Who sees it', m, y + B.labelT.size); y += B.labelT.size + 12;
+    rates.forEach((r, i) => { const bh = 58; const b = i === pick ? Object.assign({}, B.box, { bc: B.accent, bw: Math.max(2, B.box.bw) }) : B.box; box(x, m, y, W - 2 * m, bh, b);
+      tx(x, Object.assign({}, B.titleT, { size: 15, weight: 700 }), names[r.scope] || r.scope, m + 16, y + 26); tx(x, B.labelT, 'per week', m + 16, y + 44); tx(x, B.priceT, money(r.weekly_cents / 100), W - m - 16, y + 36, 'right'); y += bh + 10; });
+    y += 8; tx(x, B.labelT, 'Weeks', m, y + B.labelT.size); tx(x, B.priceT, String(B.weeks), W - m - 16, y + B.labelT.size + 2, 'right'); y += 34;
+    tx(x, B.labelT, 'Your ad', m, y + B.labelT.size); y += B.labelT.size + 10; const mw = W - 2 * m, sc = 0.55; x.save(); x.translate(m + mw * (1 - sc) / 2, y); x.scale(sc, sc); const ch = drawAdCard(x, S, item(7), 0, 0, mw); x.restore(); y += ch * sc + 14;
+    const r = rates[pick]; tx(x, B.labelT, 'Total', m, y + 14); tx(x, B.priceT, money(r.weekly_cents / 100 * B.weeks), W - m - 16, y + 16, 'right'); y += 30; ctaDraw(x, Object.assign({}, S, { cta: Object.assign({}, S.cta, { text: B.pay }) }), W / 2, Math.min(y, HH - S.cta.h - 30), W - 2 * m);
+    return; }
+}
+
+/* ---------- Shop the post ---------- */
+function drawShopPost(x, t, S){
+  bgDraw(x, S.bg); const P = S.post, it = item(5), cw = W - P.margin * 2, X0 = P.margin, Y0 = HH * P.y, phh = cw * P.ratio, head = 52, nm = 'Freya';
+  const capH = P.capT.size + 24, ph = head + phh + capH; box(x, X0, Y0, cw, ph, P.box);
+  if(P.avatar > 0){ const av = img('faces/' + nm + '.jpg'); x.save(); x.beginPath(); x.arc(X0 + 14 + P.avatar / 2, Y0 + head / 2, P.avatar / 2, 0, 7); x.clip(); if(ok(av)) cover(x, av, X0 + 14, Y0 + head / 2 - P.avatar / 2, P.avatar, P.avatar); x.restore(); }
+  tx(x, P.nameT, nm, X0 + 14 + P.avatar + (P.avatar ? 10 : 0), Y0 + head / 2 + P.nameT.size * 0.36);
+  const py = Y0 + head; x.save(); x.beginPath(); x.rect(X0 + P.box.bw, py, cw - 2 * P.box.bw, phh); x.clip(); x.fillStyle = P.photoBg; x.fillRect(X0, py, cw, phh); if(P.img) cover(x, img(P.img), X0, py, cw, phh); else if(it.img) contain(x, img(it.img), X0, py, cw, phh, 30); x.restore();
+  tx(x, P.capT, P.caption, X0 + 14, py + phh + 14 + P.capT.size, 'left', cw - 28);
+  // credit tag
+  const Cr = S.credit; if(Cr.show){ const s = nm + ' ' + Cr.text, w2 = tw(x, Cr.t, s) + 20, h2 = Cr.t.size + 12; box(x, X0 + 12, py + 12, w2, h2, Cr.box); tx(x, Cr.t, s, X0 + 22, py + 12 + h2 / 2 + Cr.t.size * 0.36); }
+  // tag dot
+  const Pn = S.pin, px = X0 + cw * Pn.x, pyy = py + phh * Pn.y;
+  if(Pn.pulse > 0){ for(let k = 0; k < 2; k++){ const q = (t * Pn.pulseSpeed * 0.8 + k * 0.5) % 1; x.strokeStyle = hexA(Pn.ring, (1 - q) * 0.6 * Math.min(1, Pn.pulse)); x.lineWidth = 2; x.beginPath(); x.arc(px, pyy, Pn.size / 2 + q * Pn.size * 1.6 * Pn.pulse, 0, 7); x.stroke(); } }
+  if(Pn.img && ok(img(Pn.img))) x.drawImage(img(Pn.img), px - Pn.size / 2, pyy - Pn.size / 2, Pn.size, Pn.size);
+  else { x.fillStyle = Pn.color; x.beginPath(); x.arc(px, pyy, Pn.size / 2, 0, 7); x.fill(); if(Pn.ringW > 0){ x.strokeStyle = Pn.ring; x.lineWidth = Pn.ringW; x.stroke(); } }
+  // product card
+  const Cd = S.card, Bt = S.btn, phs = Cd.auto ? (t % Cd.every) / Cd.every : 0.5, open = Cd.auto ? clamp(Math.min(phs / 0.08, (Cd.open - phs) / 0.08), 0, 1) : 1;
+  if(open > 0){ const w = W * Cd.w, pad = 12, ch = Math.max(Cd.imgSize, Cd.nameT.size + Cd.storeT.size + Cd.priceT.size + 16) + pad * 3 + Bt.h; let cx0, cy0;
+    if(Cd.place === 'over'){ cx0 = clamp(px - w / 2, X0 + 8, X0 + cw - w - 8); cy0 = pyy - ch - Pn.size - 8; if(cy0 < py + 8) cy0 = pyy + Pn.size + 8; }
+    else if(Cd.place === 'below'){ cx0 = (W - w) / 2; cy0 = py + phh + capH + 10; }
+    else { cx0 = (W - w) / 2; cy0 = HH - ch - 20 + (1 - ease(open)) * (ch + 30); }
+    x.save(); x.globalAlpha = Cd.place === 'sheet' ? 1 : ease(open); if(Cd.place !== 'sheet'){ const z = 0.85 + 0.15 * ease(open); x.translate(px, pyy); x.scale(z, z); x.translate(-px, -pyy); }
+    box(x, cx0, cy0, w, ch, Cd.box);
+    if(Cd.imgSize > 0){ x.save(); rr(x, cx0 + pad, cy0 + pad, Cd.imgSize, Cd.imgSize, 10); x.fillStyle = Cd.photoBg; x.fill(); x.clip(); contain(x, img(it.img), cx0 + pad, cy0 + pad, Cd.imgSize, Cd.imgSize, 4); x.restore(); }
+    const tx0 = cx0 + pad + (Cd.imgSize > 0 ? Cd.imgSize + 10 : 0), tw0 = w - (tx0 - cx0) - pad; let yy = cy0 + pad + Cd.nameT.size;
+    tx(x, Cd.nameT, it.name, tx0, yy, 'left', tw0); yy += Cd.storeT.size + 5; tx(x, Cd.storeT, it.store, tx0, yy, 'left', tw0); yy += Cd.priceT.size + 6; tx(x, Cd.priceT, money(it.price), tx0, yy);
+    const by = cy0 + ch - pad - Bt.h; box(x, cx0 + pad, by, w - pad * 2, Bt.h, Bt.box); tx(x, Bt.t, Bt.text, cx0 + w / 2, by + Bt.h / 2 + Bt.t.size * 0.36, 'center', w - pad * 4);
+    x.restore(); }
+  const Br = S.bar; if(Br.show){ const bw = W * 0.8, by = HH * Br.y - Br.h / 2; box(x, (W - bw) / 2, by, bw, Br.h, Br.box); tx(x, Br.t, Br.text, W / 2, by + Br.h / 2 + Br.t.size * 0.36, 'center', bw - 20); }
+}
+
+/* ---------- Flash deals ---------- */
+function drawDeals(x, t, S){
+  bgDraw(x, S.bg); const L = S.list, T = S.txt;
+  const cols = L.layout === 'grid' ? Math.round(L.cols) : 1, top = HH * L.top;
+  let cw = (W - L.margin * 2 - (cols - 1) * L.gap) / cols; if(L.layout === 'carousel') cw = W * 0.62;
+  const photoH = L.layout === 'list' ? cw * 0.32 * L.ratio : cw * L.ratio, infoH = 12 + T.nameT.size + 6 + T.priceT.size + (T.showStore ? T.storeT.size + 6 : 0) + (S.qty.show ? 18 + S.qty.h : 0) + (S.timer.show && S.timer.place === 'under' ? S.timer.t.size + 16 : 0) + 10;
+  const ch = L.layout === 'list' ? Math.max(photoH + 20, infoH) : photoH + infoH;
+  const drawCard = (i, X0, Y0) => { const it = item(i * 3 + 2), disc = T.discount, now = it.price * (1 - disc); box(x, X0, Y0, cw, ch, L.card);
+    const pw = L.layout === 'list' ? photoH : cw, pX = L.layout === 'list' ? X0 + 10 : X0, pY = L.layout === 'list' ? Y0 + 10 : Y0;
+    x.save(); if(L.layout === 'list') rr(x, pX, pY, pw, photoH, 10); else rr(x, X0, Y0, cw, photoH + L.card.radius, Math.min(L.card.radius, cw / 2)); x.clip(); x.fillStyle = L.photoBg; x.fillRect(pX, pY, pw, photoH); if(it.img) contain(x, img(it.img), pX, pY, pw, photoH, L.photoPad); x.restore();
+    if(S.off.show){ const s = '-' + Math.round(disc * 100) + '%', bw = tw(x, S.off.t, s) + 14, bh = S.off.t.size + 10, pl = S.off.place, bx = pl[1] === 'l' ? pX + 8 : pX + pw - bw - 8, by = pl[0] === 't' ? pY + 8 : pY + photoH - bh - 8; box(x, bx, by, bw, bh, S.off.box); tx(x, S.off.t, s, bx + bw / 2, by + bh / 2 + S.off.t.size * 0.36, 'center'); }
+    const left = Math.max(0, S.timer.hours * 3600 - Math.floor(t) - i * 731), tStr = String(Math.floor(left / 3600)).padStart(2, '0') + ':' + String(Math.floor(left / 60) % 60).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+    const timerAt = (bx, by) => { const bw = tw(x, S.timer.t, tStr) + 14, bh = S.timer.t.size + 8; box(x, bx, by, bw, bh, S.timer.box); tx(x, S.timer.t, tStr, bx + bw / 2, by + bh / 2 + S.timer.t.size * 0.36, 'center'); };
+    if(S.timer.show && S.timer.place === 'photo'){ const bw = tw(x, S.timer.t, tStr) + 14; timerAt(S.off.place === 'bl' ? pX + pw - bw - 8 : pX + 8, pY + photoH - S.timer.t.size - 16); }
+    const ix = L.layout === 'list' ? pX + pw + 12 : X0 + 10, iw = L.layout === 'list' ? cw - (ix - X0) - 10 : cw - 20; let y = (L.layout === 'list' ? Y0 + 4 : Y0 + photoH) + 12 + T.nameT.size;
+    tx(x, T.nameT, it.name, ix, y, 'left', iw); if(T.showStore){ y += T.storeT.size + 6; tx(x, T.storeT, it.store, ix, y, 'left', iw); }
+    y += T.priceT.size + 6; tx(x, T.priceT, money(now), ix, y); if(T.showOld){ const ow = tw(x, T.priceT, money(now)) + 8, s = money(it.price); tx(x, T.oldT, s, ix + ow, y); const sw = tw(x, T.oldT, s); x.strokeStyle = T.oldT.color; x.lineWidth = 1; x.beginPath(); x.moveTo(ix + ow, y - T.oldT.size * 0.35); x.lineTo(ix + ow + sw, y - T.oldT.size * 0.35); x.stroke(); }
+    if(S.timer.show && S.timer.place === 'under'){ y += 8; timerAt(ix, y); y += S.timer.t.size + 8; }
+    if(S.qty.show){ const Q = S.qty, leftN = Math.max(1, Math.round(Q.total * (0.15 + 0.7 * ((i * 0.37) % 1)) - (t * 0.05 % 3))); y += 10; x.fillStyle = Q.bg; rr(x, ix, y, iw, Q.h, Q.h / 2); x.fill(); x.fillStyle = Q.fill; rr(x, ix, y, Math.max(Q.h, iw * leftN / Q.total), Q.h, Q.h / 2); x.fill(); y += Q.h + Q.t.size + 3; tx(x, Q.t, leftN + ' ' + Q.label, ix, y); } };
+  // header (drawn after the cards so cards scroll under it)
+  if(L.layout === 'carousel'){ const off = (t * L.scroll) % (cw + L.gap); for(let i = -1; i < 6; i++) drawCard(i + 1 + Math.floor(t * L.scroll / (cw + L.gap)), L.margin + i * (cw + L.gap) - off, top); for(let i = 0; i < 4; i++) drawCard(i + 20, L.margin + i * ((W - L.margin * 2 - L.gap) / 2 + L.gap), top + ch + 24); }
+  else { const rowH = ch + L.gap, rows = 40, sc = (t * L.scroll) % (rowH * 20); x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip(); for(let r = 0; r < rows; r++){ const y = top + r * rowH - sc; if(y > HH || y + ch < top) continue; for(let c = 0; c < cols; c++) drawCard(r * cols + c, L.margin + c * (cw + L.gap), y); } x.restore(); }
+  tx(x, S.head.t, S.head.text, W / 2, HH * S.head.y, 'center', W - 30);
+  if(S.near.show){ const s = S.near.text + ' · ' + S.near.miles + ' mi', fw = tw(x, S.near.t, s) + 28, fh = S.near.t.size + 14, fy = HH * S.near.y; box(x, (W - fw) / 2, fy, fw, fh, S.near.box); tx(x, S.near.t, s, W / 2, fy + fh / 2 + S.near.t.size * 0.36, 'center'); }
+}
+
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
 const deep = (o) => JSON.parse(JSON.stringify(o));
@@ -175,8 +524,9 @@ function panel(){
       else if(c.t === 'k'){ el = document.createElement('label'); el.className = 'pg-chk'; el.innerHTML = `<input type="checkbox" ${v ? 'checked' : ''}> ${c.label}`; el.querySelector('input').onchange = (e) => { set(STATE.S, c.k, e.target.checked); save(); }; }
       else if(c.t === 'c'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="color" value="${/^#/.test(v) ? v : '#ffffff'}">`; el.querySelector('input').oninput = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
       else if(c.t === 's'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><select class="pg-sel">${c.opts.map(([val, lab]) => `<option value="${val}" ${val === v ? 'selected' : ''}>${lab}</option>`).join('')}</select>`; el.querySelector('select').onchange = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
+      else if(c.t === 'x'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="text" class="pg-sel">`; const ti = el.querySelector('input'); ti.value = v == null ? '' : v; ti.oninput = () => { set(STATE.S, c.k, ti.value); save(); }; }
       else if(c.t === 'u'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}${v ? ' <em>set</em>' : ''}</label><input type="file" accept="image/*"> ${v ? '<button class="ghost">Clear</button>' : ''}`;
-        el.querySelector('input').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const path = 'icons/' + Date.now() + '-' + f.name.replace(/[^\w.-]/g, '_');
+        el.querySelector('input').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const path = 'uploads/pages/' + Date.now() + '-' + f.name.replace(/[^\w.-]/g, '_');
           try { const r = await fetch(SB.url + '/storage/v1/object/studio/' + path, { method:'POST', headers: H({ 'Content-Type': f.type, 'x-upsert':'true' }), body: f }); if(!r.ok) throw 0; set(STATE.S, c.k, STUDIO + path); } catch(err){ set(STATE.S, c.k, URL.createObjectURL(f)); alert('Upload failed, showing it on this computer only.'); }
           save(); panel(); };
         const cb = el.querySelector('button'); if(cb) cb.onclick = () => { set(STATE.S, c.k, ''); save(); panel(); }; }
@@ -199,7 +549,7 @@ const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
 function frame(now){
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   if(r.width > 0 && (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr))){ cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
-  if(STATE.S && r.width > 0){ const sc = cv.width / W; ctx.setTransform(sc, 0, 0, sc, 0, 0); ctx.clearRect(0, 0, W, HH);
+  if(STATE.S && r.width > 0){ const sc = cv.width / W; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(sc, 0, 0, sc, 0, 0);
     try { PAGES[STATE.page].draw(ctx, now / 1000, STATE.S, (now - STATE.t0) / 1000); } catch(e){ console.error(e); } }
   requestAnimationFrame(frame);
 }
