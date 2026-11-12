@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asgard Studio — Pages</title>
+<link rel="stylesheet" href="studio.css?v=pages1">
+<style>
+  .pg-right{overflow:auto}
+  .pg-grp{border-top:1px solid #ffffff14;padding:10px 14px}
+  .pg-grp>summary{cursor:pointer;font-weight:600;list-style:none;padding:4px 0}
+  .pg-row{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+  .pg-row label{display:flex;justify-content:space-between;font-size:13px;opacity:.9}
+  .pg-row label em{font-style:normal;color:#7fe3ff}
+  .pg-row input[type=range]{width:100%}
+  .pg-chk{display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0}
+  .pg-sel{width:100%;background:#151a20;color:#e8eef5;border:1px solid #ffffff22;border-radius:8px;padding:6px}
+  #pgCanvas{width:100%;height:100%;display:block;background:#000}
+  .pgnav button.sec.on{background:#1d3a3a}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">A</span><span>ASGARD <small>STUDIO</small></span></div>
+  <div class="doc"><b id="docTitle">Pages</b><span id="saveState" class="saved">● All changes saved</span></div>
+  <div class="spacer"></div>
+  <select id="pagePick" class="pg-sel" style="width:auto">
+    <option value="raven">Raven (black holes, sphere)</option>
+    <option value="home">Asgard home (sky + posts)</option>
+    <option value="share">Share (favs as 3D figures)</option>
+    <option value="convo">Conversation (clouds + earth)</option>
+    <option value="heimdall">Heimdall (notifications)</option>
+  </select>
+  <button class="ghost" id="resetBtn" title="Back to the starting settings for this page">Reset page</button>
+  <button class="primary" id="pushBtn" hidden>Send to the app</button>
+</header>
+<main>
+  <nav class="left pgnav" id="secNav"><div class="cap">THIS PAGE</div></nav>
+  <section class="center">
+    <div class="ctitle"><div><small>LIVE PHONE PREVIEW</small><h1 id="pgTitle">Asgard home</h1></div></div>
+    <div class="phonewrap"><div class="phone"><div id="stage" class="stage"><canvas id="pgCanvas"></canvas></div><div class="notch"></div></div></div>
+    <div class="hint" id="hint">Everything here saves to the shared studio, so ChatGPT and Claude see the same settings.</div>
+  </section>
+  <aside class="right pg-right"><div class="phead">☰ Make it yours</div><div id="panel"></div></aside>
+</main>
+<script src="pages.js?v=pages1"></script>
+</body>
+</html>
