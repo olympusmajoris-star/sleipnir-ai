@@ -77,7 +77,7 @@ function redo(){ if(hi<hist.length-1){ hi++; S = clone(hist[hi]); persist(); app
 
 /* ---------------- scene ---------------- */
 const scene = new Raven.RavenScene($('#stage'), S, {});
-const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:SB.url+'/storage/v1/object/public/studio/navigation/rocks-v1/',page:'raven',shareAvailable:false});
+const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:SB.url+'/storage/v1/object/public/studio/navigation/rocks-v1/',page:'raven',shareAvailable:false,onNavigate:id=>{ROCK_NAV.selected=id==='convo'?'messages':id;ROCK_NAV.group='carving';showSec('rocks');}});
 window.asgardRockNavigation=ROCK_NAV;
 window.scene = scene;
 async function applyToScene(full){
@@ -199,7 +199,7 @@ function secHoles(){
   if(ui.open.hRefShape===undefined)ui.open.hRefShape=true;
   if(ui.open.hRefAngle===undefined)ui.open.hRefAngle=true;
   const ref='holes.referencePreview.';
-  h += group('Your selected black hole', [K(ref+'on','Show this black hole live'),R(ref+'radius','Overall size',12,80,.5)], 'hReference');
+  h += `<section class="grp" aria-label="Entire black hole"><div class="gb"><h3>Entire black hole</h3>${[K(ref+'on','Show this black hole live'),R(ref+'radius','Entire black hole size',12,80,.5)].map(ctlHtml).join('')}<p class="hint">Scales the black center and all its gas together. Ring size below changes only the disk.</p></div></section>`;
   h += `<div class="gb" style="padding:10px 14px"><label for="refVariant">Saved variants</label><select id="refVariant" style="width:100%;margin:8px 0;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px"><option value="">Current working look</option>${hs.referenceVariants.map(v=>`<option value="${esc(v.id)}" ${hs.referenceVariantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="refVariantName" aria-label="Variant name" placeholder="Name this variant" maxlength="80" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px" value="${esc(hs.referenceVariants.find(v=>v.id===hs.referenceVariantId)?.name||'')}"><div class="btnrow"><button class="btn acc" id="saveRefVariant">Save new variant</button><button class="btn" id="updateRefVariant" ${hs.referenceVariantId?'':'disabled'}>Update saved</button></div><button class="btn" id="refOriginal" style="margin-top:8px">Return to approved original</button></div>`;
   h += group('Ring size & density', [R(ref+'ringSize','Ring size',.45,1.8,.01),R(ref+'density','Gas density / opacity',0,3,.05)], 'hRefShape');
   h += group('Angle & axis', [K(ref+'view3d','Adjust the viewing angle in 3D'),R(ref+'tilt','View angle · 3° side / 90° above',3,90,1),R(ref+'axisY','Turn the disk axis left / right',-80,80,1),R(ref+'axisZ','Rotate the whole axis on screen',-180,180,1),R(ref+'thickness','3D disk thickness',.3,2,.05)], 'hRefAngle');
@@ -267,6 +267,8 @@ function render(){
   { const n=S.holes.dashboards[S.holes.active].tiers.length; let st=parseInt(S.holes.selTier); if(!(st>=0)) st=0; S.holes.selTier=Math.min(st,n-1); if(S.holes.behavior.count>4) S.holes.behavior.count=4; }
   $$('.sec').forEach(b=>b.classList.toggle('on', b.dataset.sec===secNow));
   const p = $('#panel'); const st = p.scrollTop;
+  if(secNow==='rocks'){ROCK_NAV.group ||= 'carving';ROCK_NAV.showEditor(p);p.scrollTop=0;return;}
+  ROCK_NAV.hideEditor();p.classList.remove('rn-editor');
   p.innerHTML = ({ sphere:secSphere, tabs:secTabs, background:secBackground, holes:secHoles, media:secMedia })[secNow]();
   wire(p); bindPanel(p); fsReadout(); p.scrollTop = st; renderLayers(); renderVersions();
   $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus'); if(scene.anglePractice)setAnglePractice(scene.anglePractice);
