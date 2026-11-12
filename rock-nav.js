@@ -60,6 +60,8 @@ class RockTexture{
 }
 class Navigation{
  constructor(o){this.o=o;this.S=defaults();this.page=o.page||'home';this.share=!!o.shareAvailable;this.selected='home';this.edits=new Map();this.history=[];this.future=[];this.t=0;this.saved='Loading shared navigation…';this.assets={};this.root=document.createElement('div');this.root.className='rock-nav-layer';o.stage.style.position='relative';o.stage.appendChild(this.root);this.canvas=make(780,1688);this.canvas.className='rock-nav-canvas';this.root.appendChild(this.canvas);this.ctx=this.canvas.getContext('2d');this.links=document.createElement('nav');this.links.className='rock-nav-links';this.links.setAttribute('aria-label','Asgard navigation');this.root.appendChild(this.links);
+  // Navigation taps must not start the underlying Raven drag or pointer capture.
+  for(const type of ['pointerdown','pointermove','pointerup','click'])this.links.addEventListener(type,e=>e.stopPropagation());
   const base=o.assetBase||'rocks/';for(const id of IDS)this.assets[id]=new RockTexture(id,base+id+'.png');this.debrisImage=new Image();this.debrisImage.crossOrigin='anonymous';this.debrisImage.src=base+'debris.png';this.setContext(this.page,this.share);this.load();this.tick=this.tick.bind(this);requestAnimationFrame(this.tick);window.addEventListener('focus',()=>{if(!this.edits.size&&!this.saving)this.load();});
  }
  headers(extra){return Object.assign({apikey:this.o.key,Authorization:'Bearer '+this.o.key},extra);}
