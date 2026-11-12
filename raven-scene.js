@@ -342,7 +342,14 @@ class RavenScene {
       }
       x.globalAlpha = 1;
     }
-    this._drawGas(x, cw, ch);
+    // Keep the actual moving gas separate from stars. The disk samples this same
+    // material, including its current position, rather than copying a star field.
+    this.gasc=this.gasc||document.createElement('canvas');
+    if(this.gasc.width!==cw||this.gasc.height!==ch){this.gasc.width=cw;this.gasc.height=ch;}
+    const gx=this.gasc.getContext('2d');gx.globalCompositeOperation='source-over';gx.fillStyle='#000';gx.fillRect(0,0,cw,ch);
+    this._drawGas(gx,cw,ch);
+    x.save();x.globalCompositeOperation='lighter';x.drawImage(this.gasc,0,0);x.restore();
+    this.engine.setGas(this.s.holes.gas?.on===false?null:this.gasc);
     this._drawFeed(x, cw / W);
     if (b.skyDim !== 1) { x.fillStyle = `rgba(0,0,0,${clamp(1 - b.skyDim, 0, 1)})`; x.fillRect(0, 0, cw, ch); }
     if (b.fadeAmount > 0) {
@@ -367,6 +374,9 @@ class RavenScene {
         // which follower tier this hole is (by size)
         let ft = 0, best = 1e9; const nT = this.s.holes.dashboards.friends.tiers.length;
         for (let k = 0; k < nT; k++) { const dd = Math.abs(this.friendSizeAt(k) * this.s.holes.behavior.sizeScale - h.size); if (dd < best) { best = dd; ft = k; } }
+        h._fTier=ft;
+        h.gasDisk=h._vi<0&&!h._pairB&&this.s.holes.gas?.on!==false?[0,.28,.4,.54,.65,.76][Math.min(5,ft)]:0;
+        h.gasReach=11+ft*.7;
         // the disk depends on the tier: low tiers only the warp, higher tiers a dark revolving dust disk
         if (!(h._vi > 0) && !h._pairB) { if (ft + 1 >= (RU.dustFrom ?? 3) && (RU.dust ?? 0) > 0) {
             h.disk = 1; h.dust = RU.dust; h.diskIn = 3.0; h.diskOut = 3.0 + (RU.dustSize ?? 1.6) * (1 + 0.2 * (ft + 1 - (RU.dustFrom ?? 3))); h.diskBright = 0.35; h.diskFalloff = 0.8;
@@ -387,13 +397,17 @@ class RavenScene {
   }
   _lightHoles(holes) {
     // Run after clip/fuel gating: an invisible or unlit disk cannot cast a crest.
-    const pixels = this._sampleSky(), rule = this.s.holes.rule || {};
+    const pixels = this._sampleSky(), gasPixels=this._sampleGas(), rule = this.s.holes.rule || {};
+    const frameDt=this.playing===false?0:(this._dtLast||.016);
     const previous = this._holeLights || (this._holeLights = new Map()), live = new Set();
     for (const h of holes) {
       let light = G.BH.surfaceLighting(h, holes, pixels, W, H, h._angleStudy?{...rule,crest:1,crestWidth:.018}:rule);
       if (rule.on === false) light.crest[0] = 0;
       const key = (h._fid || h.seed || 0) + (h._pairB ? ':pair' : ':main'); live.add(key);
-      light=G.BH.settleLighting(light,previous.get(key),this.playing===false?0:(this._dtLast||.016));
+      light=G.BH.settleLighting(light,previous.get(key),frameDt);
+      const old=previous.get(key),wanted=G.BH.supplyAngle(h,gasPixels,W,H),last=old?._feedAngle??wanted;
+      light._feedAngle=last+Math.atan2(Math.sin(wanted-last),Math.cos(wanted-last))*(1-Math.exp(-frameDt/3));
+      h.feedAngle=light._feedAngle;
       previous.set(key, light); Object.assign(h, light);
     }
     for (const key of previous.keys()) if (!live.has(key)) previous.delete(key);
@@ -438,6 +452,14 @@ class RavenScene {
     if (this._px && this.time - (this._sampT || -9) < 0.25 && this.time >= this._sampT) return this._px;
     this._samp = this._samp || document.createElement('canvas'); this._samp.width = 78; this._samp.height = 169;
     const sx = this._samp.getContext('2d', { willReadFrequently: true }); try { sx.drawImage(this.bgc, 0, 0, 78, 169); this._px = sx.getImageData(0, 0, 78, 169).data; } catch (e) { this._px = null; } this._sampT = this.time; return this._px; }
+  _sampleGas(){
+    if(!this.gasc||this.s.holes.gas?.on===false)return null;
+    if(this._gasPx&&this.time>=this._gasSampleTime&&this.time-(this._gasSampleTime??-9)<.3)return this._gasPx;
+    this._gasSample=this._gasSample||document.createElement('canvas');this._gasSample.width=78;this._gasSample.height=169;
+    const x=this._gasSample.getContext('2d',{willReadFrequently:true});
+    try{x.drawImage(this.gasc,0,0,78,169);this._gasPx=x.getImageData(0,0,78,169).data;}catch(e){this._gasPx=null;}
+    this._gasSampleTime=this.time;return this._gasPx;
+  }
   // finds real dust near a hole and tears a soft piece off it (a copy of that patch of sky)
   _cutFromSky(h) {
     const px = this._sampleSky(); if (!px) return null; const sc = 78 / W; let best = 0, bx = 0, by = 0;
@@ -622,7 +644,7 @@ class RavenScene {
     const hs = this.s.holes, B = hs.behavior, out = [], faces = [];
     if(this.anglePractice && G.BH.ANGLE_STUDIES[this.anglePractice]) {
       const study=G.BH.ANGLE_STUDIES[this.anglePractice], contact=this._testContact||this.contacts[0];
-      const look={...G.BH.BH_DEFAULTS,...study,x:this.anglePractice==='low'?.59:.5,y:.24,size:69,lens:1,reach:.55,faceAmt:.8,faceZoom:1,_vi:-1,_fid:'angle-'+this.anglePractice,_angleStudy:true,angleManual:true,fl:[.12,3.8,.06,0]};
+      const look={...G.BH.BH_DEFAULTS,...study,x:this.anglePractice==='low'?.59:.5,y:.24,size:(this.angleDiameter||138)/2,lens:1,reach:.55,faceAmt:.8,faceZoom:1,_vi:-1,_fid:'angle-'+this.anglePractice,_angleStudy:true,angleManual:true,fl:[.12,3.8,.06,0]};
       this._expand(look,contact,out,faces);this._faceSlots(faces);
       this._tagged=[];return out;
     }

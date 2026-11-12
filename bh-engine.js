@@ -79,6 +79,8 @@ in vec2 vUv; out vec4 o;
 #define MAXH ${MAXH}
 uniform vec2 uRes; uniform float uTime;
 uniform sampler2D uBgA, uBgB, uFaces; uniform float uBgMix; uniform vec4 uFitA, uFitB; uniform float uBgBright;
+uniform sampler2D uGas; uniform float uGasReady;
+uniform vec4 uMaterial[MAXH]; // cool gas opacity, supply reach, resolved inner detail, supply angle
 uniform int uN;
 uniform vec4 uH0[MAXH];   // x,y (px), size(px), camDist
 uniform mat3 uRot[MAXH];
@@ -94,7 +96,7 @@ uniform vec4 uH9[MAXH];   // faceZoom, seed, -, -
 uniform vec4 uFL[MAXH]; uniform vec4 uDust[MAXH]; uniform vec4 uCR[MAXH]; uniform vec4 uFA[MAXH];
 uniform vec3 uCrestColor[MAXH], uSurfaceColor[MAXH];
 uniform vec4 uSurfaceLight[MAXH]; // direction in camera coordinates, incident brightness
-uniform vec4 uProfile[MAXH]; // projected disk axis xy, visible opening aspect z
+uniform vec4 uProfile[MAXH]; // identity: the body is always spherical
  uniform vec4 uRefl; uniform vec4 uRefl2;   // reflection: amount, face size, gloss, rim sky | catchlight, face brightness, blur, -   // follower rule: funnel darkness, influence width (hole radii), swirl smear, edge glare
 uniform vec4 uHF[MAXH]; uniform vec4 uFaceEdge; uniform float uEdgeW[MAXH]; uniform vec4 uEnv[MAXH]; uniform float uMutual;   // env: colorFromSky, sampleRadius, feedFromSky, -   // faceSphere, faceShade, -, -
 uniform vec3 uCDin[MAXH], uCDout[MAXH], uCRing[MAXH], uCCor[MAXH], uCFlare[MAXH], uCJet[MAXH], uCGlow[MAXH], uCHor[MAXH];
@@ -116,6 +118,9 @@ float vn3(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
              mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z); }
 float fbm3(vec3 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*vn3(p); p=p*2.02+vec3(3.1,1.7,9.2); a*=.5; } return s; }
 float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*vnoise(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return s; }
+// Critical impact parameter for this finite-distance camera. Using the same
+// analytic boundary for the limb and captured rays removes numerical edge crawl.
+float shadowB(float D){ float h2=1./(4./27.+1./(D*D*D));return sqrt(h2*D*D/(D*D-h2)); }
 
 vec2 bgUV(vec2 px, vec4 fit){ vec2 uv = px / uRes; vec2 a = (uv - .5) * fit.xy + .5 + fit.zw; return abs(mod(a+1.,2.)-1.); }
 vec3 bgAtG(vec2 px, vec2 dx, vec2 dy){
@@ -127,27 +132,41 @@ vec3 bgAtG(vec2 px, vec2 dx, vec2 dy){
 }
 /* disk emission at hole-frame point p, photon travelling along n (unit) */
 float gCross = 0.; vec3 gEnvIn = vec3(1); vec3 gEnvOut = vec3(1); float gEnvK = 0.; float gFeed = 1.;
-vec3 diskEm(int i, vec3 p, vec3 n, out float alpha){
+vec2 diskPattern(float lr,float phi,float seed,float detail){
+  vec2 cs=vec2(cos(phi),sin(phi));
+  float broad=fbm3(vec3(lr*2.4+seed,cs*2.8));
+  float fold=lr*9.+(broad-.5)*3.8;
+  float strand=fbm3(vec3(fold+seed,cs*4.+vec2(broad)));
+  // Distant views retain broad folds; subpixel strands disappear smoothly.
+  strand=mix(broad,strand,.5+.5*detail);
+  return vec2(broad,strand);
+}
+vec3 hotDisk(int i, vec3 p, vec3 n, out float alpha){
   vec4 h2=uH2[i], h3=uH3[i], h4=uH4[i], h5=uH5[i];
   float form = uH1[i].w;
   float r = length(p.xz);
   float rIn = h2.y, rOut = mix(h2.y*1.2, h2.z, form);
   if(r < rIn*0.92 || r > rOut){ alpha = 0.; return vec3(0); }
   float t = uTime;
-  float om = h4.x * 0.9 * pow(max(r,1.5), -1.5);
-  float phi = atan(p.z, p.x) - om*t*6.0 + (uH9[i].z > 0.5 ? 0. : h3.w*log(r));
+  float om = h4.x * 5.4 * pow(max(r,1.5), -1.5), orbit=h4.x*.483;
+  float phi = atan(p.z, p.x) - orbit*t + (uH9[i].z > 0.5 ? 0. : h3.w*log(r));
   float lr = log(r);
-  vec2 cs = vec2(cos(phi), sin(phi));
   float sd = uH9[i].y;
-  float turb = fbm3(vec3(lr*5.0 + sd, cs*2.2));
-  float fine = fbm3(vec3(lr*70.0 + sd, cs*1.6));
-  float fil = pow(clamp(fine*1.25,0.,1.), 2.2)*2.6;
-  float streak = mix(1.0, 0.15 + fil, h3.z*(1.0-0.85*clamp(gCross,0.,1.)));
+  float detail = (.3+.7*uMaterial[i].z) * (1.-.85*clamp(gCross,0.,1.));
+  // Two overlapping parcels advect with differential rotation. Each fades out
+  // before its coordinates reset, preventing unlimited shear into concentric
+  // vinyl grooves after the animation has been running for a while.
+  float ageA=mod(t,6.),ageB=mod(t+3.,6.);
+  float blend=pow(sin(ageA*3.14159265/6.),2.);
+  vec2 pattern=mix(diskPattern(lr,phi-(om-orbit)*ageB,sd,detail),
+                   diskPattern(lr,phi-(om-orbit)*ageA,sd,detail),blend);
+  float turb=pattern.x,fil=pattern.y;
+  float streak = mix(1.0, .24 + 1.85*smoothstep(.26,.72,fil), h3.z);
   // spiral arms (face-on swirls)
   float arms = uH9[i].z;
   if(arms > 0.5){ float ap = phi + uH3[i].w*(lr - log(rIn))*0.9; float aw = pow(0.5+0.5*cos(arms*ap + turb*1.2), uH9[i].w); streak *= mix(1.0, aw*2.2, clamp(uH9[i].w/2.0,0.,1.)); }
-  float tex = mix(1.0, 0.35 + 1.3*turb, h3.y*(1.0-0.9*clamp(gCross,0.,1.))) * streak;
-  float clump = h5.y > 0. ? smoothstep(.72, .92, vn3(vec3(lr*30., cs*9.))) * h5.y * 3. : 0.;
+  float tex = mix(1.0, .22 + 1.6*smoothstep(.18,.8,turb), h3.y*(1.0-.65*clamp(gCross,0.,1.))) * streak;
+  float clump = h5.y > 0. ? smoothstep(.55,.82,fil) * h5.y * .65 : 0.;
   float edgeIn = smoothstep(rIn*0.92, rIn*1.15, r);
   float edgeOut = 1.0 - smoothstep(rOut*0.55, rOut, r);
   float prof = pow(rIn / r, h3.x) * edgeIn * edgeOut;
@@ -164,8 +183,48 @@ vec3 diskEm(int i, vec3 p, vec3 n, out float alpha){
   col = mix(col, col*vec3(0.75,0.85,1.25), clamp((g-1.0)*1.5*h4.w,0.,1.));
   col = mix(col, col*vec3(1.2,0.85,0.6), clamp((1.0-g)*1.2*h4.w,0.,1.));
   float dk = uDust[i].x;   // dark dust disk: absorbs the sky behind it instead of glowing
-  alpha = clamp(I*3.5*(1.0 + dk*40.0), 0., h4.z);
+  // Optical depth belongs to matter, not its glow. A cooler foreground fold
+  // still blocks the lower hemisphere; grazing views cross more material.
+  float depth=edgeIn*edgeOut*(.3+1.7*sqrt(max(tex,0.)))*pow(rIn/r,.55)*form/max(abs(n.y),.1);
+  alpha = dk>0. ? clamp(I*3.5*(1.+dk*40.),0.,h4.z) : (1.-exp(-depth))*h4.z;
   return col * I * gI * (1.0 - dk*0.8);
+}
+
+vec3 gasSource(int i,float angle,float radius){
+  vec3 source=vec3(cos(angle)*radius,0.,sin(angle)*radius);
+  vec3 camera=transpose(uRot[i])*source;
+  vec2 samplePx=uH0[i].xy+vec2(camera.x,-camera.y)*uH0[i].z/2.598;
+  vec2 uv=abs(mod(samplePx/uRes+1.,2.)-1.);
+  return textureLod(uGas,uv,1.4).rgb;
+}
+vec3 diskEm(int i, vec3 p, vec3 n, out float alpha){
+  float hotA=0.;vec3 hot=vec3(0);
+  if(uH2[i].x>.5)hot=hotDisk(i,p,n,hotA);
+  vec4 m=uMaterial[i];float r=length(p.xz), gasA=0.;vec3 gasColor=vec3(0);
+  if(m.x>0. && uGasReady>0. && r>1.45 && r<m.y){
+    float pull=1.-smoothstep(3.5,m.y,r), phi=atan(p.z,p.x);
+    float winding=pull*1.25*log(m.y/max(r,1.5));
+    // The cloud itself drifts in uGas. A bounded spatial pull avoids advancing
+    // the sample kilometres away after the studio has been open for hours.
+    float sr=r+pull*1.6;
+    float ageA=mod(uTime,24.),ageB=mod(uTime+12.,24.);
+    float blend=pow(sin(ageA*3.14159265/24.),2.);
+    vec3 gas=mix(gasSource(i,phi+winding+pull*ageB*.045*uH4[i].x,sr),
+                 gasSource(i,phi+winding+pull*ageA*.045*uH4[i].x,sr),blend);
+    float luminance=dot(gas,vec3(.2126,.7152,.0722));
+    float lane=phi-m.w-.95*log(m.y/max(r,1.5));
+    float angular=atan(sin(lane),cos(lane));
+    float stream=exp(-pow(angular/(.3+.25*r/m.y),2.));
+    stream=mix(1.,stream,smoothstep(3.6,8.,r));
+    float edge=smoothstep(1.45,2.1,r)*(1.-smoothstep(m.y*.72,m.y,r));
+    float density=sqrt(max(0.,luminance)*5.)*stream*edge*uH1[i].w;
+    gasA=m.x*(1.-exp(-density*(1.+2.*pull)/max(abs(n.y),.25)));
+    gasColor=gas*2.2;
+    // The same sky gas crosses in front of the sphere and continues into the disk.
+    hot=hot*(1.-gasA*.25)+gasColor*gasA;
+  }
+  alpha=1.-(1.-hotA)*(1.-gasA);
+  return hot;
 }
 
 void main(){
@@ -196,6 +255,9 @@ void main(){
     float rTrace = max(16.0, uH2[i].z*1.15*uH2[i].x + 4.0);
     vec2 q = d / s;                          // r_s at hole plane
     float b = length(q);
+    float critical=shadowB(D);
+    float resolved=smoothstep(.35,1.4,abs(b-critical)*s);
+    photonK=max(photonK,1.-smoothstep(.015,.12,abs(b/critical-1.)));
     float hOp = uH8[i].w;
     // what this hole is sitting in: average the sky around it (blurred), so its glow and disk take that color
     gEnvK = uEnv[i].x; gFeed = 1.;
@@ -238,10 +300,14 @@ void main(){
         vec3 nacc = -1.5*h2*np/pow(nr,5.0);
         v = vh + 0.5*dt*nacc;
         // disk plane crossing
-        if(uH2[i].x > 0.5 && sign(np.y) != sign(pos.y)){
+        if((uH2[i].x > 0.5 || uMaterial[i].x>0.) && sign(np.y) != sign(pos.y)){
           float f = pos.y/(pos.y-np.y);
           vec3 c = mix(pos, np, f);
           float a; vec3 e = diskEm(i, c, -normalize(v), a);
+          // Sub-pixel copies of the far disk converge at the photon boundary.
+          // Resolve them as the smooth limb below, preserving foreground matter.
+          float front=1.-smoothstep(-.2,.2,(transpose(R)*c).z);
+          float weight=mix(resolved,1.,front);e*=weight;a*=weight;
           em += T*e; T *= (1.0-a); gCross += 1.0;
         }
         // thick disk haze
@@ -251,6 +317,7 @@ void main(){
           if(abs(np.y) < 2.5*hz && rr > uH2[i].y && rr < uH2[i].z){
             float a; vec3 e = diskEm(i, vec3(np.x,0.,np.z), -normalize(v), a);
             float w = exp(-pow(np.y/hz,2.0)) * dt * 0.06 / max(hz,0.05);
+            w*=mix(resolved,1.,1.-smoothstep(-.2,.2,(transpose(R)*np).z));
             em += T*e*w; T *= (1.0 - a*w);
           }
         }
@@ -263,6 +330,7 @@ void main(){
         pos = np;
       }
       em += T*jet;
+      cap = b <= critical;
       // the ball's edge: rays that only skim the shadow belong to the ball too, so there is no dark gap between the face and the bent sky
       if(!cap && uH1[i].z > 0. && minR < uFaceEdge.x){ cap = true; }
       if(cap){
@@ -321,15 +389,26 @@ void main(){
         skyC = mix(skyC, acc / n, clamp(fl.z, 0., 1.)); }
       float f = pow(t, 1.8);                                   // gentle far out, curving down hard right before the edge
       skyC *= 1.0 - fl.x * f;
-      // A smooth crest needs incident light and an inclined disk. No ambient rim,
-      // fixed upper-left light, or independent sparkle animation.
-      if(cr.x > 0.){ vec2 dd = projected; float an = atan(dd.y, dd.x);
-        float side = pow(max(0., cos(an - cr.y)), max(cr.w, 1.));
-        float width = max(cr.z, max(0.9 / max(R, 1.),fwidth(dlc)*0.8));
-        float band = exp(-pow((dlc - 1.0 - width * 1.35) / width, 2.));
-        skyC += uCrestColor[i] * cr.x * side * band;
-        if(fl.w > 0.) skyC += uCrestColor[i] * cr.x * side * fl.w * 0.2 * exp(-pow((dlc - 1.04) / (width * 2.5), 2.)); }
     }
+  }
+  // A lit spherical limb, shared by the inside and outside of the silhouette.
+  // Foreground disk transmittance occludes it too: no lower outline pasted on top.
+  for(int i=0;i<MAXH;i++){
+    if(i>=uN)break;if(captured&&capI!=i)continue;
+    vec4 cr=uCR[i];if(cr.x<=0.)continue;
+    vec2 d=px-uH0[i].xy;float R=uH0[i].z*shadowB(uH0[i].w)/2.598,rho=length(d)/R;
+    float a=atan(d.y,d.x),side=pow(max(0.,cos(a-cr.y)),1.65);
+    float width=max(.55/max(R,1.),min(cr.z,.018));
+    float thin=exp(-pow((rho-.995)/width,2.));
+    float shoulder=exp(-pow((rho-1.015)/max(.04,width*3.),2.))*.15;
+    float inner=exp(-pow((rho-.958)/max(.0025,.42/max(R,1.)),2.))*.16*uMaterial[i].z;
+    float limb=(thin+shoulder+inner)*side;
+    // The brighter part of the disk supplies the crest's localized glare.
+    float peakAngle=cr.y-atan(uH4[i].w)*sign(uH4[i].x)*1.3;
+    vec2 peak=vec2(cos(peakAngle),sin(peakAngle))*.997;
+    float peakDistance=dot(d/R-peak,d/R-peak);
+    float glare=(exp(-peakDistance/.0025)*.9+exp(-peakDistance/.012)*.14)*uMaterial[i].z*step(.5,uH2[i].x);
+    overlay+=T*uCrestColor[i]*cr.x*(limb+glare);
   }
   vec3 col;
   if(captured){
@@ -492,14 +571,33 @@ function surfaceLighting(h, holes, pixels, sceneW, sceneH, rule = {}) {
 }
 
 function projectedProfile(h) {
-  const R=rotM(h.rotX||0,h.rotY||0,h.rotZ||0), p=Math.hypot(R[1],R[4]);
-  const axis=p>1e-5?[R[4]/p,R[1]/p]:[1,0];
-  const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
-  const elevation=Math.abs(R[7]);
-  // Art-directed apparent opening: grazing view is a dome cut by its foreground
-  // disk, oblique view is an oval, overhead view becomes round. Footage keeps its own silhouette.
-  const aspect=h._vi>=0?1:(h.openingAspect??(1-.38*smooth(.18,.48,elevation)*(1-smooth(.82,1,elevation))));
-  return [...axis,Math.max(.45,Math.min(1,aspect)),0];
+  // The central body is spherical at every view. Perspective comes from the
+  // three-dimensional disk and its foreground occlusion, never a screen squash.
+  return [1,0,1,0];
+}
+
+function materialFor(h) {
+  const radius=Math.max(0,h.size||0), large=Math.max(0,Math.min(1,(radius-42)/16));
+  const tierAllowsDetail=h._angleStudy || h._fTier>=5 || h._fTier===undefined;
+  return [Math.max(0,h.gasDisk||0),Math.max(5,h.gasReach||13),tierAllowsDetail?large:0,h.feedAngle||0];
+}
+
+function supplyAngle(h,pixels,width,height){
+  if(!pixels)return h.feedAngle||0;
+  const R=rotM(h.rotX||0,h.rotY||0,h.rotZ||0);let sx=0,sy=0,total=0;
+  for(let k=0;k<32;k++){
+    const a=k*Math.PI/16,dx=Math.cos(a),dy=Math.sin(a),r=(h.size||30)*3.8;
+    const x=Math.floor((h.x*width+dx*r)/width*78),y=Math.floor((h.y*height+dy*r)/height*169);
+    if(x<0||x>=78||y<0||y>=169)continue;
+    const at=(y*78+x)*4,l=(pixels[at]*.2126+pixels[at+1]*.7152+pixels[at+2]*.0722)/255;
+    const weight=l*l;sx+=dx*weight;sy+=dy*weight;total+=weight;
+  }
+  if(total<.0001||Math.hypot(sx,sy)/total<.12)return h.feedAngle||0;
+  // Map the source direction into the disk plane, not a random screen-space trail.
+  const nx=R[1],ny=R[4],nz=R[7];
+  const z=Math.abs(nz)>.08?-(nx*sx-ny*sy)/nz:0;
+  const x=R[0]*sx-R[3]*sy+R[6]*z,zz=R[2]*sx-R[5]*sy+R[8]*z;
+  return Math.atan2(zz,x);
 }
 
 function settleLighting(next, previous, dt) {
@@ -534,8 +632,8 @@ function settleLighting(next, previous, dt) {
 }
 
 const ANGLE_STUDIES={
-  low:{label:'Low across the disk',rotX:7,rotY:0,rotZ:8,openingAspect:1,disk:1,diskIn:2.6,diskOut:20,diskBright:2.6,diskOpacity:1,diskFalloff:1.3,diskThick:.12,diskTexture:.92,diskStreaks:.7,diskSpin:.4,doppler:.35,diskColorIn:'#fff2cf',diskColorOut:'#db6e21',ring:0,corona:0,glow:0,camDist:22},
-  diagonal:{label:'Looking down diagonally',rotX:38,rotY:0,rotZ:-37,openingAspect:.66,disk:1,diskIn:2.5,diskOut:9,diskBright:2.6,diskOpacity:1,diskFalloff:1.4,diskThick:.08,diskTexture:.92,diskStreaks:.7,diskSpin:.4,doppler:.35,diskColorIn:'#fff0c7',diskColorOut:'#e55c12',ring:0,corona:0,glow:0,camDist:28}
+  low:{label:'Low across the disk',rotX:7,rotY:0,rotZ:8,disk:1,diskIn:1.8,diskOut:20,diskBright:1.65,diskOpacity:1,diskFalloff:1.25,diskThick:.12,diskTexture:1,diskStreaks:.85,diskSpin:.22,doppler:.35,diskColorIn:'#fff2cf',diskColorOut:'#c66b28',gasDisk:.6,gasReach:16,ring:0,corona:0,glow:0,camDist:22},
+  diagonal:{label:'Looking down diagonally',rotX:32,rotY:0,rotZ:-37,disk:1,diskIn:2.15,diskOut:10,diskBright:2.0,diskOpacity:1,diskFalloff:1.1,diskThick:.1,diskTexture:1,diskStreaks:.9,diskSpin:.22,doppler:.35,diskColorIn:'#ffe5aa',diskColorOut:'#d94f0c',gasDisk:.7,gasReach:15,ring:0,corona:0,glow:0,camDist:28}
 };
 
 class BHScene {
@@ -551,7 +649,7 @@ class BHScene {
     const loc=gl.getAttribLocation(p,'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
     this.u={}; const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);
     for(let i=0;i<n;i++){const info=gl.getActiveUniform(p,i); const nm=info.name.replace('[0]',''); this.u[nm]=gl.getUniformLocation(p,info.name);}
-    this.tex={A:this._mkTex(),B:this._mkTex(),F:this._mkTex()};
+    this.tex={A:this._mkTex(),B:this._mkTex(),F:this._mkTex(),G:this._mkTex()};this.gasReady=false;
     this.bg={A:null,B:null,mix:0,fitA:[1,1,0,0],fitB:[1,1,0,0],bright:1};
     this._faceCanvas=document.createElement('canvas'); this._faceCanvas.width=2048; this._faceCanvas.height=1024; this.faces=[];
     this._uploadFaces();
@@ -563,6 +661,7 @@ class BHScene {
     try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);}catch(e){}}
   /* slot 'A' or 'B'; src = image, video or canvas */
   setBackground(slot, src){ this.bg[slot]=src; if(src && !(src instanceof HTMLVideoElement)) this._upload(this.tex[slot],src); }
+  setGas(src){this.gasReady=!!src;if(src)this._upload(this.tex.G,src);}
   setFace(i, img){ this.faces[i]=img; this._uploadFaces(); }
   _uploadFaces(){ const c=this._faceCanvas,x=c.getContext('2d'); x.fillStyle='#000'; x.fillRect(0,0,2048,1024);
     this.faces.forEach((im,i)=>{ if(!im) return; const cx=(i%4)*512, cy=Math.floor(i/4)*512; const s=Math.max(512/im.width,512/im.height);
@@ -580,6 +679,7 @@ class BHScene {
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,this.tex.A); gl.uniform1i(u.uBgA,0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,this.tex.B); gl.uniform1i(u.uBgB,1);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,this.tex.F); gl.uniform1i(u.uFaces,2);
+    gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,this.tex.G);gl.uniform1i(u.uGas,3);gl.uniform1f(u.uGasReady,this.gasReady?1:0);
     gl.uniform1f(u.uBgMix,this.bg.mix); gl.uniform4fv(u.uFitA,this.bg.fitA); gl.uniform4fv(u.uFitB,this.bg.fitB); gl.uniform1f(u.uBgBright,this.bg.bright);
     const H=this.holes.slice(0,MAXH), n=H.length, sc=this.scale;
     const A=(k,f)=>{const arr=new Float32Array(MAXH*4); H.forEach((h,i)=>arr.set(f(h,i),i*4)); gl.uniform4fv(u[k],arr);};
@@ -587,6 +687,7 @@ class BHScene {
     gl.uniform1i(u.uN,n);
     A('uH0',h=>[h.x*this.canvas.width, h.y*this.canvas.height, h.size*sc, h.camDist]);
     A('uProfile',h=>projectedProfile(h));
+    A('uMaterial',h=>materialFor(h));
     const R=new Float32Array(MAXH*9); H.forEach((h,i)=>R.set(rotM(h.rotX,h.rotY,h.rotZ),i*9)); gl.uniformMatrix3fv(u.uRot,false,R);
     A('uH1',h=>[h.lens,h.reach,h.faceAmt,h.form]);
     A('uH2',h=>[h.disk,h.diskIn,h.diskOut,h.diskBright]);
@@ -611,5 +712,5 @@ class BHScene {
   }
 }
 
-G.BH = { BHScene, BH_DEFAULTS, BH_PRESETS, LIB_TO_PRESET, MAXH, rotM, surfaceLighting, projectedProfile, settleLighting, ANGLE_STUDIES };
+G.BH = { BHScene, BH_DEFAULTS, BH_PRESETS, LIB_TO_PRESET, MAXH, rotM, surfaceLighting, projectedProfile, settleLighting, materialFor, supplyAngle, ANGLE_STUDIES };
 })(window);

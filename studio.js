@@ -344,10 +344,11 @@ async function getDart(){
     const used = s.bg.layers.filter(l=>l.visible!==false);
     for(const L of used){ L.src = await toDataUrl(L.src, /\.(mp4|webm)$/i.test(L.src)?0:1440); delete L.thumb; }
     s.bg.layers = used;
+    for(const L of s.holes.gas?.layers||[]){ if(L.on!==false&&L.src)L.src=await toDataUrl(L.src); }
     s.sphere.texture = await toDataUrl(s.sphere.texture, 1024);
     const contacts = [];
     for(const c of scene.contacts){ contacts.push(Object.assign({}, c, { bust: await toDataUrl(c.bust), face: await toDataUrl(c.face, 256) })); }
-    const eng = await (await fetch('bh-engine.js')).text(), run = await (await fetch('raven-scene.js')).text();
+    const eng = await (await fetch('bh-engine.js',{cache:'no-cache'})).text(), run = await (await fetch('raven-scene.js',{cache:'no-cache'})).text();
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${run}<\/script><script>
 var SETTINGS=${JSON.stringify(s)};var DEMO=${JSON.stringify(contacts)};
 var sc=new Raven.RavenScene(document.getElementById('s'),SETTINGS,{contacts:DEMO});
@@ -463,10 +464,11 @@ function setAnglePractice(view){
   $('#modeAngles').classList.toggle('on',!!scene.anglePractice);
   $('#angleLow').classList.toggle('on',scene.anglePractice==='low');$('#angleDiagonal').classList.toggle('on',scene.anglePractice==='diagonal');
   $('#modeSky').classList.toggle('on',!scene.anglePractice&&S.holes.mode!=='focus');$('#modeFocus').classList.toggle('on',!scene.anglePractice&&S.holes.mode==='focus');
-  $('#hint').textContent=scene.anglePractice?BH.ANGLE_STUDIES[scene.anglePractice].label+' · the disk and opening share this viewing angle':'● Real light-bending black holes · drag the busts to browse · click a black hole to edit its tier';
+  $('#hint').textContent=scene.anglePractice?BH.ANGLE_STUDIES[scene.anglePractice].label+' · spherical body with foreground gas crossing its lower half':'● Real light-bending black holes · drag the busts to browse · click a black hole to edit its tier';
 }
 $('#modeAngles').onclick=()=>setAnglePractice(scene.anglePractice?null:'low');
 $('#angleLow').onclick=()=>setAnglePractice('low');$('#angleDiagonal').onclick=()=>setAnglePractice('diagonal');
+$('#angleSize').onchange=e=>{scene.angleDiameter=+e.target.value;};
 $('#modeSky').onclick=()=>{setAnglePractice(null);S.holes.mode='sky'; change(); render();};
 $('#modeFocus').onclick=()=>{setAnglePractice(null);S.holes.mode='focus'; change(); render();};
 $('#playBtn').onclick=()=>{ scene.playing=!scene.playing; $('#playBtn').textContent=scene.playing?'❚❚':'▶'; $('#playLbl').textContent=scene.playing?'Moving':'Paused'; };
