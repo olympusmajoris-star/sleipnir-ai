@@ -3,7 +3,6 @@
  * The bent far-side image is an artistic lens approximation, not a GR simulation. */
 (function(G){
 'use strict';
-const DISK_RGB=1.5,DISK_ALPHA=2.2;
 const TAU=Math.PI*2,R=27,AW=512,AH=256,AR=5.4;
 const defaults=Object.freeze({ringSize:1,density:1,glow:1,tintColor:'#eaa6bb',tintAmount:0,view3d:false,tilt:28,axisY:0,axisZ:-50,thickness:1});
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -51,11 +50,11 @@ uniform float time,spinDirection,lens,lensReach,patchSize,ringSize,density,glow,
 uniform vec3 tint,axisU,axisV,normal;
 uniform vec2 roll;
 uniform vec4 placement;
-const float TAU=6.283185307;const float DISK_RGB=1.5;const float DISK_ALPHA=2.2;
+const float TAU=6.283185307;
 vec3 color(vec3 c){float l=dot(c,vec3(.2126,.7152,.0722));vec3 dyed=tint*l/max(dot(tint,vec3(.2126,.7152,.0722)),.15);dyed=mix(dyed,vec3(l),smoothstep(.6,1.,l)*.65);return clamp(mix(c,dyed,tintAmount)*glow,0.,1.);}
 float opacity(float a){return density<=1.?a*density:1.-pow(max(1.-a,.000001),density);}
 vec4 over(vec4 front,vec4 back){return vec4(front.rgb*front.a+back.rgb*(1.-front.a),front.a+back.a*(1.-front.a));}
-vec4 disk(float rho,float angle){float rr=1.06+(rho-1.06)/ringSize;float omega=.46*pow(1.4074/max(rho,1.111),1.5);vec4 q=texture2D(atlas,vec2(fract(angle/TAU-time*omega*spinDirection/TAU),clamp(rr/5.4,0.,1.)));q.a*=step(1.06,rho)*step(rr,5.4);q.rgb=color(min(q.rgb*DISK_RGB,vec3(1.)));q.a=opacity(min(q.a*DISK_ALPHA,1.)*(1.-smoothstep(3.0,4.6,rr)));return q;}
+vec4 disk(float rho,float angle){float rr=1.06+(rho-1.06)/ringSize;float omega=.46*pow(1.4074/max(rho,1.111),1.5);vec4 q=texture2D(atlas,vec2(fract(angle/TAU-time*omega*spinDirection/TAU),clamp(rr/5.4,0.,1.)));q.a*=step(1.06,rho)*step(rr,5.4);q.rgb=color(q.rgb);q.a=opacity(q.a);return q;}
 void main(){
   vec2 d=(uv-.5)*patchSize;float r=length(d),rn=r/27.;vec4 gas=vec4(0.);
   if(view3d<.5){
@@ -134,7 +133,7 @@ function renderSoftware(out,pixels,atlas,bg,W,H,input,time,n,cache){
   const disk=(rho,angle)=>{
     const rr=1.06+(rho-1.06)/s.ringSize;if(rho<1.06||rr>AR){rgba.fill(0);return rgba;}
     const omega=.46*Math.pow(1.4074/Math.max(rho,1.111),1.5),x=mod(angle/TAU-t*omega*dir/TAU,1)*AW-.5,y=clamp(rr/AR,0,1)*AH-.5;
-    sample4(atlas,AW,AH,x,y,rgba,true);for(let k=0;k<3;k++)rgba[k]=Math.min(1,rgba[k]/255*DISK_RGB);colorFast(rgba);rgba[3]=opacity(Math.min(1,rgba[3]/255*DISK_ALPHA)*(1-smooth(3.0,4.6,rr)));return rgba;
+    sample4(atlas,AW,AH,x,y,rgba,true);for(let k=0;k<3;k++)rgba[k]/=255;colorFast(rgba);rgba[3]=opacity(rgba[3]/255);return rgba;
   };
   const crestColor=color([.94,.77,.72],s,tint);
   for(let i=0;i<n*n;i++){
