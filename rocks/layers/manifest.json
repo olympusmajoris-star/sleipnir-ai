@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "baseLayers": [
+    {
+      "file": "home_carving.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/home_carving.png",
+      "bytes": 39436,
+      "sha256": "876db9a4b0df7caa07906a3928ed9cdd761ec5f8fff9310958e033c4d34d77e4"
+    },
+    {
+      "file": "home_original_cracks.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/home_original_cracks.png",
+      "bytes": 168424,
+      "sha256": "d5638010eb2f95f02c5a196195898ec2e922737c9868eeb9ea1c38764196b18e"
+    },
+    {
+      "file": "home_rune_glow.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/home_rune_glow.png",
+      "bytes": 28518,
+      "sha256": "aa8f21153f8a368a5b8371e122dd6150ff480cc7c20c5ee7559f7acac69152b3"
+    },
+    {
+      "file": "messages_carving.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/messages_carving.png",
+      "bytes": 27500,
+      "sha256": "e0bcf6be739385325a1793f350e8522cb5efea9343c82606ca8d27ef001efc64"
+    },
+    {
+      "file": "messages_original_cracks.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/messages_original_cracks.png",
+      "bytes": 120346,
+      "sha256": "ab2aa828e1fc10ca7176554e1aeabd41a7db0a7e6753473cd286865818258f1a"
+    },
+    {
+      "file": "messages_rune_glow.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/messages_rune_glow.png",
+      "bytes": 18474,
+      "sha256": "c37c1ac87af3c6c76c2ed90d632c065dc7ade0d9076d57f80b18357e8517176e"
+    },
+    {
+      "file": "share_carving.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/share_carving.png",
+      "bytes": 20782,
+      "sha256": "099ab4da9156c6c10b3fb0e2791ac0d694f1061e93cfe81c58b58c88b25dd29b"
+    },
+    {
+      "file": "share_original_cracks.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/share_original_cracks.png",
+      "bytes": 162886,
+      "sha256": "aba5d881bca98ea8632312011a633d03cf037736d57b99fa2e3afd9c71ae8930"
+    },
+    {
+      "file": "share_rune_glow.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/share_rune_glow.png",
+      "bytes": 13973,
+      "sha256": "f8c46692efa20e2fe784c0cb10a931c4b876892860ce912d3224440a1ef82477"
+    },
+    {
+      "file": "swap_carving.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/swap_carving.png",
+      "bytes": 18134,
+      "sha256": "22301efffa719a0322475c9931bf830fb8838e526c26ff5c3d7b6279a0d9aa7f"
+    },
+    {
+      "file": "swap_original_cracks.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/swap_original_cracks.png",
+      "bytes": 99736,
+      "sha256": "42ab34b4c840e52c56ae69beb5f62ddd545284e25ca789d12e687ee5f900e607"
+    },
+    {
+      "file": "swap_rune_glow.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/swap_rune_glow.png",
+      "bytes": 12699,
+      "sha256": "e3dec5a65e35d04228895d17dc2f2f216108c0a6df553eaa6f278eb058b77ce9"
+    },
+    {
+      "file": "track_carving.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/track_carving.png",
+      "bytes": 25171,
+      "sha256": "681758972a7477a9d7f6119880d3cbb1ee482786468891057f1a7d4c260e2a89"
+    },
+    {
+      "file": "track_original_cracks.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/track_original_cracks.png",
+      "bytes": 204987,
+      "sha256": "e9416bee0c5d2b3cd33beca70f22f5d514fd7a8d8db8bdf7411f31d6a552d4b6"
+    },
+    {
+      "file": "track_rune_glow.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/layers/track_rune_glow.png",
+      "bytes": 16072,
+      "sha256": "50392751ba1deccde871b32c797bd7035347a66394f7320000b59ac168a14973"
+    }
+  ],
+  "sourceVideos": [
+    "Recording 2026-11-12 144037.mp4",
+    "Recording 2026-11-12 143514.mp4"
+  ],
+  "sourceSeconds": {
+    "home": 10,
+    "swap": 90,
+    "messages": 150,
+    "track": 65,
+    "share": 85
+  },
+  "method": "Reference-based transparent rock reconstructions; source frames retained. Runtime surface-aware carving and emission layers are separate from the untouched base textures.",
+  "settingsRow": "studio_designs/navigation"
+}

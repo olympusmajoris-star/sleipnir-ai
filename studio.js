@@ -77,6 +77,8 @@ function redo(){ if(hi<hist.length-1){ hi++; S = clone(hist[hi]); persist(); app
 
 /* ---------------- scene ---------------- */
 const scene = new Raven.RavenScene($('#stage'), S, {});
+const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:SB.url+'/storage/v1/object/public/studio/navigation/rocks-v1/',page:'raven',shareAvailable:false});
+window.asgardRockNavigation=ROCK_NAV;
 window.scene = scene;
 async function applyToScene(full){
   const s = clone(S);

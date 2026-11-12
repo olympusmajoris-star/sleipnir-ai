@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Asgard Studio — Raven</title>
 <link rel="stylesheet" href="studio.css?v=1794454923">
+<link rel="stylesheet" href="rock-nav.css?v=rocks-20261112">
 </head>
 <body>
 <header class="top">
   <div class="brand"><span class="logo">A</span><span>ASGARD <small>STUDIO</small></span></div>
   <div class="doc"><b id="docTitle">My Raven design</b><span id="saveState" class="saved">● All changes saved</span></div>
   <div class="spacer"></div>
-  <select class="ghost" title="Pick a page to design" onchange="if(this.value!=='raven')location.href='pages.html?page='+this.value"><option value="raven" selected>Raven sky (black holes)</option><option value="home">Asgard home (sky + posts)</option><option value="share">Share (favs as 3D figures)</option><option value="convo">Conversation (clouds + earth)</option><option value="heimdall">Heimdall (notifications)</option><option value="swap">Swap &amp; Sell (swipe)</option><option value="ads">Ads for local businesses</option><option value="shoppost">Shop the post</option><option value="deals">Flash deals &amp; near you now</option></select>
+  <select class="ghost" title="Pick a page to design" onchange="if(this.value!=='raven')location.href='pages.html?page='+this.value"><option value="raven" selected>Raven sky (black holes)</option><option value="home">Asgard home (sky + posts)</option><option value="share">Share (favs as 3D figures)</option><option value="convo">Conversation (clouds + earth)</option><option value="heimdall">Heimdall (notifications)</option><option value="track">Track</option><option value="swap">Swap &amp; Sell (swipe)</option><option value="ads">Ads for local businesses</option><option value="shoppost">Shop the post</option><option value="deals">Flash deals &amp; near you now</option></select>
   <button class="icon" id="undoBtn" title="Undo">↶</button>
   <button class="icon" id="redoBtn" title="Redo">↷</button>
   <button class="ghost" id="boardBtn" title="Shared job board for Danny, Claude and ChatGPT">Board</button>
@@ -23,6 +24,7 @@
 <main>
   <nav class="left">
     <div class="cap">YOUR DESIGN</div>
+    <button class="cosmic" onclick="location.href='pages.html?page=home&amp;section=rocks'"><b>Floating rock navigation</b><small>Carvings, glow, debris &amp; stars</small></button>
     <button class="sec" data-sec="sphere"><i>◯</i><span><b>Sphere</b><small>Surface, position & spin</small></span></button>
     <button class="sec" data-sec="tabs"><i>▭</i><span><b>Message tabs</b><small>Names, lines & messages</small></span></button>
     <button class="sec" data-sec="background"><i>✦</i><span><b>Background</b><small>Stars, galaxies & fading</small></span></button>
@@ -87,6 +89,8 @@
 <script src="raven-scene.js?v=reference-variants-20261112"></script>
 <script src="library.js?v=1794454923"></script>
 <script src="chat-import.js?v=1794454923"></script>
-<script src="studio.js?v=reference-variants-20261112c"></script>
+<script src="rock-nav.js?v=rocks-20261112"></script>
+<script src="rock-nav-editor.js?v=rocks-20261112"></script>
+<script src="studio.js?v=rocks-20261112"></script>
 </body>
 </html>

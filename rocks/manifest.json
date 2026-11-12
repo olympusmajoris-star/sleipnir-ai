@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "baseLayers": [
+    {
+      "file": "debris.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/debris.png",
+      "bytes": 716670,
+      "sha256": "e15ce1ab8cb378d7809194d581df2c3f79cdb74c8c187201188a3462e2087599"
+    },
+    {
+      "file": "home.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/home.png",
+      "bytes": 2165393,
+      "sha256": "b680d9eea4f074340ed99c04d94d0aa5e0365f696160463a0f6a395ff6410612"
+    },
+    {
+      "file": "messages.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/messages.png",
+      "bytes": 1632186,
+      "sha256": "de8c79da5acccd786c4c88f44fbc4a7f531b390a02f1d2dbc93dcf7d87542aea"
+    },
+    {
+      "file": "share.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/share.png",
+      "bytes": 1811760,
+      "sha256": "c2e348cbf4a606a3743067812fafd903c3b912868818350581b7dfd389f8b46a"
+    },
+    {
+      "file": "swap.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/swap.png",
+      "bytes": 1528925,
+      "sha256": "43b8b5cf97a7dda718ac63a0f5fd4dfd25a9bbdc4f2a22581afa384ddc7c7033"
+    },
+    {
+      "file": "track.png",
+      "url": "https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/studio/navigation/rocks-v1/track.png",
+      "bytes": 1657890,
+      "sha256": "cc7bc873834d6216e0cc8798ac87d7775665d69a126004d0bd61cc0df34c6562"
+    }
+  ],
+  "sourceVideos": [
+    "Recording 2026-11-12 144037.mp4",
+    "Recording 2026-11-12 143514.mp4"
+  ],
+  "sourceSeconds": {
+    "home": 10,
+    "swap": 90,
+    "messages": 150,
+    "track": 65,
+    "share": 85
+  },
+  "method": "Reference-based transparent rock reconstructions; source frames retained. Runtime surface-aware carving and emission layers are separate from the untouched base textures.",
+  "settingsRow": "studio_designs/navigation"
+}

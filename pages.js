@@ -482,18 +482,23 @@ function drawDeals(x, t, S){
   if(S.near.show){ const s = S.near.text + ' · ' + S.near.miles + ' mi', fw = tw(x, S.near.t, s) + 28, fh = S.near.t.size + 14, fy = HH * S.near.y; box(x, (W - fw) / 2, fy, fw, fh, S.near.box); tx(x, S.near.t, s, W / 2, fy + fh / 2 + S.near.t.size * 0.36, 'center'); }
 }
 
+/* Shared asteroid navigation is independent of page and Raven settings. */
+PAGES.track = { title:'Track', defaults:{ bg:'#020408' }, sections:[{id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]}], draw:(x)=>{x.fillStyle='#020408';x.fillRect(0,0,W,HH);x.fillStyle='#c7dce5';x.font='600 24px system-ui';x.textAlign='center';x.fillText('Track',W/2,74);x.textAlign='left';} };
+for(const P of Object.values(PAGES)){P.sections=P.sections.filter(s=>s.id!=='dock');if(!P.sections.some(s=>s.id==='rocks'))P.sections.push({id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]});}
+const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:STUDIO+'navigation/rocks-v1/',page:'home',shareAvailable:true,onNavigate:openPage});
+window.asgardRockNavigation = ROCK_NAV;
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
 const deep = (o) => JSON.parse(JSON.stringify(o));
 function merge(d, s){ const o = deep(d); for(const k in (s||{})){ if(s[k] && typeof s[k]==='object' && !Array.isArray(s[k]) && o[k] && typeof o[k]==='object') o[k] = merge(o[k], s[k]); else o[k] = s[k]; } return o; }
 const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
 function set(o, p, v){ const ks = p.split('.'); let a = o; for(let i=0;i<ks.length-1;i++){ a = a[ks[i]] = a[ks[i]] || {}; } a[ks[ks.length-1]] = v; }
-let saveT = null;
-function save(){ $('#saveState').textContent = '● Saving…'; clearTimeout(saveT); saveT = setTimeout(async () => {
-  try { localStorage.setItem('asgard-page-' + STATE.page, JSON.stringify(STATE.S)); } catch(e){}
-  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id:'page_' + STATE.page, page: STATE.page, data: STATE.S, updated_by:'studio', updated_at: new Date().toISOString() }) });
+const saveTimers = new Map();
+function save(){ const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
+  try { localStorage.setItem('asgard-page-' + page, JSON.stringify(snapshot)); } catch(e){}
+  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id:'page_' + page, page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
     $('#saveState').textContent = r.ok ? '● All changes saved' : '● Saved on this computer only'; } catch(e){ $('#saveState').textContent = '● Saved on this computer only'; }
-}, 700); }
+}, 700)); }
 async function load(page){
   let s = null;
   try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.page_' + page + '&select=data', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data; } } catch(e){}
@@ -511,11 +516,12 @@ async function pushToApp(){
 /* ======================= UI ======================= */
 function nav(){
   const P = PAGES[STATE.page]; const n = $('#secNav'); n.innerHTML = '<div class="cap">THIS PAGE</div>';
-  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; nav(); panel(); }; n.appendChild(b); });
+  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; history.replaceState(null,'','?page='+STATE.page+(s.id==='rocks'?'&section=rocks':'')); nav(); panel(); }; n.appendChild(b); });
   (P.actions || []).forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'cosmic'; b.innerHTML = `<b>▶ ${label}</b>`; b.onclick = fn; n.appendChild(b); });
   $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
 }
 function panel(){
+  if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
   const P = PAGES[STATE.page], sec = P.sections.find(s => s.id === STATE.sec) || P.sections[0], pn = $('#panel'); pn.innerHTML = '';
   sec.groups.forEach(g => { const d = document.createElement('details'); d.className = 'pg-grp'; d.open = true; d.innerHTML = `<summary>${g.name}</summary>`;
     g.ctrls.forEach(c => { const v = get(STATE.S, c.k); let el;
@@ -536,9 +542,10 @@ function panel(){
 const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000) : v;
 async function openPage(page){
   if(page === 'raven'){ location.href = 'index.html'; return; }
-  STATE.page = page; STATE.sec = PAGES[page].sections[0].id; STATE.t0 = performance.now();
-  history.replaceState(null, '', '?page=' + page); $('#pagePick').value = page;
-  STATE.S = await load(page); nav(); panel();
+  STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')==='rocks'?'rocks':PAGES[page].sections[0].id; STATE.t0 = performance.now();
+  ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
+  history.replaceState(null, '', '?page=' + page + (STATE.sec==='rocks'?'&section=rocks':'')); $('#pagePick').value = page;
+  const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;nav();panel();
 }
 $('#pagePick').onchange = (e) => openPage(e.target.value);
 $('#resetBtn').onclick = () => { if(confirm('Put this page back to its starting settings?')){ STATE.S = deep(PAGES[STATE.page].defaults); save(); panel(); } };
@@ -599,10 +606,8 @@ function drawHome(x, t, S){
   for(let i = 0; i < sky.holes; i++){ const sp = sky.holeSpeed * (0.8 + i * 0.17), span = W + 160; const hx = W + 80 - ((t * sp + i * span / Math.max(1, sky.holes)) % span), hy = skyH * (0.3 + 0.4 * ((i * 0.618) % 1)); drawHole(x, hx, hy, sky.holeSize * (0.8 + 0.25 * i) / 2, sky.faceShow ? NAMES[i] : null, t); }
   x.restore();
   if(sky.fade > 0){ const g = x.createLinearGradient(0, skyH - skyH * sky.fade, 0, skyH); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, S.bg); x.fillStyle = g; x.fillRect(0, skyH - skyH * sky.fade, W, skyH * sky.fade + 1); }
-  // floating icons with shadows cast on the post
-  const icons = ['ic_wayfinder', 'ic_feather', 'ic_horn', 'ic_raven'], tw = icons.length * D.size + (icons.length - 1) * D.gap, y0 = HH * D.y - D.size / 2;
-  icons.forEach((n, i) => { const ix = (W - tw) / 2 + i * (D.size + D.gap), bob = Math.sin(t * 1.4 + i) * 3 * D.spin, ic = img(UI + 'raven_v3/' + n + '.webp'); if(!ok(ic)) return;
-    x.save(); x.shadowColor = `rgba(0,0,0,${D.shadow})`; x.shadowBlur = D.shadowBlur; x.shadowOffsetY = D.shadowY; x.drawImage(ic, ix, y0 + bob, D.size, D.size); x.restore(); });
+  // The shared rock navigation draws above this page. Legacy dock values are retained.
+
 }
 
 function drawShare(x, t, S, since){
@@ -691,3 +696,4 @@ function drawHeimdall(x, t, S, since){
 const start = new URLSearchParams(location.search).get('page');
 openPage(PAGES[start] ? start : 'home');
 })();
+
