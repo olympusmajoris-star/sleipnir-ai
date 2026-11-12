@@ -122,7 +122,14 @@ function wire(el){
       if(inp.tagName==='SELECT' && !isNaN(+v) && v!=='') v = +v;
       setPath(o, p, v); const em = el.querySelector(`em[data-v="${CSS.escape(path)}"]`); if(em) em.textContent = fmtv(v, {step:+inp.step||0.01});
       if(/^look\.rot[XYZ]$/.test(path)) {o.angleManual=true;setAnglePractice(null);}
-      change(); if(inp.dataset.re || path==='sphere.autoLight') render();
+      let refRefresh=false;
+      if(path==='holes.referencePreview.tilt'||path==='holes.referencePreview.axisY'||path==='holes.referencePreview.thickness'){
+        S.holes.referencePreview.view3d=true;
+        const toggle=el.querySelector('[data-p="holes.referencePreview.view3d"]');if(toggle)toggle.checked=true;
+      }
+      if(path==='holes.referencePreview.tintColor'){S.holes.referencePreview.tintAmount=1;refreshValues();}
+      if(path==='holes.referencePreview.view3d')refRefresh=true;
+      change(); if(inp.dataset.re || path==='sphere.autoLight'||refRefresh) render();
       if(path.indexOf('band')>=0) scene._bandFlash = performance.now();
       if(path==='holes.friendSize.min' || path==='holes.friendSize.max'){ const n=S.holes.dashboards.friends.tiers.length; if(S.holes.mode==='friendsOne' || S.holes.mode==='focus'){ S.holes.selTier = path.endsWith('min') ? 0 : n-1; scene.s.holes.selTier = S.holes.selTier; } fsReadout(); }
     });
@@ -181,11 +188,23 @@ const LOOK = {
 };
 function secHoles(){
   const hs = S.holes, d = hs.dashboards[hs.active], t = curTier();
-  let h = head('EDITING','Black holes','Pick a dashboard, pick a tier, then pick its black hole from your library and shape it. Every hole is real 3D and really bends the sky behind it.');
-  hs.referencePreview ||= {on:false,x:.5,y:.235,radius:40,speed:1,lens:.45};
-  if(ui.open.hReference===undefined)ui.open.hReference=true;
+  let h = head('EDITING','Black holes','Shape your selected black hole live, then save each look as its own variant.');
+  hs.referencePreview = AsgardVariants.settings(hs.referencePreview || {on:false,x:.5,y:.235,radius:40,speed:1.35});
+  hs.referenceOriginal ||= clone(hs.referencePreview);
+  hs.referenceVariants ||= [];
   hs.referencePreview.spinDirection ??= 1;
-  h += group('Your selected reference', [K('holes.referencePreview.on','Show your selected black hole live'),K('holes.hideFaces','Hide faces in black holes'),R('holes.referencePreview.radius','Black hole size',24,52,.5),K('holes.behavior.driftViews','Drift across the sky'),R('holes.behavior.speed','Drift speed',0,60,.5),SEL('holes.behavior.direction','Drift direction',[[1,'Left to right'],[-1,'Right to left']]),R('holes.referencePreview.speed','Rings swirl in place',0,3,.05),SEL('holes.referencePreview.spinDirection','Ring direction',[[1,'Clockwise'],[-1,'Counter-clockwise']]),R('holes.rule.lens','Live sky lensing',0,2.5,.05),R('holes.rule.edge','How far lensing reaches',.3,3.2,.05)], 'hReference');
+  if(ui.open.hReference===undefined)ui.open.hReference=true;
+  if(ui.open.hRefShape===undefined)ui.open.hRefShape=true;
+  if(ui.open.hRefAngle===undefined)ui.open.hRefAngle=true;
+  const ref='holes.referencePreview.';
+  h += group('Your selected black hole', [K(ref+'on','Show this black hole live'),R(ref+'radius','Overall size',12,80,.5)], 'hReference');
+  h += `<div class="gb" style="padding:10px 14px"><label for="refVariant">Saved variants</label><select id="refVariant" style="width:100%;margin:8px 0"><option value="">Current working look</option>${hs.referenceVariants.map(v=>`<option value="${esc(v.id)}" ${hs.referenceVariantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="refVariantName" aria-label="Variant name" placeholder="Name this variant" maxlength="80" style="width:100%;box-sizing:border-box;margin-bottom:8px" value="${esc(hs.referenceVariants.find(v=>v.id===hs.referenceVariantId)?.name||'')}"><div class="btnrow"><button class="btn acc" id="saveRefVariant">Save new variant</button><button class="btn" id="updateRefVariant" ${hs.referenceVariantId?'':'disabled'}>Update saved</button></div><button class="btn" id="refOriginal" style="margin-top:8px">Return to approved original</button></div>`;
+  h += group('Ring size & density', [R(ref+'ringSize','Ring size',.45,1.8,.01),R(ref+'density','Gas density / opacity',0,3,.05)], 'hRefShape');
+  h += group('Angle & axis', [K(ref+'view3d','Adjust the viewing angle in 3D'),R(ref+'tilt','View angle · 3° side / 90° above',3,90,1),R(ref+'axisY','Turn the disk axis left / right',-80,80,1),R(ref+'axisZ','Rotate the whole axis on screen',-180,180,1),R(ref+'thickness','3D disk thickness',.3,2,.05)], 'hRefAngle');
+  h += `<p class="note">Changing view angle or axis turn opens the reconstructed 3D view. “Return to approved original” restores your exact image and look.</p>`;
+  h += group('Color & glow', [C(ref+'tintColor','Gas color'),R(ref+'tintAmount','Color blend · 0 keeps original colors',0,1,.05),R(ref+'glow','Glow / brightness',0,3,.05)], 'hRefColor');
+  h += group('Motion & live lensing', [K('holes.behavior.driftViews','Drift across the sky'),R('holes.behavior.speed','Drift speed',0,60,.5),SEL('holes.behavior.direction','Drift direction',[[1,'Left to right'],[-1,'Right to left']]),R(ref+'speed','Ring rotation speed',0,3,.05),SEL(ref+'spinDirection','Ring direction',[[1,'Clockwise'],[-1,'Counter-clockwise']]),R('holes.rule.lens','Live sky lensing',0,2.5,.05),R('holes.rule.edge','How far lensing reaches',.3,3.2,.05)], 'hRefMotion');
+  h += `<details class="grp" data-k="hOtherTiers" ${ui.open.hOtherTiers?'open':''}><summary>Other black holes & saved tiers</summary><div class="gb">`;
   h += `<div class="dash">${Object.entries(DASH).map(([k,l])=>`<button data-dash="${k}" class="${k===hs.active?'on':''}">${l}</button>`).join('')}</div>`;
   h += hs.active==='friends' ? `<p class="note"><b>Followers set the size of the hole</b> (and the hole itself). Disk, feeding and strong warping come from <b>Views</b> as viewers grow.</p>`
      : hs.active==='viewers' ? `<p class="note"><b>Views set the disk, feeding and warping.</b> Tier 1 = no extra (the Followers hole as is). Size always comes from Followers.</p>` : `<p class="note">Followers are not used for the look right now.</p>`;
@@ -231,6 +250,7 @@ function secHoles(){
      K('holes.callout.showCount','Show live views under the name'), R('holes.callout.countSize','Views number size',6,20,.5), C('holes.callout.countColor','Views number color'), SEL('holes.callout.countFormat','Number style',[['short','1.2K'],['full','1,234']]), K('holes.liveViews','Run live test views (fake accounts)')], 'hTags');
   h += group('Quality', [R('holes.behavior.renderScale','Render sharpness (lower = faster)',.35,1.5,.05), K('holes.behavior.autoQuality','Lower sharpness automatically if the phone slows down')], 'hQ');
   h += `<details class="grp" data-k="hTest" ${ui.open.hTest?'open':''}><summary>Test counts (who lands in which tier)</summary><div class="gb"><p class="note">These are pretend counts for the fake accounts so you can see every tier in the sky.</p><div class="contacts">${scene.contacts.map((c,i)=>`<div class="ct"><img src="${c.face}"><span>${c.name} <small style="color:#8a97a2">→ tier ${Raven.tierAt(d.tiers, c.counts[hs.active])+1}</small></span><input type="number" min="0" value="${c.counts[hs.active]}" data-cnt="${i}"></div>`).join('')}</div></div></details>`;
+  h += '</div></details>';
   return h;
 }
 function secMedia(){
@@ -260,6 +280,15 @@ function bindPanel(p){
   p.querySelectorAll('[data-start]').forEach(inp=>inp.onchange=()=>{ const i=+inp.dataset.start, ts=S.holes.dashboards[S.holes.active].tiers; let v=Math.max(0,Math.round(+inp.value)); const lo=ts[i-1].start+1, hiV=i<ts.length-1?ts[i+1].start-1:1e9; v=clamp(v,lo,hiV); ts[i].start=v; inp.value=v; change(); });
   p.querySelectorAll('[data-cnt]').forEach(inp=>inp.onchange=()=>{ scene.contacts[+inp.dataset.cnt].counts[S.holes.active]=Math.max(0,+inp.value); render(); });
   const on=(id,f)=>{ const e=p.querySelector('#'+id); if(e) e.onclick=f; };
+  const refSelect=p.querySelector('#refVariant');
+  if(refSelect)refSelect.onchange=()=>{const v=S.holes.referenceVariants.find(v=>v.id===refSelect.value);if(!v)return;S.holes.referencePreview={...clone(v.settings),on:true};S.holes.referenceVariantId=v.id;change();render();};
+  on('saveRefVariant',()=>{
+    const name=(p.querySelector('#refVariantName').value||'').trim()||`Variant ${S.holes.referenceVariants.length+1}`;
+    const v={id:'ref-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),name,settings:clone(S.holes.referencePreview),createdAt:new Date().toISOString()};
+    S.holes.referenceVariants.push(v);S.holes.referenceVariantId=v.id;change();render();toast('Variant saved');
+  });
+  on('updateRefVariant',()=>{const v=S.holes.referenceVariants.find(v=>v.id===S.holes.referenceVariantId);if(!v)return;v.name=(p.querySelector('#refVariantName').value||'').trim()||v.name;v.settings=clone(S.holes.referencePreview);v.updatedAt=new Date().toISOString();change();render();toast('Saved variant updated');});
+  on('refOriginal',()=>{S.holes.referencePreview={...clone(S.holes.referenceOriginal),on:true};S.holes.referenceVariantId='';change();render();toast('Approved original restored');});
   on('pickLib', ()=>openLib('tier'));
   on('formPrev', ()=>{ S.holes.mode='focus'; applyToScene(); let t0=performance.now(); const L=curLook(); const step=()=>{ const k=Math.min(1,(performance.now()-t0)/1000/Math.max(.3,S.holes.behavior.formSeconds)); scene.formPreview=k*k*(3-2*k); if(k<1) requestAnimationFrame(step); else scene.formPreview=1; }; step(); });
   on('copyTier', ()=>{ lookClip=clone(curLook()); toast('Look copied'); });
@@ -361,8 +390,8 @@ async function getDart(){
     s.sphere.texture = await toDataUrl(s.sphere.texture, 1024);
     const contacts = [];
     for(const c of scene.contacts){ contacts.push(Object.assign({}, c, { bust: await toDataUrl(c.bust), face: await toDataUrl(c.face, 256) })); }
-    const eng = await (await fetch('bh-engine.js',{cache:'no-cache'})).text(), run = await (await fetch('raven-scene.js',{cache:'no-cache'})).text(), ref = await (await fetch('reference-hole.js',{cache:'no-cache'})).text();
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${ref}<\/script><script>${run}<\/script><script>
+    const eng = await (await fetch('bh-engine.js',{cache:'no-cache'})).text(), run = await (await fetch('raven-scene.js',{cache:'no-cache'})).text(), ref = await (await fetch('reference-hole.js',{cache:'no-cache'})).text(), variants = await (await fetch('reference-variants.js',{cache:'no-cache'})).text();
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${ref}<\/script><script>${variants}<\/script><script>${run}<\/script><script>
 var SETTINGS=${JSON.stringify(s)};var DEMO=${JSON.stringify(contacts)};
 var sc=new Raven.RavenScene(document.getElementById('s'),SETTINGS,{contacts:DEMO});
 window.ravenSetContacts=function(j){try{var l=typeof j==='string'?JSON.parse(j):j;if(Array.isArray(l)&&l.length){l.forEach(function(c){c.counts=c.counts||{friends:0,followers:0,viewers:0};});sc.setContacts(l);}}catch(e){}};

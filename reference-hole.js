@@ -63,7 +63,7 @@ function prepare(image){
   x.putImageData(im,0,0);mx.putImageData(mi,0,0);return {art:c,core:mc};
 }
 function positionAt(settings,time,W,H){
-  const radius=settings.radius||40,pad=radius*Math.max(settings.lensReach??3.24,4.6),span=W+pad*2;
+  const radius=settings.radius||40,pad=radius*Math.max(settings.lensReach??3.24,settings.extent??4.6),span=W+pad*2;
   const speed=settings.driftOn===false?0:(settings.driftSpeed??6.5),dir=settings.driftDirection<0?-1:1;
   const x=speed===0?(settings.x??.5)*W:mod((settings.x??.5)*W+pad+time*speed*dir,span)-pad;
   const y=(settings.y??.235)*H+(speed?Math.sin(time*.13)*(settings.wobble??.35)*8:0);
@@ -135,6 +135,10 @@ class ReferenceHole{
   }
   draw(ctx,background,settings,time,W,H){
     if(!this.ready)return false;
+    if(G.AsgardVariants && !G.AsgardVariants.isOriginal(settings)){
+      this.variants ||= new G.AsgardVariants.Renderer(this.prepared);
+      return this.variants.draw(ctx,background,settings,time,W,H);
+    }
     const pos=positionAt(settings,time,W,H),gl=this.gl;
     if(gl){gl.useProgram(this.program);gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
       [this.prepared.art,this.prepared.core,this.prepared.base,this.prepared.flow,background].forEach((src,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);if(i===4||!this.uploaded)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.uniform1i(this.uniforms[['art','core','base','flow','sky'][i]],i);});this.uploaded=true;
