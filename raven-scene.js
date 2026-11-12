@@ -400,6 +400,39 @@ class RavenScene {
       h.disk = (h.disk || 0) * e; h.ring = (h.ring || 0) * (0.25 + 0.75 * e); h.corona = (h.corona || 0) * e; h.glow = (h.glow || 0) * (0.15 + 0.85 * e); h.jets = (h.jets || 0) * e; h.envFeed = (h.envFeed || 0) * e; }
     return holes;
   }
+  // Danny's hole builder, per follower tier: the black bubble, the crest of shine on its edge, and a disk he pivots and picks the kind of
+  _buildHoles(holes) {
+    const T = this.s.holes.dashboards.friends.tiers, B = this.s.holes.behavior; if (!T) return holes;
+    const lin = hx => { const n = parseInt(String(hx || '#ffffff').slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255].map(v => Math.pow(v, 2.2)); };
+    const mixHex = (a, b, t) => { const A = parseInt(a.slice(1), 16), Bq = parseInt(b.slice(1), 16); const c = [16, 8, 0].map(s => Math.round(((A >> s) & 255) * (1 - t) + ((Bq >> s) & 255) * t)); return '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); };
+    const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    for (const h of holes) { if (h._pairB || h._vi > 0) continue;
+      let ft = 0, best = 1e9; for (let k = 0; k < T.length; k++) { const dd = Math.abs(this.friendSizeAt(k) * B.sizeScale - h.size); if (dd < best) { best = dd; ft = k; } }
+      const b = T[ft] && T[ft].build; if (!b || !b.on) continue;
+      // angle: tilt (0 = edge-on, 90 = seen from above) and roll, with an optional slow tumble
+      const sd = (h.seed || 0) * 12.9898, rnd = k => { const v = Math.sin(sd * 78.233 + k * 37.719) * 43758.5453; return v - Math.floor(v); };
+      let tilt = b.tilt ?? 18; if ((b.tumble || 0) > 0) tilt += Math.sin(this.time * (b.tumbleSpeed ?? 0.15) + rnd(4) * 6.28) * b.tumble;
+      const roll = (b.roll ?? -15) + (b.vary ? (rnd(5) - 0.5) * b.vary : 0);
+      h.rotX = clamp(tilt, 0.5, 89.5); h.rotZ = roll; h.diskDir = b.dir ?? 1;
+      const rz = roll * Math.PI / 180; h.fa = [Math.cos(rz), Math.sin(rz), 0.3 + 0.7 * Math.sin(h.rotX * Math.PI / 180), 0];
+      // the disk: one slider from pure distortion, through dust and gas, to white-hot circling plasma
+      if (b.diskOn) { const x = b.kind ?? 0.5;
+        h.disk = 1; h.dust = (1 - sm(0.28, 0.55, x)) * (b.dark ?? 0.6);
+        h.diskIn = 2.9 + (b.gap ?? 0.2); h.diskOut = h.diskIn + (b.size ?? 4);
+        h.diskOpacity = (b.see ?? 0.8) * (0.15 + 0.85 * sm(0.0, 0.35, x));
+        h.diskBright = 0.25 + 3.4 * Math.pow(sm(0.35, 1.0, x), 1.4) * (b.bright ?? 1);
+        h.diskColorIn = x < 0.5 ? mixHex('#4a3a2c', '#ffb26a', sm(0.25, 0.5, x)) : mixHex('#ffb26a', '#ffffff', sm(0.5, 1.0, x));
+        h.diskColorOut = x < 0.5 ? mixHex('#120c08', '#b4461a', sm(0.25, 0.5, x)) : mixHex('#b4461a', '#ffcfa0', sm(0.5, 1.0, x));
+        h.envColor = (b.skyTint ?? 0.4) * (1 - sm(0.6, 1.0, x)); h.diskTexture = b.turb ?? 0.8; h.diskStreaks = b.streaks ?? 0.7; h.diskFalloff = 0.7 + 1.3 * x;
+        h.diskThick = b.thick ?? 0.03; h.diskSpin = b.spin ?? 0.8; h.doppler = 0.15 + 0.55 * x; h.clumps = 0.4 * (1 - x); h.diskSwirl = 0; h.arms = 0;
+      } else { h.disk = 0; h.dust = 0; }
+      // the crest of shine on the bubble's edge: where, how long, how thick, what color
+      if (b.crestOn) { const ang = (b.crestAngle ?? -120) * Math.PI / 180, span = Math.max(1, b.crestSpan ?? 6);
+        h.crest = [b.crest ?? 1.2, ang, b.crestWidth ?? 0.03, span]; h.crestColor = lin(b.crestColor || '#ffe2b8'); }
+      else h.crest = [0, 0, 0.02, 1];
+    }
+    return holes;
+  }
   _lightHoles(holes) {
     // Run after clip/fuel gating: an invisible or unlit disk cannot cast a crest.
     const pixels = this._sampleSky(), gasPixels=this._sampleGas(), rule = this.s.holes.rule || {};
@@ -932,7 +965,7 @@ class RavenScene {
       if(this.s.holes.referencePreview?.on && G.AsgardReference){
         this.engine.holes=[];this._tagged=[];
       }else{
-        this.engine.holes = this._lightHoles(this._gateByFuel(this._holesForEngine()));
+        this.engine.holes = this._buildHoles(this._lightHoles(this._gateByFuel(this._holesForEngine())));
         if(this.s.holes.hideFaces)for(const h of this.engine.holes)h.faceAmt=0;
       }
       this.engine.refl = this.s.holes.hideFaces?{...this.s.holes.refl,on:false}:this.s.holes.refl;
