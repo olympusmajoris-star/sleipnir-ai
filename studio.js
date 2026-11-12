@@ -27,7 +27,7 @@ async function saveFile(filename, data){
 const SB = { url:'https://afnihsdxtisneuyehatw.supabase.co', key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps', ok:null };
 const sbH = (extra) => Object.assign({ apikey: SB.key, Authorization: 'Bearer '+SB.key }, extra||{});
 let sbT = null;
-function sbSave(){ clearTimeout(sbT); sbT = setTimeout(async () => { try{ const r = await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: sbH({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id:'raven', page:'raven', data:S, updated_by:'studio', updated_at:new Date().toISOString() }) }); SB.ok = r.ok; }catch(e){ SB.ok = false; } }, 1200); }
+function sbSave(){ clearTimeout(sbT); sbT = setTimeout(async () => { try{ const r = await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: sbH({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id:'raven', page:'raven', data:S, updated_by:'studio', updated_at:new Date().toISOString() }) }); SB.ok = r.ok; }catch(e){ SB.ok = false; } if(!dirty){ $('#saveState').className=SB.ok?'saved':'unsaved'; $('#saveState').textContent=SB.ok?'● Saved to shared studio':'● Saved locally · shared save failed'; } }, 1200); }
 async function sbLoad(){ try{ const r = await fetch(SB.url+'/rest/v1/studio_designs?id=eq.raven&select=data,updated_at', { headers: sbH() }); if(!r.ok) return null; const j = await r.json(); SB.ok = true; return j[0] && j[0].data && Object.keys(j[0].data).length ? j[0].data : null; }catch(e){ SB.ok = false; return null; } }
 async function sbUpload(f){ try{ const path = 'uploads/'+Date.now().toString(36)+'-'+f.name.replace(/[^\w.-]+/g,'_'); const r = await fetch(SB.url+'/storage/v1/object/studio/'+path, { method:'POST', headers: sbH({ 'Content-Type': f.type || 'application/octet-stream', 'x-upsert':'true' }), body: f }); return r.ok ? SB.url+'/storage/v1/object/public/studio/'+path : null; }catch(e){ return null; } }
 async function boardLoad(){ try{ const r = await fetch(SB.url+'/rest/v1/studio_board?select=*&order=created_at.desc&limit=80', { headers: sbH() }); return r.ok ? await r.json() : []; }catch(e){ return []; } }
@@ -70,7 +70,7 @@ function commit(label){
   persist();
 }
 let pt;
-function persist(){ dirty = true; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving…'; clearTimeout(pt); pt = setTimeout(async () => { store.set(KEY, S); dbSave(); await dbWriting; dirty=false; $('#saveState').className='saved'; $('#saveState').textContent = P.db ? '● All changes saved' : '● Saved in this browser'; }, 700); }
+function persist(){ dirty = true; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving…'; clearTimeout(pt); pt = setTimeout(async () => { store.set(KEY, S); dbSave(); await dbWriting; dirty=false; $('#saveState').className='saved'; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving to shared studio…'; }, 700); }
 let ct; function change(){ applyToScene(); clearTimeout(ct); ct = setTimeout(commit, 350); }
 function undo(){ if(hi>0){ hi--; S = clone(hist[hi]); persist(); applyToScene(true); render(); } }
 function redo(){ if(hi<hist.length-1){ hi++; S = clone(hist[hi]); persist(); applyToScene(true); render(); } }
@@ -198,7 +198,7 @@ function secHoles(){
   if(ui.open.hRefAngle===undefined)ui.open.hRefAngle=true;
   const ref='holes.referencePreview.';
   h += group('Your selected black hole', [K(ref+'on','Show this black hole live'),R(ref+'radius','Overall size',12,80,.5)], 'hReference');
-  h += `<div class="gb" style="padding:10px 14px"><label for="refVariant">Saved variants</label><select id="refVariant" style="width:100%;margin:8px 0"><option value="">Current working look</option>${hs.referenceVariants.map(v=>`<option value="${esc(v.id)}" ${hs.referenceVariantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="refVariantName" aria-label="Variant name" placeholder="Name this variant" maxlength="80" style="width:100%;box-sizing:border-box;margin-bottom:8px" value="${esc(hs.referenceVariants.find(v=>v.id===hs.referenceVariantId)?.name||'')}"><div class="btnrow"><button class="btn acc" id="saveRefVariant">Save new variant</button><button class="btn" id="updateRefVariant" ${hs.referenceVariantId?'':'disabled'}>Update saved</button></div><button class="btn" id="refOriginal" style="margin-top:8px">Return to approved original</button></div>`;
+  h += `<div class="gb" style="padding:10px 14px"><label for="refVariant">Saved variants</label><select id="refVariant" style="width:100%;margin:8px 0;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px"><option value="">Current working look</option>${hs.referenceVariants.map(v=>`<option value="${esc(v.id)}" ${hs.referenceVariantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="refVariantName" aria-label="Variant name" placeholder="Name this variant" maxlength="80" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px" value="${esc(hs.referenceVariants.find(v=>v.id===hs.referenceVariantId)?.name||'')}"><div class="btnrow"><button class="btn acc" id="saveRefVariant">Save new variant</button><button class="btn" id="updateRefVariant" ${hs.referenceVariantId?'':'disabled'}>Update saved</button></div><button class="btn" id="refOriginal" style="margin-top:8px">Return to approved original</button></div>`;
   h += group('Ring size & density', [R(ref+'ringSize','Ring size',.45,1.8,.01),R(ref+'density','Gas density / opacity',0,3,.05)], 'hRefShape');
   h += group('Angle & axis', [K(ref+'view3d','Adjust the viewing angle in 3D'),R(ref+'tilt','View angle · 3° side / 90° above',3,90,1),R(ref+'axisY','Turn the disk axis left / right',-80,80,1),R(ref+'axisZ','Rotate the whole axis on screen',-180,180,1),R(ref+'thickness','3D disk thickness',.3,2,.05)], 'hRefAngle');
   h += `<p class="note">Changing view angle or axis turn opens the reconstructed 3D view. “Return to approved original” restores your exact image and look.</p>`;
@@ -525,7 +525,7 @@ capReady.then(async () => {
   const remote = (await sbLoad()) || (await dbLoad());
   if(remote){ const was = remote.chatImported >= 3; S = applyChatImport(Raven.ensureDashboards(remote)); hist=[clone(S)]; hi=0; store.set(KEY,S); if(!was) dbSave(); applyToScene(true); render(); }
   else if(P.db) dbSave();
-  $('#saveState').textContent = P.db ? '● All changes saved' : '● Saved in this browser';
+  $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving to shared studio…';
   renderVersions();
 });
 })();
