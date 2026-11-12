@@ -479,6 +479,7 @@ class RavenScene {
   // the real footage from Danny's videos: one cut per Views stage, laid around each hole (black drops out)
   _drawClips() {
     const fx = this.fx; if (!fx) return; const x = fx.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, fx.width, fx.height);
+    if(this.s.holes.modelPreview?.on||this.s.holes.quickTier===1)return;
     if(this.s.holes.referencePreview?.on && G.AsgardReference){
       fx.style.mixBlendMode='normal';
       this.referenceHole ||= new G.AsgardReference.ReferenceHole();
@@ -562,7 +563,7 @@ class RavenScene {
   }
   _updateFeed(dt) {
     const F = this.s.holes.feed; this.feed = this.feed || []; this._fuel = this._fuel || {};
-    if(this.s.holes.referencePreview?.on){this.feed.length=0;return;}
+    if(this.s.holes.referencePreview?.on||this.s.holes.modelPreview?.on||this.s.holes.quickTier===1){this.feed.length=0;return;}
     if (!F || F.on === false) { this.feed.length = 0; return; }
     const holes = (this.engine.holes || []).filter(h => h._fid && h.size > 0 && h._vi >= 0).map(h => ({ id: h._fid, vi: h._vi, x: h.x * W, y: h.y * H, size: h.size, dir: h.diskDir || 1, rotZ: (h.rotZ || 0) * Math.PI / 180, flat: 0.3 + 0.28 * Math.abs(Math.sin((h.rotX || 15) * Math.PI / 180)) }));
     const byId = {}; for (const h of holes) { byId[h.id] = h; this._fuel[h.id] = Math.min(1, (this._fuel[h.id] || 0) + dt * 0.35); }
@@ -993,7 +994,12 @@ class RavenScene {
       this._frameN = (this._frameN || 0) + 1; this._updateFeed(sdt);
       this._composeBg();
       this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6;
-      if(this.s.holes.referencePreview?.on && G.AsgardReference){
+      if(this.s.holes.quickTier===1 && G.AsgardModelPreview){
+        this.engine.holes=[G.AsgardModelPreview.quiet(this.s.holes)];this._tagged=[];
+      }else if(this.s.holes.modelPreview?.on && G.AsgardModelPreview){
+        // Match the library's 3D preview; legacy clip/fuel rules must not erase its disk.
+        this.engine.holes=[G.AsgardModelPreview.hole(this.s.holes.modelPreview,this.time)];this._tagged=[];
+      }else if(this.s.holes.referencePreview?.on && G.AsgardReference){
         this.engine.holes=[];this._tagged=[];
       }else{
         this.engine.holes = this._lightHoles(this._orientHoles(this._buildHoles(this._gateByFuel(this._holesForEngine()))));

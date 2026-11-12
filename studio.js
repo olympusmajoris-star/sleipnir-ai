@@ -89,7 +89,7 @@ async function applyToScene(full){
 }
 applyToScene(true);
 scene.onHoleTap = h => { const d = S.holes.dashboards[S.holes.active]; S.holes.selTier = parseInt(h.tier) || 0; testContact = h.c; showSec('holes'); toast(`${h.c.name}: ${DASH[S.holes.active]} tier ${(parseInt(h.tier)||0)+1} (${h.c.counts[S.holes.active]} ${COUNT_WORD[S.holes.active]})`); applyToScene(); };
-scene.onTurn = (dx, dy) => { if(scene.anglePractice)return; const L = curLook(); L.angleManual=true; L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
+scene.onTurn = (dx, dy) => { if(S.holes.modelPreview?.on){const m=S.holes.modelPreview,a=AsgardModelPreview.hole(m);m.randomAxis=false;m.look.rotX=clamp(a.rotX-dy*.4,3,90);m.look.rotY=clamp(a.rotY+dx*.6,-80,80);m.look.rotZ=a.rotZ;change();refreshValues();return;} if(scene.anglePractice)return; const L = curLook(); L.angleManual=true; L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
 scene.onFrame = sc => { $('#tLbl').textContent = sc.time.toFixed(1)+'s'; referenceReadout(); };
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
@@ -115,7 +115,8 @@ const SEL = (path, label, opts) => ({ t:'s', path, label, opts });
 function ctlHtml(c, i){
   const [o, p] = root(c.path); if(!o) return ''; const liveKeys=['ringSize','density','view3d','tilt','axisY','axisZ'];
   const key=c.path.slice('holes.referencePreview.'.length);
-  const v=c.path.startsWith('holes.referencePreview.')&&liveKeys.includes(key)?referenceLiveSettings()[key]:getPath(o,p); const id = 'c'+i+Math.random().toString(36).slice(2,6);
+  const modelAngle=/^holes\.modelPreview\.look\.rot[XYZ]$/.test(c.path)&&S.holes.modelPreview?.randomAxis;
+  const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[c.path.split('.').pop()]:c.path.startsWith('holes.referencePreview.')&&liveKeys.includes(key)?referenceLiveSettings()[key]:getPath(o,p); const id = 'c'+i+Math.random().toString(36).slice(2,6);
   if(c.t==='r') return `<div class="c"><label for="${id}">${c.label}<em data-v="${c.path}">${fmtv(v,c)}</em></label><input type="range" id="${id}" data-p="${c.path}" min="${c.min}" max="${c.max}" step="${c.step}" value="${v}"></div>`;
   if(c.t==='c') return `<div class="c col"><label for="${id}">${c.label}<input type="color" id="${id}" data-p="${c.path}" value="${toHex(v)}"></label></div>`;
   if(c.t==='k') return `<div class="c chk"><label><input type="checkbox" data-p="${c.path}" ${v?'checked':''}>&nbsp;${c.label}</label></div>`;
@@ -133,6 +134,11 @@ function wire(el){
       const [o,p] = root(path); if(!o) return;
       let v = inp.type==='range' ? +inp.value : inp.type==='checkbox' ? inp.checked : inp.value;
       if(inp.tagName==='SELECT' && !isNaN(+v) && v!=='') v = +v;
+      if(/^holes\.modelPreview\.look\.rot[XYZ]$/.test(path)&&S.holes.modelPreview.randomAxis){
+        const actual=AsgardModelPreview.hole(S.holes.modelPreview);
+        for(const key of ['rotX','rotY','rotZ'])S.holes.modelPreview.look[key]=actual[key];
+        S.holes.modelPreview.randomAxis=false;
+      }
       const manualAxis=['holes.referencePreview.tilt','holes.referencePreview.axisY','holes.referencePreview.axisZ','holes.referencePreview.view3d'].includes(path);
       if(manualAxis && S.holes.orientation.random){
         Object.assign(S.holes.referencePreview,AsgardVariants.orientationFor(S.holes.referenceGrowth.streamerId,S.holes.orientation.seed));
@@ -160,7 +166,7 @@ function wire(el){
   });
   el.querySelectorAll('details.grp').forEach(d => d.addEventListener('toggle', () => { ui.open[d.dataset.k] = d.open; store.set(KEY+'-ui', ui); }));
 }
-function refreshValues(){ const live=referenceLiveSettings();$('#panel [data-p]').forEach(inp => { const [o,p] = root(inp.dataset.p); if(!o) return; const key=inp.dataset.p.slice('holes.referencePreview.'.length),use=inp.dataset.p.startsWith('holes.referencePreview.')&&['ringSize','density','tilt','axisY','axisZ','view3d'].includes(key); const v=use?live[key]:getPath(o,p); if(inp.type==='range'){ inp.value=v; const em=$(`#panel em[data-v="${CSS.escape(inp.dataset.p)}"]`); if(em)em.textContent=fmtv(v,{step:+inp.step}); }else if(inp.type==='checkbox')inp.checked=!!v; }); }
+function refreshValues(){ const live=referenceLiveSettings();$$('#panel [data-p]').forEach(inp => { const [o,p] = root(inp.dataset.p); if(!o) return; const key=inp.dataset.p.slice('holes.referencePreview.'.length),use=inp.dataset.p.startsWith('holes.referencePreview.')&&['ringSize','density','tilt','axisY','axisZ','view3d'].includes(key); const modelAngle=/^holes\.modelPreview\.look\.rot[XYZ]$/.test(inp.dataset.p)&&S.holes.modelPreview?.randomAxis; const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[inp.dataset.p.split('.').pop()]:use?live[key]:getPath(o,p); if(inp.type==='range'){ inp.value=v; const em=$(`#panel em[data-v="${CSS.escape(inp.dataset.p)}"]`); if(em)em.textContent=fmtv(v,{step:+inp.step}); }else if(inp.type==='checkbox')inp.checked=!!v; }); }
 
 /* ---------------- sections ---------------- */
 function head(eyebrow, title, note){ return `<div class="eyebrow">${eyebrow}</div><h2>${title}</h2>${note?`<p class="note">${note}</p>`:''}`; }
@@ -210,9 +216,50 @@ const LOOK = {
   finish: [R('look.exposure','Exposure',.2,3,.01), R('look.form','Fully formed',0,1,.01)],
   pair: [SEL('look.pair','Two holes orbiting (never merge)',[[0,'Off'],[1,'On']]), R('look.pairRatio','Second hole size',.15,1,.01), R('look.pairSep','Distance apart',1.6,8,.05), R('look.pairSpeed','Orbit speed',0,2,.01), R('look.pairTilt','Orbit tilt (0 = flat line)',0,1,.01)],
 };
+function useModelPreview(item){
+  const hs=S.holes;hs.modelDrafts ||= {};
+  if(hs.modelPreview)hs.modelDrafts[hs.modelPreview.id]=clone(hs.modelPreview);
+  hs.quickTier=3;
+  hs.modelPreview=hs.modelDrafts[item.id]?{...clone(hs.modelDrafts[item.id]),on:true}:AsgardModelPreview.create(item,hs.referencePreview);
+  if(!hs.modelPreview)return;
+  for(const layer of S.bg.layers)if(layer.src===item.clip||layer.src===item.still){layer.visible=false;}
+  setAnglePractice(null);change();$('#lib').hidden=true;showSec('holes');$('#panel').scrollTop=0;
+  toast('Live animated 3D · '+item.name);
+}
+function tierQuickNav(){
+  const stage=S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1);
+  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · draft</button></div></div>`;
+}
+function secModelPreview(){
+  const m=S.holes.modelPreview,p='holes.modelPreview.',l=p+'look.';
+  S.holes.modelVariants ||= [];
+  for(const key of ['modelSize','modelDisk','modelMotion'])if(ui.open[key]===undefined)ui.open[key]=true;
+  let h=tierQuickNav()+head('LIVE 3D DRAFT',m.name,'The same animated model you chose in the library, now bending your live sky. Tier 2 is kept separately.');
+  if(!scene.engine.gl)h+='<p role="status" class="note">This browser cannot display the 3D model because WebGL 2 is unavailable. Your settings remain editable.</p>';
+  h+=`<div class="btnrow"><button class="btn" id="backToTier2">Back to tier 2</button><button class="btn" id="pickLib">Choose another 3D look</button></div>`;
+  h+=group('Entire black hole',[R(l+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'modelSize');
+  h+=group('Ring size & density',[R(l+'diskOut','Ring size',3.2,40,.1),R(l+'diskIn','Inner edge of disk',2,8,.05),R(l+'diskOpacity','Gas density / opacity',0,1,.01),R(l+'diskThick','Disk thickness',.005,.3,.005)],'modelDisk');
+  h+=group('Spin & drift',[R(l+'diskSpin','Ring spinning speed',0,4,.05),SEL(l+'diskDir','Spin direction',[[1,'Forward'],[-1,'Reverse']]),K(p+'drift','Let this black hole drift'),R(p+'driftSpeed','Drifting speed',0,3,.05)],'modelMotion');
+  h+=group('Angle & axis',[K(p+'randomAxis','Different fixed axis for each streamer'),SEL(p+'streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),R(l+'rotX','View angle · side to above',3,90,1),R(l+'rotY','Turn the disk axis left / right',-80,80,1),R(l+'rotZ','Rotate the whole axis on screen',-180,180,1)],'modelAngle');
+  h+='<p class="note">The disk revolves while its axis stays fixed. Angle sliders switch to manual.</p>';
+  h+=group('Color & glow',[C(l+'diskColorIn','Inner gas color'),C(l+'diskColorOut','Outer gas color'),R(l+'diskBright','Disk glow / brightness',0,6,.05),R(l+'diskFalloff','Fade toward the outer edge',.1,5,.05),R(l+'glow','Glow around the disk',0,2,.01),C(l+'glowColor','Outer glow color')],'modelColor');
+  h+=group('Inner rings & fine detail',[R(l+'ring','Inner ring brightness',0,4,.05),R(l+'ringWidth','Inner ring thickness',.01,.5,.01),C(l+'ringColor','Inner ring color'),R(l+'corona','Soft light around the edge',0,2,.01),R(l+'coronaWidth','Soft light width',.1,3,.05),R(l+'diskTexture','Gas texture',0,1,.01),R(l+'diskStreaks','Fine gas streaks',0,1,.01),R(l+'doppler','Bright side of the spinning disk',0,1,.01)],'modelDetail');
+  h+=group('Live light bending',[R(l+'lens','Lensing strength',0,2,.01),R(l+'reach','Lensing reach',.1,1.5,.01),R(l+'edgeWidth','Outer lens blending',.5,6,.05)],'modelLens');
+  h+=group('Jets',[R(l+'jets','Jet intensity',0,2,.05),R(l+'jetLen','Jet length',1,30,.5),R(l+'jetWidth','Jet width',.1,3,.05),C(l+'jetColor','Jet color')],'modelJets');
+  h+=`<section class="grp"><div class="gb"><h3>Save this look</h3><p class="hint">Changes save automatically to the shared studio. Save a variant to keep another version.</p><select id="modelVariant" aria-label="Saved 3D variants"><option value="">Current working look</option>${S.holes.modelVariants.map(v=>`<option value="${esc(v.id)}" ${m.variantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="modelVariantName" aria-label="3D variant name" placeholder="Name this variant" maxlength="80"><div class="btnrow"><button class="btn acc" id="saveModelVariant">Save new variant</button><button class="btn" id="updateModelVariant" ${m.variantId?'':'disabled'}>Update saved</button><button class="btn" id="resetModel">Restore library look</button></div></div></section>`;
+  return h;
+}
+function secQuietPreview(){
+  const h=AsgardModelPreview.quiet(S.holes);S.holes.quietPreview ||= {x:h.x,y:h.y,size:h.size,lens:h.lens,reach:h.reach};
+  const p='holes.quietPreview.';ui.open.quietSize=true;ui.open.quietLens=true;
+  return tierQuickNav()+head('VIEWS TIER 1 · 0–20','No viewers','The quiet black sphere and its live light bending, before tier 2 starts feeding.')+group('Size & position',[R(p+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'quietSize')+group('Live light bending',[R(p+'lens','Lensing strength',0,2,.01),R(p+'reach','Lensing reach',.1,1.5,.01)],'quietLens');
+}
 function secHoles(){
+  if(S.holes.quickTier===1)return secQuietPreview();
+  if(S.holes.modelPreview?.on)return secModelPreview();
   const hs = S.holes, d = hs.dashboards[hs.active], t = curTier();
-  let h = head('EDITING','Black holes','Shape your selected black hole live, then save each look as its own variant.');
+  let h = tierQuickNav()+head('EDITING','Black holes','Shape your selected black hole live, then save each look as its own variant.');
+  if(hs.modelPreview)h+=`<button class="btn acc" id="resumeModel">Edit ${esc(hs.modelPreview.name)} · 3D draft</button>`;
   hs.referencePreview = AsgardVariants.settings(hs.referencePreview || {on:false,x:.5,y:.235,radius:40,speed:1.35});
   hs.referenceOriginal ||= clone(hs.referencePreview);
   hs.referenceVariants ||= [];
@@ -225,6 +272,7 @@ function secHoles(){
   h += `<section class="grp" aria-label="Entire black hole"><div class="gb"><h3>Entire black hole</h3>${[K(ref+'on','Show this black hole live'),R(ref+'radius','Entire black hole size',12,80,.5)].map(ctlHtml).join('')}<p class="hint">Scales the black center and all its gas together. Ring size below changes only the disk.</p></div></section>`;
   h += `<div class="gb" style="padding:10px 14px"><label for="refVariant">Saved variants</label><select id="refVariant" style="width:100%;margin:8px 0;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px"><option value="">Current working look</option>${hs.referenceVariants.map(v=>`<option value="${esc(v.id)}" ${hs.referenceVariantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="refVariantName" aria-label="Variant name" placeholder="Name this variant" maxlength="80" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:8px;background:#111820;color:#eaf4f6;border:1px solid #39444d;border-radius:6px" value="${esc(hs.referenceVariants.find(v=>v.id===hs.referenceVariantId)?.name||'')}"><div class="btnrow"><button class="btn acc" id="saveRefVariant">Save new variant</button><button class="btn" id="updateRefVariant" ${hs.referenceVariantId?'':'disabled'}>Update saved</button></div><button class="btn" id="refOriginal" style="margin-top:8px">Return to approved original</button></div>`;
   h += group('Tier 2 · grow with views', [K('holes.referenceGrowth.on','Grow the disk with views'),R('holes.referenceGrowth.views','Preview views · tier 2',21,149,1)], 'hRefGrowth');
+  h += '<div class="btnrow"><button class="btn" id="tier2Start">21 views · start</button><button class="btn" id="tier2End">149 views · full disk</button></div>';
   h += '<p class="note">21 views: ring 0.45, density 0.65. At 149 views: ring 1.26, density 1.05. Follower size stays independent. Tier 3 starts at 150 and awaits your next choice.</p><p class="note" id="refLiveReadout" role="status"></p>';
   h += group('Ring size & density', [R(ref+'ringSize','Ring size',.45,1.8,.01),R(ref+'density','Gas density / opacity',0,3,.05)], 'hRefShape');
   h += group('Angle & axis', [K('holes.orientation.random','Different fixed axis for each black hole'),SEL('holes.referenceGrowth.streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),K(ref+'view3d','Adjust the viewing angle in 3D'),R(ref+'tilt','View angle · 3° side / 90° above',3,90,1),R(ref+'axisY','Turn the disk axis left / right',-80,80,1),R(ref+'axisZ','Rotate the whole axis on screen',-180,180,1),R(ref+'thickness','3D disk thickness',.3,2,.05)], 'hRefAngle');
@@ -309,6 +357,21 @@ function bindPanel(p){
   p.querySelectorAll('[data-start]').forEach(inp=>inp.onchange=()=>{ const i=+inp.dataset.start, ts=S.holes.dashboards[S.holes.active].tiers; let v=Math.max(0,Math.round(+inp.value)); const lo=ts[i-1].start+1, hiV=i<ts.length-1?ts[i+1].start-1:1e9; v=clamp(v,lo,hiV); ts[i].start=v; inp.value=v; change(); });
   p.querySelectorAll('[data-cnt]').forEach(inp=>inp.onchange=()=>{ scene.contacts[+inp.dataset.cnt].counts[S.holes.active]=Math.max(0,+inp.value); render(); });
   const on=(id,f)=>{ const e=p.querySelector('#'+id); if(e) e.onclick=f; };
+  p.querySelectorAll('[data-quick-tier]').forEach(b=>b.onclick=()=>{
+    const tier=+b.dataset.quickTier;S.holes.quickTier=tier;S.holes.active='viewers';S.holes.selTier=tier-1;S.holes.mode='focus';
+    if(S.holes.modelPreview)S.holes.modelPreview.on=tier===3;
+    S.holes.referencePreview.on=tier===2;
+    setAnglePractice(null);change();render();$('#panel').scrollTop=0;
+  });
+  on('tier2Start',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;change();refreshValues();referenceReadout();});
+  on('tier2End',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=149;change();refreshValues();referenceReadout();});
+  on('backToTier2',()=>{S.holes.quickTier=2;S.holes.modelPreview.on=false;S.holes.referencePreview.on=true;change();render();$('#panel').scrollTop=0;});
+  on('resumeModel',()=>{S.holes.quickTier=3;S.holes.modelPreview.on=true;change();render();$('#panel').scrollTop=0;});
+  on('resetModel',()=>{const m=S.holes.modelPreview,item=LIB.find(x=>x.id===m.id);if(!item)return;S.holes.modelPreview=AsgardModelPreview.create(item,{radius:m.look.size,x:m.x,y:m.y});change();render();});
+  const modelSelect=p.querySelector('#modelVariant');
+  if(modelSelect)modelSelect.onchange=()=>{const v=S.holes.modelVariants.find(v=>v.id===modelSelect.value);if(!v)return;S.holes.modelPreview={...clone(v.settings),on:true,variantId:v.id};change();render();};
+  on('saveModelVariant',()=>{const id='model-'+Date.now().toString(36),name=p.querySelector('#modelVariantName').value.trim()||S.holes.modelPreview.name+' variant';S.holes.modelPreview.variantId=id;S.holes.modelVariants.push({id,name,settings:clone(S.holes.modelPreview)});change();render();toast('3D variant saved');});
+  on('updateModelVariant',()=>{const v=S.holes.modelVariants.find(v=>v.id===S.holes.modelPreview.variantId);if(!v)return;v.name=p.querySelector('#modelVariantName').value.trim()||v.name;v.settings=clone(S.holes.modelPreview);change();render();toast('3D variant updated');});
   on('newHoleAxes',()=>{S.holes.orientation.seed=(S.holes.orientation.seed||1)+1;S.holes.orientation.random=true;change();render();});
   const refSelect=p.querySelector('#refVariant');
   if(refSelect)refSelect.onchange=()=>{const v=S.holes.referenceVariants.find(v=>v.id===refSelect.value);if(!v)return;S.holes.referencePreview={...clone(v.settings),on:true};S.holes.orientation.random=false;S.holes.referenceGrowth.on=false;S.holes.referenceVariantId=v.id;change();render();};
@@ -372,17 +435,19 @@ let cmpScene = null;
 function renderDetail(x){
   const pr = BH.LIB_TO_PRESET[x.id];
   let h = `<h3>${esc(x.name)}</h3><div class="kv"><span>${esc(x.cat)}</span><span>${esc(x.src)}</span></div>`;
-  h += x.clip ? `<video src="${x.clip}" autoplay muted loop playsinline controls></video>` : `<img src="${x.still}" style="width:100%;border-radius:10px">`;
+  h += x.clip ? `<video id="libSourceVideo" src="${x.clip}" poster="${x.still}" autoplay muted loop playsinline controls></video><p id="libSourceError" class="note" hidden>Source clip unavailable. The animated 3D model below works independently.</p>` : `<img src="${x.still}" style="width:100%;border-radius:10px">`;
   if(pr){ h += `<p style="margin:12px 0 4px">Rebuilt in 3D with real light bending:</p><div class="compare"><canvas id="cmpCv" style="width:100%;height:100%"></canvas></div>`; }
   h += `<div class="btnrow" style="margin-top:12px">`;
-  if(pr) h += `<button class="btn acc" id="useTier">Use for ${DASH[S.holes.active]} tier ${S.holes.selTier+1}</button>`;
-  if(x.clip) h += `<button class="btn" id="addClip">Add clip to the sky</button>`;
-  h += `<button class="btn" id="addStill">Add still to the sky</button>`;
+  if(pr) h += `<button class="btn acc" id="useModel">Use animated 3D in sky</button><button class="btn" id="useTier">Use for ${DASH[S.holes.active]} tier ${S.holes.selTier+1}</button>`;
+  if(x.clip) h += `<button class="btn" id="addClip">Add source clip as background</button>`;
+  h += `<button class="btn" id="addStill">Add source still as background</button>`;
   h += `<button class="btn" id="dlStill">Download still</button>` + (x.clip?`<button class="btn" id="dlClip">Download clip</button>`:'');
   h += `</div>`;
-  if(pr) h += `<p class="note">The 3D version keeps your tier’s size, then every part — tilt, disk, colors, ring, shell, glow, jets — stays editable.</p>`;
+  if(pr) h += `<p class="note">Use animated 3D in sky opens this spinning model with its own controls. It does not change an assigned tier. Source clip/still buttons add the original footage as a background.</p>`;
   $('#libDetail').innerHTML = h;
+  const source=$('#libSourceVideo');if(source)source.onerror=()=>{source.hidden=true;$('#libSourceError').hidden=false;};
   if(pr){ const cv=$('#cmpCv'); const r=cv.getBoundingClientRect(); try{ cmpScene = cmpScene || null; const eng=new BH.BHScene(cv,{scale:Math.min(2,devicePixelRatio||1)}); eng.resize(r.width,r.height); const im=new Image(); im.onload=()=>{ eng.setBackground('A',im); eng.coverFit('A'); const loop=t=>{ if(!document.body.contains(cv)) return; eng.holes=[Object.assign({},BH.BH_PRESETS[pr],{x:.5,y:.5,size:Math.min(r.width,r.height)*.11})]; eng.render(t/1000); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }; im.src='bg/bg13.jpg'; }catch(e){ console.warn(e); } }
+  const model=$('#useModel');if(model)model.onclick=()=>useModelPreview(x);
   const u=$('#useTier'); if(u) u.onclick=()=>{ const t=curTier(); const keep={size:t.look.size, faceAmt:t.look.faceAmt}; t.look=Object.assign({}, BH.BH_DEFAULTS, clone(BH.BH_PRESETS[pr]), keep); t.libId=x.id; S.holes.mode='focus'; change(); $('#lib').hidden=true; showSec('holes'); toast(`Tier ${S.holes.selTier+1} is now “${x.name}”`); };
   const ac=$('#addClip'); if(ac) ac.onclick=()=>addLayer({ name:x.name, src:x.clip, thumb:x.thumb, cycle:false });
   $('#addStill').onclick=()=>addLayer({ name:x.name, src:x.still, thumb:x.thumb, cycle:true });
@@ -421,7 +486,8 @@ async function getDart(){
     const contacts = [];
     for(const c of scene.contacts){ contacts.push(Object.assign({}, c, { bust: await toDataUrl(c.bust), face: await toDataUrl(c.face, 256) })); }
     const eng = await (await fetch('bh-engine.js',{cache:'no-cache'})).text(), run = await (await fetch('raven-scene.js',{cache:'no-cache'})).text(), ref = await (await fetch('reference-hole.js',{cache:'no-cache'})).text(), variants = await (await fetch('reference-variants.js',{cache:'no-cache'})).text();
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${ref}<\/script><script>${variants}<\/script><script>${run}<\/script><script>
+    const modelCode=await(await fetch('model-preview.js',{cache:'no-cache'})).text();
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${ref}<\/script><script>${variants}<\/script><script>${modelCode}<\/script><script>${run}<\/script><script>
 var SETTINGS=${JSON.stringify(s)};var DEMO=${JSON.stringify(contacts)};
 var sc=new Raven.RavenScene(document.getElementById('s'),SETTINGS,{contacts:DEMO});
 window.ravenSetContacts=function(j){try{var l=typeof j==='string'?JSON.parse(j):j;if(Array.isArray(l)&&l.length){l.forEach(function(c){c.counts=c.counts||{friends:0,followers:0,viewers:0};});sc.setContacts(l);}}catch(e){}};
