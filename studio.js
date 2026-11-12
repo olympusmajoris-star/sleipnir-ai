@@ -152,6 +152,8 @@ function wire(el){
         S.holes.referenceGrowth.on=false;
         const growth=el.querySelector('[data-p="holes.referenceGrowth.on"]');if(growth)growth.checked=false;
       }
+      if(S.holes.together?.on&&path==='holes.referenceGrowth.views')S.holes.referenceGrowth.on=true;
+      if(S.holes.together?.on&&path==='holes.modelPreview.growth.views')S.holes.modelPreview.growth.on=true;
       if(path==='holes.modelPreview.look.diskOut')S.holes.modelPreview.growth.on=false;
       setPath(o, p, v);
       if(/^holes\.modelPreview\.growth\.ring(Start|End)$/.test(path))AsgardModelPreview.setEndpoint(S.holes.modelPreview,path.split('.').pop(),v);
@@ -229,13 +231,35 @@ function useModelPreview(item){
   hs.quickTier=3;
   hs.modelPreview=hs.modelDrafts[item.id]?{...clone(hs.modelDrafts[item.id]),on:true}:AsgardModelPreview.create(item,hs.referencePreview);
   if(!hs.modelPreview)return;
+  if(hs.together)hs.together.on=false;
   for(const layer of S.bg.layers)if(layer.src===item.clip||layer.src===item.still){layer.visible=false;}
   setAnglePractice(null);change();$('#lib').hidden=true;showSec('holes');$('#panel').scrollTop=0;
   toast('Live animated 3D · '+item.name);
 }
 function tierQuickNav(){
-  const stage=S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1);
-  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · draft</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
+  const stage=S.holes.together?.on?0:S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1);
+  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn acc" id="playBothTiers" ${S.holes.modelPreview?'':'disabled'}>${S.holes.together?.on?'Tiers 2 + 3 running together':'▶ Play tiers 2 + 3 together'}</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · 150–499</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
+}
+function playBothTiers(){
+  if(!S.holes.modelPreview)return toast('Choose your tier 3 look first');
+  S.holes.together={followers:50,drift:true,speed:6.5,...S.holes.together,on:true};
+  S.holes.active='viewers';S.holes.mode='sky';setAnglePractice(null);
+  scene.playing=true;if(scene.speed<=0){scene.speed=1;$('#speed').value=1;}
+  $('#playBtn').textContent='❚❚';$('#playLbl').textContent='Moving';
+  change();showSec('holes');$('#panel').scrollTop=0;
+}
+function secTogether(){
+  const hs=S.holes;hs.together={followers:50,drift:true,speed:6.5,...hs.together};
+  hs.modelPreview.growth=AsgardModelPreview.growth(hs.modelPreview);
+  ui.open.togetherViews=true;ui.open.togetherMotion=true;
+  let h=tierQuickNav()+head('LIVE SKY · BOTH TIERS','Tiers 2 + 3 running together','Both disks spin over your live sky. Each streamer keeps a different fixed angle.');
+  if(!scene.engine.gl)h+='<p role="status" class="note">Tier 3 needs WebGL 2. This browser can only show the tier 2 renderer.</p>';
+  h+=group('Preview the rings',[R('holes.referenceGrowth.views','Tier 2 · preview views',21,149,1),R('holes.modelPreview.growth.views','Tier 3 · preview views',150,499,1)],'togetherViews');
+  h+='<div class="btnrow"><button class="btn" id="bothSmall">Both smallest rings</button><button class="btn" id="bothLarge">Both largest rings</button></div>';
+  h+=`<p class="note">Tier 2 ring limits: ${hs.referenceGrowth.ringStart.toFixed(2)} → ${hs.referenceGrowth.ringEnd.toFixed(2)}<br>Tier 3 ring limits: ${hs.modelPreview.growth.ringStart.toFixed(1)} → ${hs.modelPreview.growth.ringEnd.toFixed(1)}</p>`;
+  h+=group('Followers & movement',[R('holes.together.followers','Preview followers · sets sphere size',0,20000,1),K('holes.together.drift','Let both holes drift'),R('holes.together.speed','Drift speed',0,20,.5)],'togetherMotion');
+  h+='<p class="note">Both holes use the same follower count so you can compare the disks. Changing views never changes the black sphere size.</p><div class="btnrow"><button class="btn" data-quick-tier="2">Edit tier 2 · rings & axis</button><button class="btn" data-quick-tier="3">Edit tier 3 · rings & axis</button></div><p class="note">Use Play tiers 2 + 3 together to return here after editing.</p>';
+  return h;
 }
 function secModelPreview(){
   const m=S.holes.modelPreview,p='holes.modelPreview.',l=p+'look.';
@@ -264,6 +288,7 @@ function secQuietPreview(){
   return tierQuickNav()+head('VIEWS TIER 1 · 0–20','No viewers','The quiet black sphere and its live light bending, before tier 2 starts feeding.')+group('Size & position',[R(p+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'quietSize')+group('Live light bending',[R(p+'lens','Lensing strength',0,2,.01),R(p+'reach','Lensing reach',.1,1.5,.01)],'quietLens');
 }
 function secHoles(){
+  if(S.holes.together?.on && S.holes.modelPreview)return secTogether();
   if(S.holes.quickTier===1)return secQuietPreview();
   if(S.holes.modelPreview?.on)return secModelPreview();
   const hs = S.holes, d = hs.dashboards[hs.active], t = curTier();
@@ -352,6 +377,8 @@ function render(){
   if(secNow==='rocks'){ROCK_NAV.group ||= 'carving';ROCK_NAV.showEditor(p);p.scrollTop=0;return;}
   ROCK_NAV.hideEditor();p.classList.remove('rn-editor');
   p.innerHTML = ({ sphere:secSphere, tabs:secTabs, background:secBackground, holes:secHoles, media:secMedia })[secNow]();
+  $('#modeBoth').classList.toggle('on',!!S.holes.together?.on);
+  $('#modeBoth').disabled=!S.holes.modelPreview;
   wire(p); bindPanel(p); fsReadout(); p.scrollTop = st; renderLayers(); renderVersions();
   $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus'); if(scene.anglePractice)setAnglePractice(scene.anglePractice);
 }
@@ -367,12 +394,15 @@ function bindPanel(p){
   p.querySelectorAll('[data-cnt]').forEach(inp=>inp.onchange=()=>{ scene.contacts[+inp.dataset.cnt].counts[S.holes.active]=Math.max(0,+inp.value); render(); });
   const on=(id,f)=>{ const e=p.querySelector('#'+id); if(e) e.onclick=f; };
   p.querySelectorAll('[data-quick-tier]').forEach(b=>b.onclick=()=>{
-    const tier=+b.dataset.quickTier;S.holes.quickTier=tier;S.holes.active='viewers';S.holes.selTier=tier-1;S.holes.mode='focus';
+    const tier=+b.dataset.quickTier;if(S.holes.together)S.holes.together.on=false;S.holes.quickTier=tier;S.holes.active='viewers';S.holes.selTier=tier-1;S.holes.mode='focus';
     if(S.holes.modelPreview)S.holes.modelPreview.on=tier===3;
     S.holes.referencePreview.on=tier===2;
     setAnglePractice(null);change();render();$('#panel').scrollTop=0;
   });
-  p.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{const model=S.holes.modelPreview?.on,key=b.dataset.jump==='axis'?(model?'modelAxisLimits':'hRefAngle'):(model?'modelGrowth':'hRefGrowth'),d=p.querySelector('[data-k="'+key+'"]');if(!d)return;d.open=true;ui.open[key]=true;d.style.scrollMarginTop=((p.querySelector('[aria-label="Views tier selection"]')?.offsetHeight||100)+12)+'px';d.scrollIntoView({behavior:'smooth',block:'start'});});
+  p.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{if(S.holes.together?.on){S.holes.together.on=false;S.holes.quickTier=3;S.holes.modelPreview.on=true;change();render();return document.querySelector('[data-jump="'+b.dataset.jump+'"]').click();}const model=S.holes.modelPreview?.on,key=b.dataset.jump==='axis'?(model?'modelAxisLimits':'hRefAngle'):(model?'modelGrowth':'hRefGrowth'),d=p.querySelector('[data-k="'+key+'"]');if(!d)return;d.open=true;ui.open[key]=true;d.style.scrollMarginTop=((p.querySelector('[aria-label="Views tier selection"]')?.offsetHeight||100)+12)+'px';d.scrollIntoView({behavior:'smooth',block:'start'});});
+  on('playBothTiers',playBothTiers);
+  on('bothSmall',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;S.holes.modelPreview.growth.on=true;S.holes.modelPreview.growth.views=150;change();refreshValues();});
+  on('bothLarge',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=149;S.holes.modelPreview.growth.on=true;S.holes.modelPreview.growth.views=499;change();refreshValues();});
   on('modelSmall',()=>{const g=S.holes.modelPreview.growth;g.on=true;g.views=150;change();refreshValues();referenceReadout();});
   on('modelLarge',()=>{const g=S.holes.modelPreview.growth;g.on=true;g.views=499;change();refreshValues();referenceReadout();});
   on('tier2Start',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;change();refreshValues();referenceReadout();});
@@ -609,6 +639,7 @@ $('#boardBtn').onclick=boardShow; $('#boardClose').onclick=()=>$('#board').hidde
 $('#bPost').onclick=async()=>{ const o={ who:$('#bWho').value, title:$('#bTitle').value.trim(), body:$('#bBody').value.trim() }; if(!o.title) return toast('Give it a title'); if(await boardPost(o)){ $('#bTitle').value=''; $('#bBody').value=''; boardShow(); toast('Posted'); } else toast('Could not reach the board'); };
 $('#addLayerBtn').onclick=()=>openLib('bg');
 function setAnglePractice(view){
+  if(view&&S.holes.together?.on){S.holes.together.on=false;applyToScene();}
   scene.anglePractice=BH.ANGLE_STUDIES[view]?view:null;
   $('#angleViews').hidden=!scene.anglePractice;
   $('#modeAngles').classList.toggle('on',!!scene.anglePractice);
@@ -619,8 +650,9 @@ function setAnglePractice(view){
 $('#modeAngles').onclick=()=>setAnglePractice(scene.anglePractice?null:'low');
 $('#angleLow').onclick=()=>setAnglePractice('low');$('#angleDiagonal').onclick=()=>setAnglePractice('diagonal');
 $('#angleSize').onchange=e=>{scene.angleDiameter=+e.target.value;};
-$('#modeSky').onclick=()=>{setAnglePractice(null);S.holes.mode='sky'; change(); render();};
-$('#modeFocus').onclick=()=>{setAnglePractice(null);S.holes.mode='focus'; change(); render();};
+$('#modeBoth').onclick=playBothTiers;
+$('#modeSky').onclick=()=>{if(S.holes.modelPreview)return playBothTiers();setAnglePractice(null);S.holes.mode='sky'; change(); render();};
+$('#modeFocus').onclick=()=>{if(S.holes.together)S.holes.together.on=false;setAnglePractice(null);S.holes.mode='focus'; change(); render();};
 $('#playBtn').onclick=()=>{ scene.playing=!scene.playing; $('#playBtn').textContent=scene.playing?'❚❚':'▶'; $('#playLbl').textContent=scene.playing?'Moving':'Paused'; };
 $('#speed').oninput=e=>scene.speed=+e.target.value;
 $('#snapBtn').onclick=async ()=>{ const b = await (await fetch(scene.snapshot())).blob(); saveFile('raven-'+Date.now()+'.png', b); };

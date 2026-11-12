@@ -40,5 +40,22 @@ function quiet(settings){
   return {...G.BH.BH_DEFAULTS,...saved,x:q.x??ref.x??.5,y:q.y??ref.y??.235,size:q.size??ref.radius??40,
     lens:q.lens??saved.lens,reach:q.reach??saved.reach,disk:0,ring:0,corona:0,glow:0,jets:0,flare:0,envFeed:0,faceAmt:0,_quietPreview:true};
 }
-G.AsgardModelPreview={create,hole,quiet,copy,growth,setEndpoint};
+// Preview both approved tiers without changing either saved look. A shared follower
+// count sets the sphere radius; views only select each disk's growth amount.
+function together(settings,time=0,radius=32.5){
+  const cfg=settings.together||{},moving=cfg.drift!==false;
+  const offset=moving?.09*Math.sin(time*Math.max(0,cfg.speed??6.5)/90):0;
+  const g2=settings.referenceGrowth||{},g3=growth(settings.modelPreview);
+  const id2=g2.streamerId||'freya',wanted=settings.modelPreview.streamerId||'baldr';
+  const id3=wanted===id2?(id2==='baldr'?'freya':'baldr'):wanted;
+  const b=settings.behavior||{},rule=settings.rule||{};
+  const reference=G.AsgardVariants.liveSettings({...settings.referencePreview,
+    x:.40+offset,y:.16,radius,driftOn:false,wobble:0,
+    lens:(rule.lens??.9)*(b.lensAll??1),lensReach:Math.min(5.5,Math.max(2.5,1+(rule.edge??1.6)*1.4))},
+    id2,settings.orientation,g2);
+  const model=hole({...settings.modelPreview,streamerId:id3,x:.60-offset,y:.39,drift:false},time);
+  model.size=radius;model._fid='together-tier3-'+id3;
+  return {reference,model,followers:cfg.followers??50,views2:clamp(g2.views??21,21,149),views3:g3.views,id2,id3};
+}
+G.AsgardModelPreview={create,hole,quiet,together,copy,growth,setEndpoint};
 })(window);

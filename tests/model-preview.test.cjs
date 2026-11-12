@@ -58,3 +58,42 @@ test('returning to tier 2 removes the 3D model without altering reference settin
  const reference={on:true,ringSize:1.26},scene={s:{holes:{modelPreview:m,referencePreview:reference,behavior:{autoQuality:false}},rolodex:{settle:false}},time:0,playing:false,roll:{vel:0},engine:{render(){}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
  context.requestAnimationFrame=()=>{};prototype._loop.call(scene,1);assert.equal(scene.engine.holes.length,0);assert.deepEqual(reference,{on:true,ringSize:1.26});
 });
+function pairSettings(){
+ const s=G.Raven.ensureDashboards(plain(G.Raven.DEFAULT_SETTINGS));
+ const m=s.holes.modelPreview=M.create(item);m.randomAxis=true;m.growth={on:true,views:150,ringStart:12.7,ringEnd:14.2};
+ s.holes.referencePreview={on:true,radius:40,speed:1.35,ringSize:1.26};
+ s.holes.together={on:true,followers:50,drift:true,speed:6.5};return s;
+}
+test('both tiers use their saved renderers, distinct stable axes, and the same follower radius',()=>{
+ const s=pairSettings(),before=plain(s),a=M.together(s.holes,0,29.2),b=M.together(s.holes,100,29.2);
+ assert.equal(a.reference.ringSize,1.26);assert.equal(a.model.diskOut,12.7);
+ assert.equal(a.reference.radius,29.2);assert.equal(a.model.size,29.2);
+ assert.notEqual(a.id2,a.id3);assert.notEqual(a.reference.axisZ,a.model.rotZ);
+ assert.equal(a.reference.axisZ,b.reference.axisZ);assert.equal(a.model.rotZ,b.model.rotZ);
+ assert.notEqual(a.reference.x,b.reference.x);assert.notEqual(a.model.x,b.model.x);
+ assert.equal(a.reference.driftOn,false);assert.deepEqual(plain(s),before);
+});
+test('both tiers respond to views and follower changes independently',()=>{
+ const s=pairSettings();s.holes.referenceGrowth.views=21;s.holes.modelPreview.growth.views=150;
+ const a=M.together(s.holes,0,29.2);s.holes.referenceGrowth.views=149;s.holes.modelPreview.growth.views=499;
+ const b=M.together(s.holes,0,29.2),c=M.together(s.holes,0,42);
+ assert.equal(a.reference.ringSize,.45);assert.equal(b.reference.ringSize,1.26);
+ assert.equal(a.model.diskOut,12.7);assert.equal(b.model.diskOut,14.2);
+ assert.equal(a.model.size,b.model.size);assert.equal(a.reference.radius,b.reference.radius);
+ assert.equal(c.model.size,42);assert.equal(c.reference.radius,42);
+ assert.equal(b.model.diskOut,c.model.diskOut);assert.equal(b.reference.ringSize,c.reference.ringSize);
+});
+test('simultaneous mode renders the model and the reference on the same animation clock',()=>{
+ const p=G.Raven.RavenScene.prototype,s=pairSettings(),seen=[],draws=[];
+ const scene={s,time:0,speed:1,playing:true,roll:{vel:0},_last:1000,
+ engine:{render(t){seen.push({time:t,model:plain(this.holes[0])});}},friendSizeAt:i=>26+i*3.2,
+ _updateSky(){},_updateFeed(){},_composeBg(){},_drawOverlay(){},_loop(){},ovScale:1,
+ fx:{style:{},width:390,height:844,getContext(){return {setTransform(){},clearRect(){}};}},gl:{liveSky:true},
+ referenceHole:{draw(...args){draws.push(args);}},_drawClips(){p._drawClips.call(this);}};
+ G.AsgardReference={};context.requestAnimationFrame=()=>{};
+ p._loop.call(scene,1016);p._loop.call(scene,1032);
+ assert.equal(draws.length,2);assert.equal(scene._tagged.length,2);assert.equal(scene._tagged[0].label,'Tier 2');assert.equal(scene._tagged[1].label,'Tier 3');
+ assert.equal(draws[0][1],scene.gl);assert.equal(draws[0][3],seen[0].time);assert.equal(draws[1][3],seen[1].time);
+ assert.ok(seen[1].time>seen[0].time);assert.equal(seen[0].model.rotZ,seen[1].model.rotZ);
+ assert.equal(seen[0].model.size,draws[0][2].radius);assert.equal(scene.fx.style.mixBlendMode,'normal');
+});

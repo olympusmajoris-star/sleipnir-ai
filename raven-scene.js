@@ -479,6 +479,15 @@ class RavenScene {
   // the real footage from Danny's videos: one cut per Views stage, laid around each hole (black drops out)
   _drawClips() {
     const fx = this.fx; if (!fx) return; const x = fx.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, fx.width, fx.height);
+    if(this.s.holes.together?.on && this._together && G.AsgardReference){
+      fx.style.mixBlendMode='normal';
+      this.referenceHole ||= new G.AsgardReference.ReferenceHole();
+      x.setTransform(this.ovScale,0,0,this.ovScale,0,0);
+      // Sample the already rendered live sky so tier 2 cannot erase tier 3 when
+      // the two lens fields overlap.
+      this.referenceHole.draw(x,this.gl,this._together.reference,this.time,W,H);
+      return;
+    }
     if(this.s.holes.modelPreview?.on||this.s.holes.quickTier===1)return;
     if(this.s.holes.referencePreview?.on && G.AsgardReference){
       fx.style.mixBlendMode='normal';
@@ -563,7 +572,7 @@ class RavenScene {
   }
   _updateFeed(dt) {
     const F = this.s.holes.feed; this.feed = this.feed || []; this._fuel = this._fuel || {};
-    if(this.s.holes.referencePreview?.on||this.s.holes.modelPreview?.on||this.s.holes.quickTier===1){this.feed.length=0;return;}
+    if(this.s.holes.together?.on||this.s.holes.referencePreview?.on||this.s.holes.modelPreview?.on||this.s.holes.quickTier===1){this.feed.length=0;return;}
     if (!F || F.on === false) { this.feed.length = 0; return; }
     const holes = (this.engine.holes || []).filter(h => h._fid && h.size > 0 && h._vi >= 0).map(h => ({ id: h._fid, vi: h._vi, x: h.x * W, y: h.y * H, size: h.size, dir: h.diskDir || 1, rotZ: (h.rotZ || 0) * Math.PI / 180, flat: 0.3 + 0.28 * Math.abs(Math.sin((h.rotX || 15) * Math.PI / 180)) }));
     const byId = {}; for (const h of holes) { byId[h.id] = h; this._fuel[h.id] = Math.min(1, (this._fuel[h.id] || 0) + dt * 0.35); }
@@ -773,7 +782,7 @@ class RavenScene {
       x.fillRect(0, B2.bandTop * H, W, (B2.bandBottom - B2.bandTop) * H);
       for (const yy of [B2.bandTop, B2.bandBottom]) { x.beginPath(); x.moveTo(0, yy * H); x.lineTo(W, yy * H); x.stroke(); } x.restore(); }
     // name + live view tags tethered to each hole
-    if (this.s.holes.callout.on && this._tagged) this._drawCallouts(x, this._tagged);
+    if ((this.s.holes.callout.on || this.s.holes.together?.on) && this._tagged) this._drawCallouts(x, this._tagged);
     const S = this.s.sphere, R = this.s.rolodex, T = this.s.tabs;
     const cx = S.x * W, cy = S.y * H, rad = S.r * W;
     const items = this._rollItems(cx, cy, rad);
@@ -994,7 +1003,16 @@ class RavenScene {
       this._frameN = (this._frameN || 0) + 1; this._updateFeed(sdt);
       this._composeBg();
       this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6;
-      if(this.s.holes.quickTier===1 && G.AsgardModelPreview){
+      if(this.s.holes.together?.on && this.s.holes.modelPreview && G.AsgardModelPreview){
+        const hs=this.s.holes,followers=hs.together.followers??50;
+        const radius=this.friendSizeAt(tierAt(hs.dashboards.friends.tiers,followers))*(hs.behavior.sizeScale??1);
+        const pair=this._together=G.AsgardModelPreview.together(hs,this.time,radius);
+        this.engine.holes=[pair.model];
+        this._tagged=[
+          {c:{id:pair.id2,counts:{viewers:pair.views2}},x:pair.reference.x*W,y:pair.reference.y*H,r:radius,form:1,label:'Tier 2',sub:pair.views2+' views',tier:2},
+          {c:{id:pair.id3,counts:{viewers:pair.views3}},x:pair.model.x*W,y:pair.model.y*H,r:radius,form:1,label:'Tier 3',sub:pair.views3+' views',tier:3}
+        ];
+      }else if(this.s.holes.quickTier===1 && G.AsgardModelPreview){
         this.engine.holes=[G.AsgardModelPreview.quiet(this.s.holes)];this._tagged=[];
       }else if(this.s.holes.modelPreview?.on && G.AsgardModelPreview){
         // Match the library's 3D preview; legacy clip/fuel rules must not erase its disk.
@@ -1013,7 +1031,7 @@ class RavenScene {
     if (this.onFrame) this.onFrame(this);
     requestAnimationFrame(this._loop);
   }
-  snapshot() { const c = document.createElement('canvas'); c.width = this.ov.width; c.height = this.ov.height; const x = c.getContext('2d'); x.drawImage(this.gl, 0, 0, c.width, c.height); x.globalCompositeOperation=this.s.holes.referencePreview?.on?'source-over':'screen';x.drawImage(this.fx,0,0);x.globalCompositeOperation='source-over';x.drawImage(this.ov, 0, 0); return c.toDataURL('image/png'); }
+  snapshot() { const c = document.createElement('canvas'); c.width = this.ov.width; c.height = this.ov.height; const x = c.getContext('2d'); x.drawImage(this.gl, 0, 0, c.width, c.height); x.globalCompositeOperation=this.s.holes.referencePreview?.on||this.s.holes.together?.on?'source-over':'screen';x.drawImage(this.fx,0,0);x.globalCompositeOperation='source-over';x.drawImage(this.ov, 0, 0); return c.toDataURL('image/png'); }
 }
 
 function blendLook(a, b, t) { if (!a) return Object.assign({}, b); const o = {}; for (const k in b) { const va = a[k], vb = b[k]; o[k] = (typeof vb === 'number' && typeof va === 'number') ? lerp(va, vb, t) : (t < 0.5 ? (va ?? vb) : vb); } return o; }
