@@ -274,7 +274,7 @@ function render(){
   $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus'); if(scene.anglePractice)setAnglePractice(scene.anglePractice);
 }
 function fsReadout(){ const el=document.getElementById('fsRead'); if(!el) return; const fs=S.holes.friendSize, n=S.holes.dashboards.friends.tiers.length; el.innerHTML = Array.from({length:n},(_,i)=>`<span>T${i+1}: ${(fs.auto? fs.min+(fs.max-fs.min)*(n>1?i/(n-1):0) : S.holes.dashboards.friends.tiers[i].look.size).toFixed(1)}</span>`).join(''); }
-function showSec(s){ secNow = s; render(); }
+function showSec(s){ if(s!==secNow)$('#panel').scrollTop=0;secNow=s;render(); }
 let lookClip = null;
 function bindPanel(p){
   p.querySelectorAll('[data-dash]').forEach(b=>b.onclick=()=>{ S.holes.active=b.dataset.dash; S.holes.selTier=0;  change(); render(); });
