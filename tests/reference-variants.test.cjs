@@ -35,3 +35,27 @@ test('live lens responds to current background and has clear outside edges at ma
  const a=frame({ringSize:1.8}),b=frame({ringSize:1.8,lens:0}),changed=frame({ringSize:1.8},1,sky.map((v,i)=>i%4===3?255:255-v));assert.ok(diff(a,b)>20000);assert.ok(diff(a,changed)>20000);
  for(let x=0;x<n;x++){assert.equal(a[x*4+3],0);assert.equal(a[((n-1)*n+x)*4+3],0);}
 });
+
+test('visible disk material keeps the source angle and radius rather than repeating one near-side strip',()=>{
+ const art=new Uint8ClampedArray(224*166*4),core=new Uint8ClampedArray(art.length);
+ for(let y=0;y<166;y++)for(let x=0;x<224;x++)art.set([x,y,100,255],(y*224+x)*4);
+ const material=V.makeAtlas({art,core});
+ for(const [x,y] of [[20,150],[150,150],[280,150],[400,150]]){
+  const rho=(y+.5)/256*5.4,theta=(x+.5)/512*Math.PI*2,u=Math.cos(theta)*rho*27,v=Math.sin(theta)*rho*27*.47;
+  const px=102+u*.64278761+v*.76604444-.5,py=89-u*.76604444+v*.64278761-.5,i=(y*512+x)*4;
+  assert.ok(Math.abs(material[i]-px)<1);assert.ok(Math.abs(material[i+1]-py)<1);
+ }
+});
+test('hours of running cannot accumulate radial texture shear',()=>{
+ for(const tilt of [8,28,60,90]){
+  const st={tilt,speed:1,driftOn:false};
+  assert.equal(diff(frame(st,2),frame(st,1802)),0);
+  assert.equal(diff(frame(st,22),frame(st,3622)),0);
+ }
+});
+test('flow renewals remain continuous instead of flashing or snapping',()=>{
+ for(const t of [6,12,180,3600]){
+  const a=frame({speed:1},t-.001),b=frame({speed:1},t+.001);
+  assert.ok(diff(a,b)/(a.length)<.04,`visible reset at ${t}s`);
+ }
+});

@@ -5,12 +5,24 @@ const SOURCE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOAAAADCCAYAAABQSc
 const WIDTH=224,HEIGHT=166,CX=102,CY=89,RADIUS=27,PATCH=320,FLOW_W=512,FLOW_H=128,FLOW_R=160;
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t);};
 const mod=(n,d)=>((n%d)+d)%d;
+function motionAt(time){const t=mod(time,180),phase=mod(t,12);return {a:phase-6,b:mod(t+6,12)-6,blend:.5+.5*Math.cos(phase*Math.PI/6),turns:t/180};}
 const VS=`attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}`;
 const FS=`precision highp float;
 varying vec2 uv;
 uniform sampler2D art,core,base,flow,sky;
 uniform float time,lens,lensReach,spinDirection;
 uniform vec4 placement;
+// Two overlapping, smoothly renewed flow phases bound differential shear.
+// The reset phase is invisible; the disk never winds into concentric wires.
+vec4 orbitSample(sampler2D tex,float angle,float row,float omega){
+  float t=mod(time,180.),phase=mod(t,12.),a=phase-6.,b=mod(t+6.,12.)-6.;
+  float blend=.5+.5*cos(phase*6.283185307/12.);
+  float rigid=t/180.,shear=omega/6.283185307-1./180.;
+  vec4 A=texture2D(tex,vec2(fract(angle/6.283185307-spinDirection*(rigid+a*shear)),row));
+  vec4 B=texture2D(tex,vec2(fract(angle/6.283185307-spinDirection*(rigid+b*shear)),row));
+  float alpha=mix(A.a,B.a,blend);
+  return vec4(mix(A.rgb*A.a,B.rgb*B.a,blend)/max(alpha,.000001),alpha);
+}
 void main(){
   vec2 d=(uv-.5)*320.;
   float r=length(d),rn=r/27.;
@@ -22,8 +34,7 @@ void main(){
   vec2 plane=vec2(dot(d,vec2(.64278761,-.76604444)),dot(d,vec2(.76604444,.64278761))/.47);
   float rho=length(plane);
   float omega=.46*pow(38./max(rho,30.),1.5);
-  vec2 flowUV=vec2(fract(atan(plane.y,plane.x)/6.283185307-time*omega*spinDirection/6.283185307),clamp(rho/160.,0.,1.));
-  vec3 detail=texture2D(flow,flowUV).rgb*2.;
+  vec3 detail=orbitSample(flow,atan(plane.y,plane.x),clamp(rho/160.,0.,1.),omega).rgb*2.;
   float moving=.92*(1.-rim)*smoothstep(23.,30.,r);
   vec3 gas=mix(original.rgb,texture2D(base,p).rgb*detail,moving);
   gas*=1.-shadow;
@@ -102,7 +113,7 @@ function geometry(settings,n=PATCH){
   }return g;
 }
 function renderSoftware(out,pixels,bg,W,H,settings,time,n=PATCH,cachedGeometry){
-  const pos=positionAt(settings,time,W,H),geo=cachedGeometry||geometry(settings,n),t=time*(settings.speed??1),dir=settings.spinDirection<0?-1:1;
+  const pos=positionAt(settings,time,W,H),geo=cachedGeometry||geometry(settings,n),t=time*(settings.speed??1),dir=settings.spinDirection<0?-1:1,motion=motionAt(t);
   for(let i=0;i<n*n;i++){
     const j=i*4,g=i*10,x=geo[g+8],y=geo[g+9],inside=x>=-.5&&x<WIDTH-.5&&y>=-.5&&y<HEIGHT-.5;
     const alpha=inside?sample(pixels.art,WIDTH,HEIGHT,x,y,3)/255:0;
@@ -111,11 +122,11 @@ function renderSoftware(out,pixels,bg,W,H,settings,time,n=PATCH,cachedGeometry){
     const moving=.92*(1-rim)*smooth(23,30,Math.hypot(geo[g],geo[g+1]));
     const a=Math.max(alpha,shadow),field=geo[g+7],coverage=a+field*(1-a);
     if(coverage<.00001){out[j]=out[j+1]=out[j+2]=out[j+3]=0;continue;}
-    const fu=mod(geo[g+4]-t*geo[g+6]*dir,1)*FLOW_W-.5,fv=Math.max(0,Math.min(1,geo[g+5]))*FLOW_H-.5;
+    const shear=geo[g+6]-1/180,fu=mod(geo[g+4]-(motion.turns+motion.a*shear)*dir,1)*FLOW_W-.5,fu2=mod(geo[g+4]-(motion.turns+motion.b*shear)*dir,1)*FLOW_W-.5,fv=Math.max(0,Math.min(1,geo[g+5]))*FLOW_H-.5;
     const sx=pos.x+geo[g+2]*pos.scale-.5,sy=pos.y+geo[g+3]*pos.scale-.5;
     for(let k=0;k<3;k++){
       const original=inside?sample(pixels.art,WIDTH,HEIGHT,x,y,k):0;
-      const gas=inside?(original*(1-moving)+sample(pixels.base,WIDTH,HEIGHT,x,y,k)*sample(pixels.flow,FLOW_W,FLOW_H,fu,fv,k,true)/127.5*moving)*(1-shadow):0;
+      const gas=inside?(original*(1-moving)+sample(pixels.base,WIDTH,HEIGHT,x,y,k)*(sample(pixels.flow,FLOW_W,FLOW_H,fu,fv,k,true)*(1-motion.blend)+sample(pixels.flow,FLOW_W,FLOW_H,fu2,fv,k,true)*motion.blend)/127.5*moving)*(1-shadow):0;
       out[j+k]=(gas*a+sample(bg,W,H,sx,sy,k)*field*(1-a))/coverage;
     }out[j+3]=coverage*255;
   }
@@ -164,5 +175,5 @@ class CanvasBackground{
   _upload(){} _uploadFaces(){} setGas(){}
   render(){const x=this.ctx,c=this.canvas;x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);if(this.bg.A)x.drawImage(this.bg.A,0,0,c.width,c.height);}
 }
-G.AsgardReference={ReferenceHole,CanvasBackground,prepare,prepareFlow,renderSoftware,geometry,positionAt,VS,FS,WIDTH,HEIGHT,CX,CY,RADIUS,PATCH};
+G.AsgardReference={motionAt,ReferenceHole,CanvasBackground,prepare,prepareFlow,renderSoftware,geometry,positionAt,VS,FS,WIDTH,HEIGHT,CX,CY,RADIUS,PATCH};
 })(window);
