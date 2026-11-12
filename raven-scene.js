@@ -27,6 +27,8 @@ const DEFAULT_SETTINGS = {
     focus: { x: 0.5, y: 0.2 },
     friendSize: { auto: true, min: 33, max: 66 },
     liveViews: true,
+    orientation: { random: true, seed: 1 },
+    referenceGrowth: { on: true, views: 149, streamerId: 'freya', ringStart: .45, ringEnd: 1.26, densityStart: .65, densityEnd: 1.05 },
     refl: { on: true, size: 0.7, gloss: 0.7, rimSky: 0.5, catch: 0, bright: 0.8, blur: 0.6 },
     gas: { on: true, bright: 1, speed: 1, scale: 1.1, layers: [
       { src: 'gas/dust_lanes.webp', a: 0.8, sp: 3, y: 0.0 }, { src: 'gas/gas_teal.webp', a: 0.7, sp: 5, y: 0.12 }, { src: 'gas/gas_amber.webp', a: 0.7, sp: 7, y: -0.08 },
@@ -433,6 +435,18 @@ class RavenScene {
     }
     return holes;
   }
+  _orientHoles(holes) {
+    const rule=this.s.holes.orientation;
+    if(rule?.random===false||!G.AsgardVariants)return holes;
+    for(const h of holes){
+      if(h._angleStudy)continue;
+      const a=G.AsgardVariants.orientationFor(h._orientationId??h._fid??h.seed??'preview',rule?.seed??1);
+      h.rotX=a.tilt;h.rotY=a.axisY;h.rotZ=a.axisZ;
+      const rz=h.rotZ*Math.PI/180;
+      h.fa=[Math.cos(rz),Math.sin(rz),.3+.7*Math.sin(h.rotX*Math.PI/180),0];
+    }
+    return holes;
+  }
   _lightHoles(holes) {
     // Run after clip/fuel gating: an invisible or unlit disk cannot cast a crest.
     const pixels = this._sampleSky(), gasPixels=this._sampleGas(), rule = this.s.holes.rule || {};
@@ -470,9 +484,12 @@ class RavenScene {
       this.referenceHole ||= new G.AsgardReference.ReferenceHole();
       x.setTransform(this.ovScale,0,0,this.ovScale,0,0);
       const B=this.s.holes.behavior,rule=this.s.holes.rule||{};
-      const live={...this.s.holes.referencePreview,
+      const growth=this.s.holes.referenceGrowth,identity=growth?.streamerId??this._testContact?.id??'freya';
+      const base={...this.s.holes.referencePreview,
         driftOn:B.driftViews!==false,driftSpeed:B.speed,driftDirection:B.direction,wobble:B.wobble,
         lens:(rule.lens??.9)*(B.lensAll??1),lensReach:Math.min(5.5,Math.max(2.5,1+(rule.edge??1.6)*1.4))};
+      const live=G.AsgardVariants?G.AsgardVariants.liveSettings(base,identity,this.s.holes.orientation,growth):base;
+      this.referenceState=live;
       this.referenceHole.draw(x,this.bgc,live,this.time,W,H);
       return;
     }
@@ -480,6 +497,14 @@ class RavenScene {
     const CL = this.s.holes.clips; if (!CL || CL.on === false) return; const k = this.ovScale;
     this._vids = this._vids || [];
     for (const h of this.engine.holes || []) { if (!(h._vi >= 0) || h._pairB) continue; const i = Math.min(5, h._vi);
+      if(i===1 && this.s.holes.referenceGrowth?.on && G.AsgardReference && G.AsgardVariants){
+        this.referenceHole ||= new G.AsgardReference.ReferenceHole();
+        const live=G.AsgardVariants.liveSettings({...this.s.holes.referencePreview,x:h.x,y:h.y,radius:h.size,
+          driftOn:false,lens:(h.lens??.9),lensReach:Math.min(5.5,Math.max(2.5,1+(h.edgeWidth??1.6)*1.4))},
+          h._orientationId??h._fid??'preview',this.s.holes.orientation,this.s.holes.referenceGrowth,h._viewers??21);
+        x.save();x.setTransform(k,0,0,k,0,0);x.globalAlpha=Math.min(1,(h.form??1)*(h.opacity??1));
+        this.referenceHole.draw(x,this.bgc,live,this.time,W,H);x.restore();continue;
+      }
       let v = this._vids[i]; if (!v) { v = this._vids[i] = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.crossOrigin = 'anonymous'; v.onerror = () => { v._bad = true; }; v.src = 'stage/s' + i + '.mp4'; v.play().catch(() => {}); }
       if (v._bad) continue;
       if (v.readyState < 2) { if (v.paused) v.play().catch(() => {}); continue; }
@@ -587,7 +612,7 @@ class RavenScene {
     const tags = [];
     for (const t of this._tour) { const c = this.contacts[t.i % this.contacts.length]; const fake = { id: c.id, name: c.name, counts: isF ? { followers: T[t.i].start, viewers: 0 } : { followers: hs.dashboards.friends.tiers[2].start, viewers: T[t.i].start } }; const tsz = szOf(t.i);
       const L = this.lookFor(fake), y = (B.tourY ?? 0.22) + (t.n % 2 ? 0 : (B.tourZig ?? 0.06));
-      this._expand(Object.assign({}, L.look, { x: t.x / W, y, size: tsz, lens: L.look.lens * B.lensAll, seed: t.n * 1.7, _vi: isF ? -1 : t.i, _fid: 'tour' + t.n }), c, out, faces);
+      this._expand(Object.assign({}, L.look, { x: t.x / W, y, size: tsz, lens: L.look.lens * B.lensAll, seed: t.n * 1.7, _vi: isF ? -1 : t.i, _viewers:isF?0:T[t.i].start, _fid: 'tour' + t.n }), c, out, faces);
       tags.push({ c, x: t.x, y: y * H, r: tsz, form: 1, label: `${t.i + 1}. ${T[t.i].name}`, sub: `${T[t.i].start}+ ${isF ? 'followers' : 'viewers'}`, tier: t.i }); }
     this._faceSlots(faces.slice(0, G.BH.MAXH)); this._tagged = tags; return out.slice(0, G.BH.MAXH);
   }
@@ -684,11 +709,13 @@ class RavenScene {
     }
   }
   _expand(h, c, out, faces) {
+    h._orientationId=c?.id??c?.name??h._fid??h.seed??'preview';
+    h._viewers??=c?.counts?.viewers??0;
     if (!h.pair) { out.push(h); faces.push(c); return; }
     const ang = this.time * h.pairSpeed * Math.PI * 0.5, q = h.pairRatio, sepPx = h.size * h.pairSep;
     const r1 = sepPx * q / (1 + q), r2 = sepPx / (1 + q), ca = Math.cos(ang), sa = Math.sin(ang);
     const a = Object.assign({}, h, { x: h.x + ca * r1 / W, y: h.y + sa * h.pairTilt * r1 / H });
-    const b = Object.assign({}, h, { x: h.x - ca * r2 / W, y: h.y - sa * h.pairTilt * r2 / H, size: h.size * q, seed: (h.seed || 0) + 3.3, _pairB: 1 });
+    const b = Object.assign({}, h, { x: h.x - ca * r2 / W, y: h.y - sa * h.pairTilt * r2 / H, size: h.size * q, seed: (h.seed || 0) + 3.3, _pairB: 1, _orientationId:h._orientationId+':pair' });
     if (sa > 0) { out.push(b, a); faces.push(null, c); } else { out.push(a, b); faces.push(c, null); }
   }
   _holesForEngine() {
@@ -703,7 +730,7 @@ class RavenScene {
       const TT = hs.dashboards[hs.active].tiers; const t = TT[Math.min(TT.length - 1, Math.max(0, parseInt(hs.selTier) || 0))]; const look = this.focusLook || t.look;
       const sz = hs.active === 'friends' ? this.friendSizeAt(hs.selTier) : look.size;
       let fx = hs.focus.x; if (B.driftViews !== false && B.speed > 0) { const span = W + 160; fx = ((((fx * W + this.time * B.speed * (B.direction || 1) + 80) % span) + span) % span - 80) / W; }
-      this._expand(Object.assign({}, look, { x: fx, y: hs.focus.y, size: sz * B.sizeScale * (hs.active === 'friends' ? 1 : (this.focusZoom || 1.6)), lens: look.lens * B.lensAll, form: look.form * (this.formPreview ?? 1), _vi: hs.active === 'viewers' ? (parseInt(hs.selTier) || 0) : -1, _fid: 'focus' }), this._testContact || this.contacts[0], out, faces);
+      this._expand(Object.assign({}, look, { x: fx, y: hs.focus.y, size: sz * B.sizeScale * (hs.active === 'friends' ? 1 : (this.focusZoom || 1.6)), lens: look.lens * B.lensAll, form: look.form * (this.formPreview ?? 1), _vi: hs.active === 'viewers' ? (parseInt(hs.selTier) || 0) : -1, _viewers:hs.active==='viewers'?t.start:0, _fid: 'focus' }), this._testContact || this.contacts[0], out, faces);
       this._faceSlots(faces); this._tagged = [{ c: this._testContact || this.contacts[0], x: fx * W, y: hs.focus.y * H, r: sz * B.sizeScale * (hs.active === 'friends' ? 1 : (this.focusZoom || 1.6)), form: 1, label: t.name }];
       return out;
     }
@@ -719,7 +746,7 @@ class RavenScene {
         let look = T[i].look, szBase = this.friendSizeAt(i);
         if (isV) { const fake = { id: c.id, name: c.name, counts: { followers: hs.dashboards.friends.tiers[2].start, viewers: T[i].start } }; const L = this.lookFor(fake); look = L.look; szBase = L.look.size; }
         const sz = szBase * B.sizeScale * (n === 1 ? (hs.oneZoom || 1.4) : 1);
-        this._expand(Object.assign({}, look, { x, y, size: sz, lens: look.lens * B.lensAll, seed: i * 2.1, _vi: isV ? i : -1, _fid: 't' + i }), c, out, faces);
+        this._expand(Object.assign({}, look, { x, y, size: sz, lens: look.lens * B.lensAll, seed: i * 2.1, _vi: isV ? i : -1, _viewers:isV?T[i].start:0, _fid: 't' + i }), c, out, faces);
         tags.push({ c, x: x * W, y: y * H, r: sz, form: 1, label: `${i + 1}. ${T[i].name}`, sub: `${T[i].start}+ ${isV ? 'viewers' : 'followers'}`, tier: i });
       });
       this._faceSlots(faces.slice(0, G.BH.MAXH)); this._tagged = tags;
@@ -969,7 +996,7 @@ class RavenScene {
       if(this.s.holes.referencePreview?.on && G.AsgardReference){
         this.engine.holes=[];this._tagged=[];
       }else{
-        this.engine.holes = this._buildHoles(this._lightHoles(this._gateByFuel(this._holesForEngine())));
+        this.engine.holes = this._lightHoles(this._orientHoles(this._buildHoles(this._gateByFuel(this._holesForEngine()))));
         if(this.s.holes.hideFaces)for(const h of this.engine.holes)h.faceAmt=0;
       }
       this.engine.refl = this.s.holes.hideFaces?{...this.s.holes.refl,on:false}:this.s.holes.refl;

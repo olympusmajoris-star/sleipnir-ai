@@ -9,6 +9,25 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const mod=(x,n)=>(x%n+n)%n;
 function settings(s){const a={...defaults,...s};for(const [k,lo,hi] of [['ringSize',.45,1.8],['density',0,3],['glow',0,3],['tintAmount',0,1],['tilt',3,90],['axisY',-80,80],['axisZ',-180,180],['thickness',.3,2]])a[k]=clamp(Number.isFinite(+a[k])?+a[k]:defaults[k],lo,hi);return a;}
+
+// Stable per-streamer orientation: never depends on time, position, views or tier.
+function orientationFor(id,seed=1){
+  let h=2166136261;for(const ch of String(seed)+'|'+String(id))h=Math.imul(h^ch.charCodeAt(0),16777619);
+  const unit=k=>{let v=Math.imul(h^Math.imul(k,0x9e3779b9),0x85ebca6b);v^=v>>>13;v=Math.imul(v,0xc2b2ae35);v^=v>>>16;return (v>>>0)/4294967296;};
+  return {view3d:true,tilt:12+66*unit(1),axisY:-45+90*unit(2),axisZ:-180+360*unit(3)};
+}
+function tier2At(input,views,config={}){
+  const t=clamp(((Number.isFinite(+views)?+views:21)-21)/128,0,1);
+  return {...input,ringSize:(config.ringStart??.45)+((config.ringEnd??1.26)-(config.ringStart??.45))*t,
+    density:(config.densityStart??.65)+((config.densityEnd??1.05)-(config.densityStart??.65))*t};
+}
+function liveSettings(input,id,orientation={},growth=null,views){
+  let result={...input};
+  if(growth?.on)result=tier2At(result,views??growth.views,growth);
+  if(orientation.random!==false)Object.assign(result,orientationFor(id,orientation.seed??1));
+  return result;
+}
+
 function basis(s){const t=s.tilt*Math.PI/180,y=s.axisY*Math.PI/180,z=s.axisZ*Math.PI/180,ct=Math.cos(t),st=Math.sin(t),cy=Math.cos(y),sy=Math.sin(y),cz=Math.cos(z),sz=Math.sin(z);
   const u=[cy*cz,cy*sz,-sy],v=[sy*ct*cz-st*sz,sy*ct*sz+st*cz,cy*ct];
   return {u,v,n:[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]]};
@@ -212,5 +231,5 @@ class Renderer{
     ctx.drawImage(gl?this.canvas:this.sw.canvas,pos.x-size/2*pos.scale,pos.y-size/2*pos.scale,size*pos.scale,size*pos.scale);return true;
   }
 }
-G.AsgardVariants={defaults,settings,isOriginal,basis,extent,makeAtlas,geometry,renderSoftware,Renderer,VS,FS};
+G.AsgardVariants={orientationFor,tier2At,liveSettings,defaults,settings,isOriginal,basis,extent,makeAtlas,geometry,renderSoftware,Renderer,VS,FS};
 })(window);
