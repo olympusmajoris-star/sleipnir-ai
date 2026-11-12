@@ -469,7 +469,11 @@ class RavenScene {
       fx.style.mixBlendMode='normal';
       this.referenceHole ||= new G.AsgardReference.ReferenceHole();
       x.setTransform(this.ovScale,0,0,this.ovScale,0,0);
-      this.referenceHole.draw(x,this.bgc,this.s.holes.referencePreview,this.time,W,H);
+      const B=this.s.holes.behavior,rule=this.s.holes.rule||{};
+      const live={...this.s.holes.referencePreview,
+        driftOn:B.driftViews!==false,driftSpeed:B.speed,driftDirection:B.direction,wobble:B.wobble,
+        lens:(rule.lens??.9)*(B.lensAll??1),lensReach:Math.min(5.5,Math.max(2.5,1+(rule.edge??1.6)*1.4))};
+      this.referenceHole.draw(x,this.bgc,live,this.time,W,H);
       return;
     }
     fx.style.mixBlendMode='screen';

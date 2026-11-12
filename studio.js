@@ -183,7 +183,9 @@ function secHoles(){
   const hs = S.holes, d = hs.dashboards[hs.active], t = curTier();
   let h = head('EDITING','Black holes','Pick a dashboard, pick a tier, then pick its black hole from your library and shape it. Every hole is real 3D and really bends the sky behind it.');
   hs.referencePreview ||= {on:false,x:.5,y:.235,radius:40,speed:1,lens:.45};
-  h += group('Your selected reference', [K('holes.referencePreview.on','Show your selected black hole live'),K('holes.hideFaces','Hide faces in black holes'),R('holes.referencePreview.radius','Black hole size',24,52,.5),R('holes.referencePreview.speed','Gas movement',0,2,.05),R('holes.referencePreview.lens','Bend the sky around it',0,1,.05)], 'hReference');
+  if(ui.open.hReference===undefined)ui.open.hReference=true;
+  hs.referencePreview.spinDirection ??= 1;
+  h += group('Your selected reference', [K('holes.referencePreview.on','Show your selected black hole live'),K('holes.hideFaces','Hide faces in black holes'),R('holes.referencePreview.radius','Black hole size',24,52,.5),K('holes.behavior.driftViews','Drift across the sky'),R('holes.behavior.speed','Drift speed',0,60,.5),SEL('holes.behavior.direction','Drift direction',[[1,'Left to right'],[-1,'Right to left']]),R('holes.referencePreview.speed','Rings swirl in place',0,3,.05),SEL('holes.referencePreview.spinDirection','Ring direction',[[1,'Clockwise'],[-1,'Counter-clockwise']]),R('holes.rule.lens','Live sky lensing',0,2.5,.05),R('holes.rule.edge','How far lensing reaches',.3,3.2,.05)], 'hReference');
   h += `<div class="dash">${Object.entries(DASH).map(([k,l])=>`<button data-dash="${k}" class="${k===hs.active?'on':''}">${l}</button>`).join('')}</div>`;
   h += hs.active==='friends' ? `<p class="note"><b>Followers set the size of the hole</b> (and the hole itself). Disk, feeding and strong warping come from <b>Views</b> as viewers grow.</p>`
      : hs.active==='viewers' ? `<p class="note"><b>Views set the disk, feeding and warping.</b> Tier 1 = no extra (the Followers hole as is). Size always comes from Followers.</p>` : `<p class="note">Followers are not used for the look right now.</p>`;
