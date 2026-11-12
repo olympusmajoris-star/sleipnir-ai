@@ -27,6 +27,7 @@ const R = (k, label, min, max, step) => ({ t:'r', k, label, min, max, step });
 const K = (k, label) => ({ t:'k', k, label });
 const C = (k, label) => ({ t:'c', k, label });
 const Sel = (k, label, opts) => ({ t:'s', k, label, opts });
+const U = (k, label) => ({ t:'u', k, label });
 
 /* ======================= PAGE DEFINITIONS ======================= */
 const PAGES = {
@@ -36,7 +37,7 @@ const PAGES = {
       bg: '#05070a',
       sky: { height: 0.34, image: 9, bright: 0.9, drift: 6, fade: 0.25, holes: 3, holeSize: 30, holeSpeed: 14, faceShow: true },
       post: { margin: 14, radius: 18, gap: 22, border: 3, borderColor: '#c9a46a', glow: 0.35, glowColor: '#f0c070', imgRatio: 1.25, headSize: 15, nameColor: '#f2e6cf', textSize: 13, textColor: '#e7dcc8', autoScroll: 18, runes: true, runeColor: '#d8b878', runeSpeed: 30 },
-      act: { place: 'under', size: 24, gap: 22, color: '#e9c46a', glow: 0.5, counts: true, countSize: 12, buy: true },
+      act: { place: 'under', slots: 4, size: 24, gap: 22, glow: 0, glowColor: '#ffffff', counts: false, countSize: 12, countColor: '#ffffff', icon1:'', icon2:'', icon3:'', icon4:'', icon5:'', icon6:'' },
       dock: { size: 46, gap: 26, y: 0.93, shadow: 0.6, shadowBlur: 14, shadowY: 10, spin: 0 },
     },
     sections: [
@@ -50,7 +51,8 @@ const PAGES = {
         { name:'Text', ctrls:[R('post.headSize','Name size',10,24,.5), C('post.nameColor','Name color'), R('post.textSize','Caption size',9,20,.5), C('post.textColor','Caption color')]},
       ]},
       { id:'act', name:'Like, share & buy', sub:'Where the icons go & how they look', groups:[
-        { name:'Icons on each post', ctrls:[Sel('act.place','Where they sit',[['under','Row under the picture'],['over','Over the bottom of the picture'],['side','Column on the right side']]), R('act.size','Icon size',14,44,1), R('act.gap','Space between icons',6,60,1), C('act.color','Icon color'), R('act.glow','Glow',0,1.5,.01), K('act.counts','Show counts'), R('act.countSize','Count size',8,18,.5), K('act.buy','Show "Get it now" on for-sale posts')]},
+        { name:'Icon slots on each post (empty until you add your own)', ctrls:[R('act.slots','How many icons',0,6,1), Sel('act.place','Where they sit',[['under','Row under the picture'],['over','Over the bottom of the picture'],['side','Column on the right side']]), R('act.size','Icon size',14,60,1), R('act.gap','Space between icons',0,60,1), R('act.glow','Glow',0,1.5,.01), C('act.glowColor','Glow color'), K('act.counts','Show a number next to each'), R('act.countSize','Number size',8,18,.5), C('act.countColor','Number color')]},
+        { name:'Your icon images', ctrls:[U('act.icon1','Icon 1'), U('act.icon2','Icon 2'), U('act.icon3','Icon 3'), U('act.icon4','Icon 4'), U('act.icon5','Icon 5'), U('act.icon6','Icon 6')]},
       ]},
       { id:'dock', name:'Floating icons', sub:'Raven, feather, horn, wayfinder', groups:[
         { name:'The 4 floating icons', ctrls:[R('dock.size','Icon size',24,80,1), R('dock.gap','Space between',4,60,1), R('dock.y','Height on screen',0.75,0.98,.002), R('dock.shadow','Shadow on the post',0,1,.01), R('dock.shadowBlur','Shadow softness',0,40,1), R('dock.shadowY','Shadow drop',0,30,1), R('dock.spin','Gentle bob',0,1,.01)]},
@@ -173,6 +175,11 @@ function panel(){
       else if(c.t === 'k'){ el = document.createElement('label'); el.className = 'pg-chk'; el.innerHTML = `<input type="checkbox" ${v ? 'checked' : ''}> ${c.label}`; el.querySelector('input').onchange = (e) => { set(STATE.S, c.k, e.target.checked); save(); }; }
       else if(c.t === 'c'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="color" value="${/^#/.test(v) ? v : '#ffffff'}">`; el.querySelector('input').oninput = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
       else if(c.t === 's'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><select class="pg-sel">${c.opts.map(([val, lab]) => `<option value="${val}" ${val === v ? 'selected' : ''}>${lab}</option>`).join('')}</select>`; el.querySelector('select').onchange = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
+      else if(c.t === 'u'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}${v ? ' <em>set</em>' : ''}</label><input type="file" accept="image/*"> ${v ? '<button class="ghost">Clear</button>' : ''}`;
+        el.querySelector('input').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const path = 'icons/' + Date.now() + '-' + f.name.replace(/[^\w.-]/g, '_');
+          try { const r = await fetch(SB.url + '/storage/v1/object/studio/' + path, { method:'POST', headers: H({ 'Content-Type': f.type, 'x-upsert':'true' }), body: f }); if(!r.ok) throw 0; set(STATE.S, c.k, STUDIO + path); } catch(err){ set(STATE.S, c.k, URL.createObjectURL(f)); alert('Upload failed, showing it on this computer only.'); }
+          save(); panel(); };
+        const cb = el.querySelector('button'); if(cb) cb.onclick = () => { set(STATE.S, c.k, ''); save(); panel(); }; }
       d.appendChild(el); });
     pn.appendChild(d); });
 }
@@ -227,10 +234,13 @@ function drawHome(x, t, S){
     // picture
     const iy = y + headH; x.save(); x.beginPath(); x.rect(X + P.border, iy, cardW - P.border * 2, imgH); x.clip(); cover(x, img(bgSrc(p.i)), X + P.border, iy, cardW - P.border * 2, imgH); x.restore();
     // action icons
-    const glyphs = [['♥', p.likes], ['💬', p.com], ['➤', null]]; if(A.buy && p.sale) glyphs.push(['⛁', 'Get it now']);
-    x.save(); x.fillStyle = A.color; x.shadowColor = A.color; x.shadowBlur = 10 * A.glow; x.font = `${A.size}px system-ui`; x.textBaseline = 'middle';
-    glyphs.forEach(([g, n], i) => { let gx, gy; if(A.place === 'side'){ gx = X + cardW - A.size - 12; gy = iy + imgH - 20 - (glyphs.length - 1 - i) * (A.size + A.gap); } else { gx = X + 14 + i * (A.size + A.gap + (A.counts ? 18 : 0)); gy = A.place === 'over' ? iy + imgH - A.size * 0.8 : iy + imgH + 12 + A.size / 2; }
-      x.fillText(g, gx, gy); if(A.counts && n != null){ x.save(); x.shadowBlur = 0; x.font = `${A.countSize}px system-ui`; x.fillText(String(n), gx + A.size + 2, gy); x.restore(); } });
+    const nS = Math.round(A.slots);
+    x.save(); x.textBaseline = 'middle';
+    for(let i = 0; i < nS; i++){ let gx, gy; if(A.place === 'side'){ gx = X + cardW - A.size - 12; gy = iy + imgH - 20 - (nS - 1 - i) * (A.size + A.gap); } else { gx = X + 14 + i * (A.size + A.gap + (A.counts ? 18 : 0)); gy = A.place === 'over' ? iy + imgH - A.size * 0.8 : iy + imgH + 12 + A.size / 2; }
+      const u = A['icon' + (i + 1)], ic = u ? img(u) : null;
+      if(ic && ok(ic)){ x.save(); if(A.glow > 0){ x.shadowColor = A.glowColor; x.shadowBlur = 10 * A.glow; } x.drawImage(ic, gx, gy - A.size / 2, A.size, A.size); x.restore(); }
+      else { x.save(); x.setLineDash([3, 3]); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.strokeRect(gx + .5, gy - A.size / 2 + .5, A.size - 1, A.size - 1); x.restore(); }
+      if(A.counts){ x.fillStyle = A.countColor; x.font = `${A.countSize}px system-ui`; x.fillText('0', gx + A.size + 3, gy); } }
     x.restore();
     x.fillStyle = P.textColor; x.font = `${P.textSize}px system-ui`; x.fillText(p.c, X + 14, y + headH + imgH + actH + 22);
   }
