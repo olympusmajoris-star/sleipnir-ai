@@ -61,6 +61,7 @@ function applyChatImport(s){
 }
 let S = store.get(KEY) || starterSettings();
 S = applyChatImport(Raven.ensureDashboards(S));
+S.holes.referencePreview ||= {on:false,x:.5,y:.235,radius:40,speed:1,lens:.45};
 let hist = [clone(S)], hi = 0, dirty = false, secNow = 'holes', selLayer = null, testContact = null;
 const ui = store.get(KEY + '-ui') || { open:{} , fs:1 };
 
@@ -181,6 +182,8 @@ const LOOK = {
 function secHoles(){
   const hs = S.holes, d = hs.dashboards[hs.active], t = curTier();
   let h = head('EDITING','Black holes','Pick a dashboard, pick a tier, then pick its black hole from your library and shape it. Every hole is real 3D and really bends the sky behind it.');
+  hs.referencePreview ||= {on:false,x:.5,y:.235,radius:40,speed:1,lens:.45};
+  h += group('Your selected reference', [K('holes.referencePreview.on','Show your selected black hole live'),K('holes.hideFaces','Hide faces in black holes'),R('holes.referencePreview.radius','Black hole size',24,52,.5),R('holes.referencePreview.speed','Gas movement',0,2,.05),R('holes.referencePreview.lens','Bend the sky around it',0,1,.05)], 'hReference');
   h += `<div class="dash">${Object.entries(DASH).map(([k,l])=>`<button data-dash="${k}" class="${k===hs.active?'on':''}">${l}</button>`).join('')}</div>`;
   h += hs.active==='friends' ? `<p class="note"><b>Followers set the size of the hole</b> (and the hole itself). Disk, feeding and strong warping come from <b>Views</b> as viewers grow.</p>`
      : hs.active==='viewers' ? `<p class="note"><b>Views set the disk, feeding and warping.</b> Tier 1 = no extra (the Followers hole as is). Size always comes from Followers.</p>` : `<p class="note">Followers are not used for the look right now.</p>`;
@@ -348,8 +351,8 @@ async function getDart(){
     s.sphere.texture = await toDataUrl(s.sphere.texture, 1024);
     const contacts = [];
     for(const c of scene.contacts){ contacts.push(Object.assign({}, c, { bust: await toDataUrl(c.bust), face: await toDataUrl(c.face, 256) })); }
-    const eng = await (await fetch('bh-engine.js',{cache:'no-cache'})).text(), run = await (await fetch('raven-scene.js',{cache:'no-cache'})).text();
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${run}<\/script><script>
+    const eng = await (await fetch('bh-engine.js',{cache:'no-cache'})).text(), run = await (await fetch('raven-scene.js',{cache:'no-cache'})).text(), ref = await (await fetch('reference-hole.js',{cache:'no-cache'})).text();
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#s{position:absolute;inset:0}</style></head><body><div id="s"></div><script>${eng}<\/script><script>${ref}<\/script><script>${run}<\/script><script>
 var SETTINGS=${JSON.stringify(s)};var DEMO=${JSON.stringify(contacts)};
 var sc=new Raven.RavenScene(document.getElementById('s'),SETTINGS,{contacts:DEMO});
 window.ravenSetContacts=function(j){try{var l=typeof j==='string'?JSON.parse(j):j;if(Array.isArray(l)&&l.length){l.forEach(function(c){c.counts=c.counts||{friends:0,followers:0,viewers:0};});sc.setContacts(l);}}catch(e){}};
