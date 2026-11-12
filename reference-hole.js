@@ -84,9 +84,49 @@ class ReferenceHole{
       [this.prepared.art,this.prepared.core,background].forEach((src,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);if(i===2||!this.uploaded)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.uniform1i(this.uniforms[['art','core','sky'][i]],i);});this.uploaded=true;
       gl.uniform1f(this.uniforms.time,time*(settings.speed??1));gl.uniform1f(this.uniforms.lens,settings.lens??.45);gl.uniform4f(this.uniforms.placement,cx/W,cy/H,scale/W,scale/H);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);ctx.drawImage(this.canvas,cx-CX*scale,cy-CY*scale,WIDTH*scale,HEIGHT*scale);
-    }else ctx.drawImage(this.prepared.art,cx-CX*scale,cy-CY*scale,WIDTH*scale,HEIGHT*scale);
+    }else{
+      // Use the same fixed shadow and periodic gas mapping when WebGL is unavailable.
+      if(!this.software){
+        const c=document.createElement('canvas');c.width=WIDTH;c.height=HEIGHT;
+        const x=c.getContext('2d'),sky=document.createElement('canvas');sky.width=W;sky.height=H;
+        this.software={canvas:c,ctx:x,sky,skyCtx:sky.getContext('2d',{willReadFrequently:true}),frame:x.createImageData(WIDTH,HEIGHT),art:this.prepared.art.getContext('2d').getImageData(0,0,WIDTH,HEIGHT).data,core:this.prepared.core.getContext('2d').getImageData(0,0,WIDTH,HEIGHT).data};
+      }
+      const sw=this.software;sw.skyCtx.drawImage(background,0,0,W,H);
+      const bg=sw.skyCtx.getImageData(0,0,W,H).data;
+      renderSoftware(sw.frame.data,sw.art,sw.core,bg,W,H,settings,time);
+      sw.ctx.putImageData(sw.frame,0,0);ctx.drawImage(sw.canvas,cx-CX*scale,cy-CY*scale,WIDTH*scale,HEIGHT*scale);
+    }
     return true;
   }
 }
-G.AsgardReference={ReferenceHole,prepare,VS,FS,WIDTH,HEIGHT,CX,CY,RADIUS};
+function renderSoftware(out,art,core,bg,W,H,settings,time){
+  const scale=(settings.radius||40)/RADIUS,cx=(settings.x??.5)*W,cy=(settings.y??.235)*H;
+  const ph=((time*(settings.speed??1)/18)%1+1)%1,ph2=(ph+.5)%1,mix=Math.abs(ph*2-1);
+  const sample=(data,w,h,x,y,k)=>{
+    x=Math.max(0,Math.min(w-1,x));y=Math.max(0,Math.min(h-1,y));
+    const X=Math.floor(x),Y=Math.floor(y),a=x-X,b=y-Y,X1=Math.min(X+1,w-1),Y1=Math.min(Y+1,h-1);
+    return (data[(Y*w+X)*4+k]*(1-a)+data[(Y*w+X1)*4+k]*a)*(1-b)+(data[(Y1*w+X)*4+k]*(1-a)+data[(Y1*w+X1)*4+k]*a)*b;
+  };
+  for(let y=0;y<HEIGHT;y++)for(let x=0;x<WIDTH;x++){
+    const i=(y*WIDTH+x)*4,dx=x+.5-CX,dy=y+.5-CY,r=Math.hypot(dx,dy),flow=smooth(32,54,r)*.8;
+    const t1=(ph-.5)*.13*smooth(33,65,r),t2=(ph2-.5)*.13*smooth(33,65,r);
+    const ax=Math.cos(t1)*dx+Math.sin(t1)*dy+CX-.5,ay=-Math.sin(t1)*dx+Math.cos(t1)*dy+CY-.5;
+    const bx=Math.cos(t2)*dx+Math.sin(t2)*dy+CX-.5,by=-Math.sin(t2)*dx+Math.cos(t2)*dy+CY-.5;
+    const channel=k=>art[i+k]*(1-flow)+(sample(art,WIDTH,HEIGHT,ax,ay,k)*(1-mix)+sample(art,WIDTH,HEIGHT,bx,by,k)*mix)*flow;
+    const shadow=core[i]/255,a=Math.max(channel(3)/255,shadow),reach=1-smooth(32,73,r);
+    const bend=(settings.lens??.45)*.12*reach*27/Math.max(r,27);
+    const sx=cx+dx*scale*(1-bend)-.5,sy=cy+dy*scale*(1-bend)-.5;
+    for(let k=0;k<3;k++)out[i+k]=sample(bg,W,H,sx,sy,k)*(1-a)+channel(k)*(1-shadow)*a;
+    out[i+3]=Math.max(a,reach*.7)*255;
+  }
+}
+class CanvasBackground{
+  constructor(canvas){this.canvas=canvas;this.scale=1;this.holes=[];this.faces=[];this.bg={A:null,B:null,mix:0,fitA:[1,1,0,0],fitB:[1,1,0,0],bright:1};this.tex={A:null,B:null};this.ctx=canvas.getContext('2d');}
+  resize(w,h){this.canvas.width=Math.round(w*this.scale);this.canvas.height=Math.round(h*this.scale);}
+  _upload(){}
+  _uploadFaces(){}
+  setGas(){}
+  render(){const x=this.ctx,c=this.canvas;x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);if(this.bg.A)x.drawImage(this.bg.A,0,0,c.width,c.height);}
+}
+G.AsgardReference={ReferenceHole,CanvasBackground,renderSoftware,prepare,VS,FS,WIDTH,HEIGHT,CX,CY,RADIUS};
 })(window);

@@ -236,7 +236,11 @@ class RavenScene {
     this.fx = document.createElement('canvas'); this.fx.style.mixBlendMode = 'screen'; this.fx.style.pointerEvents = 'none';
     for (const c of [this.gl, this.fx, this.ov]) { c.style.position = 'absolute'; c.style.left = '0'; c.style.top = '0'; c.style.width = '100%'; c.style.height = '100%'; root.appendChild(c); }
     this.bgc = document.createElement('canvas');
-    this.engine = new G.BH.BHScene(this.gl, { scale: 1 });
+    try{this.engine = new G.BH.BHScene(this.gl, { scale: 1 });}
+    catch(error){
+      if(error.message!=='WebGL2 not available'||!G.AsgardReference)throw error;
+      this.engine=new G.AsgardReference.CanvasBackground(this.gl);
+    }
     this.ctx = this.ov.getContext('2d');
     this.images = {}; this.time = 0; this.playing = true; this.speed = 1;
     this.contacts = opts.contacts || DEMO_CONTACTS.map(c => Object.assign({}, c));
