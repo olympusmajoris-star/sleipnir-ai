@@ -62,7 +62,7 @@ function pairSettings(){
  const s=G.Raven.ensureDashboards(plain(G.Raven.DEFAULT_SETTINGS));
  const m=s.holes.modelPreview=M.create(item);m.randomAxis=true;m.growth={on:true,views:150,ringStart:12.7,ringEnd:14.2};
  s.holes.referencePreview={on:true,radius:40,speed:1.35,ringSize:1.26};
- s.holes.together={on:true,followers:50,drift:true,speed:6.5};return s;
+ s.holes.together={on:true,followers:50,drift:true,speed:6.5,variety:false};return s;
 }
 test('both tiers use their saved renderers, distinct stable axes, and the same follower radius',()=>{
  const s=pairSettings(),before=plain(s),a=M.together(s.holes,0,29.2),b=M.together(s.holes,100,29.2);
@@ -92,8 +92,46 @@ test('simultaneous mode renders the model and the reference on the same animatio
  referenceHole:{draw(...args){draws.push(args);}},_drawClips(){p._drawClips.call(this);}};
  G.AsgardReference={};context.requestAnimationFrame=()=>{};
  p._loop.call(scene,1016);p._loop.call(scene,1032);
- assert.equal(draws.length,2);assert.equal(scene._tagged.length,2);assert.equal(scene._tagged[0].label,'Tier 2');assert.equal(scene._tagged[1].label,'Tier 3');
+ assert.equal(draws.length,2);assert.equal(scene._tagged.length,3);assert.equal(scene._tagged[0].label,'Tier 1');assert.equal(scene._tagged[1].label,'Tier 2');assert.equal(scene._tagged[2].label,'Tier 3');
  assert.equal(draws[0][1],scene.gl);assert.equal(draws[0][3],seen[0].time);assert.equal(draws[1][3],seen[1].time);
  assert.ok(seen[1].time>seen[0].time);assert.equal(seen[0].model.rotZ,seen[1].model.rotZ);
  assert.equal(seen[0].model.size,draws[0][2].radius);assert.equal(scene.fx.style.mixBlendMode,'normal');
+});
+
+test('mixed sky includes diskless holes and small, middle and large disks from both feeding tiers',()=>{
+ const s=pairSettings(),before=plain(s),group=M.population(s.holes,0,n=>26+Math.min(16,n/100));
+ assert.deepEqual([...new Set(group.entries.map(e=>e.tier))],[1,2,3]);assert.equal(group.entries.length,9);
+ for(const e of group.entries.filter(e=>e.tier===1))for(const k of ['disk','ring','corona','glow','jets','flare'])assert.equal(e.hole[k],0);
+ const refs=group.entries.filter(e=>e.tier===2),models=group.entries.filter(e=>e.tier===3);
+ assert.equal(refs[0].reference.ringSize,.45);assert.equal(refs[2].reference.ringSize,1.26);assert.ok(refs[1].reference.ringSize>.45&&refs[1].reference.ringSize<1.26);
+ assert.equal(models[0].hole.diskOut,12.7);assert.equal(models[2].hole.diskOut,14.2);assert.ok(models[1].hole.diskOut>12.7&&models[1].hole.diskOut<14.2);
+ assert.ok(new Set(group.entries.map(e=>e.radius)).size>2);assert.deepEqual(plain(s),before);
+});
+test('every mixed hole moves left to right and wraps only after its full field leaves the screen',()=>{
+ const s=pairSettings();s.holes.together.speed=18;
+ const a=M.population(s.holes,0),b=M.population(s.holes,.01),lap=M.population(s.holes,a.span/18);
+ a.entries.forEach((e,i)=>{assert.ok(Math.abs((b.entries[i].x-e.x)*390-.18)<1e-8);assert.ok(Math.abs(e.x-lap.entries[i].x)<1e-8);});
+ for(let t=0;t<60;t+=.5){const x=M.population(s.holes,t),y=M.population(s.holes,t+.5);
+  x.entries.forEach((e,i)=>{const next=y.entries[i];if(next.x<e.x){assert.ok(e.x*390-e.pad>390-9);assert.ok(next.x*390+next.pad<9);}});
+ }
+});
+test('random axes stay fixed across movement and a full lap and follower sizing remains independent of views',()=>{
+ const s=pairSettings(),size=n=>n<100?28:42,a=M.population(s.holes,0,size),b=M.population(s.holes,300,size);
+ const axes=e=>e.hole?[e.hole.rotX,e.hole.rotY,e.hole.rotZ]:[e.reference.tilt,e.reference.axisY,e.reference.axisZ];
+ a.entries.forEach((e,i)=>{assert.deepEqual(axes(e),axes(b.entries[i]));assert.equal(e.radius,size(e.followers));});
+ assert.equal(new Set(a.entries.map(e=>JSON.stringify(axes(e)))).size,9);
+ s.holes.together.variedFollowers=false;s.holes.together.followers=50;const equal=M.population(s.holes,0,size);
+ equal.entries.forEach(e=>assert.equal(e.radius,28));assert.deepEqual(equal.entries.map(e=>e.views),a.entries.map(e=>e.views));
+});
+test('live sky sends all mixed tiers to their original renderers and composites reference fields',()=>{
+ const p=G.Raven.RavenScene.prototype,s=pairSettings();s.holes.together.variety=true;const draws=[],rendered=[];
+ const cx={setTransform(){},clearRect(){},drawImage(){}};context.document={createElement:()=>({width:0,height:0,getContext:()=>cx})};
+ const scene={s,time:0,speed:1,playing:true,roll:{vel:0},_last:1000,engine:{render(t){rendered.push({time:t,holes:plain(this.holes)});}},friendSizeAt:i=>26+i*3.2,
+ _updateSky(){},_updateFeed(){},_composeBg(){},_drawOverlay(){},_loop(){},ovScale:1,
+ fx:{style:{},width:390,height:844,getContext:()=>cx},gl:{width:390,height:844},referenceHole:{draw(...a){draws.push(a);}},_drawClips(){p._drawClips.call(this);}};
+ G.AsgardReference={};context.requestAnimationFrame=()=>{};p._loop.call(scene,1016);
+ assert.equal(scene._errShown,undefined);assert.equal(rendered[0].holes.filter(h=>h._quietPreview).length,3);assert.equal(rendered[0].holes.filter(h=>h._modelPreview).length,3);
+ assert.ok(rendered[0].holes.length<=G.BH.MAXH);assert.ok(draws.length>=1);assert.ok(scene._tagged.some(t=>t.label==='Tier 1'));
+ assert.ok(scene._tagged.some(t=>t.label==='Tier 2'));assert.ok(scene._tagged.some(t=>t.label==='Tier 3'));
+ for(const d of draws)assert.equal(d[3],rendered[0].time);
 });

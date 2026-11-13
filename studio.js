@@ -156,6 +156,7 @@ function wire(el){
       if(S.holes.together?.on&&path==='holes.modelPreview.growth.views')S.holes.modelPreview.growth.on=true;
       if(path==='holes.modelPreview.look.diskOut')S.holes.modelPreview.growth.on=false;
       setPath(o, p, v);
+      if(path==='holes.together.variety'||path==='holes.together.variedFollowers'){change();render();return;}
       if(/^holes\.modelPreview\.growth\.ring(Start|End)$/.test(path))AsgardModelPreview.setEndpoint(S.holes.modelPreview,path.split('.').pop(),v);
       if(path==='holes.modelPreview.look.diskIn')S.holes.modelPreview.growth=AsgardModelPreview.growth(S.holes.modelPreview);
       if(/^holes\.referenceGrowth\.ring(Start|End)$/.test(path)){const g=S.holes.referenceGrowth;g.on=true;if(path.endsWith('Start')){g.ringEnd=Math.max(g.ringEnd,g.ringStart);g.views=21;}else{g.ringStart=Math.min(g.ringStart,g.ringEnd);g.views=149;}}
@@ -238,27 +239,33 @@ function useModelPreview(item){
 }
 function tierQuickNav(){
   const stage=S.holes.together?.on?0:S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1);
-  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn acc" id="playBothTiers" ${S.holes.modelPreview?'':'disabled'}>${S.holes.together?.on?'Tiers 1 + 2 + 3 running across the sky':'▶ Play tiers 1 + 2 + 3 across the sky'}</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · 150–499</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
+  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn acc" id="playBothTiers" ${S.holes.modelPreview?'':'disabled'}>${S.holes.together?.on?'All tiers drifting left → right':'▶ Run all tiers left → right'}</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · 150–499</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
 }
 function playBothTiers(){
   if(!S.holes.modelPreview)return toast('Choose your tier 3 look first');
-  S.holes.together={followers:50,drift:true,speed:6.5,...S.holes.together,on:true};
+  S.holes.together={followers:50,speed:18,...S.holes.together,on:true,variety:true,variedFollowers:true,drift:true};
+  S.holes.behavior.direction=1;
   S.holes.active='viewers';S.holes.mode='sky';setAnglePractice(null);
   scene.playing=true;if(scene.speed<=0){scene.speed=1;$('#speed').value=1;}
   $('#playBtn').textContent='❚❚';$('#playLbl').textContent='Moving';
   change();showSec('holes');$('#panel').scrollTop=0;
 }
 function secTogether(){
-  const hs=S.holes;hs.together={followers:50,drift:true,speed:6.5,...hs.together};
+  const hs=S.holes;hs.together={followers:50,drift:true,speed:18,variety:true,variedFollowers:true,...hs.together};
   hs.modelPreview.growth=AsgardModelPreview.growth(hs.modelPreview);
   ui.open.togetherViews=true;ui.open.togetherMotion=true;
-  let h=tierQuickNav()+head('LIVE SKY · ALL TIERS','Tiers 1 + 2 + 3 running across the sky','All three drift across your live sky and come back around. Each streamer keeps a different fixed angle.');
+  let h=tierQuickNav()+head('LIVE SKY · ALL TIERS','All tiers drifting left → right','Diskless holes and both feeding tiers, with different view counts, follower sizes and fixed random angles. They leave at the right and return from the left.');
   if(!scene.engine.gl)h+='<p role="status" class="note">Tier 3 needs WebGL 2. This browser can only show the tier 2 renderer.</p>';
-  h+=group('Preview the rings',[R('holes.referenceGrowth.views','Tier 2 · preview views',21,149,1),R('holes.modelPreview.growth.views','Tier 3 · preview views',150,499,1)],'togetherViews');
-  h+='<div class="btnrow"><button class="btn" id="bothSmall">Both smallest rings</button><button class="btn" id="bothLarge">Both largest rings</button></div>';
+  h+=group('Sky population',[K('holes.together.variety','Mixed views · small, medium and large disks'),K('holes.together.variedFollowers','Different follower counts · different sphere sizes'),K('holes.together.drift','Drift left to right'),R('holes.together.speed','Drift speed',0,40,.5)],'togetherMotion');
+  if(!hs.together.variedFollowers)h+=group('Follower size',[R('holes.together.followers','Followers for every hole',0,20000,1)],'togetherFollowers');
+  h+='<p class="note">Tier 1: 0–20 views, no disk. Tier 2: 21–149 views. Tier 3: 150–499 views. Views set the rings; followers set sphere size. Every streamer keeps its own angle.</p>';
+  if(!hs.together.variety){
+    h+=group('Compare selected view counts',[R('holes.referenceGrowth.views','Tier 2 · preview views',21,149,1),R('holes.modelPreview.growth.views','Tier 3 · preview views',150,499,1)],'togetherViews');
+    h+='<div class="btnrow"><button class="btn" id="bothSmall">Both smallest rings</button><button class="btn" id="bothLarge">Both largest rings</button></div>';
+    h+=group('Follower size',[R('holes.together.followers','Followers for every hole',0,20000,1)],'togetherFollowers');
+  }
   h+=`<p class="note">Tier 2 ring limits: ${hs.referenceGrowth.ringStart.toFixed(2)} → ${hs.referenceGrowth.ringEnd.toFixed(2)}<br>Tier 3 ring limits: ${hs.modelPreview.growth.ringStart.toFixed(1)} → ${hs.modelPreview.growth.ringEnd.toFixed(1)}</p>`;
-  h+=group('Followers & movement',[R('holes.together.followers','Preview followers · sets sphere size',0,20000,1),K('holes.together.drift','Let them run across the sky'),R('holes.together.speed','Drift speed',0,20,.5)],'togetherMotion');
-  h+='<p class="note">Both holes use the same follower count so you can compare the disks. Changing views never changes the black sphere size.</p><div class="btnrow"><button class="btn" data-quick-tier="2">Edit tier 2 · rings & axis</button><button class="btn" data-quick-tier="3">Edit tier 3 · rings & axis</button></div><p class="note">Use Play tiers 1 + 2 + 3 to return here after editing.</p>';
+  h+='<div class="btnrow"><button class="btn" data-quick-tier="1">Edit tier 1</button><button class="btn" data-quick-tier="2">Edit tier 2 · rings & axis</button><button class="btn" data-quick-tier="3">Edit tier 3 · rings & axis</button></div><p class="note">Whole sky returns to all tiers drifting left to right.</p>';
   return h;
 }
 function secModelPreview(){

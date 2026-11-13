@@ -61,5 +61,36 @@ function together(settings,time=0,radius=32.5){
   const q=quiet(settings);q.x=xAt(0);q.y=.28;q.size=radius;q._fid='together-tier1';
   return {reference,model,quiet:q,followers:cfg.followers??50,views2:clamp(g2.views??21,21,149),views3:g3.views,id2,id3};
 }
-G.AsgardModelPreview={create,hole,quiet,together,copy,growth,setEndpoint};
+// A continuous sky population: view counts select gas size, while an independent
+// follower count selects sphere size. Identity, counts and axes survive every lap.
+function population(settings,time=0,radiusForFollowers=()=>32.5){
+  const cfg=settings.together||{},b=settings.behavior||{},rule=settings.rule||{};
+  const views=[0,21,150,10,85,325,20,149,499];
+  const followers=[3,50,200,1000,15,20000,100,600,60];
+  const rows=[.12,.53,.91],top=b.bandTop??.08,bottom=Math.max(top+.15,b.bandBottom??.42);
+  const seed=settings.orientation?.seed??1;
+  const entries=views.map((v,i)=>{
+    const id='sky-streamer-'+i,fc=cfg.variedFollowers===false?(cfg.followers??50):followers[i];
+    const radius=radiusForFollowers(fc),tier=v<21?1:v<150?2:3;
+    const a=G.AsgardVariants.orientationFor(id,seed);
+    const h=tier===1?quiet(settings):tier===3?hole({...settings.modelPreview,randomAxis:true,streamerId:id,seed,
+      drift:false,growth:{...growth(settings.modelPreview),on:true,views:v}},time):null;
+    if(h)Object.assign(h,{size:radius,_fid:id,rotX:a.tilt,rotY:a.axisY,rotZ:a.axisZ});
+    const reference=tier===2?G.AsgardVariants.liveSettings({...settings.referencePreview,radius,
+      driftOn:false,wobble:0,lens:(rule.lens??.9)*(b.lensAll??1),
+      lensReach:Math.min(5.5,Math.max(2.5,1+(rule.edge??1.6)*1.4))},id,{random:true,seed},
+      {...settings.referenceGrowth,on:true},v):null;
+    const reach=tier===2?Math.max(4.6,G.AsgardVariants.extent(reference)/54):tier===3?Math.max(5,h.diskOut/2):5;
+    return {id,tier,views:v,followers:fc,radius,hole:h,reference,pad:radius*reach,y:top+(bottom-top)*rows[i%3]};
+  });
+  const pad=Math.max(180,...entries.map(e=>e.pad))+16,span=390+2*pad;
+  const travel=cfg.drift===false?0:time*Math.max(0,cfg.speed??18);
+  entries.forEach((e,i)=>{
+    e.x=((((70+i*span/entries.length+travel+pad)%span)+span)%span-pad)/390;
+    if(e.hole)Object.assign(e.hole,{x:e.x,y:e.y});
+    if(e.reference)Object.assign(e.reference,{x:e.x,y:e.y});
+  });
+  return {entries,holes:entries.filter(e=>e.hole).map(e=>e.hole),references:entries.filter(e=>e.reference),span};
+}
+G.AsgardModelPreview={create,hole,quiet,together,population,copy,growth,setEndpoint};
 })(window);

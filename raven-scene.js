@@ -485,7 +485,19 @@ class RavenScene {
       x.setTransform(this.ovScale,0,0,this.ovScale,0,0);
       // Sample the already rendered live sky so tier 2 cannot erase tier 3 when
       // the two lens fields overlap.
-      this.referenceHole.draw(x,this.gl,this._together.reference,this.time,W,H);
+      const refs=this._together.references||[{reference:this._together.reference}];
+      for(const [i,entry] of refs.entries()){
+        const ref=entry.reference;
+        if(ref.x*W+(entry.pad??300)<0||ref.x*W-(entry.pad??300)>W)continue;
+        let sky=this.gl;
+        if(i>0){
+          const c=this._referenceSky||(this._referenceSky=document.createElement('canvas'));
+          if(c.width!==this.gl.width||c.height!==this.gl.height){c.width=this.gl.width;c.height=this.gl.height;}
+          const bg=c.getContext('2d');bg.globalCompositeOperation='copy';bg.drawImage(this.gl,0,0);
+          bg.globalCompositeOperation='source-over';bg.drawImage(fx,0,0,c.width,c.height);sky=c;
+        }
+        this.referenceHole.draw(x,sky,ref,this.time,W,H);
+      }
       return;
     }
     if(this.s.holes.modelPreview?.on||this.s.holes.quickTier===1)return;
@@ -1004,7 +1016,17 @@ class RavenScene {
       this._composeBg();
       this.engine.mutual = this.s.holes.behavior.mutual ?? 0.6;
       if(this.s.holes.together?.on && this.s.holes.modelPreview && G.AsgardModelPreview){
-        const hs=this.s.holes,followers=hs.together.followers??50;
+        const hs=this.s.holes;
+        if(hs.together.variety!==false){
+          const group=this._together=G.AsgardModelPreview.population(hs,this.time,
+            followers=>this.friendSizeAt(tierAt(hs.dashboards.friends.tiers,followers))*(hs.behavior.sizeScale??1));
+          this.engine.holes=group.holes;
+          this._tagged=group.entries.filter(e=>e.x>-.15&&e.x<1.15).map(e=>({
+            c:{id:e.id,counts:{viewers:e.views,followers:e.followers}},x:e.x*W,y:e.y*H,r:e.radius,form:1,
+            label:'Tier '+e.tier,sub:e.views+' views · '+e.followers+' followers',tier:e.tier
+          }));
+        }else{
+        const followers=hs.together.followers??50;
         const radius=this.friendSizeAt(tierAt(hs.dashboards.friends.tiers,followers))*(hs.behavior.sizeScale??1);
         const pair=this._together=G.AsgardModelPreview.together(hs,this.time,radius);
         this.engine.holes=[pair.model,pair.quiet];
@@ -1013,6 +1035,7 @@ class RavenScene {
           {c:{id:pair.id2,counts:{viewers:pair.views2}},x:pair.reference.x*W,y:pair.reference.y*H,r:radius,form:1,label:'Tier 2',sub:pair.views2+' views',tier:2},
           {c:{id:pair.id3,counts:{viewers:pair.views3}},x:pair.model.x*W,y:pair.model.y*H,r:radius,form:1,label:'Tier 3',sub:pair.views3+' views',tier:3}
         ];
+        }
       }else if(this.s.holes.quickTier===1 && G.AsgardModelPreview){
         this.engine.holes=[G.AsgardModelPreview.quiet(this.s.holes)];this._tagged=[];
       }else if(this.s.holes.modelPreview?.on && G.AsgardModelPreview){
