@@ -69,7 +69,7 @@ function population(settings,time=0,radiusForFollowers=()=>32.5){
   const followers=[3,50,200,1000,15,20000,100,600,60];
   const rows=[.12,.53,.91],top=b.bandTop??.08,bottom=Math.max(top+.15,b.bandBottom??.42);
   const seed=settings.orientation?.seed??1;
-  const entries=views.map((v,i)=>{
+  const catalog=views.map((v,i)=>{
     const id='sky-streamer-'+i,fc=cfg.variedFollowers===false?(cfg.followers??50):followers[i];
     const radius=radiusForFollowers(fc),tier=v<21?1:v<150?2:3;
     const a=G.AsgardVariants.orientationFor(id,seed);
@@ -83,15 +83,38 @@ function population(settings,time=0,radiusForFollowers=()=>32.5){
     const reach=tier===2?Math.max(4.6,G.AsgardVariants.extent(reference)/54):tier===3?Math.max(5,h.diskOut/2):5;
     return {id,tier,views:v,followers:fc,radius,hole:h,reference,pad:radius*reach,y:top+(bottom-top)*rows[i%3]};
   });
-  const span=390+2*Math.max(...entries.map(e=>e.pad));
+  // Four traffic lanes, not nine simultaneous objects. Each lane advances to
+  // its next saved example only once the previous object's entire field exits.
+  // Counts and axes belong to the identity, and never change during a crossing.
+  const requested=clamp(Math.round(b.count??4),1,5);
+  const small=catalog.filter(e=>e.radius<=32.5);
+  const count=requested===5&&small.length<2?4:requested;
+  const playlists=[[0,3,6],[1,4,7],[2,5,8],[6,0,3],[1,4,7]];
+  if(count===5){
+    const indices=catalog.map((e,i)=>e.radius<=32.5?i:-1).filter(i=>i>=0);
+    playlists[3]=indices.filter((_,i)=>i%2===0);playlists[4]=indices.filter((_,i)=>i%2===1);
+  }
+  const starts=[65,290,180,-120,-200],ys=[.12,.57,.94,.32,.77];
   const travel=cfg.drift===false?0:time*Math.max(0,cfg.speed??18)*(b.direction===-1?-1:1);
-  entries.forEach((e,i)=>{
-    e.span=390+2*e.pad;
-    e.x=((((70+i*e.span/entries.length+travel+e.pad)%e.span)+e.span)%e.span-e.pad)/390;
+  const entries=[];
+  for(let lane=0;lane<count;lane++){
+    const list=playlists[lane].map(i=>catalog[i]);
+    const cycle=list.reduce((sum,e)=>sum+390+2*e.pad,0);
+    let distance=((starts[lane]+list[0].pad+travel)%cycle+cycle)%cycle;
+    let pick=list[0];
+    for(const e of list){pick=e;const length=390+2*e.pad;if(distance<length)break;distance-=length;}
+    const e={...pick,hole:pick.hole?{...pick.hole}:null,reference:pick.reference?{...pick.reference}:null,lane};
+    e.span=390+2*e.pad;e.cycle=cycle;e.x=(distance-e.pad)/390;
+    e.y=clamp(top+(bottom-top)*ys[lane],(e.radius+8)/844,1-(e.radius+8)/844);
+    // Repeated quiet examples remain separate physical objects.
+    if(lane>=3){e.id+='-lane'+lane;if(e.hole)e.hole._fid=e.id;}
     if(e.hole)Object.assign(e.hole,{x:e.x,y:e.y});
     if(e.reference)Object.assign(e.reference,{x:e.x,y:e.y});
-  });
-  return {entries,holes:entries.filter(e=>e.hole).map(e=>e.hole),references:entries.filter(e=>e.reference),span};
+    entries.push(e);
+  }
+  // With five lanes, two always carry naturally small examples. No mid-flight
+  // disappearance, and no changing saved follower sizes to force them to fit.
+  return {entries,catalog,holes:entries.filter(e=>e.hole).map(e=>e.hole),references:entries.filter(e=>e.reference),span:Math.max(...entries.map(e=>e.span))};
 }
 G.AsgardModelPreview={create,hole,quiet,together,population,copy,growth,setEndpoint};
 })(window);

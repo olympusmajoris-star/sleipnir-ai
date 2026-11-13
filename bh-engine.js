@@ -232,6 +232,15 @@ void main(){
   vec2 src = px;
   vec3 em = vec3(0); float T = 1.0; bool captured = false; int capI = -1; vec2 capD = vec2(0);
   vec3 overlay = vec3(0); float photonK = 0.; vec2 srcSmooth = px;
+  // A foreground shadow cannot be filled by another hole's disk or displaced
+  // by its lens field. Trace that object's own foreground matter only.
+  int shadowOwner=-1;float ownerDistance=1.;
+  for(int j=0;j<MAXH;j++){
+    if(j>=uN)break;
+    float radius=uH0[j].z*shadowB(uH0[j].w)/2.598;
+    float distance=length(intoProfile(j,px-uH0[j].xy))/radius;
+    if(distance<ownerDistance){ownerDistance=distance;shadowOwner=j;}
+  }
   // every hole bends the light of every other hole too: work out each hole's pull on this pixel first
   vec2 defl[MAXH]; vec2 deflSum = vec2(0);
   for(int j=0;j<MAXH;j++){
@@ -245,10 +254,12 @@ void main(){
 
   for(int i=0;i<MAXH;i++){
     if(i>=uN) break;
+    if(shadowOwner>=0&&i!=shadowOwner)continue;
     vec4 h0=uH0[i]; vec4 h1=uH1[i];
     float s = h0.z / 2.598;                  // px per r_s
     vec2 md = deflSum - defl[i]; md *= min(1.0, h0.z*0.35 / max(length(md), 1e-3));   // keep it smooth: no tearing
-    vec2 d = intoProfile(i,px + md - h0.xy); // silhouette, disk and bent sky share one projected view
+    md*=smoothstep(1.1,2.4,length(px-h0.xy)/h0.z);
+    vec2 d = intoProfile(i,px + md - h0.xy);
     float D = h0.w;
     float L = D * h1.y;
     float kk = L*D/(D+L);                    // lens geometry factor (r_s)
@@ -372,7 +383,11 @@ void main(){
   // right at the photon ring the sky is squeezed into razor-thin copies that glitter as the hole moves: smooth them into a soft, dim band
   float blurPx = photonK * 24.0;
   sdx = sdx + vec2(blurPx, 0.); sdy = sdy + vec2(0., blurPx);
-  vec3 skyC = mix(bgAtG(src, sdx, sdy), bgAtG(srcSmooth, dFdx(srcSmooth), dFdy(srcSmooth)), smoothstep(0.15, 0.85, photonK));
+  // Filter the analytic transition too. Otherwise its unfiltered point stars
+  // reintroduce glitter exactly where the traced sky has just been filtered.
+  vec2 smoothDx=dFdx(srcSmooth)+vec2(photonK*6.,0.);
+  vec2 smoothDy=dFdy(srcSmooth)+vec2(0.,photonK*6.);
+  vec3 skyC = mix(bgAtG(src, sdx, sdy), bgAtG(srcSmooth, smoothDx, smoothDy), smoothstep(0.15, 0.85, photonK));
   // follower rule (like the reference): stars smeared round the hole, space sinking into a darker inward curve just before the black, a soft glare on the rim
   if(!captured){
     for(int i=0;i<MAXH;i++){ if(i>=uN) break; vec4 fl = uFL[i]; vec4 cr = uCR[i]; if(fl.x + fl.z + fl.w + cr.x <= 0.) continue;
@@ -395,6 +410,7 @@ void main(){
   // Foreground disk transmittance occludes it too: no lower outline pasted on top.
   for(int i=0;i<MAXH;i++){
     if(i>=uN)break;if(captured&&capI!=i)continue;
+    if(shadowOwner>=0&&i!=shadowOwner)continue;
     vec4 cr=uCR[i];if(cr.x<=0.)continue;
     vec2 d=px-uH0[i].xy;float R=uH0[i].z*shadowB(uH0[i].w)/2.598,rho=length(d)/R;
     float a=atan(d.y,d.x),side=pow(max(0.,cos(a-cr.y)),1.65);

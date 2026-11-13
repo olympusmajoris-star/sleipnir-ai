@@ -277,7 +277,8 @@ class RavenScene {
     const k = Math.max(r.width / W, r.height / H); const cw = W * k, ch = H * k;
     for (const c of [this.gl, this.fx, this.ov]) { c.style.width = cw + 'px'; c.style.height = ch + 'px'; c.style.left = (r.width - cw) / 2 + 'px'; c.style.top = (r.height - ch) / 2 + 'px'; }
     this.scaleCss = k; const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const rs = this.s.holes.behavior.renderScale * (this._aq || 1);
+    // Saved sharpness is never silently multiplied down as the scene runs.
+    const rs = this.s.holes.behavior.renderScale;
     this.engine.scale = this.scaleCss * dpr * rs; this.engine.resize(W, H);
     this.ov.width = Math.round(cw * dpr); this.ov.height = Math.round(ch * dpr); this.fx.width = this.ov.width; this.fx.height = this.ov.height; this.ovScale = this.ov.width / W;
     this.bgc.width = Math.round(W * 1.6); this.bgc.height = Math.round(H * 1.6);
@@ -496,7 +497,16 @@ class RavenScene {
           const bg=c.getContext('2d');bg.globalCompositeOperation='copy';bg.drawImage(this.gl,0,0);
           bg.globalCompositeOperation='source-over';bg.drawImage(fx,0,0,c.width,c.height);sky=c;
         }
+        // The tier-2 lens samples the live sky, but must not repaint a different
+        // foreground sphere with a stretched copy of that sphere or its disk.
+        x.save();
+        for(const h of this.engine.holes){
+          // Intersect exclusions separately so overlapping shadows stay excluded.
+          x.beginPath();x.rect(0,0,W,H);x.moveTo(h.x*W+h.size+2,h.y*H);
+          x.arc(h.x*W,h.y*H,h.size+2,0,Math.PI*2);x.clip('evenodd');
+        }
         this.referenceHole.draw(x,sky,ref,this.time,W,H);
+        x.restore();
       }
       return;
     }
@@ -667,7 +677,8 @@ class RavenScene {
   _updateSky(dt) {
     const B = this.s.holes.behavior, hs = this.s.holes;
     if (hs.mode !== 'sky') return;
-    const want = Math.min(B.count, this.contacts.length, G.BH.MAXH);
+    const firstFive=this.contacts.slice(0,5),small=firstFive.filter(c=>this.lookFor(c).look.size*B.sizeScale<=32.5).length;
+    const want = Math.min(B.count, small>=2?5:4, this.contacts.length, G.BH.MAXH);
     // keep pool
     while (this.sky.length < want) { const used = new Set(this.sky.map(h => h.c)); const c = this.contacts.find(k => !used.has(k)); if (!c) break; this.sky.push(this._spawn(c, true)); }
     while (this.sky.length > want) this.sky.pop();
@@ -998,13 +1009,14 @@ class RavenScene {
   /* ---------------- loop ---------------- */
   _loop(now) {
     const rawDt = (now - (this._last || now)) / 1000; const dt = Math.min(0.05, rawDt); this._last = now;
-    // keep it smooth: if frames get slow, lower the render sharpness a little (and raise it back when there is room)
-    if (this.s.holes.behavior.autoQuality !== false && rawDt > 0) { this._ft = (this._ft || 0.016) * 0.95 + rawDt * 0.05; this._aq = this._aq || 1;
-      if (++this._aqN > 40) { this._aqN = 0; const old = this._aq; if (this._ft > 0.034 && this._aq > 0.45) this._aq *= 0.85; else if (this._ft < 0.02 && this._aq < 1) this._aq = Math.min(1, this._aq * 1.1); if (old !== this._aq) this._resize(); } }
-    else this._aq = 1;
-    this._aqN = this._aqN || 0;
-    if (this.playing) this.time += dt * this.speed;
-    const sdt = this.playing ? dt * this.speed : 0; this._dtLast = dt;
+    // Automatic load control limits redraw frequency, never sphere/disk detail.
+    // Hidden tabs do no GPU work. Returning resumes at the saved resolution.
+    if(typeof document!=='undefined'&&document.hidden){requestAnimationFrame(this._loop);return;}
+    if(this.s.holes.behavior.autoQuality!==false&&this._drawAt!==undefined&&now-this._drawAt<1000/30-1){requestAnimationFrame(this._loop);return;}
+    const elapsed=this._drawAt===undefined?dt:Math.min(.1,(now-this._drawAt)/1000);this._drawAt=now;
+    this._aq=1;
+    if (this.playing) this.time += elapsed * this.speed;
+    const sdt = this.playing ? elapsed * this.speed : 0; this._dtLast = elapsed;
     if (this.s.holes.liveViews && sdt > 0) { this._vt = (this._vt || 0) + sdt; if (this._vt > 0.7) { this._vt = 0; for (const c of this.contacts) { const v = c.counts.viewers || 0; if (v <= 0) continue; const step = Math.max(1, Math.round(v * 0.02)); c.counts.viewers = Math.max(1, v + Math.round((Math.random() - 0.45) * 2 * step)); } } }
     // rolodex inertia
     const R = this.s.rolodex;

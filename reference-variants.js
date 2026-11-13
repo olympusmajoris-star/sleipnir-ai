@@ -217,7 +217,14 @@ class Renderer{
   draw(ctx,background,input,time,W,H){
     const s=settings(input),size=extent(s),pos=G.AsgardReference.positionAt({...s,extent:size/(2*R)},time,W,H),gl=this.gl;
     if(gl){gl.useProgram(this.program);gl.viewport(0,0,640,640);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
-      [this.prepared.art,this.prepared.core,this.prepared.base,this.prepared.flow,this.atlasCanvas,background].forEach((src,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);if(i===5||!this.uploaded)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.uniform1i(this.uniforms[['art','core','base','flow','atlas','sky'][i]],i);});this.uploaded=true;
+      // WebGL1 needs power-of-two textures for mipmaps. Filter only the sampled
+      // sky; the original gas artwork and fine disk texture stay untouched.
+      const sky=this.filteredSky||(this.filteredSky=document.createElement('canvas'));
+      const power=n=>Math.min(2048,Math.max(256,2**Math.round(Math.log2(Math.max(1,n)))));
+      const bw=power(background.width),bh=power(background.height);
+      if(sky.width!==bw||sky.height!==bh){sky.width=bw;sky.height=bh;}
+      sky.getContext('2d').drawImage(background,0,0,bw,bh);
+      [this.prepared.art,this.prepared.core,this.prepared.base,this.prepared.flow,this.atlasCanvas,sky].forEach((src,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);if(i===5||!this.uploaded)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);if(i===5){gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);}gl.uniform1i(this.uniforms[['art','core','base','flow','atlas','sky'][i]],i);});this.uploaded=true;
       const b=basis(s),roll=(s.axisZ+50)*Math.PI/180;
       for(const [k,v] of Object.entries({time:time*(s.speed??1),spinDirection:s.spinDirection<0?-1:1,lens:Math.max(0,s.lens??.9),lensReach:s.lensReach??3.24,patchSize:size,ringSize:s.ringSize,density:s.density,glow:s.glow,tintAmount:s.tintAmount,view3d:s.view3d?1:0,thickness:s.thickness}))gl.uniform1f(this.uniforms[k],v);
       for(const [k,v] of Object.entries({tint:tintOf(s),axisU:b.u,axisV:b.v,normal:b.n}))gl.uniform3fv(this.uniforms[k],v);
