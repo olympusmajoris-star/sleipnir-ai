@@ -41,5 +41,6 @@ A.Navigation.prototype.renderEditor=function(host){
  const exportSettings=()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(N.S,null,2)],{type:'application/json'}));a.href=url;a.download='asgard-rock-navigation.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);};presets.append(button('Download settings',exportSettings),button('Download selected layer PNG',()=>{const R=N.assets[N.selected];if(!R.ready)return;const c=document.createElement('canvas');c.width=c.height=1024;R.draw(c.getContext('2d'),N.S.rocks[N.selected],512,512,1000,0,1,N.detailLayer||'all');c.toBlob(b=>{if(!b)return;const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=N.selected+'-'+(N.detailLayer||'all')+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);});}));host.append(presets);
  N.statusEl=el('p','rn-status',N.saved);N.statusEl.setAttribute('role','status');host.append(N.statusEl,button('Save / retry now',()=>N.save()));
  const mode=el('label','rn-note'),cb=el('input');cb.type='checkbox';cb.checked=!N.editing;cb.onchange=()=>{N.testMode=cb.checked;N.editing=!cb.checked;};mode.append(cb,document.createTextNode(' Test navigation: tapping a rock opens its page'));host.append(mode);
+ if(window.AsgardStudioLayout)window.AsgardStudioLayout.arrange(host,'rocks');
 };
 })();

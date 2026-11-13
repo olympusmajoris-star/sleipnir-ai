@@ -494,7 +494,9 @@ function merge(d, s){ const o = deep(d); for(const k in (s||{})){ if(s[k] && typ
 const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
 function set(o, p, v){ const ks = p.split('.'); let a = o; for(let i=0;i<ks.length-1;i++){ a = a[ks[i]] = a[ks[i]] || {}; } a[ks[ks.length-1]] = v; }
 const saveTimers = new Map();
-function save(){ const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
+const editHistory=new Map();
+function rememberPage(){let h=editHistory.get(STATE.page);if(!h){h={items:[deep(STATE.S)],at:0};editHistory.set(STATE.page,h);}const snap=JSON.stringify(STATE.S);if(JSON.stringify(h.items[h.at])!==snap){h.items=h.items.slice(0,h.at+1);h.items.push(deep(STATE.S));if(h.items.length>120)h.items.shift();h.at=h.items.length-1;}}
+function save(record=true){ if(record)rememberPage(); const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
   try { localStorage.setItem('asgard-page-' + page, JSON.stringify(snapshot)); } catch(e){}
   try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id:'page_' + page, page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
     $('#saveState').textContent = r.ok ? '● All changes saved' : '● Saved on this computer only'; } catch(e){ $('#saveState').textContent = '● Saved on this computer only'; }
@@ -518,7 +520,7 @@ function nav(){
   const P = PAGES[STATE.page]; const n = $('#secNav'); n.innerHTML = '<div class="cap">THIS PAGE</div>';
   P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; history.replaceState(null,'','?page='+STATE.page+(s.id==='rocks'?'&section=rocks':'')); nav(); panel(); }; n.appendChild(b); });
   (P.actions || []).forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'cosmic'; b.innerHTML = `<b>▶ ${label}</b>`; b.onclick = fn; n.appendChild(b); });
-  $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
+  AsgardStudioLayout.setPage(STATE.page); $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
 }
 function panel(){
   if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
@@ -536,8 +538,9 @@ function panel(){
           try { const r = await fetch(SB.url + '/storage/v1/object/studio/' + path, { method:'POST', headers: H({ 'Content-Type': f.type, 'x-upsert':'true' }), body: f }); if(!r.ok) throw 0; set(STATE.S, c.k, STUDIO + path); } catch(err){ set(STATE.S, c.k, URL.createObjectURL(f)); alert('Upload failed, showing it on this computer only.'); }
           save(); panel(); };
         const cb = el.querySelector('button'); if(cb) cb.onclick = () => { set(STATE.S, c.k, ''); save(); panel(); }; }
-      d.appendChild(el); });
+      el.querySelectorAll('input,select,textarea').forEach(i=>i.dataset.control=c.k);d.appendChild(el); });
     pn.appendChild(d); });
+  AsgardStudioLayout.arrange(pn,STATE.sec);
 }
 const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000) : v;
 async function openPage(page){
@@ -545,7 +548,7 @@ async function openPage(page){
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')==='rocks'?'rocks':PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
   history.replaceState(null, '', '?page=' + page + (STATE.sec==='rocks'?'&section=rocks':'')); $('#pagePick').value = page;
-  const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;nav();panel();
+  const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
 }
 $('#pagePick').onchange = (e) => openPage(e.target.value);
 $('#resetBtn').onclick = () => { if(confirm('Put this page back to its starting settings?')){ STATE.S = deep(PAGES[STATE.page].defaults); save(); panel(); } };
@@ -692,6 +695,14 @@ function drawHeimdall(x, t, S, since){
   if(ok(moon)){ const mwid = W * Mo.size; x.save(); x.filter = `brightness(${Mo.bright})`; x.beginPath(); x.ellipse(W / 2, moonY + mwid * 0.42, mwid / 2, mwid * 0.42, 0, Math.PI, 2 * Math.PI); x.lineTo(W, HH); x.lineTo(0, HH); x.closePath(); x.clip(); cover(x, moon, W / 2 - mwid / 2, moonY, mwid, mwid * 0.84); x.fillStyle = '#000'; x.fillRect(0, moonY + mwid * 0.84, W, HH); x.restore(); }
 }
 
+async function savePageNow(){
+ if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);
+ if(!STATE.S)return;const page=STATE.page,snapshot=deep(STATE.S);clearTimeout(saveTimers.get(page));rememberPage();
+ localStorage.setItem('asgard-page-'+page,JSON.stringify(snapshot));
+ const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:H({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:'page_'+page,page,data:snapshot,updated_by:'studio',updated_at:new Date().toISOString()})});
+ $('#saveState').textContent=r.ok?'● All changes saved':'● Shared save failed';if(!r.ok)throw Error('Save failed');
+}
+AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=deep(h.items[--h.at]);save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
 /* ---------- start ---------- */
 const start = new URLSearchParams(location.search).get('page');
 openPage(PAGES[start] ? start : 'home');

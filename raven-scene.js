@@ -794,7 +794,7 @@ class RavenScene {
       x.fillRect(0, B2.bandTop * H, W, (B2.bandBottom - B2.bandTop) * H);
       for (const yy of [B2.bandTop, B2.bandBottom]) { x.beginPath(); x.moveTo(0, yy * H); x.lineTo(W, yy * H); x.stroke(); } x.restore(); }
     // name + live view tags tethered to each hole
-    if ((this.s.holes.callout.on || this.s.holes.together?.on) && this._tagged) this._drawCallouts(x, this._tagged);
+    if (this.s.holes.callout.on && this._tagged) this._drawCallouts(x, this._tagged);
     const S = this.s.sphere, R = this.s.rolodex, T = this.s.tabs;
     const cx = S.x * W, cy = S.y * H, rad = S.r * W;
     const items = this._rollItems(cx, cy, rad);

@@ -97,7 +97,7 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 function getPath(obj, path){ return path.split('.').reduce((o,k) => o == null ? o : o[k], obj); }
 function setPath(obj, path, v){ const ks = path.split('.'); const last = ks.pop(); const o = ks.reduce((o,k) => o[k], obj); o[last] = v; }
 function curTier(){ return S.holes.dashboards[S.holes.active].tiers[S.holes.selTier]; }
-function curLook(){ return curTier().look; }
+function curLook(){ return S.holes.active==='viewers'&&S.holes.quickTier===3&&S.holes.modelPreview?S.holes.modelPreview.look:curTier().look; }
 function referenceLiveSettings(){
   return AsgardVariants.liveSettings(S.holes.referencePreview,S.holes.referenceGrowth?.streamerId??'freya',S.holes.orientation,S.holes.referenceGrowth);
 }
@@ -130,7 +130,7 @@ function group(title, ctls, key){ key = key || title; const open = ui.open[key] 
   return `<details class="grp" data-k="${key}" ${open}><summary>${title}</summary><div class="gb">${ctls.map(ctlHtml).join('')}</div></details>`; }
 function wire(el){
   el.querySelectorAll('[data-p]').forEach(inp => {
-    const path = inp.dataset.p; const [o,p] = root(path);
+    const rawPath=inp.dataset.p;const path=rawPath.startsWith('look.')&&S.holes.active==='viewers'&&S.holes.quickTier===3&&S.holes.modelPreview?'holes.modelPreview.'+rawPath:rawPath;const [o,p]=root(path);
     const ev = inp.type==='range' ? 'input' : 'change';
     inp.addEventListener(ev, () => {
       const [o,p] = root(path); if(!o) return;
@@ -152,10 +152,14 @@ function wire(el){
         S.holes.referenceGrowth.on=false;
         const growth=el.querySelector('[data-p="holes.referenceGrowth.on"]');if(growth)growth.checked=false;
       }
-      if(S.holes.together?.on&&path==='holes.referenceGrowth.views')S.holes.referenceGrowth.on=true;
-      if(S.holes.together?.on&&path==='holes.modelPreview.growth.views')S.holes.modelPreview.growth.on=true;
+      if(S.holes.together?.on&&path==='holes.referenceGrowth.views'){S.holes.referenceGrowth.on=true;S.holes.together.variety=false;}
+      if(S.holes.together?.on&&path==='holes.modelPreview.growth.views'){S.holes.modelPreview.growth.on=true;S.holes.together.variety=false;}
       if(path==='holes.modelPreview.look.diskOut')S.holes.modelPreview.growth.on=false;
       setPath(o, p, v);
+      if(path==='holes.behavior.speed'&&S.holes.together)S.holes.together.speed=v;
+      if(path==='holes.together.speed')S.holes.behavior.speed=v;
+      if(path==='holes.behavior.driftViews'&&S.holes.together)S.holes.together.drift=v;
+      if(path==='holes.together.drift')S.holes.behavior.driftViews=v;
       if(path==='holes.together.variety'||path==='holes.together.variedFollowers'){change();render();return;}
       if(/^holes\.modelPreview\.growth\.ring(Start|End)$/.test(path))AsgardModelPreview.setEndpoint(S.holes.modelPreview,path.split('.').pop(),v);
       if(path==='holes.modelPreview.look.diskIn')S.holes.modelPreview.growth=AsgardModelPreview.growth(S.holes.modelPreview);
@@ -238,7 +242,7 @@ function useModelPreview(item){
   toast('Live animated 3D · '+item.name);
 }
 function tierQuickNav(){
-  const stage=S.holes.together?.on?0:S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1);
+  const stage=S.holes.quickTier||(S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1));
   return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn acc" id="playBothTiers" ${S.holes.modelPreview?'':'disabled'}>${S.holes.together?.on?'All tiers drifting left → right':'▶ Run all tiers left → right'}</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · 150–499</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
 }
 function playBothTiers(){
@@ -254,7 +258,7 @@ function secTogether(){
   const hs=S.holes;hs.together={followers:50,drift:true,speed:18,variety:true,variedFollowers:true,...hs.together};
   hs.modelPreview.growth=AsgardModelPreview.growth(hs.modelPreview);
   ui.open.togetherViews=true;ui.open.togetherMotion=true;
-  let h=tierQuickNav()+head('LIVE SKY · ALL TIERS','All tiers drifting left → right','Diskless holes and both feeding tiers, with different view counts, follower sizes and fixed random angles. They leave at the right and return from the left.');
+  let h=head('LIVE SKY · ALL TIERS','All tiers drifting left → right','Diskless holes and both feeding tiers, with different view counts, follower sizes and fixed random angles. They leave at the right and return from the left.');
   if(!scene.engine.gl)h+='<p role="status" class="note">Tier 3 needs WebGL 2. This browser can only show the tier 2 renderer.</p>';
   h+=group('Sky population',[K('holes.together.variety','Mixed views · small, medium and large disks'),K('holes.together.variedFollowers','Different follower counts · different sphere sizes'),K('holes.together.drift','Drift left to right'),R('holes.together.speed','Drift speed',0,40,.5)],'togetherMotion');
   if(!hs.together.variedFollowers)h+=group('Follower size',[R('holes.together.followers','Followers for every hole',0,20000,1)],'togetherFollowers');
@@ -272,7 +276,7 @@ function secModelPreview(){
   const m=S.holes.modelPreview,p='holes.modelPreview.',l=p+'look.';
   S.holes.modelVariants ||= [];m.growth=AsgardModelPreview.growth(m);
   for(const key of ['modelSize','modelDisk','modelMotion','modelGrowth','modelAxisLimits'])if(ui.open[key]===undefined)ui.open[key]=true;
-  let h=tierQuickNav()+head('LIVE 3D DRAFT',m.name,'The same animated model you chose in the library, now bending your live sky. Tier 2 is kept separately.');
+  let h=head('LIVE 3D DRAFT',m.name,'The same animated model you chose in the library, now bending your live sky. Tier 2 is kept separately.');
   if(!scene.engine.gl)h+='<p role="status" class="note">This browser cannot display the 3D model because WebGL 2 is unavailable. Your settings remain editable.</p>';
   h+=`<div class="btnrow"><button class="btn" id="backToTier2">Back to tier 2</button><button class="btn" id="pickLib">Choose another 3D look</button></div>`;
   h+=group('Smallest & largest ring · tier 3',[K(p+'growth.on','Grow the ring with views'),R(p+'growth.ringStart','Smallest ring · 150 views',3.2,40,.1),R(p+'growth.ringEnd','Largest ring · 499 views',3.2,40,.1),R(p+'growth.views','Preview views · tier 3',150,499,1)],'modelGrowth');
@@ -292,15 +296,21 @@ function secModelPreview(){
 function secQuietPreview(){
   const h=AsgardModelPreview.quiet(S.holes);S.holes.quietPreview ||= {x:h.x,y:h.y,size:h.size,lens:h.lens,reach:h.reach};
   const p='holes.quietPreview.';ui.open.quietSize=true;ui.open.quietLens=true;
-  return tierQuickNav()+head('VIEWS TIER 1 · 0–20','No viewers','The quiet black sphere and its live light bending, before tier 2 starts feeding.')+group('Size & position',[R(p+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'quietSize')+group('Live light bending',[R(p+'lens','Lensing strength',0,2,.01),R(p+'reach','Lensing reach',.1,1.5,.01)],'quietLens');
+  return head('VIEWS TIER 1 · 0–20','No viewers','The quiet black sphere and its live light bending, before tier 2 starts feeding.')+group('Size & position',[R(p+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'quietSize')+group('Live light bending',[R(p+'lens','Lensing strength',0,2,.01),R(p+'reach','Lensing reach',.1,1.5,.01)],'quietLens');
 }
 function secHoles(){
-  if(S.holes.together?.on && S.holes.modelPreview)return secTogether();
-  if(S.holes.quickTier===1)return secQuietPreview();
-  if(S.holes.modelPreview?.on)return secModelPreview();
+  const hs=S.holes;
+  let h=tierQuickNav();
+  if(hs.together?.on && hs.modelPreview)h+=secTogether();
+  if(hs.active==='viewers'){
+    const tier=hs.quickTier|| (hs.modelPreview?.on?3:2);
+    h+=tier===1?secQuietPreview():tier===3&&hs.modelPreview?secModelPreview():secReferencePreview();
+  }
+  return h+secSavedHoleControls();
+}
+function secReferencePreview(){
   const hs = S.holes, d = hs.dashboards[hs.active], t = curTier();
-  let h = tierQuickNav()+head('EDITING','Black holes','Shape your selected black hole live, then save each look as its own variant.');
-  if(hs.modelPreview)h+=`<button class="btn acc" id="resumeModel">Edit ${esc(hs.modelPreview.name)} · 3D draft</button>`;
+  let h = head('EDITING','Black holes','Shape your selected black hole live, then save each look as its own variant.');
   hs.referencePreview = AsgardVariants.settings(hs.referencePreview || {on:false,x:.5,y:.235,radius:40,speed:1.35});
   hs.referenceOriginal ||= clone(hs.referencePreview);
   hs.referenceVariants ||= [];
@@ -320,7 +330,10 @@ function secHoles(){
   h += '<div class="btnrow"><button class="btn" id="newHoleAxes">Choose a new random set of axes</button></div><p class="note">Each streamer keeps the same angle while drifting and gaining views. Moving an angle slider switches to manual. Editing ring size or density switches off growth by views.</p>';
   h += group('Color & glow', [C(ref+'tintColor','Gas color'),R(ref+'tintAmount','Color blend · 0 keeps original colors',0,1,.05),R(ref+'glow','Glow / brightness',0,3,.05)], 'hRefColor');
   h += group('Motion & live lensing', [K('holes.behavior.driftViews','Drift across the sky'),R('holes.behavior.speed','Drift speed',0,60,.5),SEL('holes.behavior.direction','Drift direction',[[1,'Left to right'],[-1,'Right to left']]),R(ref+'speed','Ring rotation speed',0,3,.05),SEL(ref+'spinDirection','Ring direction',[[1,'Clockwise'],[-1,'Counter-clockwise']]),R('holes.rule.lens','Live sky lensing',0,2.5,.05),R('holes.rule.edge','How far lensing reaches',.3,3.2,.05)], 'hRefMotion');
-  h += `<details class="grp" data-k="hOtherTiers" ${ui.open.hOtherTiers?'open':''}><summary>Other black holes & saved tiers</summary><div class="gb">`;
+  return h;
+}
+function secSavedHoleControls(){
+  const hs=S.holes,d=hs.dashboards[hs.active],t=curTier();let h='';
   h += `<div class="dash">${Object.entries(DASH).map(([k,l])=>`<button data-dash="${k}" class="${k===hs.active?'on':''}">${l}</button>`).join('')}</div>`;
   h += hs.active==='friends' ? `<p class="note"><b>Followers set the size of the hole</b> (and the hole itself). Disk, feeding and strong warping come from <b>Views</b> as viewers grow.</p>`
      : hs.active==='viewers' ? `<p class="note"><b>Views set the disk, feeding and warping.</b> Tier 1 = no extra (the Followers hole as is). Size always comes from Followers.</p>` : `<p class="note">Followers are not used for the look right now.</p>`;
@@ -335,7 +348,7 @@ function secHoles(){
     const T = hs.dashboards.friends.tiers; h += `<div class="kv" id="fsRead" style="flex-wrap:wrap;gap:8px"></div>`;
   }
   h += `<div class="tiers">` + d.tiers.map((t,i)=>`<div class="tier ${i===hs.selTier?'on':''}" data-tier="${i}"><img src="${t.libId?(LIB.find(x=>x.id===t.libId)||{}).thumb||'':''}" onerror="this.style.visibility='hidden'"><div><b>${i+1}. ${esc(t.name)}</b><small>${t.libId?esc((LIB.find(x=>x.id===t.libId)||{}).name||''):'Built-in look'}</small></div><input type="number" min="0" value="${t.start}" data-start="${i}" title="Starts at this many ${COUNT_WORD[hs.active]}" ${i===0?'disabled':''}></div>`).join('') + `</div>`;
-  h += `<div class="btnrow"><button class="btn acc" id="pickLib">Choose this tier’s black hole</button><button class="btn" id="formPrev">Preview forming</button><button class="btn" id="copyTier">Copy look</button><button class="btn" id="pasteTier">Paste look</button></div>`;
+  h += `<div class="btnrow"><button class="btn acc" id="pickLegacyLib">Choose this tier’s black hole</button><button class="btn" id="formPrev">Preview forming</button><button class="btn" id="copyTier">Copy look</button><button class="btn" id="pasteTier">Paste look</button></div>`;
   h += `<div class="c"><label>Tier name</label><input type="text" id="tierName" value="${esc(t.name)}"></div>`;
   h += `<div class="c"><label>Seconds to change into this tier<em>${t.seconds}</em></label><input type="range" min="0" max="10" step=".1" value="${t.seconds}" id="tierSecs"></div>`;
   const shape = (hs.active==='friends' && hs.friendSize && hs.friendSize.auto) ? LOOK.shape.filter(c=>c.path!=='look.size') : LOOK.shape;
@@ -353,7 +366,7 @@ function secHoles(){
       K(P+'diskOn','Disk'), R(P+'kind','Disk kind: distortion → dust → gas → white-hot plasma',0,1,.01), R(P+'tilt','Disk angle (0 = edge-on, 90 = from above)',0,90,.5), R(P+'roll','Disk roll (pivot left/right)',-90,90,.5), R(P+'size','Disk size',0.5,14,.1), R(P+'gap','Gap between bubble and disk',0,4,.05), R(P+'thick','Disk thickness',0,0.3,.005), R(P+'see','Disk see-through (0 = clear)',0,1,.01), R(P+'dark','Dust darkness',0,1,.01), R(P+'bright','Glow brightness',0,3,.01), R(P+'turb','Gas texture',0,1,.01), R(P+'streaks','Streaks',0,1,.01), R(P+'skyTint','Take color from the sky',0,1,.01), R(P+'spin','Spin speed',0,4,.01), R(P+'dir','Spin direction (-1 / 1)',-1,1,2),
       R(P+'tumble','Slowly change angle (degrees)',0,40,.5), R(P+'tumbleSpeed','How fast it changes angle',0,1,.01), R(P+'vary','Each hole a different roll (degrees)',0,90,1)], 'hBuild'); }
   if(hs.active==='friends') h += group('How every follower hole bends space (one rule, all sizes)', [K('holes.rule.on','Use one rule for all follower holes'), R('holes.rule.lens','Bending strength',0,2.5,.01), R('holes.rule.reach','Ring size',0.1,2,.01), R('holes.rule.edge','How far the bending reaches',0.3,6,.05), R('holes.rule.taper','Big holes: keep bending tight (taper)',0,1.5,.01), R('holes.rule.funnel','Inward curve: how dark/deep before the black',0,1,.01), R('holes.rule.width','Inward curve: how far out it starts',1.3,8,.05), R('holes.rule.smear','Stars swirled around the hole',0,1.5,.01), R('holes.rule.glare','Glare on the rim',0,2,.01), R('holes.rule.crest','Crest of shine on the edge',0,4,.01), R('holes.rule.crestWidth','Crest thickness',0.005,0.12,.001), R('holes.rule.tiltMin','Lowest view (0 = along the disk)',0,88,1), R('holes.rule.tiltMax','Highest view (90 = from above)',0,88,1), R('holes.rule.tumble','How many slowly change angle',0,1,.01), R('holes.rule.tumbleSpeed','How fast they change angle',0,1,.01), R('holes.rule.dustFrom','Dark dust disk starts at tier',1,7,1), R('holes.rule.dust','Dust disk darkness',0,1,.01), R('holes.rule.dustSize','Dust disk size',0.3,6,.05), R('holes.rule.dustSpin','Dust disk spin',0,3,.01)], 'hRule');
-  h += group('Gas & dust always in the sky (ChatGPT layers)', [K('holes.gas.on','Show the gas & dust'), R('holes.gas.bright','Brightness',0,3,.01), R('holes.gas.speed','Drift speed',0,5,.01), R('holes.gas.scale','Size',0.6,3,.01), ...S.holes.gas.layers.map((L,i)=>R('holes.gas.layers.'+i+'.a', L.src.split('/').pop().replace('.webp','').replace('_',' ')+': strength',0,2,.01))], 'hGas');
+  h += group('Gas & dust always in the sky (ChatGPT layers)', [K('holes.gas.on','Show the gas & dust'), R('holes.gas.bright','Brightness',0,3,.01), R('holes.gas.speed','Drift speed',0,5,.01), R('holes.gas.scale','Size',0.6,3,.01), ...S.holes.gas.layers.map((L,i)=>R('holes.gas.layers.'+i+'.a', L.src.split('/').pop().replace('.webp','').replace('_',' ')+': strength',0,2,.01))], 'hGasLayers');
   if(hs.mode==='viewsTour' && ui.open.hTour===undefined) ui.open.hTour = true;
   if(hs.mode==='viewsTour') h += group('One after another', [R('holes.behavior.tourGap','Space between one hole and the next',0,500,1), R('holes.behavior.tourSpeed','Drift speed',5,200,1), R('holes.behavior.tourY','Height on screen',0.05,0.6,.005), R('holes.behavior.tourZig','Up/down offset between holes',0,0.2,.005)], 'hTour', true);
   if(hs.active==='viewers') h += group('Real footage from your videos (one per stage)', [K('holes.clips.on','Use the real footage around each hole'), R('holes.clips.scale','Footage size around the hole',0.5,2,.01), R('holes.clips.bright','Footage brightness',0.2,2,.01), R('holes.clips.turn','Every hole at a different angle',0,2,.01)], 'hClips');
@@ -366,7 +379,6 @@ function secHoles(){
      K('holes.callout.showCount','Show live views under the name'), R('holes.callout.countSize','Views number size',6,20,.5), C('holes.callout.countColor','Views number color'), SEL('holes.callout.countFormat','Number style',[['short','1.2K'],['full','1,234']]), K('holes.liveViews','Run live test views (fake accounts)')], 'hTags');
   h += group('Quality', [R('holes.behavior.renderScale','Render sharpness (lower = faster)',.35,1.5,.05), K('holes.behavior.autoQuality','Lower sharpness automatically if the phone slows down')], 'hQ');
   h += `<details class="grp" data-k="hTest" ${ui.open.hTest?'open':''}><summary>Test counts (who lands in which tier)</summary><div class="gb"><p class="note">These are pretend counts for the fake accounts so you can see every tier in the sky.</p><div class="contacts">${scene.contacts.map((c,i)=>`<div class="ct"><img src="${c.face}"><span>${c.name} <small style="color:#8a97a2">→ tier ${Raven.tierAt(d.tiers, c.counts[hs.active])+1}</small></span><input type="number" min="0" value="${c.counts[hs.active]}" data-cnt="${i}"></div>`).join('')}</div></div></details>`;
-  h += '</div></details>';
   return h;
 }
 function secMedia(){
@@ -386,14 +398,14 @@ function render(){
   p.innerHTML = ({ sphere:secSphere, tabs:secTabs, background:secBackground, holes:secHoles, media:secMedia })[secNow]();
   $('#modeBoth').classList.toggle('on',!!S.holes.together?.on);
   $('#modeBoth').disabled=!S.holes.modelPreview;
-  wire(p); bindPanel(p); fsReadout(); p.scrollTop = st; renderLayers(); renderVersions();
+  wire(p); bindPanel(p); fsReadout(); AsgardStudioLayout.arrange(p,secNow); renderLayers(); renderVersions();
   $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus'); if(scene.anglePractice)setAnglePractice(scene.anglePractice);
 }
 function fsReadout(){ const el=document.getElementById('fsRead'); if(!el) return; const fs=S.holes.friendSize, n=S.holes.dashboards.friends.tiers.length; el.innerHTML = Array.from({length:n},(_,i)=>`<span>T${i+1}: ${(fs.auto? fs.min+(fs.max-fs.min)*(n>1?i/(n-1):0) : S.holes.dashboards.friends.tiers[i].look.size).toFixed(1)}</span>`).join(''); }
 function showSec(s){ if(s!==secNow)$('#panel').scrollTop=0;secNow=s;render(); }
 let lookClip = null;
 function bindPanel(p){
-  p.querySelectorAll('[data-dash]').forEach(b=>b.onclick=()=>{ S.holes.active=b.dataset.dash; S.holes.selTier=0;  change(); render(); });
+  p.querySelectorAll('[data-dash]').forEach(b=>b.onclick=()=>{ S.holes.active=b.dataset.dash;S.holes.selTier=0;S.holes.quickTier=0;if(S.holes.together)S.holes.together.on=false;if(S.holes.modelPreview)S.holes.modelPreview.on=false;S.holes.referencePreview.on=false;S.holes.mode='sky';change();render(); });
   p.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{ S.holes.mode=b.dataset.view; change(); render(); });
   const tp=p.querySelector('#tPrev'), tnx=p.querySelector('#tNext'); if(tp) tp.onclick=()=>{ S.holes.selTier=Math.max(0,S.holes.selTier-1); change(); render(); }; if(tnx) tnx.onclick=()=>{ S.holes.selTier=Math.min(S.holes.dashboards[S.holes.active].tiers.length-1,S.holes.selTier+1); change(); render(); };
   p.querySelectorAll('[data-tier]').forEach(b=>b.onclick=e=>{ if(e.target.tagName==='INPUT') return; S.holes.selTier=+b.dataset.tier; if(!S.holes.mode.startsWith('friends')) S.holes.mode='focus'; change(); render(); });
@@ -401,12 +413,12 @@ function bindPanel(p){
   p.querySelectorAll('[data-cnt]').forEach(inp=>inp.onchange=()=>{ scene.contacts[+inp.dataset.cnt].counts[S.holes.active]=Math.max(0,+inp.value); render(); });
   const on=(id,f)=>{ const e=p.querySelector('#'+id); if(e) e.onclick=f; };
   p.querySelectorAll('[data-quick-tier]').forEach(b=>b.onclick=()=>{
-    const tier=+b.dataset.quickTier;if(S.holes.together)S.holes.together.on=false;S.holes.quickTier=tier;S.holes.active='viewers';S.holes.selTier=tier-1;S.holes.mode='focus';
+    const tier=+b.dataset.quickTier;S.holes.quickTier=tier;S.holes.active='viewers';S.holes.selTier=tier-1;if(!S.holes.together?.on)S.holes.mode='focus';
     if(S.holes.modelPreview)S.holes.modelPreview.on=tier===3;
     S.holes.referencePreview.on=tier===2;
     setAnglePractice(null);change();render();$('#panel').scrollTop=0;
   });
-  p.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{if(S.holes.together?.on){S.holes.together.on=false;S.holes.quickTier=3;S.holes.modelPreview.on=true;change();render();return document.querySelector('[data-jump="'+b.dataset.jump+'"]').click();}const model=S.holes.modelPreview?.on,key=b.dataset.jump==='axis'?(model?'modelAxisLimits':'hRefAngle'):(model?'modelGrowth':'hRefGrowth'),d=p.querySelector('[data-k="'+key+'"]');if(!d)return;d.open=true;ui.open[key]=true;d.style.scrollMarginTop=((p.querySelector('[aria-label="Views tier selection"]')?.offsetHeight||100)+12)+'px';d.scrollIntoView({behavior:'smooth',block:'start'});});
+  p.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>AsgardStudioLayout.select(b.dataset.jump==='axis'?'Angles & axes':'Ring growth with views'));
   on('playBothTiers',playBothTiers);
   on('bothSmall',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;S.holes.modelPreview.growth.on=true;S.holes.modelPreview.growth.views=150;change();refreshValues();});
   on('bothLarge',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=149;S.holes.modelPreview.growth.on=true;S.holes.modelPreview.growth.views=499;change();refreshValues();});
@@ -421,7 +433,7 @@ function bindPanel(p){
   if(modelSelect)modelSelect.onchange=()=>{const v=S.holes.modelVariants.find(v=>v.id===modelSelect.value);if(!v)return;S.holes.modelPreview={...clone(v.settings),on:true,variantId:v.id};change();render();};
   on('saveModelVariant',()=>{const id='model-'+Date.now().toString(36),name=p.querySelector('#modelVariantName').value.trim()||S.holes.modelPreview.name+' variant';S.holes.modelPreview.variantId=id;S.holes.modelVariants.push({id,name,settings:clone(S.holes.modelPreview)});change();render();toast('3D variant saved');});
   on('updateModelVariant',()=>{const v=S.holes.modelVariants.find(v=>v.id===S.holes.modelPreview.variantId);if(!v)return;v.name=p.querySelector('#modelVariantName').value.trim()||v.name;v.settings=clone(S.holes.modelPreview);change();render();toast('3D variant updated');});
-  on('newHoleAxes',()=>{S.holes.orientation.seed=(S.holes.orientation.seed||1)+1;S.holes.orientation.random=true;change();render();});
+  on('newHoleAxes',()=>{S.holes.orientation.seed=(S.holes.orientation.seed||1)+1;S.holes.orientation.random=true;if(S.holes.modelPreview){S.holes.modelPreview.randomAxis=true;S.holes.modelPreview.seed=S.holes.orientation.seed;}change();render();});
   const refSelect=p.querySelector('#refVariant');
   if(refSelect)refSelect.onchange=()=>{const v=S.holes.referenceVariants.find(v=>v.id===refSelect.value);if(!v)return;S.holes.referencePreview={...clone(v.settings),on:true};S.holes.orientation.random=false;S.holes.referenceGrowth.on=false;S.holes.referenceVariantId=v.id;change();render();};
   on('saveRefVariant',()=>{
@@ -431,7 +443,7 @@ function bindPanel(p){
   });
   on('updateRefVariant',()=>{const v=S.holes.referenceVariants.find(v=>v.id===S.holes.referenceVariantId);if(!v)return;v.name=(p.querySelector('#refVariantName').value||'').trim()||v.name;v.settings=clone(referenceLiveSettings());v.updatedAt=new Date().toISOString();change();render();toast('Saved variant updated');});
   on('refOriginal',()=>{S.holes.referencePreview={...clone(S.holes.referenceOriginal),on:true};S.holes.orientation.random=false;S.holes.referenceGrowth.on=false;S.holes.referenceVariantId='';change();render();toast('Approved original restored');});
-  on('pickLib', ()=>openLib('tier'));
+  on('pickLib', ()=>openLib('tier')); on('pickLegacyLib', ()=>openLib('tier'));
   on('formPrev', ()=>{ S.holes.mode='focus'; applyToScene(); let t0=performance.now(); const L=curLook(); const step=()=>{ const k=Math.min(1,(performance.now()-t0)/1000/Math.max(.3,S.holes.behavior.formSeconds)); scene.formPreview=k*k*(3-2*k); if(k<1) requestAnimationFrame(step); else scene.formPreview=1; }; step(); });
   on('copyTier', ()=>{ lookClip=clone(curLook()); toast('Look copied'); });
   on('pasteTier', ()=>{ if(!lookClip) return toast('Copy a look first'); const t=curTier(); const keep={size:t.look.size}; t.look=Object.assign(clone(lookClip),keep); change(); render(); });
@@ -630,6 +642,13 @@ const String _ravenHtml${tag} = r'''${html}''';
   }catch(e){ console.error(e); $('#dartBody').innerHTML = '<p>Could not pack: '+esc(e.message)+'</p>'; }
 }
 
+async function saveCurrentDesign(){
+  clearTimeout(ct);clearTimeout(pt);clearTimeout(sbT);if(JSON.stringify(hist[hi])!==JSON.stringify(S)){hist=hist.slice(0,hi+1);hist.push(clone(S));if(hist.length>120)hist.shift();hi=hist.length-1;}store.set(KEY,S);
+  const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:sbH({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:'raven',page:'raven',data:S,updated_by:'studio',updated_at:new Date().toISOString()})});
+  if(!r.ok){toast('Shared save failed. Your local copy is kept.');throw Error('Save failed');}
+  dirty=false;SB.ok=true;$('#saveState').className='saved';$('#saveState').textContent='● Saved to shared studio';toast('Saved');
+}
+AsgardStudioLayout.mount({kind:'raven',page:'raven',undo:()=>{if(secNow==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(clone(ROCK_NAV.S));ROCK_NAV.applyState(prev);}}else undo();},save:()=>secNow==='rocks'?AsgardStudioLayout.saveNavigation(ROCK_NAV):saveCurrentDesign(),beforePage:async()=>{if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);await saveCurrentDesign();},preview:()=>{scene.playing=true;if(scene.speed<=0){scene.speed=1;$('#speed').value=1;}$('#playBtn').textContent='❚❚';$('#playLbl').textContent='Moving';}});
 /* ---------------- top bar & misc ---------------- */
 function toast(m){ const t=$('#toast'); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true, 2600); }
 $$('.sec').forEach(b=>b.onclick=()=>showSec(b.dataset.sec));

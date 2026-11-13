@@ -73,20 +73,21 @@ function population(settings,time=0,radiusForFollowers=()=>32.5){
     const id='sky-streamer-'+i,fc=cfg.variedFollowers===false?(cfg.followers??50):followers[i];
     const radius=radiusForFollowers(fc),tier=v<21?1:v<150?2:3;
     const a=G.AsgardVariants.orientationFor(id,seed);
-    const h=tier===1?quiet(settings):tier===3?hole({...settings.modelPreview,randomAxis:true,streamerId:id,seed,
-      drift:false,growth:{...growth(settings.modelPreview),on:true,views:v}},time):null;
-    if(h)Object.assign(h,{size:radius,_fid:id,rotX:a.tilt,rotY:a.axisY,rotZ:a.axisZ});
+    const h=tier===1?quiet(settings):tier===3?hole({...settings.modelPreview,randomAxis:settings.modelPreview.randomAxis!==false,streamerId:id,seed,
+      drift:false,growth:{...growth(settings.modelPreview),views:v}},time):null;
+    if(h){Object.assign(h,{size:radius,_fid:id});if(tier===1&&settings.orientation?.random!==false)Object.assign(h,{rotX:a.tilt,rotY:a.axisY,rotZ:a.axisZ});h.lens*=b.lensAll??1;}
     const reference=tier===2?G.AsgardVariants.liveSettings({...settings.referencePreview,radius,
       driftOn:false,wobble:0,lens:(rule.lens??.9)*(b.lensAll??1),
-      lensReach:Math.min(5.5,Math.max(2.5,1+(rule.edge??1.6)*1.4))},id,{random:true,seed},
-      {...settings.referenceGrowth,on:true},v):null;
+      lensReach:Math.min(5.5,Math.max(2.5,1+(rule.edge??1.6)*1.4))},id,{...settings.orientation,seed},
+      settings.referenceGrowth,v):null;
     const reach=tier===2?Math.max(4.6,G.AsgardVariants.extent(reference)/54):tier===3?Math.max(5,h.diskOut/2):5;
     return {id,tier,views:v,followers:fc,radius,hole:h,reference,pad:radius*reach,y:top+(bottom-top)*rows[i%3]};
   });
-  const pad=Math.max(180,...entries.map(e=>e.pad))+16,span=390+2*pad;
-  const travel=cfg.drift===false?0:time*Math.max(0,cfg.speed??18);
+  const span=390+2*Math.max(...entries.map(e=>e.pad));
+  const travel=cfg.drift===false?0:time*Math.max(0,cfg.speed??18)*(b.direction===-1?-1:1);
   entries.forEach((e,i)=>{
-    e.x=((((70+i*span/entries.length+travel+pad)%span)+span)%span-pad)/390;
+    e.span=390+2*e.pad;
+    e.x=((((70+i*e.span/entries.length+travel+e.pad)%e.span)+e.span)%e.span-e.pad)/390;
     if(e.hole)Object.assign(e.hole,{x:e.x,y:e.y});
     if(e.reference)Object.assign(e.reference,{x:e.x,y:e.y});
   });

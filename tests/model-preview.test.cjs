@@ -109,8 +109,8 @@ test('mixed sky includes diskless holes and small, middle and large disks from b
 });
 test('every mixed hole moves left to right and wraps only after its full field leaves the screen',()=>{
  const s=pairSettings();s.holes.together.speed=18;
- const a=M.population(s.holes,0),b=M.population(s.holes,.01),lap=M.population(s.holes,a.span/18);
- a.entries.forEach((e,i)=>{assert.ok(Math.abs((b.entries[i].x-e.x)*390-.18)<1e-8);assert.ok(Math.abs(e.x-lap.entries[i].x)<1e-8);});
+ const a=M.population(s.holes,0),b=M.population(s.holes,.01);
+ a.entries.forEach((e,i)=>{assert.ok(Math.abs((b.entries[i].x-e.x)*390-.18)<1e-8);const lap=M.population(s.holes,e.span/18);assert.ok(Math.abs(e.x-lap.entries[i].x)<1e-8);assert.equal(e.span,390+2*e.pad);});
  for(let t=0;t<60;t+=.5){const x=M.population(s.holes,t),y=M.population(s.holes,t+.5);
   x.entries.forEach((e,i)=>{const next=y.entries[i];if(next.x<e.x){assert.ok(e.x*390-e.pad>390-9);assert.ok(next.x*390+next.pad<9);}});
  }
@@ -134,4 +134,13 @@ test('live sky sends all mixed tiers to their original renderers and composites 
  assert.ok(rendered[0].holes.length<=G.BH.MAXH);assert.ok(draws.length>=1);assert.ok(scene._tagged.some(t=>t.label==='Tier 1'));
  assert.ok(scene._tagged.some(t=>t.label==='Tier 2'));assert.ok(scene._tagged.some(t=>t.label==='Tier 3'));
  for(const d of draws)assert.equal(d[3],rendered[0].time);
+});
+
+test('mixed sky keeps manual angles and manual ring sizes editable without stopping drift',()=>{
+ const s=pairSettings();s.holes.modelPreview.randomAxis=false;s.holes.modelPreview.growth.on=false;Object.assign(s.holes.modelPreview.look,{rotX:61,rotY:12,rotZ:-33,diskOut:17});
+ s.holes.orientation.random=false;s.holes.referenceGrowth.on=false;Object.assign(s.holes.referencePreview,{tilt:37,axisY:7,axisZ:24,ringSize:.8});
+ const a=M.population(s.holes,0),b=M.population(s.holes,1);
+ for(const e of a.entries.filter(e=>e.tier===3)){assert.equal(e.hole.rotX,61);assert.equal(e.hole.rotY,12);assert.equal(e.hole.rotZ,-33);assert.equal(e.hole.diskOut,17);}
+ for(const e of a.entries.filter(e=>e.tier===2)){assert.equal(e.reference.tilt,37);assert.equal(e.reference.axisZ,24);assert.equal(e.reference.ringSize,.8);}
+ assert.notEqual(a.entries[0].x,b.entries[0].x);
 });
