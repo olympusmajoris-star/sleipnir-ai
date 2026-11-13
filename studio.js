@@ -303,8 +303,8 @@ function secHoles(){
   let h=tierQuickNav();
   if(hs.together?.on && hs.modelPreview)h+=secTogether();
   if(hs.active==='viewers'){
-    const tier=hs.quickTier|| (hs.modelPreview?.on?3:2);
-    h+=tier===1?secQuietPreview():tier===3&&hs.modelPreview?secModelPreview():secReferencePreview();
+    const tier=hs.quickTier||(hs.modelPreview?.on?3:hs.referencePreview?.on?2:0);
+    if(tier)h+=tier===1?secQuietPreview():tier===3&&hs.modelPreview?secModelPreview():secReferencePreview();
   }
   return h+secSavedHoleControls();
 }
@@ -446,7 +446,7 @@ function bindPanel(p){
   on('pickLib', ()=>openLib('tier')); on('pickLegacyLib', ()=>openLib('tier'));
   on('formPrev', ()=>{ S.holes.mode='focus'; applyToScene(); let t0=performance.now(); const L=curLook(); const step=()=>{ const k=Math.min(1,(performance.now()-t0)/1000/Math.max(.3,S.holes.behavior.formSeconds)); scene.formPreview=k*k*(3-2*k); if(k<1) requestAnimationFrame(step); else scene.formPreview=1; }; step(); });
   on('copyTier', ()=>{ lookClip=clone(curLook()); toast('Look copied'); });
-  on('pasteTier', ()=>{ if(!lookClip) return toast('Copy a look first'); const t=curTier(); const keep={size:t.look.size}; t.look=Object.assign(clone(lookClip),keep); change(); render(); });
+  on('pasteTier', ()=>{ if(!lookClip) return toast('Copy a look first'); const target=S.holes.active==='viewers'&&S.holes.quickTier===3&&S.holes.modelPreview?S.holes.modelPreview:curTier();const keep={size:target.look.size};target.look=Object.assign(clone(lookClip),keep);change();render(); });
   const tn=p.querySelector('#tierName'); if(tn) tn.onchange=()=>{ curTier().name=tn.value; change(); render(); };
   const ts=p.querySelector('#tierSecs'); if(ts) ts.oninput=()=>{ curTier().seconds=+ts.value; ts.previousElementSibling.querySelector('em').textContent=ts.value; change(); };
   // background
