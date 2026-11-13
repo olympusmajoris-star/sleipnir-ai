@@ -7,8 +7,8 @@
 <style>
 :root{--bg:#0e1316;--panel:#13191d;--line:#26323a;--text:#e6eef0;--dim:#8fa3ab;--acc:#7fe3e0;--gold:#e9c46a}
 *{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.35 system-ui,Segoe UI,Roboto,sans-serif}
-header{height:52px;display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:#10161a}
-.brand{width:240px;display:flex;align-items:center;gap:10px;padding:0 16px;font-weight:800;letter-spacing:.12em;font-size:13px;border-right:1px solid var(--line)}
+header{height:44px;display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:#10161a}
+.brand{width:200px;display:flex;align-items:center;gap:10px;padding:0 16px;font-weight:800;letter-spacing:.12em;font-size:13px;border-right:1px solid var(--line)}
 .brand i{font-style:normal;display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--acc);color:#05201f;font-size:15px}
 .areas{display:flex;flex:1}
 .area{background:none;border:0;border-right:1px solid var(--line);color:var(--dim);padding:0 30px;font-size:15px;font-weight:600;cursor:pointer}
@@ -16,7 +16,7 @@ header{height:52px;display:flex;align-items:stretch;border-bottom:1px solid var(
 .hdr-right{display:flex;align-items:center;gap:8px;padding:0 14px}
 .hdr-right a{color:var(--dim);text-decoration:none;font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:6px}
 .hdr-right a:hover{color:var(--text)}
-main{height:calc(100% - 52px);display:grid;grid-template-columns:240px 1fr}
+main{height:calc(100% - 44px);display:grid;grid-template-columns:200px 1fr}
 nav.pages{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:10px 8px 30px}
 .cap{font-size:11px;letter-spacing:.14em;color:var(--dim);padding:10px 8px 8px}
 .pg{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;color:var(--text);border-radius:7px;padding:11px 10px;font-size:14px;cursor:pointer;margin-bottom:2px}
@@ -44,6 +44,6 @@ iframe{border:0;width:100%;height:100%;display:block;background:var(--bg)}
   <nav class="pages" id="pages" aria-label="Pages in this area"></nav>
   <section class="frame"><iframe id="ed" title="Editor"></iframe><div class="empty" id="empty" hidden></div></section>
 </main>
-<script src="workshop.js?v=ws1"></script>
+<script src="workshop.js?v=ws2"></script>
 </body>
 </html>

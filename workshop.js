@@ -100,7 +100,9 @@ $('#ed').addEventListener('load', () => {
   const st = doc.createElement('style'); st.id = 'ws-embed';
   st.textContent = `.app-tabs,.page-tree{display:none!important}
     .studio-shell main{height:calc(100% - 60px)!important}
-    ${pagesEditor ? '.studio-shell main>.left{display:none!important}.studio-shell main{grid-template-columns:minmax(300px,430px) minmax(380px,1fr)!important}' : ''}`;
+    .studio-shell main{grid-template-columns:${pagesEditor ? '' : '200px '}minmax(390px,430px) minmax(360px,1fr)!important;overflow:auto}
+    .studio-shell .center{padding:10px 10px 6px!important}.studio-shell .phone{border-radius:44px!important}
+    ${pagesEditor ? '.studio-shell main>.left{display:none!important}' : ''}`;
   doc.head.appendChild(st);
   // After Save, move straight on to the next option so the next change is one click away.
   doc.addEventListener('click', ev => {
