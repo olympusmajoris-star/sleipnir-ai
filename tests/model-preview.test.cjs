@@ -172,3 +172,30 @@ test('sustained slow frames do not reduce the saved rendering sharpness',()=>{
  for(let t=100;t<30100;t+=100)p._loop.call(scene,t);
  assert.equal(scene._aq,1);assert.equal(s.holes.behavior.renderScale,scale);assert.equal(rendered,300);
 });
+
+
+test('Tier 4 starts at 500 and does not invent an end look',()=>{
+ const m=M.tier4(),a=M.hole(m);assert.equal(m.tier,4);assert.deepEqual([...M.range(m)],[500,1999]);assert.equal(m.growth.endChosen,false);
+ m.growth.views=1999;assert.equal(M.hole(m).diskOut,a.diskOut);
+ M.setEndpoint(m,'ringStart',9);assert.equal(m.growth.views,500);assert.equal(m.growth.ringEnd,9);assert.equal(m.growth.endChosen,false);
+ M.setEndpoint(m,'ringEnd',15);assert.equal(m.growth.views,1999);assert.equal(m.growth.endChosen,true);assert.equal(M.hole(m).diskOut,15);
+ m.growth.views=1249.5;assert.equal(M.hole(m).diskOut,12);assert.equal(M.hole(m).size,a.size);
+});
+test('Tier 4 edits and reloads preserve tiers 1, 2 and 3',()=>{
+ const s=pairSettings().holes,before=plain({model:s.modelPreview.look,growth:s.modelPreview.growth,ref:s.referencePreview,quiet:s.quietPreview??null});
+ M.put(s,4,M.tier4());M.select(s,4);M.active(s).look.diskBright=4.8;M.setEndpoint(M.active(s),'ringEnd',16);
+ const loaded=plain(s);M.select(loaded,3);assert.equal(M.active(loaded).id,s.modelPreview.id);assert.deepEqual(plain(M.active(loaded).look),before.model);assert.deepEqual(plain(M.active(loaded).growth),before.growth);
+ M.select(loaded,4);assert.equal(M.active(loaded).look.diskBright,4.8);assert.equal(M.active(loaded).growth.ringEnd,16);assert.equal(loaded.referencePreview.ringSize,before.ref.ringSize);
+ assert.equal(M.modelPath(4),'holes.tierModels.4');assert.equal(M.modelPath(3),'holes.modelPreview');
+});
+test('Tier 4 joins all tiers without exceeding the population limit and retains fixed per-streamer axes',()=>{
+ const s=pairSettings().holes;M.put(s,4,M.tier4());s.behavior.count=4;
+ const seen=new Set(),axes=new Map();for(let time=0;time<500;time+=2){const p=M.population(s,time,n=>n<100?28:42);assert.equal(p.entries.length,4);for(const e of p.entries){seen.add(e.tier);if(e.tier===4){const a=[e.hole.rotX,e.hole.rotY,e.hole.rotZ];if(axes.has(e.id))assert.deepEqual(a,axes.get(e.id));axes.set(e.id,a);assert.equal(e.radius,e.followers<100?28:42);}}}
+ assert.deepEqual([...seen].sort(),[1,2,3,4]);assert.ok(new Set([...axes.values()].map(JSON.stringify)).size>1);
+ s.behavior.count=5;for(let t=0;t<400;t+=3){const p=M.population(s,t,n=>n<100?28:42);assert.equal(p.entries.length,5);assert.ok(p.entries.filter(e=>e.radius<=32.5).length>=2);}
+});
+test('Tier 4 renders live with its own parameters and animation time',()=>{
+ const s=pairSettings();M.put(s.holes,4,M.tier4());M.select(s.holes,4);s.holes.together.on=false;const scene={s,time:10,speed:1,playing:true,roll:{vel:0},_last:1000,engine:{render(t){this.drawTime=t;}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
+ context.requestAnimationFrame=()=>{};G.Raven.RavenScene.prototype._loop.call(scene,1016);
+ assert.equal(scene.engine.holes.length,1);assert.equal(scene.engine.holes[0]._fid,'gallery-danny-tier4-start');assert.equal(scene.engine.holes[0].diskDir,-1);assert.equal(scene.engine.holes[0].secondaryLight,.08);assert.ok(scene.engine.drawTime>10);
+});

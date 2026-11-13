@@ -90,6 +90,7 @@ uniform vec4 uH3[MAXH];   // falloff, texture, streaks, swirl
 uniform vec4 uH4[MAXH];   // spin*dir, thick, opacity, doppler
 uniform vec4 uH5[MAXH];   // temp, clumps, ring, ringWidth
 uniform vec4 uH6[MAXH];   // corona, coronaWidth, shellMotion, glow
+uniform float uSecondaryLight[MAXH]; // relative brightness of the lower, far-side disk image
 uniform vec4 uH7[MAXH];   // flare, flareLen, flareWidth, jets
 uniform vec4 uH8[MAXH];   // jetLen, jetWidth, exposure, opacity
 uniform vec4 uH9[MAXH];   // faceZoom, seed, -, -
@@ -318,6 +319,9 @@ void main(){
           // Sub-pixel copies of the far disk converge at the photon boundary.
           // Resolve them as the smooth limb below, preserving foreground matter.
           float front=1.-smoothstep(-.2,.2,(transpose(R)*c).z);
+          vec3 planeNormal=transpose(R)*vec3(0.,1.,0.);
+          float below=1.-smoothstep(-1.,1.,dot(d,normalize(vec2(planeNormal.x,-planeNormal.y)+1e-5)));
+          e*=mix(1.,uSecondaryLight[i],(1.-front)*below);
           float weight=mix(resolved,1.,front);e*=weight;a*=weight;
           em += T*e; T *= (1.0-a); gCross += 1.0;
         }
@@ -327,6 +331,10 @@ void main(){
           float hz = uH4[i].y*0.25*rr;
           if(abs(np.y) < 2.5*hz && rr > uH2[i].y && rr < uH2[i].z){
             float a; vec3 e = diskEm(i, vec3(np.x,0.,np.z), -normalize(v), a);
+            vec3 planeNormal=transpose(R)*vec3(0.,1.,0.);
+            float below=1.-smoothstep(-1.,1.,dot(d,normalize(vec2(planeNormal.x,-planeNormal.y)+1e-5)));
+            float behind=smoothstep(-.2,.2,(transpose(R)*np).z);
+            e*=mix(1.,uSecondaryLight[i],behind*below);
             float w = exp(-pow(np.y/hz,2.0)) * dt * 0.06 / max(hz,0.05);
             w*=mix(resolved,1.,1.-smoothstep(-.2,.2,(transpose(R)*np).z));
             em += T*e*w; T *= (1.0 - a*w);
@@ -711,6 +719,7 @@ class BHScene {
     A('uH4',h=>[h.diskSpin*(h.diskDir<0?-1:1),h.diskThick,h.diskOpacity,h.doppler]);
     A('uH5',h=>[h.temp,h.clumps,h.ring,h.ringWidth]);
     A('uH6',h=>[h.corona,h.coronaWidth,h.shellMotion,h.glow]);
+    {const secondary=new Float32Array(MAXH);H.forEach((h,i)=>secondary[i]=h.secondaryLight??1);gl.uniform1fv(u.uSecondaryLight,secondary);}
     A('uH7',h=>[h.flare,h.flareLen,h.flareWidth,h.jets]);
     A('uH8',h=>[h.jetLen,h.jetWidth,h.exposure,h.opacity]);
     gl.uniform4f(u.uFaceEdge, this.faceEdge ?? 1.0, this.faceScale ?? 1.0, 0, 0); { const R = this.refl || {}; gl.uniform4f(u.uRefl, R.on === false ? 0 : 1, R.size ?? 0.75, R.gloss ?? 1, R.rimSky ?? 0.8); gl.uniform4f(u.uRefl2, R.catch ?? 0.9, R.bright ?? 0.85, R.blur ?? 0.6, 0); }

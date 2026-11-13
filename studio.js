@@ -89,7 +89,7 @@ async function applyToScene(full){
 }
 applyToScene(true);
 scene.onHoleTap = h => { const d = S.holes.dashboards[S.holes.active]; S.holes.selTier = parseInt(h.tier) || 0; testContact = h.c; showSec('holes'); toast(`${h.c.name}: ${DASH[S.holes.active]} tier ${(parseInt(h.tier)||0)+1} (${h.c.counts[S.holes.active]} ${COUNT_WORD[S.holes.active]})`); applyToScene(); };
-scene.onTurn = (dx, dy) => { if(S.holes.modelPreview?.on){const m=S.holes.modelPreview,a=AsgardModelPreview.hole(m);m.randomAxis=false;m.look.rotX=clamp(a.rotX-dy*.4,3,90);m.look.rotY=clamp(a.rotY+dx*.6,-80,80);m.look.rotZ=a.rotZ;change();refreshValues();return;} if(scene.anglePractice)return; const L = curLook(); L.angleManual=true; L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
+scene.onTurn = (dx, dy) => { if(currentModel()?.on){const m=currentModel(),a=AsgardModelPreview.hole(m);m.randomAxis=false;if('skyRandomAxis' in m)m.skyRandomAxis=false;m.look.rotX=clamp(a.rotX-dy*.4,3,90);m.look.rotY=clamp(a.rotY+dx*.6,-80,80);m.look.rotZ=a.rotZ;change();refreshValues();return;} if(scene.anglePractice)return; const L = curLook(); L.angleManual=true; L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
 scene.onFrame = sc => { $('#tLbl').textContent = sc.time.toFixed(1)+'s'; referenceReadout(); };
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
@@ -97,12 +97,12 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 function getPath(obj, path){ return path.split('.').reduce((o,k) => o == null ? o : o[k], obj); }
 function setPath(obj, path, v){ const ks = path.split('.'); const last = ks.pop(); const o = ks.reduce((o,k) => o[k], obj); o[last] = v; }
 function curTier(){ return S.holes.dashboards[S.holes.active].tiers[S.holes.selTier]; }
-function curLook(){ return S.holes.active==='viewers'&&S.holes.quickTier===3&&S.holes.modelPreview?S.holes.modelPreview.look:curTier().look; }
+function curLook(){ return S.holes.active==='viewers'&&S.holes.quickTier>=3&&currentModel()?currentModel().look:curTier().look; }
 function referenceLiveSettings(){
   return AsgardVariants.liveSettings(S.holes.referencePreview,S.holes.referenceGrowth?.streamerId??'freya',S.holes.orientation,S.holes.referenceGrowth);
 }
 function referenceReadout(){
-  const modelNode=$('#modelGrowthReadout'),m=S.holes.modelPreview;
+  const modelNode=$('#modelGrowthReadout'),m=currentModel();
   if(modelNode&&m){const g=AsgardModelPreview.growth(m),h=AsgardModelPreview.hole(m);const label=(g.on?Math.round(g.views)+' views':'Manual disk')+' · ring size '+h.diskOut.toFixed(2);if(modelNode.textContent!==label)modelNode.textContent=label;}
   const node=$('#refLiveReadout');if(!node)return;
   const live=referenceLiveSettings(),growth=S.holes.referenceGrowth;
@@ -116,9 +116,9 @@ const K = (path, label) => ({ t:'k', path, label });
 const SEL = (path, label, opts) => ({ t:'s', path, label, opts });
 function ctlHtml(c, i){
   const [o, p] = root(c.path); if(!o) return ''; const liveKeys=['ringSize','density','view3d','tilt','axisY','axisZ'];
-  const key=c.path.slice('holes.referencePreview.'.length);
-  const modelAngle=(/^holes\.modelPreview\.look\.rot[XYZ]$/.test(c.path)&&S.holes.modelPreview?.randomAxis)||(c.path==='holes.modelPreview.look.diskOut'&&S.holes.modelPreview?.growth?.on);
-  const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[c.path.split('.').pop()]:c.path.startsWith('holes.referencePreview.')&&liveKeys.includes(key)?referenceLiveSettings()[key]:getPath(o,p); const id = 'c'+i+Math.random().toString(36).slice(2,6);
+  const key=c.path.slice('holes.referencePreview.'.length),controlModel=modelAtPath(c.path);
+  const modelAngle=(/^holes\.(modelPreview|tierModels\.\d+)\.look\.rot[XYZ]$/.test(c.path)&&controlModel?.randomAxis)||(c.path.endsWith('.look.diskOut')&&controlModel?.growth?.on);
+  const v=modelAngle?AsgardModelPreview.hole(controlModel)[c.path.split('.').pop()]:c.path.startsWith('holes.referencePreview.')&&liveKeys.includes(key)?referenceLiveSettings()[key]:getPath(o,p); const id = 'c'+i+Math.random().toString(36).slice(2,6);
   if(c.t==='r') return `<div class="c"><label for="${id}">${c.label}<em data-v="${c.path}">${fmtv(v,c)}</em></label><input type="range" id="${id}" data-p="${c.path}" min="${c.min}" max="${c.max}" step="${c.step}" value="${v}"></div>`;
   if(c.t==='c') return `<div class="c col"><label for="${id}">${c.label}<input type="color" id="${id}" data-p="${c.path}" value="${toHex(v)}"></label></div>`;
   if(c.t==='k') return `<div class="c chk"><label><input type="checkbox" data-p="${c.path}" ${v?'checked':''}>&nbsp;${c.label}</label></div>`;
@@ -130,17 +130,18 @@ function group(title, ctls, key){ key = key || title; const open = ui.open[key] 
   return `<details class="grp" data-k="${key}" ${open}><summary>${title}</summary><div class="gb">${ctls.map(ctlHtml).join('')}</div></details>`; }
 function wire(el){
   el.querySelectorAll('[data-p]').forEach(inp => {
-    const rawPath=inp.dataset.p;const path=rawPath.startsWith('look.')&&S.holes.active==='viewers'&&S.holes.quickTier===3&&S.holes.modelPreview?'holes.modelPreview.'+rawPath:rawPath;const [o,p]=root(path);
+    const rawPath=inp.dataset.p;const path=rawPath.startsWith('look.')&&S.holes.active==='viewers'&&S.holes.quickTier>=3&&currentModel()?currentModelPath()+'.'+rawPath:rawPath;const [o,p]=root(path);
     const ev = inp.type==='range' ? 'input' : 'change';
     inp.addEventListener(ev, () => {
-      const [o,p] = root(path); if(!o) return;
+      const [o,p] = root(path); if(!o) return; const controlModel=modelAtPath(path);
       let v = inp.type==='range' ? +inp.value : inp.type==='checkbox' ? inp.checked : inp.value;
       if(inp.tagName==='SELECT' && !isNaN(+v) && v!=='') v = +v;
-      if(/^holes\.modelPreview\.look\.rot[XYZ]$/.test(path)&&S.holes.modelPreview.randomAxis){
-        const actual=AsgardModelPreview.hole(S.holes.modelPreview);
-        for(const key of ['rotX','rotY','rotZ'])S.holes.modelPreview.look[key]=actual[key];
-        S.holes.modelPreview.randomAxis=false;
+      if(/^holes\.(modelPreview|tierModels\.\d+)\.look\.rot[XYZ]$/.test(path)&&controlModel.randomAxis){
+        const actual=AsgardModelPreview.hole(controlModel);
+        for(const key of ['rotX','rotY','rotZ'])controlModel.look[key]=actual[key];
+        controlModel.randomAxis=false;
       }
+      if(controlModel&&/^holes\.(modelPreview|tierModels\.\d+)\.look\.rot[XYZ]$/.test(path)&&'skyRandomAxis' in controlModel)controlModel.skyRandomAxis=false;
       const manualAxis=['holes.referencePreview.tilt','holes.referencePreview.axisY','holes.referencePreview.axisZ','holes.referencePreview.view3d'].includes(path);
       if(manualAxis && S.holes.orientation.random){
         Object.assign(S.holes.referencePreview,AsgardVariants.orientationFor(S.holes.referenceGrowth.streamerId,S.holes.orientation.seed));
@@ -153,16 +154,16 @@ function wire(el){
         const growth=el.querySelector('[data-p="holes.referenceGrowth.on"]');if(growth)growth.checked=false;
       }
       if(S.holes.together?.on&&path==='holes.referenceGrowth.views'){S.holes.referenceGrowth.on=true;S.holes.together.variety=false;}
-      if(S.holes.together?.on&&path==='holes.modelPreview.growth.views'){S.holes.modelPreview.growth.on=true;S.holes.together.variety=false;}
-      if(path==='holes.modelPreview.look.diskOut')S.holes.modelPreview.growth.on=false;
+      if(S.holes.together?.on&&(controlModel&&path.endsWith('.growth.views'))){controlModel.growth.on=true;S.holes.together.variety=false;}
+      if((controlModel&&path.endsWith('.look.diskOut')))controlModel.growth.on=false;
       setPath(o, p, v);
       if(path==='holes.behavior.speed'&&S.holes.together)S.holes.together.speed=v;
       if(path==='holes.together.speed')S.holes.behavior.speed=v;
       if(path==='holes.behavior.driftViews'&&S.holes.together)S.holes.together.drift=v;
       if(path==='holes.together.drift')S.holes.behavior.driftViews=v;
       if(path==='holes.together.variety'||path==='holes.together.variedFollowers'){change();render();return;}
-      if(/^holes\.modelPreview\.growth\.ring(Start|End)$/.test(path))AsgardModelPreview.setEndpoint(S.holes.modelPreview,path.split('.').pop(),v);
-      if(path==='holes.modelPreview.look.diskIn')S.holes.modelPreview.growth=AsgardModelPreview.growth(S.holes.modelPreview);
+      if(/^holes\.(modelPreview|tierModels\.\d+)\.growth\.ring(Start|End)$/.test(path))AsgardModelPreview.setEndpoint(controlModel,path.split('.').pop(),v);
+      if((controlModel&&path.endsWith('.look.diskIn')))controlModel.growth=AsgardModelPreview.growth(controlModel);
       if(/^holes\.referenceGrowth\.ring(Start|End)$/.test(path)){const g=S.holes.referenceGrowth;g.on=true;if(path.endsWith('Start')){g.ringEnd=Math.max(g.ringEnd,g.ringStart);g.views=21;}else{g.ringStart=Math.min(g.ringStart,g.ringEnd);g.views=149;}}
       const em = el.querySelector(`em[data-v="${CSS.escape(path)}"]`); if(em) em.textContent = fmtv(v, {step:+inp.step||0.01});
       if(/^look\.rot[XYZ]$/.test(path)) {o.angleManual=true;setAnglePractice(null);}
@@ -180,7 +181,7 @@ function wire(el){
   });
   el.querySelectorAll('details.grp').forEach(d => d.addEventListener('toggle', () => { ui.open[d.dataset.k] = d.open; store.set(KEY+'-ui', ui); }));
 }
-function refreshValues(){ const live=referenceLiveSettings();$$('#panel [data-p]').forEach(inp => { const [o,p] = root(inp.dataset.p); if(!o) return; const key=inp.dataset.p.slice('holes.referencePreview.'.length),use=inp.dataset.p.startsWith('holes.referencePreview.')&&['ringSize','density','tilt','axisY','axisZ','view3d'].includes(key); const modelAngle=(/^holes\.modelPreview\.look\.rot[XYZ]$/.test(inp.dataset.p)&&S.holes.modelPreview?.randomAxis)||(inp.dataset.p==='holes.modelPreview.look.diskOut'&&S.holes.modelPreview?.growth?.on); const v=modelAngle?AsgardModelPreview.hole(S.holes.modelPreview)[inp.dataset.p.split('.').pop()]:use?live[key]:getPath(o,p); if(inp.type==='range'){ inp.value=v; const em=$(`#panel em[data-v="${CSS.escape(inp.dataset.p)}"]`); if(em)em.textContent=fmtv(v,{step:+inp.step}); }else if(inp.type==='checkbox')inp.checked=!!v; }); }
+function refreshValues(){ const live=referenceLiveSettings();$$('#panel [data-p]').forEach(inp => { const [o,p] = root(inp.dataset.p); if(!o) return; const controlModel=modelAtPath(inp.dataset.p); const key=inp.dataset.p.slice('holes.referencePreview.'.length),use=inp.dataset.p.startsWith('holes.referencePreview.')&&['ringSize','density','tilt','axisY','axisZ','view3d'].includes(key); const modelAngle=(/^holes\.(modelPreview|tierModels\.\d+)\.look\.rot[XYZ]$/.test(inp.dataset.p)&&controlModel?.randomAxis)||(inp.dataset.p.endsWith('.look.diskOut')&&controlModel?.growth?.on); const v=modelAngle?AsgardModelPreview.hole(controlModel)[inp.dataset.p.split('.').pop()]:use?live[key]:getPath(o,p); if(inp.type==='range'){ inp.value=v; const em=$(`#panel em[data-v="${CSS.escape(inp.dataset.p)}"]`); if(em)em.textContent=fmtv(v,{step:+inp.step}); }else if(inp.type==='checkbox')inp.checked=!!v; }); }
 
 /* ---------------- sections ---------------- */
 function head(eyebrow, title, note){ return `<div class="eyebrow">${eyebrow}</div><h2>${title}</h2>${note?`<p class="note">${note}</p>`:''}`; }
@@ -230,12 +231,17 @@ const LOOK = {
   finish: [R('look.exposure','Exposure',.2,3,.01), R('look.form','Fully formed',0,1,.01)],
   pair: [SEL('look.pair','Two holes orbiting (never merge)',[[0,'Off'],[1,'On']]), R('look.pairRatio','Second hole size',.15,1,.01), R('look.pairSep','Distance apart',1.6,8,.05), R('look.pairSpeed','Orbit speed',0,2,.01), R('look.pairTilt','Orbit tilt (0 = flat line)',0,1,.01)],
 };
+function currentModel(){return AsgardModelPreview.active(S.holes);}
+function modelAtPath(path){const m=path.match(/^holes\.(modelPreview|tierModels\.\d+)/);return m?getPath(S.holes,m[1]):null;}
+function currentModelPath(){return AsgardModelPreview.modelPath(S.holes.quickTier>=3?S.holes.quickTier:3);}
 function useModelPreview(item){
-  const hs=S.holes;hs.modelDrafts ||= {};
-  if(hs.modelPreview)hs.modelDrafts[hs.modelPreview.id]=clone(hs.modelPreview);
-  hs.quickTier=3;
-  hs.modelPreview=hs.modelDrafts[item.id]?{...clone(hs.modelDrafts[item.id]),on:true}:AsgardModelPreview.create(item,hs.referencePreview);
-  if(!hs.modelPreview)return;
+  const hs=S.holes,tier=hs.quickTier>=3?hs.quickTier:3,previous=AsgardModelPreview.forTier(hs,tier);hs.modelDrafts ||= {};
+  const key=id=>tier===3?id:'tier'+tier+':'+id;
+  if(previous)hs.modelDrafts[key(previous.id)]=clone(previous);
+  const next=hs.modelDrafts[key(item.id)]?{...clone(hs.modelDrafts[key(item.id)]),on:true}:AsgardModelPreview.create(item,{...hs.referencePreview,radius:previous?.look.size});
+  if(!next)return;
+  if(tier>=4){next.tier=tier;next.growth=AsgardModelPreview.growth(next);}
+  AsgardModelPreview.put(hs,tier,next);AsgardModelPreview.select(hs,tier);
   if(hs.together)hs.together.on=false;
   for(const layer of S.bg.layers)if(layer.src===item.clip||layer.src===item.still){layer.visible=false;}
   setAnglePractice(null);change();$('#lib').hidden=true;showSec('holes');$('#panel').scrollTop=0;
@@ -243,7 +249,7 @@ function useModelPreview(item){
 }
 function tierQuickNav(){
   const stage=S.holes.quickTier||(S.holes.modelPreview?.on?3:(S.holes.referencePreview?.on?2:1));
-  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn acc" id="playBothTiers" ${S.holes.modelPreview?'':'disabled'}>${S.holes.together?.on?'All tiers drifting left → right':'▶ Run all tiers left → right'}</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · 150–499</button></div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
+  return `<div aria-label="Views tier selection" style="position:sticky;top:0;z-index:5;background:#13181c;padding:10px 0;border-bottom:1px solid #36424a"><b>Views tiers</b><div class="btnrow" style="margin-top:8px"><button class="btn acc" id="playBothTiers" ${S.holes.modelPreview?'':'disabled'}>${S.holes.together?.on?'All tiers drifting left → right':'▶ Run all tiers left → right'}</button></div><div class="btnrow" style="margin-top:8px"><button class="btn ${stage===1?'acc':''}" data-quick-tier="1">1 · 0–20</button><button class="btn ${stage===2?'acc':''}" data-quick-tier="2">2 · 21–149</button><button class="btn ${stage===3?'acc':''}" data-quick-tier="3" ${S.holes.modelPreview?'':'disabled'}>3 · 150–499</button>${S.holes.tierModels?.[4]?`<button class="btn ${stage===4?'acc':''}" data-quick-tier="4">4 · 500–1,999</button>`:''}</div><div class="btnrow" style="margin-top:8px"><button class="btn" data-jump="axis">Axis controls</button><button class="btn" data-jump="rings">Smallest / largest rings</button></div></div>`;
 }
 function playBothTiers(){
   if(!S.holes.modelPreview)return toast('Choose your tier 3 look first');
@@ -258,39 +264,40 @@ function secTogether(){
   const hs=S.holes;hs.together={followers:50,drift:true,speed:18,variety:true,variedFollowers:true,...hs.together};
   hs.modelPreview.growth=AsgardModelPreview.growth(hs.modelPreview);
   ui.open.togetherViews=true;ui.open.togetherMotion=true;
-  let h=head('LIVE SKY · ALL TIERS','All tiers drifting left → right','Diskless holes and both feeding tiers, with different view counts, follower sizes and fixed random angles. They leave at the right and return from the left.');
+  let h=head('LIVE SKY · ALL TIERS','All tiers drifting left → right','Diskless holes and your saved feeding tiers, with different view counts, follower sizes and fixed random angles. They leave at the right and return from the left.');
   if(!scene.engine.gl)h+='<p role="status" class="note">Tier 3 needs WebGL 2. This browser can only show the tier 2 renderer.</p>';
   h+=group('Sky population',[K('holes.together.variety','Mixed views · small, medium and large disks'),K('holes.together.variedFollowers','Different follower counts · different sphere sizes'),K('holes.together.drift','Drift left to right'),R('holes.together.speed','Drift speed',0,40,.5)],'togetherMotion');
   if(!hs.together.variedFollowers)h+=group('Follower size',[R('holes.together.followers','Followers for every hole',0,20000,1)],'togetherFollowers');
-  h+='<p class="note">Tier 1: 0–20 views, no disk. Tier 2: 21–149 views. Tier 3: 150–499 views. Views set the rings; followers set sphere size. Every streamer keeps its own angle.</p>';
+  h+='<p class="note">Tier 1: 0–20 views, no disk. Tier 2: 21–149 views. Tier 3: 150–499 views. '+(hs.tierModels?.[4]?'Tier 4: 500–1,999 views. ':'')+'Views set the rings; followers set sphere size. Every streamer keeps its own angle.</p>';
   if(!hs.together.variety){
     h+=group('Compare selected view counts',[R('holes.referenceGrowth.views','Tier 2 · preview views',21,149,1),R('holes.modelPreview.growth.views','Tier 3 · preview views',150,499,1)],'togetherViews');
     h+='<div class="btnrow"><button class="btn" id="bothSmall">Both smallest rings</button><button class="btn" id="bothLarge">Both largest rings</button></div>';
     h+=group('Follower size',[R('holes.together.followers','Followers for every hole',0,20000,1)],'togetherFollowers');
   }
+  if(hs.tierModels?.[4]&&!hs.together.variety)h+=group('Tier 4 view count',[R('holes.tierModels.4.growth.views','Tier 4 · preview views',500,1999,1)],'togetherViews4');
   h+=`<p class="note">Tier 2 ring limits: ${hs.referenceGrowth.ringStart.toFixed(2)} → ${hs.referenceGrowth.ringEnd.toFixed(2)}<br>Tier 3 ring limits: ${hs.modelPreview.growth.ringStart.toFixed(1)} → ${hs.modelPreview.growth.ringEnd.toFixed(1)}</p>`;
-  h+='<div class="btnrow"><button class="btn" data-quick-tier="1">Edit tier 1</button><button class="btn" data-quick-tier="2">Edit tier 2 · rings & axis</button><button class="btn" data-quick-tier="3">Edit tier 3 · rings & axis</button></div><p class="note">Whole sky returns to all tiers drifting left to right.</p>';
+  h+='<div class="btnrow"><button class="btn" data-quick-tier="1">Edit tier 1</button><button class="btn" data-quick-tier="2">Edit tier 2 · rings & axis</button><button class="btn" data-quick-tier="3">Edit tier 3 · rings & axis</button>'+ (hs.tierModels?.[4]?'<button class="btn" data-quick-tier="4">Edit tier 4 · rings & axis</button>':'') +'</div><p class="note">Whole sky returns to all tiers drifting left to right.</p>';
   return h;
 }
 function secModelPreview(){
-  const m=S.holes.modelPreview,p='holes.modelPreview.',l=p+'look.';
+  const m=currentModel(),tier=m.tier||3,[startViews,endViews]=AsgardModelPreview.range(m),p=currentModelPath()+'.',l=p+'look.';
   S.holes.modelVariants ||= [];m.growth=AsgardModelPreview.growth(m);
   for(const key of ['modelSize','modelDisk','modelMotion','modelGrowth','modelAxisLimits'])if(ui.open[key]===undefined)ui.open[key]=true;
-  let h=head('LIVE 3D DRAFT',m.name,'The same animated model you chose in the library, now bending your live sky. Tier 2 is kept separately.');
+  let h=head('LIVE 3D DRAFT',m.name,'Views tier '+tier+' · '+startViews+'–'+endViews+' views. Live animation and light bending.');
   if(!scene.engine.gl)h+='<p role="status" class="note">This browser cannot display the 3D model because WebGL 2 is unavailable. Your settings remain editable.</p>';
   h+=`<div class="btnrow"><button class="btn" id="backToTier2">Back to tier 2</button><button class="btn" id="pickLib">Choose another 3D look</button></div>`;
-  h+=group('Smallest & largest ring · tier 3',[K(p+'growth.on','Grow the ring with views'),R(p+'growth.ringStart','Smallest ring · 150 views',3.2,40,.1),R(p+'growth.ringEnd','Largest ring · 499 views',3.2,40,.1),R(p+'growth.views','Preview views · tier 3',150,499,1)],'modelGrowth');
-  h+='<div class="btnrow"><button class="btn" id="modelSmall">Show smallest</button><button class="btn" id="modelLarge">Show largest</button></div><p id="modelGrowthReadout" class="note" role="status"></p><p class="note">Adjust either endpoint to preview it immediately. The ring grows between your two sizes; the black sphere keeps its follower size.</p>';
-  h+=group('Angle & axis',[K(p+'randomAxis','Different fixed axis for each streamer'),SEL(p+'streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),R(l+'rotX','View angle · side to above',3,90,1),R(l+'rotY','Turn the disk axis left / right',-80,80,1),R(l+'rotZ','Rotate the whole axis on screen',-180,180,1)],'modelAxisLimits');
+  h+=group('Smallest & largest ring · tier '+tier,[K(p+'growth.on','Grow the ring with views'),R(p+'growth.ringStart','Smallest ring · '+startViews+' views',3.2,40,.1),R(p+'growth.ringEnd','Largest ring · '+endViews+' views',3.2,40,.1),R(p+'growth.views','Preview views · tier '+tier,startViews,endViews,1)],'modelGrowth');
+  h+='<div class="btnrow"><button class="btn" id="modelSmall">Show smallest</button><button class="btn" id="modelLarge">Show largest</button>'+ (tier===4&&!m.growth.endChosen?'<p class="note">Starting look at 500 views. Choose Largest ring when you decide the end look.</p>':'') +'</div><p id="modelGrowthReadout" class="note" role="status"></p><p class="note">Adjust either endpoint to preview it immediately. The ring grows between your two sizes; the black sphere keeps its follower size.</p>';
+  h+=group('Angle & axis',[K(p+'randomAxis','Different fixed axis for each streamer'),...(tier>=4?[K(p+'skyRandomAxis','Different fixed axes in the drifting sky')]:[]),SEL(p+'streamerId','Preview a different streamer',scene.contacts.map(c=>[c.id,c.name])),R(l+'rotX','View angle · side to above',3,90,1),R(l+'rotY','Turn the disk axis left / right',-80,80,1),R(l+'rotZ','Rotate the whole axis on screen',-180,180,1)],'modelAxisLimits');
   h+=group('Entire black hole',[R(l+'size','Entire black hole size',12,80,.5),R(p+'x','Move left / right',0,1,.005),R(p+'y','Move up / down',.05,.65,.005)],'modelSize');
-  h+=group('Ring size & density',[R(l+'diskOut','Current ring size · manual',3.2,40,.1),R(l+'diskIn','Inner edge of disk',2,8,.05),R(l+'diskOpacity','Gas density / opacity',0,1,.01),R(l+'diskThick','Disk thickness',.005,.3,.005)],'modelDisk');
+  h+=group('Ring size & density',[R(l+'diskOut','Current ring size · manual',3.2,40,.1),R(l+'diskIn','Inner edge of disk',1.5,8,.05),R(l+'diskOpacity','Gas density / opacity',0,1,.01),R(l+'diskThick','Disk thickness',.005,.3,.005)],'modelDisk');
   h+=group('Spin & drift',[R(l+'diskSpin','Ring spinning speed',0,4,.05),SEL(l+'diskDir','Spin direction',[[1,'Forward'],[-1,'Reverse']]),K(p+'drift','Let this black hole drift'),R(p+'driftSpeed','Drifting speed',0,3,.05)],'modelMotion');
   h+='<p class="note">The disk revolves while its axis stays fixed. Angle sliders switch to manual.</p>';
   h+=group('Color & glow',[C(l+'diskColorIn','Inner gas color'),C(l+'diskColorOut','Outer gas color'),R(l+'diskBright','Disk glow / brightness',0,6,.05),R(l+'diskFalloff','Fade toward the outer edge',.1,5,.05),R(l+'glow','Glow around the disk',0,2,.01),C(l+'glowColor','Outer glow color')],'modelColor');
-  h+=group('Inner rings & fine detail',[R(l+'ring','Inner ring brightness',0,4,.05),R(l+'ringWidth','Inner ring thickness',.01,.5,.01),C(l+'ringColor','Inner ring color'),R(l+'corona','Soft light around the edge',0,2,.01),R(l+'coronaWidth','Soft light width',.1,3,.05),R(l+'diskTexture','Gas texture',0,1,.01),R(l+'diskStreaks','Fine gas streaks',0,1,.01),R(l+'doppler','Bright side of the spinning disk',0,1,.01)],'modelDetail');
+  h+=group('Inner rings & fine detail',[R(l+'ring','Inner ring brightness',0,4,.05),R(l+'ringWidth','Inner ring thickness',.01,.5,.01),C(l+'ringColor','Inner ring color'),R(l+'corona','Soft light around the edge',0,2,.01),R(l+'coronaWidth','Soft light width',.1,3,.05),R(l+'diskTexture','Gas texture',0,1,.01),R(l+'diskStreaks','Fine gas streaks',0,1,.01),R(l+'doppler','Bright side of the spinning disk',0,1,.01),...(tier>=4?[R(l+'secondaryLight','Lower lensed arc brightness',0,1,.01)]:[])],'modelDetail');
   h+=group('Live light bending',[R(l+'lens','Lensing strength',0,2,.01),R(l+'reach','Lensing reach',.1,1.5,.01),R(l+'edgeWidth','Outer lens blending',.5,6,.05)],'modelLens');
   h+=group('Jets',[R(l+'jets','Jet intensity',0,2,.05),R(l+'jetLen','Jet length',1,30,.5),R(l+'jetWidth','Jet width',.1,3,.05),C(l+'jetColor','Jet color')],'modelJets');
-  h+=`<section class="grp"><div class="gb"><h3>Save this look</h3><p class="hint">Changes save automatically to the shared studio. Save a variant to keep another version.</p><select id="modelVariant" aria-label="Saved 3D variants"><option value="">Current working look</option>${S.holes.modelVariants.map(v=>`<option value="${esc(v.id)}" ${m.variantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="modelVariantName" aria-label="3D variant name" placeholder="Name this variant" maxlength="80"><div class="btnrow"><button class="btn acc" id="saveModelVariant">Save new variant</button><button class="btn" id="updateModelVariant" ${m.variantId?'':'disabled'}>Update saved</button><button class="btn" id="resetModel">Restore library look</button></div></div></section>`;
+  h+=`<section class="grp"><div class="gb"><h3>Save this look</h3>${m.referenceStill?`<details><summary>Starting reference · 500 views</summary><img src="${esc(m.referenceStill)}" alt="Danny’s Tier 4 starting reference" style="max-width:100%;border-radius:8px"></details>`:''}<p class="hint">Changes save automatically to the shared studio. Save a variant to keep another version.</p><select id="modelVariant" aria-label="Saved 3D variants"><option value="">Current working look</option>${S.holes.modelVariants.filter(v=>(v.settings.tier||3)===tier).map(v=>`<option value="${esc(v.id)}" ${m.variantId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select><input id="modelVariantName" aria-label="3D variant name" placeholder="Name this variant" maxlength="80"><div class="btnrow"><button class="btn acc" id="saveModelVariant">Save new variant</button><button class="btn" id="updateModelVariant" ${m.variantId?'':'disabled'}>Update saved</button><button class="btn" id="resetModel">Restore starting look</button></div></div></section>`;
   return h;
 }
 function secQuietPreview(){
@@ -304,7 +311,7 @@ function secHoles(){
   if(hs.together?.on && hs.modelPreview)h+=secTogether();
   if(hs.active==='viewers'){
     const tier=hs.quickTier||(hs.modelPreview?.on?3:hs.referencePreview?.on?2:0);
-    if(tier)h+=tier===1?secQuietPreview():tier===3&&hs.modelPreview?secModelPreview():secReferencePreview();
+    if(tier)h+=tier===1?secQuietPreview():tier>=3&&currentModel()?secModelPreview():secReferencePreview();
   }
   return h+secSavedHoleControls();
 }
@@ -408,32 +415,30 @@ function bindPanel(p){
   p.querySelectorAll('[data-dash]').forEach(b=>b.onclick=()=>{ S.holes.active=b.dataset.dash;S.holes.selTier=0;S.holes.quickTier=0;if(S.holes.together)S.holes.together.on=false;if(S.holes.modelPreview)S.holes.modelPreview.on=false;S.holes.referencePreview.on=false;S.holes.mode='sky';change();render(); });
   p.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{ S.holes.mode=b.dataset.view; change(); render(); });
   const tp=p.querySelector('#tPrev'), tnx=p.querySelector('#tNext'); if(tp) tp.onclick=()=>{ S.holes.selTier=Math.max(0,S.holes.selTier-1); change(); render(); }; if(tnx) tnx.onclick=()=>{ S.holes.selTier=Math.min(S.holes.dashboards[S.holes.active].tiers.length-1,S.holes.selTier+1); change(); render(); };
-  p.querySelectorAll('[data-tier]').forEach(b=>b.onclick=e=>{ if(e.target.tagName==='INPUT') return; S.holes.selTier=+b.dataset.tier; if(!S.holes.mode.startsWith('friends')) S.holes.mode='focus'; change(); render(); });
+  p.querySelectorAll('[data-tier]').forEach(b=>b.onclick=e=>{ if(e.target.tagName==='INPUT') return; S.holes.selTier=+b.dataset.tier;if(S.holes.active==='viewers'&&AsgardModelPreview.forTier(S.holes,S.holes.selTier+1))AsgardModelPreview.select(S.holes,S.holes.selTier+1); if(!S.holes.mode.startsWith('friends')) S.holes.mode='focus'; change(); render(); });
   p.querySelectorAll('[data-start]').forEach(inp=>inp.onchange=()=>{ const i=+inp.dataset.start, ts=S.holes.dashboards[S.holes.active].tiers; let v=Math.max(0,Math.round(+inp.value)); const lo=ts[i-1].start+1, hiV=i<ts.length-1?ts[i+1].start-1:1e9; v=clamp(v,lo,hiV); ts[i].start=v; inp.value=v; change(); });
   p.querySelectorAll('[data-cnt]').forEach(inp=>inp.onchange=()=>{ scene.contacts[+inp.dataset.cnt].counts[S.holes.active]=Math.max(0,+inp.value); render(); });
   const on=(id,f)=>{ const e=p.querySelector('#'+id); if(e) e.onclick=f; };
   p.querySelectorAll('[data-quick-tier]').forEach(b=>b.onclick=()=>{
-    const tier=+b.dataset.quickTier;S.holes.quickTier=tier;S.holes.active='viewers';S.holes.selTier=tier-1;if(!S.holes.together?.on)S.holes.mode='focus';
-    if(S.holes.modelPreview)S.holes.modelPreview.on=tier===3;
-    S.holes.referencePreview.on=tier===2;
+    const tier=+b.dataset.quickTier;AsgardModelPreview.select(S.holes,tier);if(!S.holes.together?.on)S.holes.mode='focus';
     setAnglePractice(null);change();render();$('#panel').scrollTop=0;
   });
   p.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>AsgardStudioLayout.select(b.dataset.jump==='axis'?'Angles & axes':'Ring growth with views'));
   on('playBothTiers',playBothTiers);
   on('bothSmall',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;S.holes.modelPreview.growth.on=true;S.holes.modelPreview.growth.views=150;change();refreshValues();});
   on('bothLarge',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=149;S.holes.modelPreview.growth.on=true;S.holes.modelPreview.growth.views=499;change();refreshValues();});
-  on('modelSmall',()=>{const g=S.holes.modelPreview.growth;g.on=true;g.views=150;change();refreshValues();referenceReadout();});
-  on('modelLarge',()=>{const g=S.holes.modelPreview.growth;g.on=true;g.views=499;change();refreshValues();referenceReadout();});
+  on('modelSmall',()=>{const m=currentModel(),g=m.growth;g.on=true;g.views=AsgardModelPreview.range(m)[0];change();refreshValues();referenceReadout();});
+  on('modelLarge',()=>{const m=currentModel(),g=m.growth;g.on=true;g.views=AsgardModelPreview.range(m)[1];change();refreshValues();referenceReadout();});
   on('tier2Start',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=21;change();refreshValues();referenceReadout();});
   on('tier2End',()=>{S.holes.referenceGrowth.on=true;S.holes.referenceGrowth.views=149;change();refreshValues();referenceReadout();});
-  on('backToTier2',()=>{S.holes.quickTier=2;S.holes.modelPreview.on=false;S.holes.referencePreview.on=true;change();render();$('#panel').scrollTop=0;});
-  on('resumeModel',()=>{S.holes.quickTier=3;S.holes.modelPreview.on=true;change();render();$('#panel').scrollTop=0;});
-  on('resetModel',()=>{const m=S.holes.modelPreview,item=LIB.find(x=>x.id===m.id);if(!item)return;S.holes.modelPreview=AsgardModelPreview.create(item,{radius:m.look.size,x:m.x,y:m.y});change();render();});
+  on('backToTier2',()=>{AsgardModelPreview.select(S.holes,2);change();render();$('#panel').scrollTop=0;});
+  on('resumeModel',()=>{AsgardModelPreview.select(S.holes,3);change();render();$('#panel').scrollTop=0;});
+  on('resetModel',()=>{const m=currentModel(),tier=m.tier||3,item=LIB.find(x=>x.id===m.id);let next;if(m.originalLook){next=clone(m);next.look={...clone(m.originalLook),size:m.look.size};next.growth={on:true,views:AsgardModelPreview.range(m)[0],ringStart:next.look.diskOut,ringEnd:next.look.diskOut,endChosen:false};}else if(item){next=AsgardModelPreview.create(item,{radius:m.look.size,x:m.x,y:m.y});next.tier=tier;}if(!next)return;AsgardModelPreview.put(S.holes,tier,next);change();render();});
   const modelSelect=p.querySelector('#modelVariant');
-  if(modelSelect)modelSelect.onchange=()=>{const v=S.holes.modelVariants.find(v=>v.id===modelSelect.value);if(!v)return;S.holes.modelPreview={...clone(v.settings),on:true,variantId:v.id};change();render();};
-  on('saveModelVariant',()=>{const id='model-'+Date.now().toString(36),name=p.querySelector('#modelVariantName').value.trim()||S.holes.modelPreview.name+' variant';S.holes.modelPreview.variantId=id;S.holes.modelVariants.push({id,name,settings:clone(S.holes.modelPreview)});change();render();toast('3D variant saved');});
-  on('updateModelVariant',()=>{const v=S.holes.modelVariants.find(v=>v.id===S.holes.modelPreview.variantId);if(!v)return;v.name=p.querySelector('#modelVariantName').value.trim()||v.name;v.settings=clone(S.holes.modelPreview);change();render();toast('3D variant updated');});
-  on('newHoleAxes',()=>{S.holes.orientation.seed=(S.holes.orientation.seed||1)+1;S.holes.orientation.random=true;if(S.holes.modelPreview){S.holes.modelPreview.randomAxis=true;S.holes.modelPreview.seed=S.holes.orientation.seed;}change();render();});
+  if(modelSelect)modelSelect.onchange=()=>{const v=S.holes.modelVariants.find(v=>v.id===modelSelect.value);if(!v)return;AsgardModelPreview.put(S.holes,S.holes.quickTier||3,{...clone(v.settings),on:true,variantId:v.id});change();render();};
+  on('saveModelVariant',()=>{const id='model-'+Date.now().toString(36),name=p.querySelector('#modelVariantName').value.trim()||currentModel().name+' variant';currentModel().variantId=id;S.holes.modelVariants.push({id,name,settings:clone(currentModel())});change();render();toast('3D variant saved');});
+  on('updateModelVariant',()=>{const v=S.holes.modelVariants.find(v=>v.id===currentModel().variantId);if(!v)return;v.name=p.querySelector('#modelVariantName').value.trim()||v.name;v.settings=clone(currentModel());change();render();toast('3D variant updated');});
+  on('newHoleAxes',()=>{S.holes.orientation.seed=(S.holes.orientation.seed||1)+1;S.holes.orientation.random=true;for(const m of [S.holes.modelPreview,...Object.values(S.holes.tierModels||{})].filter(Boolean)){m.randomAxis=true;if('skyRandomAxis' in m)m.skyRandomAxis=true;m.seed=S.holes.orientation.seed;}change();render();});
   const refSelect=p.querySelector('#refVariant');
   if(refSelect)refSelect.onchange=()=>{const v=S.holes.referenceVariants.find(v=>v.id===refSelect.value);if(!v)return;S.holes.referencePreview={...clone(v.settings),on:true};S.holes.orientation.random=false;S.holes.referenceGrowth.on=false;S.holes.referenceVariantId=v.id;change();render();};
   on('saveRefVariant',()=>{
@@ -446,7 +451,7 @@ function bindPanel(p){
   on('pickLib', ()=>openLib('tier')); on('pickLegacyLib', ()=>openLib('tier'));
   on('formPrev', ()=>{ S.holes.mode='focus'; applyToScene(); let t0=performance.now(); const L=curLook(); const step=()=>{ const k=Math.min(1,(performance.now()-t0)/1000/Math.max(.3,S.holes.behavior.formSeconds)); scene.formPreview=k*k*(3-2*k); if(k<1) requestAnimationFrame(step); else scene.formPreview=1; }; step(); });
   on('copyTier', ()=>{ lookClip=clone(curLook()); toast('Look copied'); });
-  on('pasteTier', ()=>{ if(!lookClip) return toast('Copy a look first'); const target=S.holes.active==='viewers'&&S.holes.quickTier===3&&S.holes.modelPreview?S.holes.modelPreview:curTier();const keep={size:target.look.size};target.look=Object.assign(clone(lookClip),keep);change();render(); });
+  on('pasteTier', ()=>{ if(!lookClip) return toast('Copy a look first'); const target=S.holes.active==='viewers'&&S.holes.quickTier>=3&&currentModel()?currentModel():curTier();const keep={size:target.look.size};target.look=Object.assign(clone(lookClip),keep);change();render(); });
   const tn=p.querySelector('#tierName'); if(tn) tn.onchange=()=>{ curTier().name=tn.value; change(); render(); };
   const ts=p.querySelector('#tierSecs'); if(ts) ts.oninput=()=>{ curTier().seconds=+ts.value; ts.previousElementSibling.querySelector('em').textContent=ts.value; change(); };
   // background
@@ -499,17 +504,17 @@ function renderDetail(x){
   h += x.clip ? `<video id="libSourceVideo" src="${x.clip}" poster="${x.still}" autoplay muted loop playsinline controls></video><p id="libSourceError" class="note" hidden>Source clip unavailable. The animated 3D model below works independently.</p>` : `<img src="${x.still}" style="width:100%;border-radius:10px">`;
   if(pr){ h += `<p style="margin:12px 0 4px">Rebuilt in 3D with real light bending:</p><div class="compare"><canvas id="cmpCv" style="width:100%;height:100%"></canvas></div>`; }
   h += `<div class="btnrow" style="margin-top:12px">`;
-  if(pr) h += `<button class="btn acc" id="useModel">Use animated 3D in sky</button><button class="btn" id="useTier">Use for ${DASH[S.holes.active]} tier ${S.holes.selTier+1}</button>`;
+  if(pr) h += `<button class="btn acc" id="useModel">${S.holes.active==='viewers'&&S.holes.quickTier>=3?'Use animated 3D for tier '+S.holes.quickTier:'Use animated 3D in sky'}</button><button class="btn" id="useTier">Use for ${DASH[S.holes.active]} tier ${S.holes.selTier+1}</button>`;
   if(x.clip) h += `<button class="btn" id="addClip">Add source clip as background</button>`;
   h += `<button class="btn" id="addStill">Add source still as background</button>`;
   h += `<button class="btn" id="dlStill">Download still</button>` + (x.clip?`<button class="btn" id="dlClip">Download clip</button>`:'');
   h += `</div>`;
-  if(pr) h += `<p class="note">Use animated 3D in sky opens this spinning model with its own controls. It does not change an assigned tier. Source clip/still buttons add the original footage as a background.</p>`;
+  if(pr) h += `<p class="note">Use animated 3D in sky opens this spinning model in the selected Views tier’s own controls. Source clip/still buttons add the original footage as a background.</p>`;
   $('#libDetail').innerHTML = h;
   const source=$('#libSourceVideo');if(source)source.onerror=()=>{source.hidden=true;$('#libSourceError').hidden=false;};
   if(pr){ const cv=$('#cmpCv'); const r=cv.getBoundingClientRect(); try{ cmpScene = cmpScene || null; const eng=new BH.BHScene(cv,{scale:Math.min(2,devicePixelRatio||1)}); eng.resize(r.width,r.height); const im=new Image(); im.onload=()=>{ eng.setBackground('A',im); eng.coverFit('A'); const loop=t=>{ if(!document.body.contains(cv)) return; eng.holes=[Object.assign({},BH.BH_PRESETS[pr],{x:.5,y:.5,size:Math.min(r.width,r.height)*.11})]; eng.render(t/1000); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }; im.src='bg/bg13.jpg'; }catch(e){ console.warn(e); } }
   const model=$('#useModel');if(model)model.onclick=()=>useModelPreview(x);
-  const u=$('#useTier'); if(u) u.onclick=()=>{ const t=curTier(); const keep={size:t.look.size, faceAmt:t.look.faceAmt}; t.look=Object.assign({}, BH.BH_DEFAULTS, clone(BH.BH_PRESETS[pr]), keep); t.libId=x.id; S.holes.mode='focus'; change(); $('#lib').hidden=true; showSec('holes'); toast(`Tier ${S.holes.selTier+1} is now “${x.name}”`); };
+  const u=$('#useTier'); if(u) u.onclick=()=>{ if(S.holes.active==='viewers'&&S.holes.quickTier>=3){useModelPreview(x);return;} const t=curTier(); const keep={size:t.look.size, faceAmt:t.look.faceAmt}; t.look=Object.assign({}, BH.BH_DEFAULTS, clone(BH.BH_PRESETS[pr]), keep); t.libId=x.id; S.holes.mode='focus'; change(); $('#lib').hidden=true; showSec('holes'); toast(`Tier ${S.holes.selTier+1} is now “${x.name}”`); };
   const ac=$('#addClip'); if(ac) ac.onclick=()=>addLayer({ name:x.name, src:x.clip, thumb:x.thumb, cycle:false });
   $('#addStill').onclick=()=>addLayer({ name:x.name, src:x.still, thumb:x.thumb, cycle:true });
   $('#dlStill').onclick=async()=>saveFile(x.id+'.jpg', await (await fetch(x.still)).blob());

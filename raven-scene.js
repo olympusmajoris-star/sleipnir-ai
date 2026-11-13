@@ -510,7 +510,7 @@ class RavenScene {
       }
       return;
     }
-    if(this.s.holes.modelPreview?.on||this.s.holes.quickTier===1)return;
+    if(G.AsgardModelPreview?.active(this.s.holes)?.on||this.s.holes.quickTier===1)return;
     if(this.s.holes.referencePreview?.on && G.AsgardReference){
       fx.style.mixBlendMode='normal';
       this.referenceHole ||= new G.AsgardReference.ReferenceHole();
@@ -594,7 +594,7 @@ class RavenScene {
   }
   _updateFeed(dt) {
     const F = this.s.holes.feed; this.feed = this.feed || []; this._fuel = this._fuel || {};
-    if(this.s.holes.together?.on||this.s.holes.referencePreview?.on||this.s.holes.modelPreview?.on||this.s.holes.quickTier===1){this.feed.length=0;return;}
+    if(this.s.holes.together?.on||this.s.holes.referencePreview?.on||G.AsgardModelPreview?.active(this.s.holes)?.on||this.s.holes.quickTier===1){this.feed.length=0;return;}
     if (!F || F.on === false) { this.feed.length = 0; return; }
     const holes = (this.engine.holes || []).filter(h => h._fid && h.size > 0 && h._vi >= 0).map(h => ({ id: h._fid, vi: h._vi, x: h.x * W, y: h.y * H, size: h.size, dir: h.diskDir || 1, rotZ: (h.rotZ || 0) * Math.PI / 180, flat: 0.3 + 0.28 * Math.abs(Math.sin((h.rotX || 15) * Math.PI / 180)) }));
     const byId = {}; for (const h of holes) { byId[h.id] = h; this._fuel[h.id] = Math.min(1, (this._fuel[h.id] || 0) + dt * 0.35); }
@@ -1041,18 +1041,19 @@ class RavenScene {
         const followers=hs.together.followers??50;
         const radius=this.friendSizeAt(tierAt(hs.dashboards.friends.tiers,followers))*(hs.behavior.sizeScale??1);
         const pair=this._together=G.AsgardModelPreview.together(hs,this.time,radius);
-        this.engine.holes=[pair.model,pair.quiet];
+        this.engine.holes=[pair.model,pair.quiet,...(pair.extra?[pair.extra]:[])];
         this._tagged=[
           {c:{id:'tier1'},x:pair.quiet.x*W,y:pair.quiet.y*H,r:radius,form:1,label:'Tier 1',sub:'0–20 views',tier:1},
           {c:{id:pair.id2,counts:{viewers:pair.views2}},x:pair.reference.x*W,y:pair.reference.y*H,r:radius,form:1,label:'Tier 2',sub:pair.views2+' views',tier:2},
           {c:{id:pair.id3,counts:{viewers:pair.views3}},x:pair.model.x*W,y:pair.model.y*H,r:radius,form:1,label:'Tier 3',sub:pair.views3+' views',tier:3}
         ];
+        if(pair.extra)this._tagged.push({c:{id:pair.extra._fid,counts:{viewers:pair.views4,followers}},x:pair.extra.x*W,y:pair.extra.y*H,r:radius,form:1,label:'Tier 4',sub:pair.views4+' views',tier:4});
         }
       }else if(this.s.holes.quickTier===1 && G.AsgardModelPreview){
         this.engine.holes=[G.AsgardModelPreview.quiet(this.s.holes)];this._tagged=[];
-      }else if(this.s.holes.modelPreview?.on && G.AsgardModelPreview){
+      }else if(G.AsgardModelPreview?.active(this.s.holes)?.on){
         // Match the library's 3D preview; legacy clip/fuel rules must not erase its disk.
-        this.engine.holes=[G.AsgardModelPreview.hole(this.s.holes.modelPreview,this.time)];this._tagged=[];
+        this.engine.holes=[G.AsgardModelPreview.hole(G.AsgardModelPreview.active(this.s.holes),this.time)];this._tagged=[];
       }else if(this.s.holes.referencePreview?.on && G.AsgardReference){
         this.engine.holes=[];this._tagged=[];
       }else{
