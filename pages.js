@@ -487,6 +487,89 @@ PAGES.track = { title:'Track', defaults:{ bg:'#020408' }, sections:[{id:'rocks',
 for(const P of Object.values(PAGES)){P.sections=P.sections.filter(s=>s.id!=='dock');if(!P.sections.some(s=>s.id==='rocks'))P.sections.push({id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]});}
 const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:STUDIO+'navigation/rocks-v1/',page:'home',shareAvailable:true,onNavigate:openPage});
 window.asgardRockNavigation = ROCK_NAV;
+/* ======================= STORE PAGE (one design per store) ======================= */
+const STORE = { id: new URLSearchParams(location.search).get('store') || '', row: null, items: [], loading: false };
+async function loadStore(){
+  if(!STORE.id || STORE.loading || STORE.row) return; STORE.loading = true;
+  try {
+    const r = await fetch(SB.url + '/rest/v1/stores?id=eq.' + STORE.id + '&select=id,name,logo_url,category,address,is_valhalla', { headers: H() });
+    if(r.ok){ const j = await r.json(); STORE.row = j[0] || null; }
+    const p = await fetch(SB.url + '/rest/v1/products?store_id=eq.' + STORE.id + '&select=name,price,image_url,category&order=section_rank.asc.nullslast,sort_order.asc.nullslast&limit=80', { headers: H() });
+    if(p.ok) STORE.items = (await p.json()).map(x => ({ name: x.name, price: +x.price || 0, img: fixUrl(x.image_url), cat: x.category }));
+  } catch(e){}
+  STORE.loading = false;
+}
+const docId = (page) => page === 'store' ? 'page_store_' + STORE.id : 'page_' + page;
+Object.assign(PAGES, {
+  store: {
+    title: 'Store page',
+    defaults: {
+      bg: BG('#0a0b0e'),
+      sky: { show: true, height: 0.27, image: 6, custom: '', bright: 0.9, drift: 6, fade: 0.3 },
+      streams: { on: true, count: 2, size: 26, speed: 12, faces: true },
+      clouds: { on: false, count: 3, speed: 1, size: 1, opacity: 0.6 },
+      raven: { on: false, every: 9, size: 46 },
+      heimdall: { on: false, every: 14, size: 0.5 },
+      head: { logo: 64, round: true, showAddr: true, nameT: TXT(22, '#f2e6cf', { font: 'Cinzel', weight: 800 }), addrT: TXT(11, '#aab3bf', { weight: 500 }) },
+      list: { layout: 'grid', cols: 2, margin: 14, gap: 12, ratio: 0.9, scroll: 12, photoBg: '#ffffff', photoPad: 8, card: BOX({ radius: 16 }), nameT: TXT(13, '#f2e6cf', { weight: 600 }), priceT: TXT(16, '#e9c46a', { weight: 800 }) },
+    },
+    sections: [
+      { id:'sky', name:'Sky', sub:'Space, your picture, fade', groups:[
+        { name:'Sky strip', ctrls:[K('sky.show','Show the sky'), R('sky.height','How tall',0.1,0.6,.005), R('sky.image','Space picture',1,23,1), U('sky.custom','Your own sky picture'), R('sky.bright','Brightness',0.2,1.6,.01), R('sky.drift','Drift speed',0,40,.5), R('sky.fade','Fade into the page',0,0.6,.01)] },
+        { name:'Page background', ctrls: bgC('bg') },
+      ]},
+      { id:'streams', name:'Live streams', sub:'Black holes over the store', groups:[
+        { name:'Black holes', ctrls:[K('streams.on','Show live streams'), R('streams.count','How many',0,4,1), R('streams.size','Size',10,60,1), R('streams.speed','Drift speed',0,60,1), K('streams.faces','Show faces')] },
+      ]},
+      { id:'events', name:'Clouds & Asgard events', sub:'Clouds, raven, Heimdall', groups:[
+        { name:'Clouds', ctrls:[K('clouds.on','Show clouds'), R('clouds.count','How many',0,8,1), R('clouds.speed','Speed',0,4,.01), R('clouds.size','Size',0.3,2.5,.01), R('clouds.opacity','See-through',0,1,.01)] },
+        { name:'Raven flies in with a message', ctrls:[K('raven.on','Show it'), R('raven.every','Every (seconds)',3,30,.5), R('raven.size','Size',20,120,1)] },
+        { name:'Heimdall rises on a notification', ctrls:[K('heimdall.on','Show it'), R('heimdall.every','Every (seconds)',4,40,.5), R('heimdall.size','Size',0.2,1,.01)] },
+      ]},
+      { id:'head', name:'Store name & logo', sub:'Header under the sky', groups:[
+        { name:'Logo', ctrls:[R('head.logo','Logo size',0,120,1), K('head.round','Round logo'), K('head.showAddr','Show the address')] },
+        { name:'Store name', ctrls: txtC('head.nameT','Name') }, { name:'Address', ctrls: txtC('head.addrT','Address') },
+      ]},
+      { id:'list', name:'Products', sub:'Grid or list of real items', groups:[
+        { name:'Layout', ctrls:[Sel('list.layout','Layout',[['grid','Grid'],['list','List (one per row)']]), R('list.cols','Columns (grid)',1,3,1), R('list.margin','Side margin',0,40,1), R('list.gap','Space between',0,40,1), R('list.ratio','Picture height (x width)',0.4,1.5,.01), R('list.scroll','Preview scroll speed',0,60,1), C('list.photoBg','Picture background'), R('list.photoPad','Picture padding',0,40,1), ...boxC('list.card','Card')] },
+        { name:'Product name', ctrls: txtC('list.nameT','Name') }, { name:'Price', ctrls: txtC('list.priceT','Price') },
+      ]},
+    ],
+    draw: drawStore,
+  },
+});
+function drawStore(x, t, S){
+  loadStore(); bgDraw(x, S.bg); const sk = S.sky, skyH = sk.show ? HH * sk.height : 0, L = S.list, Hd = S.head;
+  const st = STORE.row || { name: STORE.id ? 'Loading…' : 'Pick a store on the left', address: '', logo_url: '' };
+  // products scroll under the sky
+  const cols = L.layout === 'grid' ? Math.round(L.cols) : 1, cw = (W - L.margin * 2 - (cols - 1) * L.gap) / cols;
+  const ph = L.layout === 'list' ? cw * 0.28 * L.ratio : cw * L.ratio, info = 14 + L.nameT.size + 8 + L.priceT.size + 10, ch = L.layout === 'list' ? Math.max(ph + 20, info + 6) : ph + info;
+  const headH = Math.max(Hd.logo, 30) + 30, top = skyH + headH;
+  const n = STORE.items.length, rows = Math.ceil(n / cols), rowH = ch + L.gap, total = Math.max(1, rows * rowH), sc = rows > 3 ? (t * L.scroll) % total : 0;
+  x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
+  for(let rep = 0; rep < 2; rep++) for(let i = 0; i < n; i++){ const r = Math.floor(i / cols), c = i % cols, y = top + 8 + r * rowH - sc + rep * total; if(y > HH || y + ch < top) continue;
+    const it = STORE.items[i], X0 = L.margin + c * (cw + L.gap); box(x, X0, y, cw, ch, L.card);
+    const pw = L.layout === 'list' ? ph : cw, pX = L.layout === 'list' ? X0 + 10 : X0, pY = L.layout === 'list' ? y + 10 : y;
+    x.save(); if(L.layout === 'list') rr(x, pX, pY, pw, ph, 10); else rr(x, X0, y, cw, ph + L.card.radius, Math.min(L.card.radius, cw / 2)); x.clip(); x.fillStyle = L.photoBg; x.fillRect(pX, pY, pw, ph); if(it.img) contain(x, img(it.img), pX, pY, pw, ph, L.photoPad); x.restore();
+    const ix = L.layout === 'list' ? pX + pw + 12 : X0 + 10, iw = L.layout === 'list' ? cw - (ix - X0) - 10 : cw - 20; let yy = (L.layout === 'list' ? y + 4 : y + ph) + 12 + L.nameT.size;
+    tx(x, L.nameT, it.name, ix, yy, 'left', iw); yy += L.priceT.size + 8; if(it.price) tx(x, L.priceT, money(it.price), ix, yy); }
+  if(STORE.id && !n && !STORE.loading) tx(x, TXT(13, '#8a8f98'), 'No products for this store yet', W / 2, top + 60, 'center');
+  x.restore();
+  // header: logo + name + address
+  x.fillStyle = S.bg.color; x.fillRect(0, skyH, W, headH);
+  let nx = L.margin; if(Hd.logo > 0 && st.logo_url){ const lg = img(fixUrl(st.logo_url)); x.save(); const ly = skyH + (headH - Hd.logo) / 2; if(Hd.round){ x.beginPath(); x.arc(nx + Hd.logo / 2, ly + Hd.logo / 2, Hd.logo / 2, 0, 7); x.fillStyle = '#fff'; x.fill(); x.clip(); } contain(x, lg, nx, ly, Hd.logo, Hd.logo, Hd.round ? Hd.logo * 0.12 : 0); x.restore(); nx += Hd.logo + 12; }
+  tx(x, Hd.nameT, st.name, nx, skyH + headH / 2 + (Hd.showAddr ? -2 : Hd.nameT.size * 0.36), 'left', W - nx - 10);
+  if(Hd.showAddr && st.address) tx(x, Hd.addrT, st.address, nx, skyH + headH / 2 + Hd.addrT.size + 6, 'left', W - nx - 10);
+  // sky on top
+  if(sk.show){ const im = img(sk.custom || bgSrc(sk.image)); x.save(); x.beginPath(); x.rect(0, 0, W, skyH); x.clip(); x.filter = `brightness(${sk.bright})`; if(ok(im)){ const pan = (t * sk.drift) % 200; cover(x, im, -pan * 0.3 - 20, 0, W + 80, skyH); } x.filter = 'none';
+    const C2 = S.clouds; if(C2.on) for(let i = 0; i < C2.count; i++){ const ci = img(UI + 'raven_cloud_v20/' + CLOUDS[3 + (i % 3)] + '.webp'); if(!ok(ci)) continue; const cw2 = 150 * C2.size * (0.7 + 0.2 * (i % 3)), chh = cw2 * ci.naturalHeight / ci.naturalWidth, span = W + cw2 * 2; const cx2 = ((t * 9 * C2.speed * (0.6 + i * 0.13) + i * span / Math.max(1, C2.count)) % span) - cw2; x.save(); x.globalAlpha = C2.opacity; x.globalCompositeOperation = 'screen'; x.drawImage(ci, cx2, skyH * (0.15 + 0.5 * ((i * 0.37) % 1)) - chh / 2, cw2, chh); x.restore(); }
+    const Sm = S.streams; if(Sm.on) for(let i = 0; i < Sm.count; i++){ const sp = Sm.speed * (0.8 + i * 0.17), r = Sm.size * (0.8 + 0.25 * i) / 2, span = W + r * 6; const hx = W + r * 3 - ((t * sp + i * span / Math.max(1, Sm.count)) % span), hy = skyH * (0.3 + 0.4 * ((i * 0.618) % 1)); drawHole(x, hx, hy, r, Sm.faces ? NAMES[i] : null, t); }
+    const Hm = S.heimdall; if(Hm.on){ const man = img(UI + 'heimdall_void_v1.png'), per = Math.max(2, Hm.every), p = (t % per) / per, up = p < 0.15 ? p / 0.15 : p < 0.55 ? 1 : p < 0.7 ? 1 - (p - 0.55) / 0.15 : 0; if(ok(man) && up > 0){ const mh = skyH * 1.6 * Hm.size, mw = mh * man.naturalWidth / man.naturalHeight; x.globalAlpha = 0.9; x.drawImage(man, W * 0.72 - mw / 2, skyH - mh * up * 0.85, mw, mh); x.globalAlpha = 1; } }
+    x.restore();
+    if(sk.fade > 0){ const g = x.createLinearGradient(0, skyH - skyH * sk.fade, 0, skyH); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, S.bg.color); x.fillStyle = g; x.fillRect(0, skyH - skyH * sk.fade, W, skyH * sk.fade + 1); } }
+  const Rv = S.raven; if(Rv.on){ const ic = img(UI + 'raven_v3/ic_raven.webp'), per = Math.max(2, Rv.every), p = (t % per) / per; if(ok(ic) && p < 0.5){ const q = p / 0.5, rx = -Rv.size + (W + Rv.size * 2) * q, ry = HH * 0.18 + Math.sin(q * Math.PI * 3) * 14; x.drawImage(ic, rx, ry, Rv.size, Rv.size); } }
+}
+
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
 const deep = (o) => JSON.parse(JSON.stringify(o));
@@ -497,14 +580,14 @@ const saveTimers = new Map();
 const editHistory=new Map();
 function rememberPage(){let h=editHistory.get(STATE.page);if(!h){h={items:[deep(STATE.S)],at:0};editHistory.set(STATE.page,h);}const snap=JSON.stringify(STATE.S);if(JSON.stringify(h.items[h.at])!==snap){h.items=h.items.slice(0,h.at+1);h.items.push(deep(STATE.S));if(h.items.length>120)h.items.shift();h.at=h.items.length-1;}}
 function save(record=true){ if(record)rememberPage(); const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
-  try { localStorage.setItem('asgard-page-' + page, JSON.stringify(snapshot)); } catch(e){}
-  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id:'page_' + page, page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
+  try { localStorage.setItem('asgard-' + docId(page), JSON.stringify(snapshot)); } catch(e){}
+  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id: docId(page), page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
     $('#saveState').textContent = r.ok ? '● All changes saved' : '● Saved on this computer only'; } catch(e){ $('#saveState').textContent = '● Saved on this computer only'; }
 }, 700)); }
 async function load(page){
   let s = null;
-  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.page_' + page + '&select=data', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data; } } catch(e){}
-  if(!s){ try { s = JSON.parse(localStorage.getItem('asgard-page-' + page) || 'null'); } catch(e){} }
+  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.' + docId(page) + '&select=data', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data; } } catch(e){}
+  if(!s){ try { s = JSON.parse(localStorage.getItem('asgard-' + docId(page)) || 'null'); } catch(e){} }
   if(!s && page === 'convo'){ try { const r = await fetch(SB.url + '/rest/v1/raven_scene_settings?select=*&limit=1', { headers: H() }); if(r.ok){ const j = await r.json(); if(j[0]){ s = j[0]; delete s.id; } } } catch(e){} }
   return merge(PAGES[page].defaults, s || {});
 }
@@ -518,7 +601,7 @@ async function pushToApp(){
 /* ======================= UI ======================= */
 function nav(){
   const P = PAGES[STATE.page]; const n = $('#secNav'); n.innerHTML = '<div class="cap">THIS PAGE</div>';
-  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; history.replaceState(null,'','?page='+STATE.page+(s.id==='rocks'?'&section=rocks':'')); nav(); panel(); }; n.appendChild(b); });
+  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; { const q=new URLSearchParams(location.search); q.set('page',STATE.page); if(s.id==='rocks') q.set('section','rocks'); else q.delete('section'); history.replaceState(null,'','?'+q.toString()); } nav(); panel(); }; n.appendChild(b); });
   (P.actions || []).forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'cosmic'; b.innerHTML = `<b>▶ ${label}</b>`; b.onclick = fn; n.appendChild(b); });
   AsgardStudioLayout.setPage(STATE.page); $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
 }
@@ -547,7 +630,7 @@ async function openPage(page){
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')==='rocks'?'rocks':PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
-  history.replaceState(null, '', '?page=' + page + (STATE.sec==='rocks'?'&section=rocks':'')); $('#pagePick').value = page;
+  { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
   const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
 }
 $('#pagePick').onchange = (e) => openPage(e.target.value);
@@ -698,8 +781,8 @@ function drawHeimdall(x, t, S, since){
 async function savePageNow(){
  if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);
  if(!STATE.S)return;const page=STATE.page,snapshot=deep(STATE.S);clearTimeout(saveTimers.get(page));rememberPage();
- localStorage.setItem('asgard-page-'+page,JSON.stringify(snapshot));
- const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:H({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:'page_'+page,page,data:snapshot,updated_by:'studio',updated_at:new Date().toISOString()})});
+ localStorage.setItem('asgard-'+docId(page),JSON.stringify(snapshot));
+ const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:H({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:docId(page),page,data:snapshot,updated_by:'studio',updated_at:new Date().toISOString()})});
  $('#saveState').textContent=r.ok?'● All changes saved':'● Shared save failed';if(!r.ok)throw Error('Save failed');
 }
 AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=deep(h.items[--h.at]);save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
