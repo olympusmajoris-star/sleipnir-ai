@@ -499,7 +499,7 @@ async function loadStore(){
   } catch(e){}
   STORE.loading = false;
 }
-const docId = (page) => page === 'store' ? 'page_store_' + STORE.id : 'page_' + page;
+let docId = (page) => page === 'store' ? 'page_store_' + STORE.id : 'page_' + page;
 Object.assign(PAGES, {
   store: {
     title: 'Store page',
@@ -557,7 +557,7 @@ function drawStore(x, t, S){
   x.restore();
   // header: logo + name + address
   x.fillStyle = S.bg.color; x.fillRect(0, skyH, W, headH);
-  let nx = L.margin; if(Hd.logo > 0 && st.logo_url){ const lg = img(fixUrl(st.logo_url)); x.save(); const ly = skyH + (headH - Hd.logo) / 2; if(Hd.round){ x.beginPath(); x.arc(nx + Hd.logo / 2, ly + Hd.logo / 2, Hd.logo / 2, 0, 7); x.fillStyle = '#fff'; x.fill(); x.clip(); } contain(x, lg, nx, ly, Hd.logo, Hd.logo, Hd.round ? Hd.logo * 0.12 : 0); x.restore(); nx += Hd.logo + 12; }
+  let nx = L.margin; if(Hd.logo > 0 && st.logo_url){ const lg = logoImg(fixUrl(st.logo_url)); x.save(); const ly = skyH + (headH - Hd.logo) / 2; if(Hd.round){ x.beginPath(); x.arc(nx + Hd.logo / 2, ly + Hd.logo / 2, Hd.logo / 2, 0, 7); x.fillStyle = '#fff'; x.fill(); x.clip(); } contain(x, lg, nx, ly, Hd.logo, Hd.logo, Hd.round ? Hd.logo * 0.12 : 0); x.restore(); nx += Hd.logo + 12; }
   tx(x, Hd.nameT, st.name, nx, skyH + headH / 2 + (Hd.showAddr ? -2 : Hd.nameT.size * 0.36), 'left', W - nx - 10);
   if(Hd.showAddr && st.address) tx(x, Hd.addrT, st.address, nx, skyH + headH / 2 + Hd.addrT.size + 6, 'left', W - nx - 10);
   // sky on top
@@ -568,6 +568,140 @@ function drawStore(x, t, S){
     x.restore();
     if(sk.fade > 0){ const g = x.createLinearGradient(0, skyH - skyH * sk.fade, 0, skyH); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, S.bg.color); x.fillStyle = g; x.fillRect(0, skyH - skyH * sk.fade, W, skyH * sk.fade + 1); } }
   const Rv = S.raven; if(Rv.on){ const ic = img(UI + 'raven_v3/ic_raven.webp'), per = Math.max(2, Rv.every), p = (t % per) / per; if(ok(ic) && p < 0.5){ const q = p / 0.5, rx = -Rv.size + (W + Rv.size * 2) * q, ry = HH * 0.18 + Math.sin(q * Math.PI * 3) * 14; x.drawImage(ic, rx, ry, Rv.size, Rv.size); } }
+}
+
+/* ======================= SLEIPNIR HOME + CATEGORY BROWSE PAGES ======================= */
+const QS = new URLSearchParams(location.search);
+const BROWSE = { type: QS.get('type') || 'grocery', all: null, loading: false };
+const BTYPES = { grocery: 'Grocery', fast_food: 'Fast Food', restaurant: 'Restaurants', retail: 'Retail', valhalla: 'Valhalla' };
+async function loadBrowse(){
+  if(BROWSE.all || BROWSE.loading) return; BROWSE.loading = true;
+  try { const r = await fetch(SB.url + '/rest/v1/stores?select=id,name,logo_url,address,menu_type,category,is_valhalla&is_live=is.true&order=name', { headers: H() }); BROWSE.all = r.ok ? await r.json() : []; } catch(e){ BROWSE.all = []; }
+  BROWSE.loading = false;
+}
+function browseList(){
+  const a = BROWSE.all || [], t = BROWSE.type;
+  return a.filter(s => t === 'valhalla' ? s.is_valhalla : !s.is_valhalla && (
+    t === 'grocery' ? (s.menu_type === 'grocery' || /grocery|wholesale/i.test(s.category || '')) :
+    t === 'fast_food' ? s.menu_type === 'fast_food' :
+    t === 'restaurant' ? (s.menu_type === 'sit_down' || s.menu_type === 'fast_casual') :
+    t === 'retail' ? ((s.menu_type === 'retail' || s.menu_type === 'convenience') && !/grocery|wholesale/i.test(s.category || '')) : false));
+}
+const TILE = (label) => ({ show: true, label, icon: '' });
+const BTN = (text) => ({ show: true, text });
+const prevDocId = docId;
+docId = (page) => page === 'browse' ? 'page_browse_' + BROWSE.type : prevDocId(page);
+Object.assign(PAGES, {
+  shome: {
+    title: 'Sleipnir home',
+    defaults: {
+      bg: BG('#bdbdbd'),
+      norse: { on: true, speed: 10, opacity: 0.35 },
+      profile: { show: true, size: 34, box: BOX({ radius: 8, fill: '#4f46e5', fillA: 1, bw: 0, sh: 0.2, shBlur: 6, shY: 2 }), icon: '' },
+      logo: { img: '', size: 0.3, y: 0.02 },
+      title: { show: true, text: 'SLEIPNIR', y: 0.135, t: TXT(19, '#8b1d1d', { font: 'Cinzel', weight: 800, shA: 0.2 }) },
+      search: { show: true, text: 'Search stores, items, meals…', y: 0.165, h: 34, margin: 14, box: BOX({ radius: 17, fill: '#000000', fillA: 1, bw: 2, bc: '#e9c46a', sh: 0 }), t: TXT(12, '#8a8f98', { weight: 400 }) },
+      odin: { show: true, img: '', size: 66, y: 0.235, box: BOX({ radius: 8, fill: '#000000', fillA: 1, bw: 0, sh: 0.4 }) },
+      tiles: { cols: 4, y: 0.35, gap: 22, rowGap: 30, icon: 50, margin: 10, box: BOX({ radius: 12, fill: '#ffffff', fillA: 0, bw: 0, sh: 0 }), t: TXT(11, '#3a3a3a', { weight: 700 }),
+        t1: TILE('Grocery'), t2: TILE('Fast Food'), t3: TILE('Restaurant'), t4: TILE('Retail'), t5: TILE('Odin Concierge'), t6: TILE('P2P'), t7: TILE('Valhalla'), t8: TILE('Virtual Shop') },
+      btns: { y: 0.735, w: 0.36, h: 32, gap: 9, box: BOX({ radius: 8, fill: '#4f46e5', fillA: 1, bw: 0, sh: 0.25, shBlur: 6, shY: 2 }), t: TXT(13, '#ffffff', { weight: 700 }),
+        b1: BTN('Become a Valkyrie'), b2: BTN('My account'), b3: BTN('Asgard'), b4: BTN('Admin') },
+    },
+    sections: [
+      { id:'bg', name:'Background', sub:'Color, picture, Norse scroll', groups:[
+        { name:'Background', ctrls: bgC('bg') },
+        { name:'Scrolling Norse art', ctrls: [K('norse.on','Show it'), R('norse.speed','Scroll speed',0,60,.5), R('norse.opacity','Strength',0,1,.01)] },
+      ]},
+      { id:'top', name:'Top', sub:'Profile, logo, title, search', groups:[
+        { name:'Profile button', ctrls: [K('profile.show','Show'), R('profile.size','Size',20,60,1), U('profile.icon','Your icon'), ...boxC('profile.box','Profile button')] },
+        { name:'Logo', ctrls: [U('logo.img','Your logo'), R('logo.size','Size (share of width)',0.1,0.8,.005), R('logo.y','Height',0,0.3,.002)] },
+        { name:'Title', ctrls: [K('title.show','Show'), X('title.text','Text'), R('title.y','Height',0,0.4,.002), ...txtC('title.t','Title')] },
+        { name:'Search bar', ctrls: [K('search.show','Show'), X('search.text','Placeholder text'), R('search.y','Height on screen',0,0.5,.002), R('search.h','Bar thickness',24,60,1), R('search.margin','Side margin',0,60,1), ...txtC('search.t','Placeholder'), ...boxC('search.box','Search bar')] },
+        { name:'Odin', ctrls: [K('odin.show','Show'), U('odin.img','Odin picture'), R('odin.size','Size',30,160,1), R('odin.y','Height',0,0.5,.002), ...boxC('odin.box','Odin frame')] },
+      ]},
+      { id:'tiles', name:'Category buttons', sub:'Grocery, Fast Food, Restaurant…', groups:[
+        { name:'Layout', ctrls: [R('tiles.cols','Per row',2,5,1), R('tiles.y','Where they start',0.2,0.8,.002), R('tiles.icon','Icon size',24,100,1), R('tiles.gap','Space side to side',0,40,1), R('tiles.rowGap','Space between rows',0,60,1), R('tiles.margin','Side margin',0,40,1)] },
+        { name:'Label text', ctrls: txtC('tiles.t','Label') },
+        { name:'Button backing', ctrls: boxC('tiles.box','Backing') },
+        ...[1,2,3,4,5,6,7,8].map(i => ({ name:'Button ' + i, ctrls:[K('tiles.t'+i+'.show','Show'), X('tiles.t'+i+'.label','Label'), U('tiles.t'+i+'.icon','Icon image')] })),
+      ]},
+      { id:'btns', name:'Bottom buttons', sub:'Valkyrie, account, Asgard, admin', groups:[
+        { name:'Layout', ctrls: [R('btns.y','Where they start',0.4,0.95,.002), R('btns.w','Width',0.2,0.9,.005), R('btns.h','Height',20,60,1), R('btns.gap','Space between',0,30,1)] },
+        { name:'Text', ctrls: txtC('btns.t','Button text') }, { name:'Look', ctrls: boxC('btns.box','Button') },
+        ...[1,2,3,4].map(i => ({ name:'Button ' + i, ctrls:[K('btns.b'+i+'.show','Show'), X('btns.b'+i+'.text','Text')] })),
+      ]},
+    ],
+    draw: drawSHome,
+  },
+  browse: {
+    title: 'Category page',
+    defaults: {
+      bg: BG('#0d0f12'),
+      norse: { on: false, speed: 10, opacity: 0.25 },
+      head: { text: '', y: 0.06, back: true, t: TXT(24, '#f2e6cf', { font: 'Cinzel', weight: 800 }) },
+      search: { show: true, text: 'Search stores…', y: 0.095, h: 36, margin: 14, box: BOX({ radius: 18, fill: '#1b1f25', bw: 1, bc: '#3a3f48', sh: 0 }), t: TXT(12, '#8a8f98', { weight: 400 }) },
+      chips: { show: true, y: 0.155, box: BOX({ radius: 14, fill: '#1d2026', bw: 1, bc: '#3a3f48', sh: 0 }), on: BOX({ radius: 14, fill: '#e9c46a', fillA: 1, bw: 0, sh: 0 }), t: TXT(11, '#cfd6e0', { weight: 600 }), onT: TXT(11, '#1b1406', { weight: 800 }) },
+      grid: { cols: 2, top: 0.2, margin: 14, gap: 12, tileH: 1, logo: 0.6, scroll: 10, box: BOX({ radius: 16, fill: '#ffffff', fillA: 1, bw: 0, sh: 0.35 }), name: true, nameT: TXT(12, '#1b1b1b', { weight: 700 }), town: true, townT: TXT(10, '#6b7280', { weight: 500 }) },
+    },
+    sections: [
+      { id:'look', name:'Page', sub:'Background, title, search', groups:[
+        { name:'Background', ctrls: bgC('bg') },
+        { name:'Scrolling Norse art', ctrls: [K('norse.on','Show it'), R('norse.speed','Scroll speed',0,60,.5), R('norse.opacity','Strength',0,1,.01)] },
+        { name:'Title', ctrls: [X('head.text','Title (blank = category name)'), R('head.y','Height',0.02,0.2,.002), K('head.back','Show back arrow'), ...txtC('head.t','Title')] },
+        { name:'Search bar', ctrls: [K('search.show','Show'), X('search.text','Placeholder text'), R('search.y','Height on screen',0.03,0.3,.002), R('search.h','Bar thickness',24,60,1), R('search.margin','Side margin',0,60,1), ...txtC('search.t','Placeholder'), ...boxC('search.box','Search bar')] },
+      ]},
+      { id:'chips', name:'Town chips', sub:'Filter by town', groups:[
+        { name:'Chips', ctrls: [K('chips.show','Show'), R('chips.y','Height on screen',0.05,0.35,.002), ...txtC('chips.t','Chip text'), ...txtC('chips.onT','Picked chip text')] },
+        { name:'Chip look', ctrls: boxC('chips.box','Chip') }, { name:'Picked chip look', ctrls: boxC('chips.on','Picked chip') },
+      ]},
+      { id:'grid', name:'Store tiles', sub:'Logo grid of real stores', groups:[
+        { name:'Layout', ctrls: [R('grid.cols','Per row',1,4,1), R('grid.top','Where tiles start',0.1,0.5,.002), R('grid.margin','Side margin',0,40,1), R('grid.gap','Space between',0,40,1), R('grid.tileH','Tile height (x width)',0.5,1.6,.01), R('grid.logo','Logo size (share of tile)',0.2,1,.01), R('grid.scroll','Preview scroll speed',0,60,1)] },
+        { name:'Tile look', ctrls: boxC('grid.box','Tile') },
+        { name:'Store name', ctrls: [K('grid.name','Show'), ...txtC('grid.nameT','Name')] },
+        { name:'Town', ctrls: [K('grid.town','Show'), ...txtC('grid.townT','Town')] },
+      ]},
+    ],
+    draw: drawBrowse,
+  },
+});
+const IMG2 = {};
+function logoImg(src){ if(!IMG2[src]){ const i = new Image(); i.src = src; IMG2[src] = i; } return IMG2[src]; }
+function norseLayer(x, t, N){ if(!N.on) return; x.save(); x.globalAlpha = N.opacity; x.fillStyle = '#5a4a32'; x.font = '22px serif';
+  for(let r = 0; r < 14; r++){ const y = 40 + r * 62, off = ((t * N.speed * (r % 2 ? 1 : -0.7)) % 300 + 300) % 300; for(let X0 = -300 + off; X0 < W + 30; X0 += 30) x.fillText(RUNES[Math.abs(Math.floor(X0 / 30) * 7 + r * 3) % RUNES.length], X0, y); }
+  x.restore(); }
+function drawSHome(x, t, S){
+  bgDraw(x, S.bg); norseLayer(x, t, S.norse);
+  const P = S.profile; if(P.show){ const X0 = W - P.size - 10, Y0 = 10; box(x, X0, Y0, P.size, P.size, P.box); if(P.icon && ok(img(P.icon))) contain(x, img(P.icon), X0, Y0, P.size, P.size, 4); else { x.fillStyle = '#fff'; x.beginPath(); x.arc(X0 + P.size / 2, Y0 + P.size * 0.38, P.size * 0.16, 0, 7); x.fill(); x.beginPath(); x.ellipse(X0 + P.size / 2, Y0 + P.size * 0.78, P.size * 0.28, P.size * 0.18, 0, Math.PI, 0); x.fill(); } }
+  const Lg = S.logo, lw = W * Lg.size; if(Lg.img) contain(x, img(Lg.img), (W - lw) / 2, HH * Lg.y, lw, lw); else dashed(x, (W - lw) / 2, HH * Lg.y, lw, lw * 0.8, 'your logo');
+  if(S.title.show) tx(x, S.title.t, S.title.text, W / 2, HH * S.title.y, 'center', W - 20);
+  const Se = S.search; if(Se.show){ const y = HH * Se.y; box(x, Se.margin, y, W - Se.margin * 2, Se.h, Se.box); tx(x, Se.t, Se.text, Se.margin + 16, y + Se.h / 2 + Se.t.size * 0.36, 'left', W - Se.margin * 2 - 30); }
+  const O = S.odin; if(O.show){ const y = HH * O.y, X0 = (W - O.size) / 2, hh = O.size * 1.4; if(O.img){ box(x, X0, y, O.size, hh, O.box); x.save(); rr(x, X0, y, O.size, hh, Math.min(O.box.radius, O.size / 2)); x.clip(); cover(x, img(O.img), X0, y, O.size, hh); x.restore(); } else dashed(x, X0, y, O.size, hh, 'Odin'); }
+  const T = S.tiles, tiles = [1,2,3,4,5,6,7,8].map(i => T['t' + i]).filter(v => v && v.show), cols = Math.round(T.cols), cw = (W - T.margin * 2 - (cols - 1) * T.gap) / cols;
+  tiles.forEach((tl, i) => { const c = i % cols, r = Math.floor(i / cols), X0 = T.margin + c * (cw + T.gap), y = HH * T.y + r * (T.icon + T.t.size + 14 + T.rowGap);
+    box(x, X0, y - 6, cw, T.icon + T.t.size + 18, T.box); const ix = X0 + (cw - T.icon) / 2;
+    if(tl.icon && ok(img(tl.icon))) contain(x, img(tl.icon), ix, y, T.icon, T.icon); else dashed(x, ix, y, T.icon, T.icon, 'icon');
+    tx(x, T.t, tl.label, X0 + cw / 2, y + T.icon + 6 + T.t.size, 'center', cw); });
+  const B = S.btns, bs = [1,2,3,4].map(i => B['b' + i]).filter(v => v && v.show), bw = W * B.w;
+  bs.forEach((b, i) => { const y = HH * B.y + i * (B.h + B.gap); box(x, (W - bw) / 2, y, bw, B.h, B.box); tx(x, B.t, b.text, W / 2, y + B.h / 2 + B.t.size * 0.36, 'center', bw - 10); });
+}
+function drawBrowse(x, t, S){
+  loadBrowse(); bgDraw(x, S.bg); norseLayer(x, t, S.norse);
+  const list = browseList(), G2 = S.grid, cols = Math.round(G2.cols), cw = (W - G2.margin * 2 - (cols - 1) * G2.gap) / cols, th = cw * G2.tileH, top = HH * G2.top;
+  const rows = Math.ceil(list.length / cols), rowH = th + G2.gap, total = Math.max(1, rows * rowH), sc = rows * rowH > HH - top ? (t * G2.scroll) % total : 0;
+  x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
+  for(let rep = 0; rep < (sc ? 2 : 1); rep++) list.forEach((s, i) => { const c = i % cols, r = Math.floor(i / cols), X0 = G2.margin + c * (cw + G2.gap), y = top + 6 + r * rowH - sc + rep * total; if(y > HH || y + th < top) return;
+    box(x, X0, y, cw, th, G2.box); const textH = (G2.name ? G2.nameT.size + 6 : 0) + (G2.town ? G2.townT.size + 4 : 0), ls = Math.min(cw, th - textH - 8) * G2.logo;
+    if(s.logo_url) contain(x, logoImg(fixUrl(s.logo_url)), X0 + (cw - ls) / 2, y + (th - textH - ls) / 2, ls, ls);
+    let yy = y + th - textH + (G2.name ? G2.nameT.size : 0); if(G2.name) tx(x, G2.nameT, s.name, X0 + cw / 2, yy, 'center', cw - 10);
+    if(G2.town){ yy += G2.townT.size + 4; tx(x, G2.townT, (String(s.address || '').match(/,\s*([^,]+),\s*FL/i) || [])[1] || '', X0 + cw / 2, yy, 'center', cw - 10); } });
+  if(BROWSE.all && !list.length) tx(x, TXT(13, '#8a8f98'), 'No live stores in this category', W / 2, top + 50, 'center');
+  x.restore();
+  x.save(); x.fillStyle = S.bg.color; x.globalAlpha = 0.92; x.fillRect(0, 0, W, top); x.restore();
+  const Hd = S.head; tx(x, Hd.t, Hd.text || BTYPES[BROWSE.type] || 'Stores', W / 2, HH * Hd.y, 'center', W - 70);
+  if(Hd.back){ x.strokeStyle = Hd.t.color; x.lineWidth = 2.5; x.beginPath(); x.moveTo(26, HH * Hd.y - Hd.t.size * 0.65); x.lineTo(16, HH * Hd.y - Hd.t.size * 0.3); x.lineTo(26, HH * Hd.y + Hd.t.size * 0.05); x.stroke(); }
+  const Se = S.search; if(Se.show){ const y = HH * Se.y; box(x, Se.margin, y, W - Se.margin * 2, Se.h, Se.box); tx(x, Se.t, Se.text, Se.margin + 16, y + Se.h / 2 + Se.t.size * 0.36, 'left', W - Se.margin * 2 - 30); }
+  const Ch = S.chips; if(Ch.show){ const towns = ['All', ...[...new Set(list.map(s => (String(s.address || '').match(/,\s*([^,]+),\s*FL/i) || [])[1]).filter(Boolean))].sort()]; let cx = 14; const y = HH * Ch.y;
+    towns.forEach((tn, i) => { const tt = i === 0 ? Ch.onT : Ch.t, w = tw(x, tt, tn) + 22, h = tt.size + 14; if(cx > W) return; box(x, cx, y, w, h, i === 0 ? Ch.on : Ch.box); tx(x, tt, tn, cx + w / 2, y + h / 2 + tt.size * 0.36, 'center'); cx += w + 8; }); }
 }
 
 /* ======================= STATE / SAVE ======================= */
@@ -630,7 +764,7 @@ async function openPage(page){
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')==='rocks'?'rocks':PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
-  { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
+  { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); if(page!=='browse') q.delete('type'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
   const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
 }
 $('#pagePick').onchange = (e) => openPage(e.target.value);

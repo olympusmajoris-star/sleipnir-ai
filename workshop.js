@@ -9,6 +9,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'
 
 const AREAS = {
   Sleipnir: [
+    { id:'shome', name:'Home page', sub:'Logo, search, Odin, category buttons', url:'pages.html?page=shome' },
+    { id:'grocery', name:'Grocery', sub:'Store list page', url:'pages.html?page=browse&type=grocery' },
+    { id:'fast_food', name:'Fast Food', sub:'Store list page', url:'pages.html?page=browse&type=fast_food' },
+    { id:'restaurant', name:'Restaurants', sub:'Store list page', url:'pages.html?page=browse&type=restaurant' },
+    { id:'retail', name:'Retail', sub:'Store list page', url:'pages.html?page=browse&type=retail' },
     { id:'stores', name:'Stores', sub:'Town → type → store, then its page look', stores: s => !s.is_valhalla },
     { id:'swap', name:'Swap & Sell', sub:'Swipe to buy, sell, trade', url:'pages.html?page=swap' },
     { id:'ads', name:'Local ads', sub:'Feed card, banner, deal of the day', url:'pages.html?page=ads' },
@@ -23,6 +28,7 @@ const AREAS = {
     { id:'heimdall', name:'Heimdall', sub:'Notifications', url:'pages.html?page=heimdall' },
   ],
   Valhalla: [
+    { id:'vbrowse', name:'Valhalla page', sub:'Local store list page', url:'pages.html?page=browse&type=valhalla' },
     { id:'vstores', name:'Valhalla stores', sub:'Town → type → store, then its page look', stores: s => !!s.is_valhalla },
   ],
   Valkyries: [],
