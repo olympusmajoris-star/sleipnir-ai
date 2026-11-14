@@ -135,3 +135,15 @@ Snapshot taken during the 2026-11-13 session; live counts must come from the dat
 - Keep existing Norse art speed, opacity and show controls together. Allow replacing the rune artwork with multiple images/videos, with size, spacing, rows and direction; preserve a return-to-original option. This feature is reusable on store pages.
 - Drive-through menu boards need independently editable piping/frame width, shape, material/style, color/glow, backgrounds, panels, text and product placements. New display frames expose piping/background controls. Existing flattened artwork must be reconstructed as component layers before its baked-in piping or lettering can truly be changed; this is still part of actual-layout conversion, not complete merely because an overlay control exists.
 - Shared assets and layered editing do not complete the app transfer or restore the existing app's full shelf/board layout. Those dependencies remain as stated above.
+
+## Shared-media and layer editor verification
+
+Implementation commits: `4be7c4db93d9bd326f7f2f3032997fe192f9a9aa`, `dc25ff29793d3b16b063681e47d926dfc41aafe6`, `695c05e3779a037a51610e7e8c4b9caf7fd90d7e`.
+
+- Five automated checks pass: folder boundaries/search, safe encoded media URLs, independent layer IDs/defaults, private storage exclusion, and preservation of all pre-existing control keys. JavaScript syntax checks pass.
+- Live China One store: added a button, set floating motion, chose two Asgard assets in one selection, dragged one layer, and verified three layers plus the moved position in its own Supabase studio draft. Undo restored zero added layers.
+- Live shared picker: Studio uploads lists its current folders; asgard_ui opens reusable artwork folders; raven_earth/v34 displays video choices. Farmland preview reached readyState 4, videoWidth 960 and advancing playback time.
+- Live Sleipnir home: Norse show/speed/opacity and replacement-art controls appear together. Existing page/control groups remain available.
+- Live exact-value test with the refreshed editor: entering a piping thickness of 20 updates both slider and rendered border to 20px immediately. Test frame was undone.
+- Existing underlying app/catalog tables were not changed. Design buttons are visual draft layers; app actions, full board decomposition, precise app layout matching and transfer remain part of the remaining app integration work.
+
