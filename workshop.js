@@ -136,7 +136,7 @@ function show(url, msg){
   if(!url){ f.hidden = true; e.hidden = false; e.innerHTML = msg || '<b>Nothing here yet</b>'; curUrl = ''; return; }
   e.hidden = true; f.hidden = false;
   const full = url + (url.includes('?') ? '&' : '?') + 'embed=1';
-  if(full !== curUrl){ curUrl = full; f.src = full; }
+  if(full !== curUrl){ curUrl = full; f.src = full + (full.includes('?') ? '&' : '?') + 'editor=shared-media-2'; }
 }
 
 // Inside the editor: hide its own area tabs and page list (they live out here now), keep every control.
@@ -163,5 +163,6 @@ $('#ed').addEventListener('load', () => {
 
 keep(); areas(); pages();
 })();
+
 
 
