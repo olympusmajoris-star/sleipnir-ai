@@ -26,7 +26,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-VERSION = '1.3.0'
+VERSION = '1.4.0'
 CONFIG = Path(__file__).with_name('connector-settings.json')
 PROJECT = 'https://afnihsdxtisneuyehatw.supabase.co'
 OWNER = '533a05da-fed8-4c92-ba94-7e4867ebce8f'
@@ -107,11 +107,67 @@ def request(url, method='GET', data=None, headers=None, timeout=25):
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *args, **kwargs):
             return None
-    with urllib.request.build_opener(NoRedirect).open(req, timeout=timeout) as response:
-        body = response.read(4 * 1024 * 1024 + 1)
-        if len(body) > 4 * 1024 * 1024:
-            raise ValueError('Forge response is too large. Review it in Forge before continuing.')
-        return json.loads(body) if body else None
+    try:
+        with urllib.request.build_opener(NoRedirect).open(req, timeout=timeout) as response:
+            body = response.read(4 * 1024 * 1024 + 1)
+            if len(body) > 4 * 1024 * 1024:
+                raise ValueError('Forge response is too large. Review it in Forge before continuing.')
+            return json.loads(body) if body else None
+    except urllib.error.HTTPError as error:
+        try:
+            detail = json.loads(error.read(16384))
+        except Exception:
+            detail = {}
+        messages = {
+            'invalid_credentials': 'Email or password was not accepted. You can use Email sign-in instead.',
+            'otp_expired': 'This sign-in link or code expired or was already used. Request a fresh email and copy its link before opening it.',
+            'over_email_send_rate_limit': 'Please wait before requesting another sign-in email.',
+            'email_address_not_authorized': 'This project cannot send to that email address. Check its email delivery settings.',
+            'email_not_confirmed': 'This email needs confirmation before password sign-in.',
+            'signup_disabled': 'No existing account matches this email. No new account was created.',
+            'email_provider_disabled': 'Email sign-in is disabled for this app.',
+            'email_address_invalid': 'Enter a valid owner email address.',
+        }
+        code = (detail.get('error_code') or detail.get('code')) if isinstance(detail, dict) else None
+        if isinstance(code, str) and code in messages:
+            error.msg = messages[code]
+        # Preserve HTTPError for existing reconnect logic. Never log response bodies/tokens.
+        raise
+
+
+def email_address(value):
+    value = value.strip().lower()
+    if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', value):
+        raise ValueError('Enter your existing app owner email.')
+    return value
+
+
+def email_login_payload(email, value):
+    email = email_address(email)
+    value = value.strip()
+    if re.fullmatch(r'[0-9]{6,8}', value):
+        return {'email': email, 'token': value, 'type': 'email'}
+    try:
+        link = urllib.parse.urlsplit(value)
+        query = urllib.parse.parse_qs(link.query, strict_parsing=True)
+        if link.scheme != 'https' or link.netloc != 'afnihsdxtisneuyehatw.supabase.co' or link.path != '/auth/v1/verify' or link.fragment:
+            raise ValueError()
+        if len(query.get('type', [])) != 1 or query['type'][0] not in ('magiclink', 'email'):
+            raise ValueError()
+        tokens = query.get('token_hash', query.get('token', []))
+        if len(tokens) != 1 or not re.fullmatch(r'[A-Za-z0-9_-]{20,256}', tokens[0]):
+            raise ValueError()
+        if 'token_hash' in query and 'token' in query:
+            raise ValueError()
+        return {'token_hash': tokens[0], 'type': 'email'}
+    except ValueError:
+        raise ValueError('Copy the Log In link address from the sign-in email and paste it here, or enter its numeric code. Do not open the link first.') from None
+
+
+def send_login_email(email):
+    # Only a user-click sends mail. Existing-account-only: no signup or password reset.
+    return request(PROJECT + '/auth/v1/otp', 'POST',
+                   {'email': email_address(email), 'create_user': False}, {'apikey': PUBLIC_KEY})
 
 def listening_ports(output):
     ports = set()
@@ -293,9 +349,18 @@ class Connector:
 
     def connect(self, email, password):
         s = request(PROJECT + '/auth/v1/token?grant_type=password', 'POST',
-                    {'email': email, 'password': password}, {'apikey': PUBLIC_KEY})
+                    {'email': email_address(email), 'password': password}, {'apikey': PUBLIC_KEY})
         if s.get('user', {}).get('id') != OWNER:
             raise ValueError('This queue belongs to the Asgard app owner. Use that account.')
+        s['expires_at'] = time.time() + s['expires_in']
+        self.session = s
+
+    def connect_email(self, email, link_or_code):
+        s = request(PROJECT + '/auth/v1/verify', 'POST', email_login_payload(email, link_or_code), {'apikey': PUBLIC_KEY})
+        if s.get('user', {}).get('id') != OWNER:
+            raise ValueError('Use the email belonging to the Asgard app owner.')
+        if not s.get('access_token') or not s.get('refresh_token') or not s.get('expires_in'):
+            raise ValueError('Email sign-in did not return a complete session. Request a fresh link.')
         s['expires_at'] = time.time() + s['expires_in']
         self.session = s
 
@@ -557,8 +622,8 @@ class Connector:
 
 def main():
     root = tk.Tk()
-    root.title('Asgard • Forge connection')
-    root.geometry('680x730')
+    root.title('Asgard • Forge connection 1.4 — email sign-in')
+    root.geometry('700x830')
     root.minsize(570, 490)
     frame = ttk.Frame(root, padding=22)
     frame.pack(fill='both', expand=True)
@@ -572,12 +637,33 @@ def main():
     entries = {}
     for key, label, default in [('base', 'Local Forge address', settings.get('base', '')),
                                 ('ffmpeg', 'FFmpeg program (optional; detected from PATH)', settings.get('ffmpeg', shutil.which('ffmpeg') or '')),
-                                ('email', 'App owner email', ''), ('password', 'App owner password', '')]:
+                                ('email', 'App owner email', '')]:
         ttk.Label(frame, text=label).pack(anchor='w')
         inp = ttk.Entry(frame, show='•' if key == 'password' else '')
         inp.insert(0, default)
         inp.pack(fill='x', pady=(2, 9))
         entries[key] = inp
+    signin = ttk.Notebook(frame)
+    email_tab, password_tab = ttk.Frame(signin, padding=8), ttk.Frame(signin, padding=8)
+    signin.add(email_tab, text='Email sign-in — no password')
+    signin.add(password_tab, text='Password')
+    signin.pack(fill='x', pady=4)
+    send_button = ttk.Button(email_tab, text='Email me a sign-in link', command=lambda: send_email())
+    send_button.pack(anchor='w')
+    ttk.Label(email_tab, text='In that email, right-click Log In → Copy Link. Paste below without opening it.', wraplength=620).pack(anchor='w', pady=4)
+    entries['email_link'] = ttk.Entry(email_tab, show='•')
+    entries['email_link'].pack(fill='x')
+    def paste_link():
+        try:
+            value = root.clipboard_get()
+            entries['email_link'].delete(0, 'end')
+            entries['email_link'].insert(0, value)
+        except tk.TclError:
+            log('Copy the email’s Log In link first, then choose Paste copied link.')
+    ttk.Button(email_tab, text='Paste copied link', command=paste_link).pack(anchor='w', pady=4)
+    ttk.Label(password_tab, text='Existing app password (optional alternative)').pack(anchor='w')
+    entries['password'] = ttk.Entry(password_tab, show='•')
+    entries['password'].pack(fill='x')
     def detect():
         def work():
             try:
@@ -597,15 +683,32 @@ def main():
     remember = tk.BooleanVar(value=bool(settings.get('remember', False)))
     ttk.Checkbutton(frame, text='Keep connected after Windows restarts (encrypted on this Windows account)', variable=remember).pack(anchor='w')
     ttk.Label(frame, text='Password is never saved. Remembered connection uses Windows encryption. Keep this file in Downloads.', wraplength=580).pack(anchor='w')
-    output = tk.Text(frame, height=9, state='disabled', wrap='word')
+    output = tk.Text(frame, height=5, state='disabled', wrap='word')
     output.pack(fill='both', expand=True, pady=12)
     events = queue.Queue()
     active = {'connector': None, 'thread': None}
     def log(value):
         events.put(value)
+    def send_email():
+        try:
+            email = email_address(entries['email'].get())
+        except ValueError as error:
+            log(str(error))
+            return
+        send_button.configure(state='disabled')
+        def work():
+            try:
+                send_login_email(email)
+                events.put(('email_done', 'Sign-in email requested. Check your inbox and spam folder; copy its Log In link, paste here, then Connect.'))
+            except Exception as error:
+                events.put(('email_done', 'Could not send sign-in email: ' + str(error)))
+        threading.Thread(target=work, daemon=True).start()
     def pump():
         while not events.empty():
             value = events.get()
+            if isinstance(value, tuple) and value[0] == 'email_done':
+                send_button.configure(state='normal')
+                value = value[1]
             if isinstance(value, tuple) and value[0] == 'address':
                 entries['base'].delete(0, 'end')
                 entries['base'].insert(0, value[1])
@@ -624,6 +727,9 @@ def main():
             messagebox.showerror('Forge address', str(error))
             return
         email, password = entries['email'].get().strip(), entries['password'].get()
+        link_or_code = entries['email_link'].get()
+        use_email = signin.index(signin.select()) == 0
+        entries['email_link'].delete(0, 'end')
         entries['password'].delete(0, 'end')
         active['connector'] = c
         c.remember = remember.get()
@@ -644,7 +750,11 @@ def main():
                             c.stop.wait(15)
                     if c.stop.is_set():
                         return
+                elif use_email:
+                    c.connect_email(email, link_or_code)
                 else:
+                    if not password:
+                        raise ValueError('Enter your app password or choose Email sign-in.')
                     c.connect(email, password)
                 if c.stop.is_set():
                     return
