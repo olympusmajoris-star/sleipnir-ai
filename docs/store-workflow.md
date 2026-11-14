@@ -124,3 +124,14 @@ Snapshot taken during the 2026-11-13 session; live counts must come from the dat
 - Live Publix detail: 12,621 products/menu items, 12,612 image links, correct stored address.
 - Live China One detail: 200 menu items, zero image links, retained in Selected stores with its address and website.
 - Customer catalog and app availability were not modified. Next dependency remains current FlutterFlow app/store source; current Forge source is needed before the Forge milestone.
+
+## Added scope — shared media and detailed editing (2026-11-13)
+
+- Every store/page can reuse existing Asgard design folders, images and videos. Choosing a source must not change a storage policy or grant customers new access.
+- Shared media picker supports folders, search within a folder, image/video filtering, pagination and multiple selection for layers. Existing design buckets are indexed; studio uploads and product/shelf/menu media are listed live under existing access policies.
+- Add separate media, text, button and display-frame layers. Each has position, dimensions, rotation, opacity, ordering, duplication/removal and drag placement. Save in the current page/store draft.
+- Button styles include image-only, rounded, pill, circle, glass and outline. Controls include fill, border, image fit/crop, shadows, glow and floating/swaying/orbiting/rocking motion. Existing home/category buttons gain image/shape/motion controls.
+- Text controls must include size, font, weight, color, alignment, spacing, italic/underline and shadows. Added layers also expose line spacing and padding.
+- Keep existing Norse art speed, opacity and show controls together. Allow replacing the rune artwork with multiple images/videos, with size, spacing, rows and direction; preserve a return-to-original option. This feature is reusable on store pages.
+- Drive-through menu boards need independently editable piping/frame width, shape, material/style, color/glow, backgrounds, panels, text and product placements. New display frames expose piping/background controls. Existing flattened artwork must be reconstructed as component layers before its baked-in piping or lettering can truly be changed; this is still part of actual-layout conversion, not complete merely because an overlay control exists.
+- Shared assets and layered editing do not complete the app transfer or restore the existing app's full shelf/board layout. Those dependencies remain as stated above.

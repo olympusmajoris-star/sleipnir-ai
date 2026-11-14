@@ -17,8 +17,8 @@ const EARTHS = ['changing-landscapes','close-farmland','farmland','forest-river'
 
 /* ---------- images / video cache ---------- */
 const IMG = {};
-function img(src){ if(!IMG[src]){ const i = new Image(); i.crossOrigin='anonymous'; i.src = src; IMG[src] = i; } return IMG[src]; }
-const ok = (i) => i && i.complete && i.naturalWidth > 0;
+function img(src){ if(SharedStudioMedia.kind(src)==='video')return vid(src); if(!IMG[src]){ const i = new Image(); i.crossOrigin='anonymous'; i.src = src; IMG[src] = i; } return IMG[src]; }
+const ok = (i) => i && (i.tagName==='VIDEO'?i.readyState>=2&&i.videoWidth>0:i.complete&&i.naturalWidth>0);
 const VID = {};
 function vid(src){ if(!VID[src]){ const v = document.createElement('video'); v.crossOrigin='anonymous'; v.muted=true; v.loop=true; v.playsInline=true; v.src=src; v.play().catch(()=>{}); VID[src]=v; } return VID[src]; }
 
@@ -27,7 +27,9 @@ const R = (k, label, min, max, step) => ({ t:'r', k, label, min, max, step });
 const K = (k, label) => ({ t:'k', k, label });
 const C = (k, label) => ({ t:'c', k, label });
 const Sel = (k, label, opts) => ({ t:'s', k, label, opts });
-const U = (k, label) => ({ t:'u', k, label });
+const U = (k, label, accept='image/*') => ({ t:'u', k, label, accept });
+const M = (k,label)=>({t:'m',k,label});
+const SHARED_MEDIA = SharedStudioMedia.create({url:SB.url,headers:H});
 
 /* ======================= PAGE DEFINITIONS ======================= */
 const PAGES = {
@@ -139,33 +141,33 @@ const FONTS = [['system-ui','Clean (system)'],['Inter','Inter'],['Oswald','Oswal
 (() => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Oswald:wght@300;400;600;700&family=Bebas+Neue&family=Playfair+Display:wght@400;600;800;900&family=Cinzel:wght@400;600;800;900&family=Cinzel+Decorative:wght@400;700;900&family=MedievalSharp&family=Uncial+Antiqua&display=swap'; document.head.appendChild(l); })();
 const BOX = (o) => Object.assign({ fill:'#15120d', fillA:0.92, tex:'', texA:1, radius:16, bw:1, bc:'#c9a46a', sh:0.5, shBlur:18, shY:8, glow:0, glowC:'#f0c070' }, o || {});
 const boxC = (p, n) => [C(p+'.fill', n+': fill color'), R(p+'.fillA', n+': fill see-through', 0, 1, .01), U(p+'.tex', n+': your texture / image'), R(p+'.texA', n+': texture strength', 0, 1, .01), R(p+'.radius', n+': corner rounding', 0, 60, 1), R(p+'.bw', n+': border thickness', 0, 12, .5), C(p+'.bc', n+': border color'), R(p+'.sh', n+': shadow darkness', 0, 1, .01), R(p+'.shBlur', n+': shadow softness', 0, 60, 1), R(p+'.shY', n+': shadow drop', 0, 40, 1), R(p+'.glow', n+': glow', 0, 1.5, .01), C(p+'.glowC', n+': glow color')];
-const TXT = (size, color, o) => Object.assign({ font:'system-ui', size, weight:600, color, shA:0, caps:false }, o || {});
-const txtC = (p, n) => [Sel(p+'.font', n+': font', FONTS), R(p+'.size', n+': size', 6, 64, .5), R(p+'.weight', n+': thickness', 300, 900, 100), C(p+'.color', n+': color'), R(p+'.shA', n+': shadow', 0, 1, .01), K(p+'.caps', n+': ALL CAPS')];
+const TXT = (size, color, o) => Object.assign({ font:'system-ui', size, weight:600, color, shA:0, caps:false, spacing:0, italic:false, underline:false, align:'auto' }, o || {});
+const txtC = (p, n) => [Sel(p+'.font', n+': font', FONTS), R(p+'.size', n+': size', 6, 64, .5), R(p+'.weight', n+': thickness', 300, 900, 100), C(p+'.color', n+': color'), R(p+'.shA', n+': shadow', 0, 1, .01), K(p+'.caps', n+': ALL CAPS'), R(p+'.spacing',n+': letter spacing',-2,12,.1), K(p+'.italic',n+': italic'), K(p+'.underline',n+': underline'), Sel(p+'.align',n+': alignment',[['auto','Keep current alignment'],['left','Left'],['center','Center'],['right','Right']])];
 const BG = (c) => ({ color:c, img:'', imgA:1, dim:0 });
-const bgC = (p) => [C(p+'.color','Background color'), U(p+'.img','Your background image'), R(p+'.imgA','Background image strength',0,1,.01), R(p+'.dim','Darken',0,1,.01)];
+const bgC = (p) => [C(p+'.color','Background color'), U(p+'.img','Background image / video','image/*,video/*'), R(p+'.imgA','Background image strength',0,1,.01), R(p+'.dim','Darken',0,1,.01)];
 const SLOTS = (n, size) => ({ n, size, gap:22, y:0.88, glow:0, glowC:'#ffffff', i1:'', i2:'', i3:'', i4:'', i5:'' });
 const slotC = (p, n) => [R(p+'.n', n+': how many', 0, 5, 1), R(p+'.size', n+': size', 16, 120, 1), R(p+'.gap', n+': spacing', 0, 80, 1), R(p+'.y', n+': height on screen', 0.4, 0.99, .002), R(p+'.glow', n+': glow', 0, 1.5, .01), C(p+'.glowC', n+': glow color'), U(p+'.i1', n+': image 1'), U(p+'.i2', n+': image 2'), U(p+'.i3', n+': image 3'), U(p+'.i4', n+': image 4'), U(p+'.i5', n+': image 5')];
 function hexA(h, a){ const n = parseInt(String(h || '#000000').slice(1, 7), 16) || 0; return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
-function box(x, X0, Y0, w, h, b){ if(w <= 0 || h <= 0) return; x.save(); const r = Math.max(0, Math.min(b.radius, w / 2, h / 2)); rr(x, X0, Y0, w, h, r);
+function box(x, X0, Y0, w, h, b){ if(w <= 0 || h <= 0) return; x.save(); const r = b.shape==='square'?0:(b.shape==='circle'||b.shape==='pill')?Math.min(w,h)/2:Math.max(0, Math.min(b.radius, w / 2, h / 2)); rr(x, X0, Y0, w, h, r);
   if(b.sh > 0){ x.shadowColor = `rgba(0,0,0,${b.sh})`; x.shadowBlur = b.shBlur; x.shadowOffsetY = b.shY; }
   x.fillStyle = hexA(b.fill, b.fillA); x.fill(); x.shadowColor = 'transparent'; x.shadowBlur = 0; x.shadowOffsetY = 0;
   if(b.tex){ const t = img(b.tex); if(ok(t)){ x.save(); x.clip(); x.globalAlpha = b.texA; cover(x, t, X0, Y0, w, h); x.restore(); rr(x, X0, Y0, w, h, r); } }
   if(b.glow > 0){ x.shadowColor = b.glowC; x.shadowBlur = 22 * b.glow; }
   if(b.bw > 0){ x.lineWidth = b.bw; x.strokeStyle = b.bc; x.stroke(); } else if(b.glow > 0){ x.lineWidth = 1; x.strokeStyle = hexA(b.glowC, 0.4); x.stroke(); }
   x.restore(); }
-function fontOf(t){ return `${t.weight} ${t.size}px "${t.font}", system-ui`; }
-function tx(x, t, str, X0, Y0, align, maxW){ x.save(); x.font = fontOf(t); x.fillStyle = t.color; x.textAlign = align || 'left'; x.textBaseline = 'alphabetic';
+function fontOf(t){ return `${t.italic?'italic ':''}${t.weight} ${t.size}px "${t.font}", system-ui`; }
+function tx(x, t, str, X0, Y0, align, maxW){ x.save(); x.font = fontOf(t); x.fillStyle = t.color; x.textAlign = (t.align&&t.align!=='auto'?t.align:align)||'left'; x.textBaseline = 'alphabetic'; if('letterSpacing' in x)x.letterSpacing=(t.spacing||0)+'px'; if(maxW&&t.align&&t.align!=='auto'){const left=X0-(align==='center'?maxW/2:align==='right'?maxW:0);X0=left+(t.align==='center'?maxW/2:t.align==='right'?maxW:0);}
   if(t.shA > 0){ x.shadowColor = `rgba(0,0,0,${t.shA})`; x.shadowBlur = 6; x.shadowOffsetY = 2; }
   const full = t.caps ? String(str).toUpperCase() : String(str); let s = full;
   if(maxW){ while(s.length > 1 && x.measureText(s + (s !== full ? '…' : '')).width > maxW) s = s.slice(0, -1); if(s !== full) s += '…'; }
-  x.fillText(s, X0, Y0); x.restore(); }
-function tw(x, t, str){ x.save(); x.font = fontOf(t); const w = x.measureText(t.caps ? String(str).toUpperCase() : String(str)).width; x.restore(); return w; }
+  x.fillText(s, X0, Y0); if(t.underline){const w=x.measureText(s).width,start=X0-(x.textAlign==='center'?w/2:x.textAlign==='right'?w:0);x.fillRect(start,Y0+2,w,Math.max(1,t.size/18));} x.restore(); }
+function tw(x, t, str){ x.save(); x.font = fontOf(t); if('letterSpacing' in x)x.letterSpacing=(t.spacing||0)+'px'; const w = x.measureText(t.caps ? String(str).toUpperCase() : String(str)).width; x.restore(); return w; }
 function bgDraw(x, b){ x.fillStyle = b.color; x.fillRect(0, 0, W, HH * 1.3); if(b.img){ const i = img(b.img); if(ok(i)){ x.save(); x.globalAlpha = b.imgA; cover(x, i, 0, 0, W, HH); x.restore(); } } if(b.dim > 0){ x.fillStyle = `rgba(0,0,0,${b.dim})`; x.fillRect(0, 0, W, HH); } }
 function dashed(x, X0, Y0, w, h, label){ x.save(); x.setLineDash([4, 4]); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.strokeRect(X0 + .5, Y0 + .5, w - 1, h - 1); if(label){ x.fillStyle = 'rgba(255,255,255,.45)'; x.font = '10px system-ui'; x.textAlign = 'center'; x.fillText(label, X0 + w / 2, Y0 + h / 2 + 3); } x.restore(); }
 function slotsDraw(x, s, Yc){ const n = Math.round(s.n); if(!n) return; const tot = n * s.size + (n - 1) * s.gap, Y0 = (Yc ?? HH * s.y) - s.size / 2;
   for(let i = 0; i < n; i++){ const X0 = (W - tot) / 2 + i * (s.size + s.gap), u = s['i' + (i + 1)], im = u ? img(u) : null;
     if(im && ok(im)){ x.save(); if(s.glow > 0){ x.shadowColor = s.glowC; x.shadowBlur = 14 * s.glow; } x.drawImage(im, X0, Y0, s.size, s.size); x.restore(); } else dashed(x, X0, Y0, s.size, s.size, 'slot ' + (i + 1)); } }
-function contain(x, im, X0, Y0, w, h, pad){ if(!ok(im)) return; const p = pad || 0, ww = w - 2 * p, hh = h - 2 * p, s = Math.min(ww / im.naturalWidth, hh / im.naturalHeight), dw = im.naturalWidth * s, dh = im.naturalHeight * s; x.drawImage(im, X0 + p + (ww - dw) / 2, Y0 + p + (hh - dh) / 2, dw, dh); }
+function contain(x, im, X0, Y0, w, h, pad){ if(!ok(im)) return; const p = pad || 0, ww = w - 2 * p, hh = h - 2 * p, iw=im.videoWidth||im.naturalWidth, ih=im.videoHeight||im.naturalHeight, s = Math.min(ww / iw, hh / ih), dw = iw * s, dh = ih * s; x.drawImage(im, X0 + p + (ww - dw) / 2, Y0 + p + (hh - dh) / 2, dw, dh); }
 const ease = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
 const money = (v) => '$' + (Math.round(v * 100) / 100).toFixed(2);
 
@@ -515,7 +517,7 @@ Object.assign(PAGES, {
     },
     sections: [
       { id:'sky', name:'Sky', sub:'Space, your picture, fade', groups:[
-        { name:'Sky strip', ctrls:[K('sky.show','Show the sky'), R('sky.height','How tall',0.1,0.6,.005), R('sky.image','Space picture',1,23,1), U('sky.custom','Your own sky picture'), R('sky.bright','Brightness',0.2,1.6,.01), R('sky.drift','Drift speed',0,40,.5), R('sky.fade','Fade into the page',0,0.6,.01)] },
+        { name:'Sky strip', ctrls:[K('sky.show','Show the sky'), R('sky.height','How tall',0.1,0.6,.005), R('sky.image','Space picture',1,23,1), U('sky.custom','Sky image / video','image/*,video/*'), R('sky.bright','Brightness',0.2,1.6,.01), R('sky.drift','Drift speed',0,40,.5), R('sky.fade','Fade into the page',0,0.6,.01)] },
         { name:'Page background', ctrls: bgC('bg') },
       ]},
       { id:'streams', name:'Live streams', sub:'Black holes over the store', groups:[
@@ -587,8 +589,12 @@ function browseList(){
     t === 'restaurant' ? (s.menu_type === 'sit_down' || s.menu_type === 'fast_casual') :
     t === 'retail' ? ((s.menu_type === 'retail' || s.menu_type === 'convenience') && !/grocery|wholesale/i.test(s.category || '')) : false));
 }
+const MOTION=()=>({mode:'still',distance:8,period:6});
+const motionC=p=>[Sel(p+'.mode','Floating motion',[['still','Still'],['float','Float up / down'],['sway','Sway sideways'],['orbit','Small orbit']]),R(p+'.distance','Movement distance',0,60,1),R(p+'.period','Seconds per movement',.5,60,.5)];
+function motionOffset(m,t,i){if(!m||m.mode==='still')return [0,0];const a=t*2*Math.PI/Math.max(.5,m.period)+i*.7,d=m.distance;return [m.mode==='float'?0:Math.sin(a)*d,m.mode==='sway'?0:Math.cos(a)*d];}
+const shapes=p=>Sel(p+'.shape','Button shape',[['custom','Current corners'],['pill','Pill'],['circle','Round'],['square','Square']]);
 const TILE = (label) => ({ show: true, label, icon: '' });
-const BTN = (text) => ({ show: true, text });
+const BTN = (text) => ({ show: true, text, img:'' });
 const prevDocId = docId;
 docId = (page) => page === 'browse' ? 'page_browse_' + BROWSE.type : prevDocId(page);
 Object.assign(PAGES, {
@@ -602,9 +608,9 @@ Object.assign(PAGES, {
       title: { show: true, text: 'SLEIPNIR', y: 0.135, t: TXT(19, '#8b1d1d', { font: 'Cinzel', weight: 800, shA: 0.2 }) },
       search: { show: true, text: 'Search stores, items, meals…', y: 0.165, h: 34, margin: 14, box: BOX({ radius: 17, fill: '#000000', fillA: 1, bw: 2, bc: '#e9c46a', sh: 0 }), t: TXT(12, '#8a8f98', { weight: 400 }) },
       odin: { show: true, img: '', size: 66, y: 0.235, box: BOX({ radius: 8, fill: '#000000', fillA: 1, bw: 0, sh: 0.4 }) },
-      tiles: { cols: 4, y: 0.35, gap: 22, rowGap: 30, icon: 50, margin: 10, box: BOX({ radius: 12, fill: '#ffffff', fillA: 0, bw: 0, sh: 0 }), t: TXT(11, '#3a3a3a', { weight: 700 }),
+      tiles: { motion:MOTION(), cols: 4, y: 0.35, gap: 22, rowGap: 30, icon: 50, margin: 10, box: BOX({ radius: 12, fill: '#ffffff', fillA: 0, bw: 0, sh: 0 }), t: TXT(11, '#3a3a3a', { weight: 700 }),
         t1: TILE('Grocery'), t2: TILE('Fast Food'), t3: TILE('Restaurant'), t4: TILE('Retail'), t5: TILE('Odin Concierge'), t6: TILE('P2P'), t7: TILE('Valhalla'), t8: TILE('Virtual Shop') },
-      btns: { y: 0.735, w: 0.36, h: 32, gap: 9, box: BOX({ radius: 8, fill: '#4f46e5', fillA: 1, bw: 0, sh: 0.25, shBlur: 6, shY: 2 }), t: TXT(13, '#ffffff', { weight: 700 }),
+      btns: { motion:MOTION(), y: 0.735, w: 0.36, h: 32, gap: 9, box: BOX({ radius: 8, fill: '#4f46e5', fillA: 1, bw: 0, sh: 0.25, shBlur: 6, shY: 2 }), t: TXT(13, '#ffffff', { weight: 700 }),
         b1: BTN('Become a Valkyrie'), b2: BTN('My account'), b3: BTN('Asgard'), b4: BTN('Admin') },
     },
     sections: [
@@ -622,13 +628,15 @@ Object.assign(PAGES, {
       { id:'tiles', name:'Category buttons', sub:'Grocery, Fast Food, Restaurant…', groups:[
         { name:'Layout', ctrls: [R('tiles.cols','Per row',2,5,1), R('tiles.y','Where they start',0.2,0.8,.002), R('tiles.icon','Icon size',24,100,1), R('tiles.gap','Space side to side',0,40,1), R('tiles.rowGap','Space between rows',0,60,1), R('tiles.margin','Side margin',0,40,1)] },
         { name:'Label text', ctrls: txtC('tiles.t','Label') },
-        { name:'Button backing', ctrls: boxC('tiles.box','Backing') },
+        { name:'Button backing', ctrls: [shapes('tiles.box'),...boxC('tiles.box','Backing')] },
+        {name:'Floating category buttons',ctrls:motionC('tiles.motion')},
         ...[1,2,3,4,5,6,7,8].map(i => ({ name:'Button ' + i, ctrls:[K('tiles.t'+i+'.show','Show'), X('tiles.t'+i+'.label','Label'), U('tiles.t'+i+'.icon','Icon image')] })),
       ]},
       { id:'btns', name:'Bottom buttons', sub:'Valkyrie, account, Asgard, admin', groups:[
         { name:'Layout', ctrls: [R('btns.y','Where they start',0.4,0.95,.002), R('btns.w','Width',0.2,0.9,.005), R('btns.h','Height',20,60,1), R('btns.gap','Space between',0,30,1)] },
-        { name:'Text', ctrls: txtC('btns.t','Button text') }, { name:'Look', ctrls: boxC('btns.box','Button') },
-        ...[1,2,3,4].map(i => ({ name:'Button ' + i, ctrls:[K('btns.b'+i+'.show','Show'), X('btns.b'+i+'.text','Text')] })),
+        { name:'Text', ctrls: txtC('btns.t','Button text') }, { name:'Look', ctrls: [shapes('btns.box'),...boxC('btns.box','Button')] },
+        {name:'Floating bottom buttons',ctrls:motionC('btns.motion')},
+        ...[1,2,3,4].map(i => ({ name:'Button ' + i, ctrls:[K('btns.b'+i+'.show','Show'), X('btns.b'+i+'.text','Text'),U('btns.b'+i+'.img','Button image')] })),
       ]},
     ],
     draw: drawSHome,
@@ -666,7 +674,11 @@ Object.assign(PAGES, {
 });
 const IMG2 = {};
 function logoImg(src){ if(!IMG2[src]){ const i = new Image(); i.src = src; IMG2[src] = i; } return IMG2[src]; }
-function norseLayer(x, t, N){ if(!N.on) return; x.save(); x.globalAlpha = N.opacity; x.fillStyle = '#5a4a32'; x.font = '22px serif';
+function norseLayer(x, t, N){ if(!N.on) return;
+ if(N.media?.length){const h=N.height||100,gap=N.gap??16,step=h+gap,rows=N.rows||3,dir=N.direction==='right'?1:-1,travel=t*N.speed*dir,phase=Math.floor(travel/step),off=((travel%step)+step)%step;x.save();x.globalAlpha=N.opacity;
+  for(let row=0;row<rows;row++)for(let col=-1;col<Math.ceil(W/step)+1;col++){const a=N.media[((col+row-phase)%N.media.length+N.media.length)%N.media.length],im=img(a.url||a);if(ok(im))contain(x,im,col*step+off,HH*(N.y??.05)+row*step,h,h);}x.restore();return;
+ }
+ x.save(); x.globalAlpha = N.opacity; x.fillStyle = '#5a4a32'; x.font = '22px serif';
   for(let r = 0; r < 14; r++){ const y = 40 + r * 62, off = ((t * N.speed * (r % 2 ? 1 : -0.7)) % 300 + 300) % 300; for(let X0 = -300 + off; X0 < W + 30; X0 += 30) x.fillText(RUNES[Math.abs(Math.floor(X0 / 30) * 7 + r * 3) % RUNES.length], X0, y); }
   x.restore(); }
 function drawSHome(x, t, S){
@@ -677,12 +689,12 @@ function drawSHome(x, t, S){
   const Se = S.search; if(Se.show){ const y = HH * Se.y; box(x, Se.margin, y, W - Se.margin * 2, Se.h, Se.box); tx(x, Se.t, Se.text, Se.margin + 16, y + Se.h / 2 + Se.t.size * 0.36, 'left', W - Se.margin * 2 - 30); }
   const O = S.odin; if(O.show){ const y = HH * O.y, X0 = (W - O.size) / 2, hh = O.size * 1.4; if(O.img){ box(x, X0, y, O.size, hh, O.box); x.save(); rr(x, X0, y, O.size, hh, Math.min(O.box.radius, O.size / 2)); x.clip(); cover(x, img(O.img), X0, y, O.size, hh); x.restore(); } else dashed(x, X0, y, O.size, hh, 'Odin'); }
   const T = S.tiles, tiles = [1,2,3,4,5,6,7,8].map(i => T['t' + i]).filter(v => v && v.show), cols = Math.round(T.cols), cw = (W - T.margin * 2 - (cols - 1) * T.gap) / cols;
-  tiles.forEach((tl, i) => { const c = i % cols, r = Math.floor(i / cols), X0 = T.margin + c * (cw + T.gap), y = HH * T.y + r * (T.icon + T.t.size + 14 + T.rowGap);
+  tiles.forEach((tl, i) => { const [dx,dy]=motionOffset(T.motion,t,i),c = i % cols, r = Math.floor(i / cols), X0 = T.margin + c * (cw + T.gap)+dx, y = HH * T.y + r * (T.icon + T.t.size + 14 + T.rowGap)+dy;
     box(x, X0, y - 6, cw, T.icon + T.t.size + 18, T.box); const ix = X0 + (cw - T.icon) / 2;
     if(tl.icon && ok(img(tl.icon))) contain(x, img(tl.icon), ix, y, T.icon, T.icon); else dashed(x, ix, y, T.icon, T.icon, 'icon');
     tx(x, T.t, tl.label, X0 + cw / 2, y + T.icon + 6 + T.t.size, 'center', cw); });
   const B = S.btns, bs = [1,2,3,4].map(i => B['b' + i]).filter(v => v && v.show), bw = W * B.w;
-  bs.forEach((b, i) => { const y = HH * B.y + i * (B.h + B.gap); box(x, (W - bw) / 2, y, bw, B.h, B.box); tx(x, B.t, b.text, W / 2, y + B.h / 2 + B.t.size * 0.36, 'center', bw - 10); });
+  bs.forEach((b, i) => { const [dx,dy]=motionOffset(B.motion,t,i),y = HH * B.y + i * (B.h + B.gap)+dy; box(x, (W - bw) / 2+dx, y, bw, B.h, B.box);if(b.img)contain(x,img(b.img),(W-bw)/2+dx+5,y+4,B.h-8,B.h-8); tx(x, B.t, b.text, W / 2+dx+(b.img?B.h/3:0), y + B.h / 2 + B.t.size * 0.36, 'center', bw - 10-(b.img?B.h:0)); });
 }
 function drawBrowse(x, t, S){
   loadBrowse(); bgDraw(x, S.bg); norseLayer(x, t, S.norse);
@@ -704,6 +716,15 @@ function drawBrowse(x, t, S){
     towns.forEach((tn, i) => { const tt = i === 0 ? Ch.onT : Ch.t, w = tw(x, tt, tn) + 22, h = tt.size + 14; if(cx > W) return; box(x, cx, y, w, h, i === 0 ? Ch.on : Ch.box); tx(x, tt, tn, cx + w / 2, y + h / 2 + tt.size * 0.36, 'center'); cx += w + 8; }); }
 }
 
+const norseExtras=()=>[M('norse.media','Norse artwork / replacement images & videos'),R('norse.height','Artwork size',20,300,1),R('norse.rows','Artwork rows',1,12,1),R('norse.gap','Space between artwork',0,100,1),R('norse.y','Artwork starts down screen',0,.95,.01),Sel('norse.direction','Scroll direction',[['left','Right to left'],['right','Left to right']])];
+for(const P of Object.values(PAGES)){
+ const existed=!!P.defaults.norse;
+ P.defaults.norse=Object.assign({on:false,speed:10,opacity:.25,media:[],height:100,rows:3,gap:16,y:.05,direction:'left'},P.defaults.norse||{});
+ if(existed){for(const sec of P.sections)for(const g of sec.groups)if(g.name==='Scrolling Norse art')g.ctrls.push(...norseExtras());}
+ else P.sections.push({id:'norse',name:'Scrolling Norse art',sub:'Reuse artwork, images or video',groups:[{name:'Scrolling Norse art',ctrls:[K('norse.on','Show it'),R('norse.speed','Scroll speed',0,60,.5),R('norse.opacity','Strength / opacity',0,1,.01),...norseExtras()]}]});
+ P.defaults._studioLayers=[];
+ P.sections.push({id:'design',name:'Add images & buttons',sub:'Shared folders, layers, text, frames & motion',groups:[]});
+}
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
 const deep = (o) => JSON.parse(JSON.stringify(o));
@@ -740,6 +761,7 @@ function nav(){
   AsgardStudioLayout.setPage(STATE.page); $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
 }
 function panel(){
+  if(STATE.sec==='design'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');PAGE_TOOLS.panel($('#panel'));return;}
   if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
   const P = PAGES[STATE.page], sec = P.sections.find(s => s.id === STATE.sec) || P.sections[0], pn = $('#panel'); pn.innerHTML = '';
   sec.groups.forEach(g => { const d = document.createElement('details'); d.className = 'pg-grp'; d.open = true; d.innerHTML = `<summary>${g.name}</summary>`;
@@ -750,11 +772,8 @@ function panel(){
       else if(c.t === 'c'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="color" value="${/^#/.test(v) ? v : '#ffffff'}">`; el.querySelector('input').oninput = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
       else if(c.t === 's'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><select class="pg-sel">${c.opts.map(([val, lab]) => `<option value="${val}" ${val === v ? 'selected' : ''}>${lab}</option>`).join('')}</select>`; el.querySelector('select').onchange = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
       else if(c.t === 'x'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="text" class="pg-sel">`; const ti = el.querySelector('input'); ti.value = v == null ? '' : v; ti.oninput = () => { set(STATE.S, c.k, ti.value); save(); }; }
-      else if(c.t === 'u'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}${v ? ' <em>set</em>' : ''}</label><input type="file" accept="image/*"> ${v ? '<button class="ghost">Clear</button>' : ''}`;
-        el.querySelector('input').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const path = 'uploads/pages/' + Date.now() + '-' + f.name.replace(/[^\w.-]/g, '_');
-          try { const r = await fetch(SB.url + '/storage/v1/object/studio/' + path, { method:'POST', headers: H({ 'Content-Type': f.type, 'x-upsert':'true' }), body: f }); if(!r.ok) throw 0; set(STATE.S, c.k, STUDIO + path); } catch(err){ set(STATE.S, c.k, URL.createObjectURL(f)); alert('Upload failed, showing it on this computer only.'); }
-          save(); panel(); };
-        const cb = el.querySelector('button'); if(cb) cb.onclick = () => { set(STATE.S, c.k, ''); save(); panel(); }; }
+      else if(c.t==='m'){el=document.createElement('div');el.className='pg-row';const label=document.createElement('label');label.textContent=c.label;const holder=document.createElement('input');holder.type='text';holder.readOnly=true;holder.value=(v||[]).length+' selected';holder.setAttribute('aria-label',c.label);const choose=document.createElement('button');choose.className='ghost';choose.textContent='Choose replacement artwork';const clear=document.createElement('button');clear.className='ghost';clear.textContent='Return to original runes';clear.onclick=()=>{set(STATE.S,c.k,[]);save();panel();};const state=STATE.S;choose.onclick=()=>SHARED_MEDIA.open({multiple:true,onSelect:assets=>{if(STATE.S!==state)return;set(state,c.k,assets.map(a=>({url:a.url,kind:a.kind,name:a.name})));save();panel();}});el.append(label,holder,choose,clear);}
+      else if(c.t === 'u'){const state=STATE.S;el=SHARED_MEDIA.field(c.label,v,asset=>{if(STATE.S!==state)return;set(state,c.k,asset.url);save();panel();},c.accept);}
       el.querySelectorAll('input,select,textarea').forEach(i=>i.dataset.control=c.k);d.appendChild(el); });
     pn.appendChild(d); });
   AsgardStudioLayout.arrange(pn,STATE.sec);
@@ -773,17 +792,19 @@ $('#pushBtn').onclick = pushToApp;
 
 /* ======================= RENDER LOOP ======================= */
 const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
+const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,arrange:AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
 function frame(now){
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   if(r.width > 0 && (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr))){ cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
   if(STATE.S && r.width > 0){ const sc = cv.width / W; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(sc, 0, 0, sc, 0, 0);
-    try { PAGES[STATE.page].draw(ctx, now / 1000, STATE.S, (now - STATE.t0) / 1000); } catch(e){ console.error(e); } }
+    try { PAGES[STATE.page].draw(ctx, now / 1000, STATE.S, (now - STATE.t0) / 1000);if(!['shome','browse'].includes(STATE.page))norseLayer(ctx,now/1000,STATE.S.norse); } catch(e){ console.error(e); } }
+  PAGE_TOOLS.sync();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
 /* ======================= DRAWING ======================= */
-function cover(x, im, dx, dy, dw, dh, ox, oy){ if(!ok(im)) return; const ir = im.naturalWidth / im.naturalHeight, r = dw / dh; let sw, sh; if(ir > r){ sh = im.naturalHeight; sw = sh * r; } else { sw = im.naturalWidth; sh = sw / r; } const sx = clamp((im.naturalWidth - sw) * (ox ?? 0.5), 0, im.naturalWidth - sw), sy = clamp((im.naturalHeight - sh) * (oy ?? 0.5), 0, im.naturalHeight - sh); x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); }
+function cover(x, im, dx, dy, dw, dh, ox, oy){ if(!ok(im)) return; const iw=im.videoWidth||im.naturalWidth,ih=im.videoHeight||im.naturalHeight,ir = iw / ih, r = dw / dh; let sw, sh; if(ir > r){ sh = ih; sw = sh * r; } else { sw = iw; sh = sw / r; } const sx = clamp((iw - sw) * (ox ?? 0.5), 0, iw - sw), sy = clamp((ih - sh) * (oy ?? 0.5), 0, ih - sh); x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); }
 function rr(x, X, Y, w, h, r){ x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
 const bgSrc = (n) => 'bg/bg' + String(clamp(Math.round(n), 1, 23)).padStart(2, '0') + '.jpg';
 const RUNES = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
@@ -924,4 +945,5 @@ AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search)
 const start = new URLSearchParams(location.search).get('page');
 openPage(PAGES[start] ? start : 'home');
 })();
+
 

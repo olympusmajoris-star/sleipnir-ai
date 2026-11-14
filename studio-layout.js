@@ -65,7 +65,7 @@ function arrange(host,key){
  host.classList.add('focused-tools');
  const menu=$('#studioOptions');if(!menu)return;menu.replaceChildren();
  const original=[...host.children],bank=el('div','editor-source');bank.hidden=true;original.forEach(n=>bank.append(n));host.append(bank);
- context=bank.querySelector('[aria-label="Views tier selection"]');if(context){context.classList.add('editor-context');host.prepend(context);}
+ context=bank.querySelector('[aria-label="Views tier selection"],[data-editor-context]');if(context){context.classList.add('editor-context');host.prepend(context);}
  const map=new Map();
  function unit(name){if(map.has(name))return map.get(name);const body=el('section','tool-page');body.hidden=true;body.dataset.tool=name;body.append(el('h2','tool-title',name));host.append(body);map.set(name,body);items.push({name,body});return body;}
  const fields=[...bank.querySelectorAll('.c,.pg-row,.pg-chk,.rn-control')].filter(n=>n.querySelector('input,select,textarea'));
@@ -74,7 +74,7 @@ function arrange(host,key){
   if(!bank.contains(row))continue;
   const inp=row.querySelector('input,select,textarea'),source=row.closest('.grp,.pg-grp,.rn-fields,.rn-quick');
   const title=source?.querySelector(':scope>summary,:scope>h3,:scope>.gb>h3')?.textContent||'';
-  const name=category(inp.dataset.p||inp.dataset.control||'',row.querySelector('label')?.textContent||'',title);
+  const name=source?.dataset.studioGroup||(String(inp.dataset.control||'').startsWith('norse.')?'Scrolling Norse art':category(inp.dataset.p||inp.dataset.control||'',row.querySelector('label')?.textContent||'',title));
   const body=unit(name),hk=name+'|'+title;if(title&&title!==name&&!headings.has(hk)){body.append(el('h3','source-heading',title));headings.add(hk);}body.append(row);
  }
  // Keep every remaining original action, saved variant, selector, upload and count field accessible.
@@ -115,4 +115,5 @@ async function saveNavigation(nav){
 }
 G.AsgardStudioLayout={mount,setPage,arrange,select,category,saveNavigation};
 })(window);
+
 
