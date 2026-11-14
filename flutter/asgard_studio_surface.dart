@@ -12,7 +12,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 const asgardStudioRuntimeUrl =
-    'https://olympusmajoris-star.github.io/sleipnir-ai/runtime/transfer-20261114-v2/app-runtime.html';
+    'https://olympusmajoris-star.github.io/sleipnir-ai/runtime/transfer-20261114-v3/app-runtime.html';
 
 const asgardStudioPages = <String>{
   'raven',

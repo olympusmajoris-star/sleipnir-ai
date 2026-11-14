@@ -1,6 +1,6 @@
 # Approved studio surface for Flutter
 
-`AsgardStudioSurface` is a reusable Flutter widget that displays the same web scene renderer used by the studio. It loads approved release snapshots through the immutable `runtime/transfer-20261114-v2/app-runtime.html` build; it never reads a draft or accepts a preview mode. This is a WebView integration, not conversion of JavaScript artwork into native Flutter drawing code.
+`AsgardStudioSurface` is a reusable Flutter widget that displays the same web scene renderer used by the studio. It loads approved release snapshots through the immutable `runtime/transfer-20261114-v3/app-runtime.html` build; it never reads a draft or accepts a preview mode. This is a WebView integration, not conversion of JavaScript artwork into native Flutter drawing code.
 
 ## What is implemented
 
@@ -78,7 +78,7 @@ To repeat the allowed pure-Dart checks, run `python run_contract_tests.py /path/
 ## Release and original-app boundaries
 
 - The runtime must fail closed if there is no approved release. Never fall back to `studio_designs`, local editor storage or test/demo data.
-- The widget hardcodes renderer build `transfer-20261114-v2`, and approvals must reference that build. A release for another renderer build must be rejected with an upgrade notice rather than silently loading different code. Future renderer features require an explicitly installed app-code upgrade; approved design settings within this build can update without repasting Dart.
+- The widget hardcodes renderer build `transfer-20261114-v3`, and approvals must reference that build. A release for another renderer build must be rejected with an upgrade notice rather than silently loading different code. Future renderer features require an explicitly installed app-code upgrade; approved design settings within this build can update without repasting Dart.
 - This surface does not replace the native cloud-messaging widget or its authenticated backend. The existing original Dart implementation must remain the authoritative baseline until parity is demonstrated.
 - Draft edits, widget download and preview must never perform publication. Danny's explicit approval is a separate authenticated operation.
 

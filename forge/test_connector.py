@@ -2,6 +2,8 @@ import importlib.machinery
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+import tempfile
 
 loader = importlib.machinery.SourceFileLoader('connector', str(Path(__file__).with_name('ForgeStudioConnector.pyw')))
 spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -46,10 +48,31 @@ class ConnectorTests(unittest.TestCase):
         self.assertEqual(patches[-1]['status'],'failed')
         self.assertIn('did not start',patches[-1]['result']['message'])
 
-if __name__=='__main__':
-    unittest.main()
-
 class DiscoveryTests(unittest.TestCase):
     def test_only_local_listeners_are_probed(self):
         sample='  TCP    0.0.0.0:8000   0.0.0.0:0   LISTENING   1\n  TCP    127.0.0.1:8738   0.0.0.0:0   LISTENING   2\n  TCP    192.168.1.10:9000   0.0.0.0:0   LISTENING   3\n  TCP    127.0.0.1:5000   127.0.0.1:8000   ESTABLISHED   4'
         self.assertEqual(c.listening_ports(sample), [8000,8738])
+
+class RememberedSessionTests(unittest.TestCase):
+    def test_startup_paths_are_quoted_and_shell_substitution_is_rejected(self):
+        self.assertEqual(c.startup_command('C:\\Program Files\\Python\\pythonw.exe', 'C:\\Users\\Danny\\Downloads\\ForgeStudioConnector.pyw'), '@echo off\n"C:\\Program Files\\Python\\pythonw.exe" "C:\\Users\\Danny\\Downloads\\ForgeStudioConnector.pyw" --auto\n')
+        for character in '%&|<>^\r\n"':
+            with self.assertRaises(ValueError):
+                c.startup_command('pythonw.exe', 'C:\\' + character + 'bad.pyw')
+
+    def test_saved_file_contains_only_encrypted_refresh_material(self):
+        with tempfile.TemporaryDirectory() as folder:
+            filename=Path(folder)/'owner-session.dpapi'
+            with patch.object(c,'SESSION_FILE',filename), patch.object(c,'protect_session',return_value=b'encrypted') as protect:
+                c.save_session({'refresh_token':'private refresh','access_token':'short token','password':'never save'})
+                self.assertEqual(filename.read_bytes(),b'encrypted')
+                self.assertEqual(c.json.loads(protect.call_args.args[0]),{'refresh_token':'private refresh'})
+                self.assertFalse(filename.with_suffix('.tmp').exists())
+
+    def test_no_plaintext_fallback_without_windows_encryption(self):
+        with patch.object(c.sys,'platform','linux'):
+            with self.assertRaises(ValueError):
+                c.protect_session(b'private')
+
+if __name__=='__main__':
+    unittest.main()

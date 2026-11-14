@@ -1,8 +1,8 @@
 /* Shared transfer contract. Drafts are never a production fallback. */
 (function(G){
 'use strict';
-const VERSION='transfer-20261114-v2';
-const SOURCE_COMMIT='e4147b86435180e85c612c2e65297ae3c7797e26';
+const VERSION='transfer-20261114-v3';
+const SOURCE_COMMIT='42bc43f36d3e2a587ed388faab19cdee8624322c';
 const PAGES=['raven','navigation','home','shome','browse','store','convo','share','heimdall','track','swap','ads','shoppost','deals'];
 const TYPES=['grocery','fast_food','restaurant','retail','valhalla'];
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

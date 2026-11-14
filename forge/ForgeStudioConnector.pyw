@@ -9,6 +9,8 @@ import json
 import re
 import subprocess
 import sys
+import os
+import ctypes
 from concurrent.futures import ThreadPoolExecutor
 import queue
 import threading
@@ -21,12 +23,68 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 CONFIG = Path(__file__).with_name('connector-settings.json')
 PROJECT = 'https://afnihsdxtisneuyehatw.supabase.co'
 OWNER = '533a05da-fed8-4c92-ba94-7e4867ebce8f'
 # A public project identifier; owner authorization uses a separate session.
 PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps'
+
+SESSION_FILE = Path(__file__).with_name('owner-session.dpapi')
+
+def protect_session(data, decrypt=False):
+    """Windows current-user encryption; never save a password or plaintext token."""
+    if sys.platform != 'win32':
+        raise ValueError('Remembered owner connection requires Windows user encryption.')
+    from ctypes import wintypes
+    class Blob(ctypes.Structure):
+        _fields_ = [('size', wintypes.DWORD), ('data', ctypes.POINTER(ctypes.c_ubyte))]
+    buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
+    incoming, outgoing = Blob(len(data), buffer), Blob()
+    crypt = ctypes.WinDLL('crypt32', use_last_error=True)
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    function = crypt.CryptUnprotectData if decrypt else crypt.CryptProtectData
+    function.argtypes = [ctypes.POINTER(Blob), ctypes.c_void_p, ctypes.c_void_p,
+                         ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(Blob)]
+    function.restype = wintypes.BOOL
+    kernel.LocalFree.argtypes = [ctypes.c_void_p]
+    kernel.LocalFree.restype = ctypes.c_void_p
+    if not function(ctypes.byref(incoming), None, None, None, None, 1, ctypes.byref(outgoing)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        return ctypes.string_at(outgoing.data, outgoing.size)
+    finally:
+        kernel.LocalFree(outgoing.data)
+
+def save_session(session):
+    data = protect_session(json.dumps({'refresh_token': session['refresh_token']}).encode())
+    temporary = SESSION_FILE.with_suffix('.tmp')
+    temporary.write_bytes(data)
+    temporary.replace(SESSION_FILE)
+
+def startup_path():
+    if sys.platform != 'win32' or not os.environ.get('APPDATA'):
+        raise ValueError('Automatic startup requires Windows.')
+    return Path(os.environ['APPDATA']) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup' / 'AsgardForgeConnector.cmd'
+
+def startup_command(executable, script):
+    for path in (str(executable), str(script)):
+        if any(c in path for c in '%&|<>^\r\n"'):
+            raise ValueError('Move the connector to a folder without shell-special characters before enabling startup.')
+    return '@echo off\n"' + str(executable) + '" "' + str(script) + '" --auto\n'
+
+def set_startup(enabled):
+    path = startup_path()
+    if not enabled:
+        path.unlink(missing_ok=True)
+        SESSION_FILE.unlink(missing_ok=True)
+        return
+    executable = Path(sys.executable)
+    if executable.name.lower() == 'python.exe' and executable.with_name('pythonw.exe').is_file():
+        executable = executable.with_name('pythonw.exe')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(startup_command(executable, Path(__file__).resolve()), encoding='utf-8')
+
 
 def utc(seconds=0):
     return (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=seconds)).isoformat()
@@ -102,6 +160,7 @@ class Connector:
         self.stop = threading.Event()
         self.job = None
         self.adapter = None
+        self.remember = False
 
     def cloud(self, path, method='GET', data=None, extra=None):
         if not self.session:
@@ -110,6 +169,8 @@ class Connector:
             self.session = request(PROJECT + '/auth/v1/token?grant_type=refresh_token', 'POST',
                                    {'refresh_token': self.session['refresh_token']}, {'apikey': PUBLIC_KEY})
             self.session['expires_at'] = time.time() + self.session['expires_in']
+            if self.remember:
+                save_session(self.session)
         return request(PROJECT + path, method, data, {'apikey': PUBLIC_KEY,
                       'Authorization': 'Bearer ' + self.session['access_token'], **(extra or {})})
 
@@ -120,6 +181,17 @@ class Connector:
             raise ValueError('This queue belongs to the Asgard app owner. Use that account.')
         s['expires_at'] = time.time() + s['expires_in']
         self.session = s
+
+    def restore(self):
+        saved = json.loads(protect_session(SESSION_FILE.read_bytes(), decrypt=True))
+        session = request(PROJECT + '/auth/v1/token?grant_type=refresh_token', 'POST',
+                          {'refresh_token': saved['refresh_token']}, {'apikey': PUBLIC_KEY})
+        if session.get('user', {}).get('id') != OWNER:
+            raise ValueError('Saved session does not belong to the app owner.')
+        session['expires_at'] = time.time() + session['expires_in']
+        self.session = session
+        if self.remember and not self.stop.is_set():
+            save_session(session)
 
     def local(self, path, method='GET', data=None):
         return request(self.base + path, method, data)
@@ -273,7 +345,9 @@ def main():
                 log(str(error))
         threading.Thread(target=work, daemon=True).start()
     ttk.Button(frame, text='Find my running Forge', command=detect).pack(anchor='w', pady=4)
-    ttk.Label(frame, text='Your password and session are held in memory only. Reconnect after restarting.', wraplength=580).pack(anchor='w')
+    remember = tk.BooleanVar(value=bool(settings.get('remember', False)))
+    ttk.Checkbutton(frame, text='Keep connected after Windows restarts (encrypted on this Windows account)', variable=remember).pack(anchor='w')
+    ttk.Label(frame, text='Password is never saved. Remembered connection uses Windows encryption. Keep this file in Downloads.', wraplength=580).pack(anchor='w')
     output = tk.Text(frame, height=9, state='disabled', wrap='word')
     output.pack(fill='both', expand=True, pady=12)
     events = queue.Queue()
@@ -292,7 +366,7 @@ def main():
             output.see('end')
             output.configure(state='disabled')
         root.after(200, pump)
-    def connect():
+    def connect(auto=False):
         if active['thread'] and active['thread'].is_alive():
             return
         try:
@@ -303,11 +377,40 @@ def main():
         email, password = entries['email'].get().strip(), entries['password'].get()
         entries['password'].delete(0, 'end')
         active['connector'] = c
+        c.remember = remember.get()
         def work():
             try:
-                c.connect(email, password)
-                CONFIG.write_text(json.dumps({'base': c.base}))
-                c.run()
+                if auto:
+                    while not c.stop.is_set():
+                        try:
+                            c.restore()
+                            break
+                        except urllib.error.HTTPError as error:
+                            if error.code in (400, 401, 403):
+                                raise ValueError('Saved owner connection expired. Connect with your owner account again.') from error
+                            log('Waiting for owner service; retrying in 15 seconds.')
+                            c.stop.wait(15)
+                        except (urllib.error.URLError, TimeoutError, ConnectionError):
+                            log('Waiting for internet; retrying in 15 seconds.')
+                            c.stop.wait(15)
+                    if c.stop.is_set():
+                        return
+                else:
+                    c.connect(email, password)
+                if c.stop.is_set():
+                    return
+                if c.remember:
+                    save_session(c.session)
+                    set_startup(True)
+                elif sys.platform == 'win32':
+                    set_startup(False)
+                CONFIG.write_text(json.dumps({'base': c.base, 'remember': c.remember}))
+                while not c.stop.is_set():
+                    try:
+                        c.run()
+                    except Exception as error:
+                        log('Connection interrupted; retrying: ' + str(error))
+                        c.stop.wait(15)
             except Exception as error:
                 log('Could not connect: ' + str(error))
         active['thread'] = threading.Thread(target=work, daemon=True)
@@ -320,6 +423,18 @@ def main():
     bar.pack(fill='x')
     ttk.Button(bar, text='Connect', command=connect).pack(side='left')
     ttk.Button(bar, text='Disconnect', command=disconnect).pack(side='left', padx=8)
+    def forget():
+        if active['connector']:
+            active['connector'].remember = False
+        disconnect()
+        try:
+            set_startup(False)
+            remember.set(False)
+            CONFIG.write_text(json.dumps({'base': entries['base'].get(), 'remember': False}))
+            log('Saved owner connection and Windows startup entry removed.')
+        except Exception as error:
+            log(str(error))
+    ttk.Button(bar, text='Forget saved connection', command=forget).pack(side='left')
     def close():
         if active['connector'] and active['connector'].job:
             if not messagebox.askyesno('Collection running', 'Disconnect and request Forge to stop this collection?'):
@@ -331,6 +446,9 @@ def main():
             root.destroy()
     root.protocol('WM_DELETE_WINDOW', close)
     pump()
+    if '--auto' in sys.argv and remember.get() and SESSION_FILE.exists():
+        root.after(500, lambda: connect(auto=True))
+        root.iconify()
     root.mainloop()
 
 if __name__ == '__main__':
