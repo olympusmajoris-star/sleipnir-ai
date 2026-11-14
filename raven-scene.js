@@ -269,7 +269,7 @@ class RavenScene {
     else { el = new Image(); el.crossOrigin = 'anonymous'; el.src = this._u(src); }
     this.images[src] = el; return el;
   }
-  _u(src) { return /^(data:|blob:|https?:)/.test(src) ? src : this.base + src; }
+  _u(src) { if(this.opts.resolveAsset)return this.opts.resolveAsset(src);return /^(data:|blob:|https?:)/.test(src) ? src : this.base + src; }
   _ready(el) { return el && ((el.tagName === 'VIDEO' && el.readyState >= 2) || (el.complete && el.naturalWidth)); }
   _preload() { this.img(this.s.sphere.texture); for (const L of this.s.bg.layers) this.img(L.src); for (const c of this.contacts) { this.img(c.bust); this.img(c.face); } }
   _resize() {
@@ -537,7 +537,7 @@ class RavenScene {
         x.save();x.setTransform(k,0,0,k,0,0);x.globalAlpha=Math.min(1,(h.form??1)*(h.opacity??1));
         this.referenceHole.draw(x,this.bgc,live,this.time,W,H);x.restore();continue;
       }
-      let v = this._vids[i]; if (!v) { v = this._vids[i] = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.crossOrigin = 'anonymous'; v.onerror = () => { v._bad = true; }; v.src = 'stage/s' + i + '.mp4'; v.play().catch(() => {}); }
+      let v = this._vids[i]; if (!v) { v = this._vids[i] = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.crossOrigin = 'anonymous'; v.onerror = () => { v._bad = true; }; v._studioSource = 'stage/s' + i + '.mp4'; v.src = this._u(v._studioSource); v.play().catch(() => {}); }
       if (v._bad) continue;
       if (v.readyState < 2) { if (v.paused) v.play().catch(() => {}); continue; }
       const side = h.size * 7 * (CL.scale || 1) * k, sd = (h.seed || 0) * 37.3, ang = (((sd % 70) - 35) * (CL.turn ?? 1) + (h.rotZ || 0) * 0.3) * Math.PI / 180;
@@ -1017,7 +1017,7 @@ class RavenScene {
     this._aq=1;
     if (this.playing) this.time += elapsed * this.speed;
     const sdt = this.playing ? elapsed * this.speed : 0; this._dtLast = elapsed;
-    if (this.s.holes.liveViews && sdt > 0) { this._vt = (this._vt || 0) + sdt; if (this._vt > 0.7) { this._vt = 0; for (const c of this.contacts) { const v = c.counts.viewers || 0; if (v <= 0) continue; const step = Math.max(1, Math.round(v * 0.02)); c.counts.viewers = Math.max(1, v + Math.round((Math.random() - 0.45) * 2 * step)); } } }
+    if (!this.opts.production && this.s.holes.liveViews && sdt > 0) { this._vt = (this._vt || 0) + sdt; if (this._vt > 0.7) { this._vt = 0; for (const c of this.contacts) { const v = c.counts.viewers || 0; if (v <= 0) continue; const step = Math.max(1, Math.round(v * 0.02)); c.counts.viewers = Math.max(1, v + Math.round((Math.random() - 0.45) * 2 * step)); } } }
     // rolodex inertia
     const R = this.s.rolodex;
     if (Math.abs(this.roll.vel) > 0.01) { this.roll.off += this.roll.vel * dt; this.roll.vel *= Math.exp(-dt / Math.max(0.05, R.coast)); }

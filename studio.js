@@ -666,6 +666,7 @@ $('#saveBtn').onclick=async ()=>{ const n='Version '+new Date().toLocaleString()
 $('#exportBtn').onclick=()=>saveFile('asgard-raven-settings-'+Date.now()+'.json', JSON.stringify(S,null,1));
 $('#importFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ S=Raven.ensureDashboards(JSON.parse(await f.text())); commit(); applyToScene(true); render(); toast('Settings loaded'); }catch(err){ toast('That file is not a studio settings file'); } };
 $('#dartBtn').onclick=getDart;
+if(window.StudioTransfer)StudioTransfer.mount({snapshot:()=>({page:'raven',settings:clone(S),navigation:clone(ROCK_NAV.S)}),resolveAsset:resolveSrc});
 $('#boardBtn').onclick=boardShow; $('#boardClose').onclick=()=>$('#board').hidden=true;
 $('#bPost').onclick=async()=>{ const o={ who:$('#bWho').value, title:$('#bTitle').value.trim(), body:$('#bBody').value.trim() }; if(!o.title) return toast('Give it a title'); if(await boardPost(o)){ $('#bTitle').value=''; $('#bBody').value=''; boardShow(); toast('Posted'); } else toast('Could not reach the board'); };
 $('#addLayerBtn').onclick=()=>openLib('bg');

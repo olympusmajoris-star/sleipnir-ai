@@ -2,6 +2,28 @@
    Settings save to the shared Supabase (table studio_designs, id "page_<name>"), so Danny, Claude and ChatGPT see the same thing. */
 (() => {
 'use strict';
+// The approved player supplies its immutable envelope before this file runs.
+// It never falls back to editable drafts or the editor's local browser state.
+const RUNTIME = window.AsgardRuntime || null;
+const RUNTIME_PREVIEW = !!(RUNTIME && RUNTIME.preview === true);
+let runtimeContext = {}, runtimePaused = false, runtimePauseAt = 0, runtimePauseOffset = 0, runtimeStopped = false, runtimeFrame = null;
+const runtimeHits = [], runtimeAssetRefs = new Set(), runtimeDataAssets = new Set();
+function allowDataAssets(urls){const assets=[];for(const value of urls){if(typeof value!=='string'||!value)continue;for(const url of [value,fixUrl(value)]){runtimeDataAssets.add(url);assets.push(url);}}RUNTIME?.allowDataAssets?.(assets);}
+function runtimeAsset(src){if(!src)return src;if(!runtimeDataAssets.has(src))runtimeAssetRefs.add(src);return RUNTIME?.resolveAsset?RUNTIME.resolveAsset(src):src;}
+const BROWSE_TYPES = ['grocery','fast_food','restaurant','retail','valhalla'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const runtimeEmit = (type,payload={}) => { if(RUNTIME) RUNTIME.emit(type,payload); };
+function hit(x,y,w,h,action){if(RUNTIME)runtimeHits.push({x,y,w,h,action});}
+function runtimeAction(action){
+ if(!RUNTIME || !action || typeof action !== 'object') return;
+ if(action.type==='navigate' && ['raven','home','shome','store','browse','convo','share','heimdall','track','swap','ads','shoppost','deals'].includes(action.target)){
+  if(action.target==='store'&&!UUID.test(action.storeId||''))return;
+  if(action.target==='browse'&&action.pageType&&!BROWSE_TYPES.includes(action.pageType))return;
+  runtimeEmit('navigate',{target:action.target,...(action.target==='store'?{storeId:action.storeId}:{}),...(action.target==='browse'?{pageType:action.pageType||'grocery'}:{})});
+ }else if(action.type==='product'&&UUID.test(action.productId||'')&&UUID.test(action.storeId||''))runtimeEmit('product',{productId:action.productId,storeId:action.storeId});
+ else if(action.type==='contact'&&typeof action.contactId==='string'&&action.contactId.length>0&&action.contactId.length<=128)runtimeEmit('contact',{contactId:action.contactId});
+}
+
 const SB = { url:'https://afnihsdxtisneuyehatw.supabase.co', key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps' };
 const H = (x) => Object.assign({ apikey: SB.key, Authorization: 'Bearer ' + SB.key }, x || {});
 const UI = SB.url + '/storage/v1/object/public/asgard_ui/';
@@ -17,10 +39,10 @@ const EARTHS = ['changing-landscapes','close-farmland','farmland','forest-river'
 
 /* ---------- images / video cache ---------- */
 const IMG = {};
-function img(src){ if(SharedStudioMedia.kind(src)==='video')return vid(src); if(!IMG[src]){ const i = new Image(); i.crossOrigin='anonymous'; i.src = src; IMG[src] = i; } return IMG[src]; }
+function img(src){ if(SharedStudioMedia.kind(src)==='video')return vid(src); src=runtimeAsset(src); if(!IMG[src]){ const i = new Image(); i.crossOrigin='anonymous'; i.src = src; IMG[src] = i; } return IMG[src]; }
 const ok = (i) => i && (i.tagName==='VIDEO'?i.readyState>=2&&i.videoWidth>0:i.complete&&i.naturalWidth>0);
 const VID = {};
-function vid(src){ if(!VID[src]){ const v = document.createElement('video'); v.crossOrigin='anonymous'; v.muted=true; v.loop=true; v.playsInline=true; v.src=src; v.play().catch(()=>{}); VID[src]=v; } return VID[src]; }
+function vid(src){ src=runtimeAsset(src); if(!VID[src]){ const v = document.createElement('video'); v.crossOrigin='anonymous'; v.muted=true; v.loop=true; v.playsInline=true; v.src=src; if(!runtimePaused)v.play().catch(()=>{}); VID[src]=v; } return VID[src]; }
 
 /* ---------- control helpers ---------- */
 const R = (k, label, min, max, step) => ({ t:'r', k, label, min, max, step });
@@ -175,6 +197,7 @@ const money = (v) => '$' + (Math.round(v * 100) / 100).toFixed(2);
 const DATA = { items: [], rates: [] };
 const fixUrl = (u) => String(u || '').replace(/ /g, '%20').replace(/'/g, '%27');
 (async () => {
+  if(RUNTIME) return;
   try { const r = await fetch(SB.url + '/rest/v1/products?select=name,price,image_url,stores!inner(name,logo_url,category,is_live)&image_url=like.*supabase.co*&price=gt.0&stores.is_live=is.true&stores.logo_url=like.*supabase.co*&order=id&limit=400', { headers: H() });
     if(r.ok){ const j = await r.json(), seen = {}; j.forEach(p => { const s = p.stores; if(!s || seen[s.name]) return; seen[s.name] = 1; DATA.items.push({ name: p.name, price: +p.price, img: fixUrl(p.image_url), store: s.name, logo: fixUrl(s.logo_url), cat: s.category }); }); } } catch(e){}
   try { const r = await fetch(SB.url + '/rest/v1/ad_rates?select=*', { headers: H() }); if(r.ok) DATA.rates = await r.json(); } catch(e){}
@@ -487,19 +510,46 @@ function drawDeals(x, t, S){
 /* Shared asteroid navigation is independent of page and Raven settings. */
 PAGES.track = { title:'Track', defaults:{ bg:'#020408' }, sections:[{id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]}], draw:(x)=>{x.fillStyle='#020408';x.fillRect(0,0,W,HH);x.fillStyle='#c7dce5';x.font='600 24px system-ui';x.textAlign='center';x.fillText('Track',W/2,74);x.textAlign='left';} };
 for(const P of Object.values(PAGES)){P.sections=P.sections.filter(s=>s.id!=='dock');if(!P.sections.some(s=>s.id==='rocks'))P.sections.push({id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]});}
-const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:STUDIO+'navigation/rocks-v1/',page:'home',shareAvailable:true,onNavigate:openPage});
+const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:STUDIO+'navigation/rocks-v1/',page:'home',shareAvailable:true,onNavigate:openPage,readOnly:!!RUNTIME,settings:RUNTIME?.envelope?.navigation,resolveAsset:RUNTIME?.resolveAsset});
 window.asgardRockNavigation = ROCK_NAV;
 /* ======================= STORE PAGE (one design per store) ======================= */
-const STORE = { id: new URLSearchParams(location.search).get('store') || '', row: null, items: [], loading: false };
-async function loadStore(){
-  if(!STORE.id || STORE.loading || STORE.row) return; STORE.loading = true;
-  try {
-    const r = await fetch(SB.url + '/rest/v1/stores?id=eq.' + STORE.id + '&select=id,name,logo_url,category,address,is_valhalla', { headers: H() });
-    if(r.ok){ const j = await r.json(); STORE.row = j[0] || null; }
-    const p = await fetch(SB.url + '/rest/v1/products?store_id=eq.' + STORE.id + '&select=name,price,image_url,category&order=section_rank.asc.nullslast,sort_order.asc.nullslast&limit=80', { headers: H() });
-    if(p.ok) STORE.items = (await p.json()).map(x => ({ name: x.name, price: +x.price || 0, img: fixUrl(x.image_url), cat: x.category }));
-  } catch(e){}
-  STORE.loading = false;
+const STORE = { id: RUNTIME?.envelope?.storeId || new URLSearchParams(location.search).get('store') || '', row: null, items: [], loading: false, loaded:false, error:'', offset:0, limit:80, count:0, query:'', revision:0, abort:null, scroll:0, scrollMax:0 };
+async function loadStore(offset=STORE.offset,query=STORE.query,force=false){
+ if(!UUID.test(STORE.id)||(!force&&(STORE.loading||STORE.loaded)))return;
+ STORE.abort?.abort();const abort=STORE.abort=new AbortController(),revision=++STORE.revision,id=STORE.id;
+ const nextOffset=Math.max(0,Math.floor(Number(offset)||0)),nextQuery=String(query||'').trim().slice(0,160);
+ STORE.loading=true;STORE.error='';updateCatalogControls();
+ try{
+  let row=STORE.row;
+  if(!row){const r=await fetch(SB.url+'/rest/v1/stores?'+new URLSearchParams({id:'eq.'+id,select:'id,name,logo_url,category,address,is_valhalla,website_url,hours'}),{headers:H(),signal:abort.signal});if(!r.ok)throw Error('Store information could not be loaded.');row=(await r.json())[0]||null;if(!row)throw Error('Store not found.');}
+  const qs=new URLSearchParams({store_id:'eq.'+id,select:'id,store_id,name,description,price,image_url,category,section,shelf_group,weight_lbs',order:'section_rank.asc.nullslast,sort_order.asc.nullslast,id.asc',limit:String(STORE.limit),offset:String(nextOffset)});
+  if(nextQuery)qs.set('name','ilike.*'+nextQuery.replace(/[\*%_]/g,'')+'*');
+  const r=await fetch(SB.url+'/rest/v1/products?'+qs,{headers:H({Prefer:'count=exact'}),signal:abort.signal});if(!r.ok)throw Error('Products could not be loaded.');
+  const items=await r.json();if(!Array.isArray(items))throw Error('Unexpected product response.');
+  if(revision!==STORE.revision||id!==STORE.id)return;
+  const total=Number((r.headers.get('content-range')||'').split('/')[1]);
+  allowDataAssets([row.logo_url,...items.map(v=>v.image_url)]);
+  STORE.row=row;STORE.items=items.map(v=>({...v,img:fixUrl(v.image_url),cat:v.category,price:v.price==null?null:Number(v.price)}));STORE.count=Number.isFinite(total)?total:nextOffset+items.length;STORE.offset=nextOffset;STORE.query=nextQuery;STORE.scroll=0;STORE.loaded=true;
+ }catch(e){if(e.name==='AbortError'||revision!==STORE.revision)return;STORE.error=e.message;STORE.loaded=true;}
+ finally{if(revision===STORE.revision){STORE.loading=false;updateCatalogControls();}}
+ return {items:STORE.items,count:STORE.count,offset:STORE.offset,error:STORE.error};
+}
+let catalogControls=null;
+function updateCatalogControls(){
+ if(!RUNTIME||!catalogControls)return;
+ const {status,prev,next,search,bar}=catalogControls;bar.hidden=STATE.page!=='store';bar.style.display=STATE.page==='store'?'flex':'none';
+ status.textContent=STORE.loading?'Loading products…':STORE.error||(!STORE.count?'No products found':`${STORE.offset+1}–${STORE.offset+STORE.items.length} of ${STORE.count.toLocaleString()}`);
+ prev.disabled=STORE.loading||STORE.offset===0;next.disabled=STORE.loading||STORE.offset+STORE.items.length>=STORE.count;search.disabled=STORE.loading;
+}
+function mountCatalogControls(){
+ if(!RUNTIME||catalogControls)return;
+ const bar=document.createElement('div');bar.className='asgard-catalog-controls';bar.setAttribute('aria-label','Complete store catalog');
+ Object.assign(bar.style,{position:'absolute',left:'10px',right:'10px',bottom:'118px',zIndex:10,display:'flex',gap:'5px',flexWrap:'wrap',padding:'7px',background:'rgba(8,14,18,.94)',border:'1px solid #34505c',borderRadius:'8px',font:'12px system-ui',color:'#e6eef0'});
+ const search=document.createElement('input');search.type='search';search.placeholder='Search all products';search.setAttribute('aria-label','Search the complete store catalog');search.style.cssText='min-width:90px;flex:1;background:#10202a;color:white;border:1px solid #45616b;border-radius:4px;padding:5px';
+ const prev=document.createElement('button'),next=document.createElement('button'),status=document.createElement('span');prev.textContent='Previous';next.textContent='Next';status.setAttribute('role','status');status.style.cssText='width:100%;font-size:11px';for(const b of [prev,next])b.style.cssText='background:#19343e;color:#e6eef0;border:1px solid #45616b;border-radius:4px;padding:5px;cursor:pointer';
+ prev.onclick=()=>loadStore(Math.max(0,STORE.offset-STORE.limit),STORE.query,true);next.onclick=()=>loadStore(STORE.offset+STORE.limit,STORE.query,true);
+ search.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();loadStore(0,search.value,true);}};search.onchange=()=>loadStore(0,search.value,true);
+ bar.append(search,prev,next,status);$('#stage').append(bar);catalogControls={bar,search,prev,next,status};updateCatalogControls();
 }
 let docId = (page) => page === 'store' ? 'page_store_' + STORE.id : 'page_' + page;
 Object.assign(PAGES, {
@@ -547,15 +597,17 @@ function drawStore(x, t, S){
   const cols = L.layout === 'grid' ? Math.round(L.cols) : 1, cw = (W - L.margin * 2 - (cols - 1) * L.gap) / cols;
   const ph = L.layout === 'list' ? cw * 0.28 * L.ratio : cw * L.ratio, info = 14 + L.nameT.size + 8 + L.priceT.size + 10, ch = L.layout === 'list' ? Math.max(ph + 20, info + 6) : ph + info;
   const headH = Math.max(Hd.logo, 30) + 30, top = skyH + headH;
-  const n = STORE.items.length, rows = Math.ceil(n / cols), rowH = ch + L.gap, total = Math.max(1, rows * rowH), sc = rows > 3 ? (t * L.scroll) % total : 0;
+  const n = STORE.items.length, rows = Math.ceil(n / cols), rowH = ch + L.gap, total = Math.max(1, rows * rowH);
+  STORE.scrollMax=Math.max(0,total-(HH-top-210));
+  const sc = RUNTIME ? clamp(STORE.scroll,0,STORE.scrollMax) : rows > 3 ? (t * L.scroll) % total : 0;
   x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
-  for(let rep = 0; rep < 2; rep++) for(let i = 0; i < n; i++){ const r = Math.floor(i / cols), c = i % cols, y = top + 8 + r * rowH - sc + rep * total; if(y > HH || y + ch < top) continue;
+  for(let rep = 0; rep < (RUNTIME?1:2); rep++) for(let i = 0; i < n; i++){ const r = Math.floor(i / cols), c = i % cols, y = top + 8 + r * rowH - sc + rep * total; if(y > HH || y + ch < top) continue;
     const it = STORE.items[i], X0 = L.margin + c * (cw + L.gap); box(x, X0, y, cw, ch, L.card);
     const pw = L.layout === 'list' ? ph : cw, pX = L.layout === 'list' ? X0 + 10 : X0, pY = L.layout === 'list' ? y + 10 : y;
     x.save(); if(L.layout === 'list') rr(x, pX, pY, pw, ph, 10); else rr(x, X0, y, cw, ph + L.card.radius, Math.min(L.card.radius, cw / 2)); x.clip(); x.fillStyle = L.photoBg; x.fillRect(pX, pY, pw, ph); if(it.img) contain(x, img(it.img), pX, pY, pw, ph, L.photoPad); x.restore();
     const ix = L.layout === 'list' ? pX + pw + 12 : X0 + 10, iw = L.layout === 'list' ? cw - (ix - X0) - 10 : cw - 20; let yy = (L.layout === 'list' ? y + 4 : y + ph) + 12 + L.nameT.size;
-    tx(x, L.nameT, it.name, ix, yy, 'left', iw); yy += L.priceT.size + 8; if(it.price) tx(x, L.priceT, money(it.price), ix, yy); }
-  if(STORE.id && !n && !STORE.loading) tx(x, TXT(13, '#8a8f98'), 'No products for this store yet', W / 2, top + 60, 'center');
+    tx(x, L.nameT, it.name, ix, yy, 'left', iw); yy += L.priceT.size + 8; if(it.price!=null) tx(x, L.priceT, money(it.price), ix, yy); if(y+ch>top&&y<HH-110)hit(X0,Math.max(y,top),cw,Math.max(0,Math.min(y+ch,HH-110)-Math.max(y,top)),{type:'product',productId:it.id,storeId:STORE.id}); }
+  if(STORE.id && !n && !STORE.loading) tx(x, TXT(13, '#8a8f98'), STORE.error||'No products for this store yet', W / 2, top + 60, 'center');
   x.restore();
   // header: logo + name + address
   x.fillStyle = S.bg.color; x.fillRect(0, skyH, W, headH);
@@ -574,11 +626,11 @@ function drawStore(x, t, S){
 
 /* ======================= SLEIPNIR HOME + CATEGORY BROWSE PAGES ======================= */
 const QS = new URLSearchParams(location.search);
-const BROWSE = { type: QS.get('type') || 'grocery', all: null, loading: false };
+const BROWSE = { type: RUNTIME?.envelope?.pageType || QS.get('type') || 'grocery', all: null, loading: false };
 const BTYPES = { grocery: 'Grocery', fast_food: 'Fast Food', restaurant: 'Restaurants', retail: 'Retail', valhalla: 'Valhalla' };
 async function loadBrowse(){
   if(BROWSE.all || BROWSE.loading) return; BROWSE.loading = true;
-  try { const r = await fetch(SB.url + '/rest/v1/stores?select=id,name,logo_url,address,menu_type,category,is_valhalla&is_live=is.true&order=name', { headers: H() }); BROWSE.all = r.ok ? await r.json() : []; } catch(e){ BROWSE.all = []; }
+  try { const r = await fetch(SB.url + '/rest/v1/stores?select=id,name,logo_url,address,menu_type,category,is_valhalla&is_live=is.true&order=name', { headers: H() }); BROWSE.all = r.ok ? await r.json() : [];allowDataAssets(BROWSE.all.map(s=>s.logo_url)); } catch(e){ BROWSE.all = []; }
   BROWSE.loading = false;
 }
 function browseList(){
@@ -593,8 +645,10 @@ const MOTION=()=>({mode:'still',distance:8,period:6});
 const motionC=p=>[Sel(p+'.mode','Floating motion',[['still','Still'],['float','Float up / down'],['sway','Sway sideways'],['orbit','Small orbit']]),R(p+'.distance','Movement distance',0,60,1),R(p+'.period','Seconds per movement',.5,60,.5)];
 function motionOffset(m,t,i){if(!m||m.mode==='still')return [0,0];const a=t*2*Math.PI/Math.max(.5,m.period)+i*.7,d=m.distance;return [m.mode==='float'?0:Math.sin(a)*d,m.mode==='sway'?0:Math.cos(a)*d];}
 const shapes=p=>Sel(p+'.shape','Button shape',[['custom','Current corners'],['pill','Pill'],['circle','Round'],['square','Square']]);
-const TILE = (label) => ({ show: true, label, icon: '' });
-const BTN = (text) => ({ show: true, text, img:'' });
+const TILE = (label,target='',pageType='') => ({ show: true, label, icon:'', target, pageType });
+const BTN = (text,target='') => ({ show: true, text, img:'', target });
+const ROUTES=[['','Not connected'],['shome','Shopping home'],['home','Posts home'],['raven','Raven'],['browse','Store categories'],['swap','Swap & sell'],['convo','Messages'],['share','Share'],['track','Track'],['deals','Deals'],['heimdall','Notifications'],['ads','Ads'],['shoppost','Shop the post']];
+const routeC=p=>[Sel(p+'.target','Tap opens',ROUTES),Sel(p+'.pageType','Store category',[['','Default'],['grocery','Grocery'],['fast_food','Fast food'],['restaurant','Restaurants'],['retail','Retail'],['valhalla','Valhalla']])];
 const prevDocId = docId;
 docId = (page) => page === 'browse' ? 'page_browse_' + BROWSE.type : prevDocId(page);
 Object.assign(PAGES, {
@@ -609,9 +663,9 @@ Object.assign(PAGES, {
       search: { show: true, text: 'Search stores, items, meals…', y: 0.165, h: 34, margin: 14, box: BOX({ radius: 17, fill: '#000000', fillA: 1, bw: 2, bc: '#e9c46a', sh: 0 }), t: TXT(12, '#8a8f98', { weight: 400 }) },
       odin: { show: true, img: '', size: 66, y: 0.235, box: BOX({ radius: 8, fill: '#000000', fillA: 1, bw: 0, sh: 0.4 }) },
       tiles: { motion:MOTION(), cols: 4, y: 0.35, gap: 22, rowGap: 30, icon: 50, margin: 10, box: BOX({ radius: 12, fill: '#ffffff', fillA: 0, bw: 0, sh: 0 }), t: TXT(11, '#3a3a3a', { weight: 700 }),
-        t1: TILE('Grocery'), t2: TILE('Fast Food'), t3: TILE('Restaurant'), t4: TILE('Retail'), t5: TILE('Odin Concierge'), t6: TILE('P2P'), t7: TILE('Valhalla'), t8: TILE('Virtual Shop') },
+        t1: TILE('Grocery','browse','grocery'), t2: TILE('Fast Food','browse','fast_food'), t3: TILE('Restaurant','browse','restaurant'), t4: TILE('Retail','browse','retail'), t5: TILE('Odin Concierge'), t6: TILE('P2P','swap'), t7: TILE('Valhalla','browse','valhalla'), t8: TILE('Virtual Shop') },
       btns: { motion:MOTION(), y: 0.735, w: 0.36, h: 32, gap: 9, box: BOX({ radius: 8, fill: '#4f46e5', fillA: 1, bw: 0, sh: 0.25, shBlur: 6, shY: 2 }), t: TXT(13, '#ffffff', { weight: 700 }),
-        b1: BTN('Become a Valkyrie'), b2: BTN('My account'), b3: BTN('Asgard'), b4: BTN('Admin') },
+        b1: BTN('Become a Valkyrie'), b2: BTN('My account'), b3: BTN('Asgard','home'), b4: BTN('Admin') },
     },
     sections: [
       { id:'bg', name:'Background', sub:'Color, picture, Norse scroll', groups:[
@@ -630,13 +684,13 @@ Object.assign(PAGES, {
         { name:'Label text', ctrls: txtC('tiles.t','Label') },
         { name:'Button backing', ctrls: [shapes('tiles.box'),...boxC('tiles.box','Backing')] },
         {name:'Floating category buttons',ctrls:motionC('tiles.motion')},
-        ...[1,2,3,4,5,6,7,8].map(i => ({ name:'Button ' + i, ctrls:[K('tiles.t'+i+'.show','Show'), X('tiles.t'+i+'.label','Label'), U('tiles.t'+i+'.icon','Icon image')] })),
+        ...[1,2,3,4,5,6,7,8].map(i => ({ name:'Button ' + i, ctrls:[K('tiles.t'+i+'.show','Show'), X('tiles.t'+i+'.label','Label'), U('tiles.t'+i+'.icon','Icon image'),...routeC('tiles.t'+i)] })),
       ]},
       { id:'btns', name:'Bottom buttons', sub:'Valkyrie, account, Asgard, admin', groups:[
         { name:'Layout', ctrls: [R('btns.y','Where they start',0.4,0.95,.002), R('btns.w','Width',0.2,0.9,.005), R('btns.h','Height',20,60,1), R('btns.gap','Space between',0,30,1)] },
         { name:'Text', ctrls: txtC('btns.t','Button text') }, { name:'Look', ctrls: [shapes('btns.box'),...boxC('btns.box','Button')] },
         {name:'Floating bottom buttons',ctrls:motionC('btns.motion')},
-        ...[1,2,3,4].map(i => ({ name:'Button ' + i, ctrls:[K('btns.b'+i+'.show','Show'), X('btns.b'+i+'.text','Text'),U('btns.b'+i+'.img','Button image')] })),
+        ...[1,2,3,4].map(i => ({ name:'Button ' + i, ctrls:[K('btns.b'+i+'.show','Show'), X('btns.b'+i+'.text','Text'),U('btns.b'+i+'.img','Button image'),...routeC('btns.b'+i)] })),
       ]},
     ],
     draw: drawSHome,
@@ -673,7 +727,7 @@ Object.assign(PAGES, {
   },
 });
 const IMG2 = {};
-function logoImg(src){ if(!IMG2[src]){ const i = new Image(); i.src = src; IMG2[src] = i; } return IMG2[src]; }
+function logoImg(src){ src=runtimeAsset(src); if(!IMG2[src]){ const i = new Image(); i.src = src; IMG2[src] = i; } return IMG2[src]; }
 function norseLayer(x, t, N){ if(!N.on) return;
  if(N.media?.length){const h=N.height||100,gap=N.gap??16,step=h+gap,rows=N.rows||3,dir=N.direction==='right'?1:-1,travel=t*N.speed*dir,phase=Math.floor(travel/step),off=((travel%step)+step)%step;x.save();x.globalAlpha=N.opacity;
   for(let row=0;row<rows;row++)for(let col=-1;col<Math.ceil(W/step)+1;col++){const a=N.media[((col+row-phase)%N.media.length+N.media.length)%N.media.length],im=img(a.url||a);if(ok(im))contain(x,im,col*step+off,HH*(N.y??.05)+row*step,h,h);}x.restore();return;
@@ -690,11 +744,11 @@ function drawSHome(x, t, S){
   const O = S.odin; if(O.show){ const y = HH * O.y, X0 = (W - O.size) / 2, hh = O.size * 1.4; if(O.img){ box(x, X0, y, O.size, hh, O.box); x.save(); rr(x, X0, y, O.size, hh, Math.min(O.box.radius, O.size / 2)); x.clip(); cover(x, img(O.img), X0, y, O.size, hh); x.restore(); } else dashed(x, X0, y, O.size, hh, 'Odin'); }
   const T = S.tiles, tiles = [1,2,3,4,5,6,7,8].map(i => T['t' + i]).filter(v => v && v.show), cols = Math.round(T.cols), cw = (W - T.margin * 2 - (cols - 1) * T.gap) / cols;
   tiles.forEach((tl, i) => { const [dx,dy]=motionOffset(T.motion,t,i),c = i % cols, r = Math.floor(i / cols), X0 = T.margin + c * (cw + T.gap)+dx, y = HH * T.y + r * (T.icon + T.t.size + 14 + T.rowGap)+dy;
-    box(x, X0, y - 6, cw, T.icon + T.t.size + 18, T.box); const ix = X0 + (cw - T.icon) / 2;
+    box(x, X0, y - 6, cw, T.icon + T.t.size + 18, T.box);if(tl.target)hit(X0,y-6,cw,T.icon+T.t.size+18,{type:'navigate',target:tl.target,pageType:tl.pageType}); const ix = X0 + (cw - T.icon) / 2;
     if(tl.icon && ok(img(tl.icon))) contain(x, img(tl.icon), ix, y, T.icon, T.icon); else dashed(x, ix, y, T.icon, T.icon, 'icon');
     tx(x, T.t, tl.label, X0 + cw / 2, y + T.icon + 6 + T.t.size, 'center', cw); });
   const B = S.btns, bs = [1,2,3,4].map(i => B['b' + i]).filter(v => v && v.show), bw = W * B.w;
-  bs.forEach((b, i) => { const [dx,dy]=motionOffset(B.motion,t,i),y = HH * B.y + i * (B.h + B.gap)+dy; box(x, (W - bw) / 2+dx, y, bw, B.h, B.box);if(b.img)contain(x,img(b.img),(W-bw)/2+dx+5,y+4,B.h-8,B.h-8); tx(x, B.t, b.text, W / 2+dx+(b.img?B.h/3:0), y + B.h / 2 + B.t.size * 0.36, 'center', bw - 10-(b.img?B.h:0)); });
+  bs.forEach((b, i) => { const [dx,dy]=motionOffset(B.motion,t,i),y = HH * B.y + i * (B.h + B.gap)+dy; box(x, (W - bw) / 2+dx, y, bw, B.h, B.box);if(b.target)hit((W-bw)/2+dx,y,bw,B.h,{type:'navigate',target:b.target,pageType:b.pageType});if(b.img)contain(x,img(b.img),(W-bw)/2+dx+5,y+4,B.h-8,B.h-8); tx(x, B.t, b.text, W / 2+dx+(b.img?B.h/3:0), y + B.h / 2 + B.t.size * 0.36, 'center', bw - 10-(b.img?B.h:0)); });
 }
 function drawBrowse(x, t, S){
   loadBrowse(); bgDraw(x, S.bg); norseLayer(x, t, S.norse);
@@ -702,7 +756,7 @@ function drawBrowse(x, t, S){
   const rows = Math.ceil(list.length / cols), rowH = th + G2.gap, total = Math.max(1, rows * rowH), sc = rows * rowH > HH - top ? (t * G2.scroll) % total : 0;
   x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
   for(let rep = 0; rep < (sc ? 2 : 1); rep++) list.forEach((s, i) => { const c = i % cols, r = Math.floor(i / cols), X0 = G2.margin + c * (cw + G2.gap), y = top + 6 + r * rowH - sc + rep * total; if(y > HH || y + th < top) return;
-    box(x, X0, y, cw, th, G2.box); const textH = (G2.name ? G2.nameT.size + 6 : 0) + (G2.town ? G2.townT.size + 4 : 0), ls = Math.min(cw, th - textH - 8) * G2.logo;
+    box(x, X0, y, cw, th, G2.box);if(y+th>top&&y<HH-110)hit(X0,Math.max(top,y),cw,Math.max(0,Math.min(y+th,HH-110)-Math.max(top,y)),{type:'navigate',target:'store',storeId:s.id}); const textH = (G2.name ? G2.nameT.size + 6 : 0) + (G2.town ? G2.townT.size + 4 : 0), ls = Math.min(cw, th - textH - 8) * G2.logo;
     if(s.logo_url) contain(x, logoImg(fixUrl(s.logo_url)), X0 + (cw - ls) / 2, y + (th - textH - ls) / 2, ls, ls);
     let yy = y + th - textH + (G2.name ? G2.nameT.size : 0); if(G2.name) tx(x, G2.nameT, s.name, X0 + cw / 2, yy, 'center', cw - 10);
     if(G2.town){ yy += G2.townT.size + 4; tx(x, G2.townT, (String(s.address || '').match(/,\s*([^,]+),\s*FL/i) || [])[1] || '', X0 + cw / 2, yy, 'center', cw - 10); } });
@@ -710,7 +764,7 @@ function drawBrowse(x, t, S){
   x.restore();
   x.save(); x.fillStyle = S.bg.color; x.globalAlpha = 0.92; x.fillRect(0, 0, W, top); x.restore();
   const Hd = S.head; tx(x, Hd.t, Hd.text || BTYPES[BROWSE.type] || 'Stores', W / 2, HH * Hd.y, 'center', W - 70);
-  if(Hd.back){ x.strokeStyle = Hd.t.color; x.lineWidth = 2.5; x.beginPath(); x.moveTo(26, HH * Hd.y - Hd.t.size * 0.65); x.lineTo(16, HH * Hd.y - Hd.t.size * 0.3); x.lineTo(26, HH * Hd.y + Hd.t.size * 0.05); x.stroke(); }
+  if(Hd.back){hit(4,HH*Hd.y-Hd.t.size,44,44,{type:'navigate',target:'shome'}); x.strokeStyle = Hd.t.color; x.lineWidth = 2.5; x.beginPath(); x.moveTo(26, HH * Hd.y - Hd.t.size * 0.65); x.lineTo(16, HH * Hd.y - Hd.t.size * 0.3); x.lineTo(26, HH * Hd.y + Hd.t.size * 0.05); x.stroke(); }
   const Se = S.search; if(Se.show){ const y = HH * Se.y; box(x, Se.margin, y, W - Se.margin * 2, Se.h, Se.box); tx(x, Se.t, Se.text, Se.margin + 16, y + Se.h / 2 + Se.t.size * 0.36, 'left', W - Se.margin * 2 - 30); }
   const Ch = S.chips; if(Ch.show){ const towns = ['All', ...[...new Set(list.map(s => (String(s.address || '').match(/,\s*([^,]+),\s*FL/i) || [])[1]).filter(Boolean))].sort()]; let cx = 14; const y = HH * Ch.y;
     towns.forEach((tn, i) => { const tt = i === 0 ? Ch.onT : Ch.t, w = tw(x, tt, tn) + 22, h = tt.size + 14; if(cx > W) return; box(x, cx, y, w, h, i === 0 ? Ch.on : Ch.box); tx(x, tt, tn, cx + w / 2, y + h / 2 + tt.size * 0.36, 'center'); cx += w + 8; }); }
@@ -728,18 +782,19 @@ for(const P of Object.values(PAGES)){
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
 const deep = (o) => JSON.parse(JSON.stringify(o));
-function merge(d, s){ const o = deep(d); for(const k in (s||{})){ if(s[k] && typeof s[k]==='object' && !Array.isArray(s[k]) && o[k] && typeof o[k]==='object') o[k] = merge(o[k], s[k]); else o[k] = s[k]; } return o; }
+function merge(d, s){ const o = deep(d); for(const k of Object.keys(s||{})){ if(['__proto__','prototype','constructor'].includes(k))continue; if(s[k] && typeof s[k]==='object' && !Array.isArray(s[k]) && o[k] && typeof o[k]==='object') o[k] = merge(o[k], s[k]); else o[k] = s[k]; } return o; }
 const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
 function set(o, p, v){ const ks = p.split('.'); let a = o; for(let i=0;i<ks.length-1;i++){ a = a[ks[i]] = a[ks[i]] || {}; } a[ks[ks.length-1]] = v; }
 const saveTimers = new Map();
 const editHistory=new Map();
 function rememberPage(){let h=editHistory.get(STATE.page);if(!h){h={items:[deep(STATE.S)],at:0};editHistory.set(STATE.page,h);}const snap=JSON.stringify(STATE.S);if(JSON.stringify(h.items[h.at])!==snap){h.items=h.items.slice(0,h.at+1);h.items.push(deep(STATE.S));if(h.items.length>120)h.items.shift();h.at=h.items.length-1;}}
-function save(record=true){ if(record)rememberPage(); const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
+function save(record=true){ if(RUNTIME)return; if(record)rememberPage(); const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
   try { localStorage.setItem('asgard-' + docId(page), JSON.stringify(snapshot)); } catch(e){}
   try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id: docId(page), page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
     $('#saveState').textContent = r.ok ? '● All changes saved' : '● Saved on this computer only'; } catch(e){ $('#saveState').textContent = '● Saved on this computer only'; }
 }, 700)); }
 async function load(page){
+  if(RUNTIME){if(page!==RUNTIME.envelope.page)throw Error('Runtime page does not match approved design');return merge(PAGES[page].defaults,RUNTIME.envelope.settings||{});}
   let s = null;
   try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.' + docId(page) + '&select=data', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data; } } catch(e){}
   if(!s){ try { s = JSON.parse(localStorage.getItem('asgard-' + docId(page)) || 'null'); } catch(e){} }
@@ -747,6 +802,7 @@ async function load(page){
   return merge(PAGES[page].defaults, s || {});
 }
 async function pushToApp(){
+  if(RUNTIME)return;
   const S = STATE.S, keys = ['day_speed','night_speed','cloud_speed','cloud_padding','cloud_growth_ms','ground_brightness','cloud_shadow','message_spacing','cloud_variety','ambient_count','ambient_speed','ambient_scale','ambient_opacity','water_shimmer','earth_mode'];
   const body = {}; keys.forEach(k => body[k] = S[k]); body.earth_mode = S.earth && S.earth.night ? 1 : 0;
   try { const r = await fetch(SB.url + '/rest/v1/raven_scene_settings?id=eq.1', { method:'PATCH', headers: H({ 'Content-Type':'application/json', Prefer:'return=representation' }), body: JSON.stringify(body) });
@@ -780,28 +836,34 @@ function panel(){
 }
 const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000) : v;
 async function openPage(page){
+  if(RUNTIME){runtimeAction({type:'navigate',target:page});return;}
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')==='rocks'?'rocks':PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
   { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); if(page!=='browse') q.delete('type'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
   const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
 }
+if(!RUNTIME){
 $('#pagePick').onchange = (e) => openPage(e.target.value);
 $('#resetBtn').onclick = () => { if(confirm('Put this page back to its starting settings?')){ STATE.S = deep(PAGES[STATE.page].defaults); save(); panel(); } };
-$('#pushBtn').onclick = pushToApp;
+$('#pushBtn').onclick = ()=>window.StudioTransfer?StudioTransfer.open():pushToApp();
+}
 
 /* ======================= RENDER LOOP ======================= */
 const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
-const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,arrange:AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
+const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,readOnly:!!RUNTIME,onAction:runtimeAction,arrange:RUNTIME?(()=>{}):AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
 function frame(now){
+  if(runtimeStopped)return;
+  if(RUNTIME)now=(runtimePaused?runtimePauseAt:now)-runtimePauseOffset;
+  runtimeHits.length=0;
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   if(r.width > 0 && (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr))){ cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
   if(STATE.S && r.width > 0){ const sc = cv.width / W; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(sc, 0, 0, sc, 0, 0);
-    try { PAGES[STATE.page].draw(ctx, now / 1000, STATE.S, (now - STATE.t0) / 1000);if(!['shome','browse'].includes(STATE.page))norseLayer(ctx,now/1000,STATE.S.norse); } catch(e){ console.error(e); } }
+    try { if(RUNTIME&&!RUNTIME_PREVIEW&&runtimeNeedsBinding())drawRuntimeUnconnected(ctx,STATE.S);else PAGES[STATE.page].draw(ctx, now / 1000, STATE.S, (now - STATE.t0) / 1000);if(!['shome','browse'].includes(STATE.page))norseLayer(ctx,now/1000,STATE.S.norse); } catch(e){ console.error(e); } }
   PAGE_TOOLS.sync();
-  requestAnimationFrame(frame);
+  runtimeFrame=requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+runtimeFrame=requestAnimationFrame(frame);
 
 /* ======================= DRAWING ======================= */
 function cover(x, im, dx, dy, dw, dh, ox, oy){ if(!ok(im)) return; const iw=im.videoWidth||im.naturalWidth,ih=im.videoHeight||im.naturalHeight,ir = iw / ih, r = dw / dh; let sw, sh; if(ir > r){ sh = ih; sw = sh * r; } else { sw = iw; sh = sw / r; } const sx = clamp((iw - sw) * (ox ?? 0.5), 0, iw - sw), sy = clamp((ih - sh) * (oy ?? 0.5), 0, ih - sh); x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); }
@@ -810,7 +872,7 @@ const bgSrc = (n) => 'bg/bg' + String(clamp(Math.round(n), 1, 23)).padStart(2, '
 const RUNES = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
 const POSTS = [ { n:'Freya', c:'Sunrise over the Flagler pier', i:3, likes:241, com:18, sale:false }, { n:'Loki', c:'Selling my old bike, barely used', i:7, likes:56, com:9, sale:true }, { n:'Baldr', c:'Best tacos in Palm Coast, no contest', i:12, likes:412, com:63, sale:false }, { n:'Hel', c:'Storm rolling in over Bunnell', i:16, likes:98, com:12, sale:false }, { n:'Tyr', c:'Gym is packed today', i:20, likes:33, com:4, sale:false } ];
 
-function drawHole(x, X, Y, r, face, t){ const g = x.createRadialGradient(X, Y, r * 0.9, X, Y, r * 2.6); g.addColorStop(0, 'rgba(0,0,0,.85)'); g.addColorStop(0.35, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.beginPath(); x.arc(X, Y, r * 2.6, 0, 7); x.fill();
+function drawHole(x, X, Y, r, face, t){ if(RUNTIME&&!RUNTIME_PREVIEW)face=null; const g = x.createRadialGradient(X, Y, r * 0.9, X, Y, r * 2.6); g.addColorStop(0, 'rgba(0,0,0,.85)'); g.addColorStop(0.35, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.beginPath(); x.arc(X, Y, r * 2.6, 0, 7); x.fill();
   x.strokeStyle = 'rgba(255,240,220,.25)'; x.lineWidth = 1; x.beginPath(); x.arc(X, Y, r * 1.06, 0, 7); x.stroke();
   x.save(); x.beginPath(); x.arc(X, Y, r, 0, 7); x.clip(); x.fillStyle = '#000'; x.fillRect(X - r, Y - r, 2 * r, 2 * r); if(face){ const im = img('faces/' + face + '.jpg'); if(ok(im)){ x.globalAlpha = 0.9; cover(x, im, X - r * 0.8, Y - r * 0.8, r * 1.6, r * 1.6); } } x.restore(); }
 
@@ -889,7 +951,7 @@ function drawConvo(x, t, S){
   const g = x.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, E.night ? '#05070d' : E.skyTop); g.addColorStop(1, E.night ? '#1a2333' : E.skyLow); x.fillStyle = g; x.fillRect(0, 0, W, hz + 2);
   // ground laid nearly flat: draw the earth video in horizontal strips that shrink toward the horizon
   const src = E.night ? null : vid(EARTH + 'earth-' + E.pick + '-continuous-v34.mp4');
-  if(src){ src.playbackRate = clamp(S.day_speed / 8, 0.1, 4); if(src.paused) src.play().catch(()=>{}); }
+  if(src){ src.playbackRate = clamp(S.day_speed / 8, 0.1, 4); if(src.paused&&!runtimePaused) src.play().catch(()=>{}); }
   const cityIm = E.night ? img(UI + 'raven_cloud_v20/' + E.city + '.webp') : null;
   const sw = src ? src.videoWidth : (cityIm && ok(cityIm) ? cityIm.naturalWidth : 0), sh = src ? src.videoHeight : (cityIm && ok(cityIm) ? cityIm.naturalHeight : 0);
   const srcEl = src && src.readyState >= 2 ? src : (cityIm && ok(cityIm) ? cityIm : null);
@@ -934,16 +996,65 @@ function drawHeimdall(x, t, S, since){
 }
 
 async function savePageNow(){
+ if(RUNTIME)return;
  if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);
  if(!STATE.S)return;const page=STATE.page,snapshot=deep(STATE.S);clearTimeout(saveTimers.get(page));rememberPage();
  localStorage.setItem('asgard-'+docId(page),JSON.stringify(snapshot));
  const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:H({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:docId(page),page,data:snapshot,updated_by:'studio',updated_at:new Date().toISOString()})});
  $('#saveState').textContent=r.ok?'● All changes saved':'● Shared save failed';if(!r.ok)throw Error('Save failed');
 }
-AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=deep(h.items[--h.at]);save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
-/* ---------- start ---------- */
-const start = new URLSearchParams(location.search).get('page');
-openPage(PAGES[start] ? start : 'home');
+// Runtime capabilities are explicit: a visual preview does not imply app behavior.
+const RUNTIME_BINDINGS={heimdall:['real notification events','notification actions'],home:['feed data','post actions'],convo:['original Dart cloud conversation','authenticated messaging'],share:['selected post','real favorites','share action'],swap:['real listings','seller data','offer and buy actions'],ads:['approved ads','ad actions'],shoppost:['selected post','tagged products','purchase actions'],deals:['active deals','deal actions'],track:['real orders','tracking screen']};
+function runtimeNeedsBinding(){return !!RUNTIME_BINDINGS[STATE.page];}
+function runtimeDescriptor(){
+ const missingBindings=RUNTIME_BINDINGS[STATE.page]||[],actions=!runtimeNeedsBinding();
+ return {page:STATE.page,designId:RUNTIME?.envelope?.designId||docId(STATE.page),visualReady:true,fullAppParity:false,readOnly:!!RUNTIME,actions,productionDataReady:actions,missingBindings,
+ note:(missingBindings.length?'Still needs: '+missingBindings.join(', ')+'. ':'Declared navigation and catalog callbacks are available. ')+(STATE.page==='shome'?'Profile, global search and unassigned buttons still need their original app connections. ':'')+'App callback and FlutterFlow device testing is still required.',
+ capabilities:{layerActions:true,navigation:true,productSelection:STATE.page==='store',fullCatalog:STATE.page==='store',realMessaging:false},catalog:STATE.page==='store'?{count:STORE.count,offset:STORE.offset,limit:STORE.limit,error:STORE.error}:null};
+}
+function referencedAssets(){
+ const refs=new Set(runtimeAssetRefs),seen=new WeakSet();
+ function walk(value){if(typeof value==='string'){if(/^(?:https?:|data:|blob:)/i.test(value)||/\.(?:png|jpe?g|webp|gif|avif|svg|mp4|webm|mov)(?:[?#]|$)/i.test(value))refs.add(value);return;}if(!value||typeof value!=='object'||seen.has(value))return;seen.add(value);for(const child of Object.values(value))walk(child);}
+ walk(STATE.S);walk(ROCK_NAV.S);return [...refs];
+}
+function drawRuntimeUnconnected(x,S){
+ const bg=typeof S.bg==='object'?S.bg:{color:S.bg||'#05070a'};bgDraw(x,bg);
+ x.save();x.fillStyle='#d6e5e8';x.font='600 18px system-ui';x.textAlign='center';x.fillText(PAGES[STATE.page].title,W/2,HH*.30);x.font='14px system-ui';x.fillText('This page needs its app connection.',W/2,HH*.36);x.fillStyle='#91a7b0';x.font='12px system-ui';x.fillText('Use its original app screen until connected.',W/2,HH*.40);x.restore();
+}
+function runtimeUpdate(envelope){
+ if(!envelope||!Object.hasOwn(PAGES,envelope.page)||!envelope.settings||typeof envelope.settings!=='object'||Array.isArray(envelope.settings))throw Error('Unsupported page release');
+ if(envelope.page==='store'&&!UUID.test(envelope.storeId||''))throw Error('Store release has no valid store ID');
+ if(envelope.page==='browse'&&envelope.pageType&&!BROWSE_TYPES.includes(envelope.pageType))throw Error('Browse release has no valid store category');
+ const oldStore=STORE.id;RUNTIME.envelope=envelope;STATE.page=envelope.page;STATE.S=merge(PAGES[STATE.page].defaults,envelope.settings);STATE.sec=null;STATE.t0=(runtimePaused?runtimePauseAt:performance.now())-runtimePauseOffset;
+ STORE.id=envelope.storeId||'';if(STORE.id!==oldStore){STORE.abort?.abort();STORE.revision++;Object.assign(STORE,{row:null,items:[],loading:false,loaded:false,error:'',offset:0,count:0,query:'',scroll:0,scrollMax:0});}
+ BROWSE.type=envelope.pageType||'grocery';ROCK_NAV.setRuntimeSettings?.(envelope.navigation);ROCK_NAV.S=AsgardRockNav.merge?AsgardRockNav.merge(AsgardRockNav.defaults(),envelope.navigation||{}):merge(AsgardRockNav.defaults(),envelope.navigation||{});ROCK_NAV.S.motion ||= {};ROCK_NAV.S.motion.paused=runtimePaused||!!envelope.navigation?.motion?.paused;ROCK_NAV.setContext(STATE.page,['home','swap','shoppost','deals','share'].includes(STATE.page));
+ mountCatalogControls();updateCatalogControls();PAGE_TOOLS.sync();return runtimeDescriptor();
+}
+function runtimePause(paused){
+ const value=!!paused;if(value===runtimePaused)return;
+ if(value)runtimePauseAt=performance.now();else runtimePauseOffset+=performance.now()-runtimePauseAt;runtimePaused=value;
+ for(const v of Object.values(VID)){if(value)v.pause();else v.play().catch(()=>{});}PAGE_TOOLS.pause?.(value);
+ ROCK_NAV.S.motion.paused=value||!!RUNTIME.envelope.navigation?.motion?.paused;
+}
+if(RUNTIME){
+ let pan=null,suppressClickUntil=0;
+ const canScroll=()=>STATE.page==='store';
+ const scrollBy=dy=>{STORE.scroll=clamp(STORE.scroll+dy,0,STORE.scrollMax);};
+ cv.tabIndex=0;cv.setAttribute('aria-label','Page preview. Scroll or swipe to browse store products.');
+ cv.style.touchAction='none';
+ cv.addEventListener('wheel',event=>{if(canScroll()){event.preventDefault();scrollBy(event.deltaY);}}, {passive:false});
+ cv.addEventListener('keydown',event=>{if(!canScroll())return;const dy={ArrowDown:60,ArrowUp:-60,PageDown:500,PageUp:-500}[event.key];if(dy){event.preventDefault();scrollBy(dy);}});
+ cv.addEventListener('pointerdown',event=>{if(canScroll()){pan={y:event.clientY,total:0};cv.setPointerCapture?.(event.pointerId);}});
+ cv.addEventListener('pointermove',event=>{if(!pan||!canScroll())return;const dy=(pan.y-event.clientY)*W/cv.getBoundingClientRect().width;pan.y=event.clientY;pan.total+=Math.abs(dy);scrollBy(dy);if(pan.total>6)suppressClickUntil=performance.now()+350;});
+ cv.addEventListener('pointerup',()=>{pan=null;});cv.addEventListener('pointercancel',()=>{pan=null;});
+ cv.addEventListener('click',event=>{if(performance.now()<suppressClickUntil)return;const r=cv.getBoundingClientRect(),x=(event.clientX-r.left)*W/r.width,y=(event.clientY-r.top)*W/r.width;for(let i=runtimeHits.length-1;i>=0;i--){const h=runtimeHits[i];if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h){runtimeAction(h.action);break;}}});
+ runtimeUpdate(RUNTIME.envelope);
+ RUNTIME.setRenderer({update:runtimeUpdate,setContext(context){runtimeContext=context&&typeof context==='object'?context:{};return runtimeDescriptor();},pause:runtimePause,descriptor:runtimeDescriptor,referencedAssets,getCatalogPage:(offset=0,query='')=>loadStore(offset,query,true),destroy(){runtimeStopped=true;cancelAnimationFrame(runtimeFrame);STORE.abort?.abort();for(const v of Object.values(VID))v.pause();PAGE_TOOLS.pause?.(true);catalogControls?.bar.remove();}});
+}else{
+ AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=deep(h.items[--h.at]);save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
+ const start=new URLSearchParams(location.search).get('page');openPage(PAGES[start]?start:'home');
+ // Export adapter reads the current in-memory edit without changing the saved draft.
+ window.AsgardPageEditor={snapshot:()=>({schemaVersion:1,designId:docId(STATE.page),page:STATE.page,storeId:STATE.page==='store'?STORE.id:null,pageType:STATE.page==='browse'?BROWSE.type:null,settings:deep(STATE.S),navigation:deep(ROCK_NAV.S),bindingContract:{version:1}}),save:savePageNow,descriptor:runtimeDescriptor,referencedAssets};
+ if(window.StudioTransfer)StudioTransfer.mount(window.AsgardPageEditor);
+}
 })();
-
-

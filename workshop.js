@@ -7,6 +7,7 @@ const H = { apikey: SB.key, Authorization: 'Bearer ' + SB.key };
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
+const transferButton=document.getElementById('workshopTransfer');if(transferButton)transferButton.onclick=()=>{const frame=document.getElementById('ed');if(frame&&!frame.hidden)frame.contentWindow.postMessage({type:'asgard-open-transfer'},location.origin);};
 const AREAS = {
   Sleipnir: [
     { id:'shome', name:'Home page', sub:'Logo, search, Odin, category buttons', url:'pages.html?page=shome' },
@@ -136,7 +137,7 @@ function show(url, msg){
   if(!url){ f.hidden = true; e.hidden = false; e.innerHTML = msg || '<b>Nothing here yet</b>'; curUrl = ''; return; }
   e.hidden = true; f.hidden = false;
   const full = url + (url.includes('?') ? '&' : '?') + 'embed=1';
-  if(full !== curUrl){ curUrl = full; f.src = full + (full.includes('?') ? '&' : '?') + 'editor=shared-media-2'; }
+  if(full !== curUrl){ curUrl = full; f.src = full + (full.includes('?') ? '&' : '?') + 'editor=transfer1'; }
 }
 
 // Inside the editor: hide its own area tabs and page list (they live out here now), keep every control.

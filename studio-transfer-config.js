@@ -1,0 +1,1 @@
+window.StudioTransferConfig=Object.freeze({"url": "https://afnihsdxtisneuyehatw.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps", "owner": "533a05da-fed8-4c92-ba94-7e4867ebce8f"});

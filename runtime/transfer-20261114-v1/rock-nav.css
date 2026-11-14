@@ -1,0 +1,33 @@
+.rock-nav-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:10;border-radius:inherit}
+.rock-nav-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.rock-nav-links{position:absolute;inset:0;pointer-events:none}
+.rock-nav-links button{position:absolute;min-width:32px;min-height:32px;padding:0;border:0;border-radius:25%;background:transparent;pointer-events:auto;cursor:pointer;touch-action:manipulation}
+.rock-nav-links button:focus-visible{outline:2px solid #9defff;outline-offset:2px;background:#7edfff12}
+.rn-editor{padding:14px;color:#dce7ec;line-height:1.45}
+.rn-intro h2{font-size:18px;margin:0 0 6px}.rn-intro p,.rn-note{font-size:12px;color:#96a9b5;margin:8px 0 14px}
+.rn-select{width:100%;padding:9px;margin:5px 0;border:1px solid #ffffff25;border-radius:7px;background:#0b1219;color:#dce7ec;font:inherit;font-size:13px}
+.rn-detail{margin:12px 0 5px;border:1px solid #ffffff14;border-radius:12px;overflow:hidden;background:#020609}.rn-detail canvas{display:block;width:100%;height:auto}
+.rn-actions,.rn-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.rn-actions .rn-button{flex:1;font-size:11px;padding:7px 4px}
+.rn-button{border:1px solid #ffffff22;background:#101c25;color:#c8dbe7;border-radius:7px;padding:8px 10px;font:inherit;font-size:12px;cursor:pointer}.rn-button:hover{background:#1d333e}.rn-button.selected{border-color:#71d4ec;background:#153443;color:#d9f7ff}
+.rn-tabs .rn-button{flex:1 0 28%;font-size:11px;padding:7px 5px}.rn-fields h3{font-size:14px;margin:16px 0 12px;color:#aff0ff}.rn-control{margin:16px 0}.rn-control label{display:block;font-size:12px;margin-bottom:7px}.rn-control input[type=checkbox]{margin-right:8px;accent-color:#78cde8}.rn-control input[type=color]{height:30px;width:100%;background:transparent;border:0}.rn-slider{display:flex;gap:9px;align-items:center}.rn-slider input[type=range]{min-width:0;flex:1;accent-color:#7bdbef}.rn-slider input[type=number]{width:67px;padding:6px;background:#09131b;color:#b8e9f5;border:1px solid #ffffff24;border-radius:5px;font-size:12px}
+.rn-presets{border-top:1px solid #ffffff20;margin-top:16px;padding-top:12px}.rn-presets summary{font-size:13px;cursor:pointer}.rn-presets .rn-button{margin:4px 4px 4px 0}.rn-status{font-size:12px;color:#9bd6c4}.rn-note input{margin-right:7px}
+
+/* Editor-only camera crop: the full live scene keeps rendering at its original
+   390 × 844 proportions; only the phone viewport reveals the navigation area. */
+.rn-focus-viewport{width:100%;height:100%}
+.rn-focus-active.phonewrap{position:relative;padding-top:48px}
+.rn-focus-toolbar{position:absolute;top:8px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:12}
+.rn-focus-toolbar[hidden]{display:none}
+.phone.rn-phone-focus{height:auto;width:min(100%,560px);aspect-ratio:auto;max-height:none;border-radius:26px;overflow:hidden;flex-shrink:1}
+.rn-phone-focus .rn-focus-viewport{height:auto;aspect-ratio:390/260;position:relative;overflow:hidden;border-radius:14px}
+.rn-phone-focus .stage{position:absolute!important;left:0;top:calc(var(--rn-crop-top,584) * -100% / 260);height:calc(844 * 100% / 260);width:100%;border-radius:0}
+.rn-phone-focus .notch{display:none}
+.rn-quick{margin:12px 0;padding:12px;border:1px solid #426664;border-radius:10px;background:#142426}
+.rn-quick h3{margin:0 0 12px;color:#b8f3ef;font-size:14px}.rn-quick .rn-control{margin:13px 0}.rn-quick .rn-control:last-child{margin-bottom:0}
+.rn-inspect{border:1px solid #ffffff20;border-radius:8px;margin:12px 0;padding:10px}.rn-inspect summary{cursor:pointer;color:#acc4cf;font-size:12px}.rn-inspect .rn-detail{margin-top:12px}
+@media(max-height:650px){.phone.rn-phone-focus{max-width:440px}.rn-focus-active.phonewrap{padding-top:42px}.rn-focus-toolbar{top:4px}}
+
+.rn-main-detail{position:absolute;inset:48px 0 12px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.rn-main-detail[hidden]{display:none}.rn-main-detail canvas{display:block;width:min(100%,560px);max-width:100%;max-height:100%;aspect-ratio:1;object-fit:contain;border:1px solid #34484b;border-radius:20px;background:#020609}
+.phone.rn-detail-active{visibility:hidden;pointer-events:none}
+
