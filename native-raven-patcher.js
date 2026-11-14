@@ -21,5 +21,14 @@ function patch(source,helper,candidate=''){
  source=source.slice(0,end)+`\n                  if (widget.studioTestCandidate != null) Positioned(left: 8, right: 8, top: MediaQuery.of(context).padding.top + 4, child: IgnorePointer(child: ColoredBox(color: const Color(0xCC153C45), child: Padding(padding: const EdgeInsets.all(6), child: Text(_nativeStudioError ?? 'DEVICE TEST — original Raven, contacts and messages', style: const TextStyle(color: Colors.white, fontSize: 12), textAlign: TextAlign.center))))),`+source.slice(end);
  source+='\n\n'+helper+'\n';return source;
 }
-if(typeof module!=='undefined')module.exports={patch};G.NativeRavenPatcher={patch};
+function testPatch(source,helper,candidate=''){
+ if(/class AsgardRavenStudioTest\b/.test(source))throw Error('Choose the original or connected Raven source, not an earlier test export.');
+ let out=patch(source,helper,candidate);
+ if(!/class AsgardRaven extends StatefulWidget\b/.test(out)||!out.includes('State<AsgardRaven>'))throw Error('The complete Raven widget is required for a separate test export.');
+ out=out.replace(/\bAsgardRaven\b/g,'AsgardRavenStudioTest').replace(/\b_AsgardRavenState\b/g,'_AsgardRavenStudioTestState');
+ out=out.replace('final data = await _rvApprovedNativeSettings(widget.studioTestCandidate);','final data = widget.studioTestCandidate == null ? null : await _rvApprovedNativeSettings(widget.studioTestCandidate);');
+ out=out.replace('if (widget.studioTestCandidate != null) Positioned','Positioned');
+ return '// ISOLATED DEVICE TEST: AsgardRavenStudioTest. Keep the installed AsgardRaven unchanged.\n// Without a candidate this shows the original baseline; it never follows the live release channel.\n'+out;
+}
+if(typeof module!=='undefined')module.exports={patch,testPatch};G.NativeRavenPatcher={patch,testPatch};
 })(typeof window!=='undefined'?window:globalThis);

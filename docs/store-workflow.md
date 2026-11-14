@@ -104,7 +104,7 @@ Snapshot taken during the 2026-11-13 session; live counts must come from the dat
 ## Connection gaps — do not claim these are already working
 
 1. The current `pages.js` store preview fetches at most 80 products and draws generic cards. It does not reconstruct the existing app's aisle/board layouts. This is the main prerequisite for faithful canvas editing.
-2. The accessible GitHub repository contains the shared browser studio and a small agent service, not the current FlutterFlow app export. The current app/widget source must be connected or supplied before matching and publishing actual store layouts can be certified.
+2. The accessible GitHub repository contains the shared browser studio and a small agent service, not the current FlutterFlow app export. The original app/widget sources were received on November 14. Their route wiring, current SDK and actual device behavior still need verification before matching/publishing store layouts can be certified.
 3. Historical Forge files show an existing Windows app with run/pause/resume/stop controls and a browser import bridge. The installed current source/runtime has not been inspected from this workspace. Do not claim a permanent worker is connected until an actual command round trip succeeds.
 4. Existing studio saves go to studio_designs. A complete store-specific draft-to-app transfer with validated rollback is not implemented.
 
@@ -123,7 +123,7 @@ Snapshot taken during the 2026-11-13 session; live counts must come from the dat
 - Live Sleipnir store picker: 77 selected stores and 73 stores with no info. Live Valhalla store picker: 45 selected stores and 340 stores with no info. Totals match all 535 records.
 - Live Publix detail: 12,621 products/menu items, 12,612 image links, correct stored address.
 - Live China One detail: 200 menu items, zero image links, retained in Selected stores with its address and website.
-- Customer catalog and app availability were not modified. Next dependency remains current FlutterFlow app/store source; current Forge source is needed before the Forge milestone.
+- Customer catalog and app availability were not modified. The original store/app and staging Forge source have since been received. Next dependencies are current SDK/route verification and the actual PC round trip.
 
 ## Added scope — shared media and detailed editing (2026-11-13)
 
@@ -147,3 +147,7 @@ Implementation commits: `4be7c4db93d9bd326f7f2f3032997fe192f9a9aa`, `dc25ff29793
 - Live exact-value test with the refreshed editor: entering a piping thickness of 20 updates both slider and rendered border to 20px immediately. Test frame was undone.
 - Existing underlying app/catalog tables were not changed. Design buttons are visual draft layers; app actions, full board decomposition, precise app layout matching and transfer remain part of the remaining app integration work.
 
+
+## Original-store test export — November 14
+
+`native-store.html` accepts the complete original StoreEntrances locally and exports StoreEntrancesStudioTest. A kept render can replace one selected non-Target aisle display in that test only, after exact image hashing, product/name/price checks, bounded nonoverlapping tap areas and a fresh tap-time catalog check. The original cart addition code is retained. This does not update live aisle tables or implement every original store widget. Target continues through the existing GroceryAisle implementation. The original GroceryAisle, GroceryStoreNavigator, menu boards, cart, checkout and delivery sources are received; do not request them again.

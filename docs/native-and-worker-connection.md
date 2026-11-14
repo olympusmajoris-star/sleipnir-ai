@@ -8,6 +8,8 @@ Download `forge/ForgeStudioConnector.pyw` from the job page and open it on the W
 
 The recovered `product_forge_app.py` already implements the verified endpoints: health, stores, run, process status, current stages, pause, resume and stop. Collection runs one exact configured store and writes to the existing Forge staging pipeline. Existing processes are never adopted. Cancellation stays pending until the owned process exits; a changed process ID ends control of that job. Store source configuration still belongs to Forge. The source URL entered in a studio brief does not rewrite that configuration.
 
+Connector v1.3 also supports cloud preparation with a chosen installed FFmpeg. A collector address is optional for that work. It converts a bounded shared clip into private animated WebP output; pause restarts the conversion on resume, cancel terminates only its own process. See `cloud-and-construction-controls.md`.
+
 No PC is connected merely by downloading the file. The studio displays actual worker heartbeats and capabilities.
 
 ## Display renderer
@@ -26,7 +28,7 @@ The additions read native settings from the approved release channel only. Web-r
 
 Native settings supported here are the actual original fields: sphere size/tilt/position/turning, scene zoom, glow/reveal, hues, text sizes/styles, name-tag dimensions, white colors and outline mode. Repeated preview contacts are explicitly excluded from approved settings. Native settings are distinct from the web black-hole renderer; this integration is not a claim that the web shader has been ported to Dart.
 
-**Installation remains on hold. Do not paste over the working AsgardRaven widget.** The original-control tooling can save a shared native draft and prepare a frozen test; any future full-file test export must use a separate widget name before device installation. After verifying it on a device, approve that frozen test. The normal connected widget reads the approved native version when opened or resumed. Publishing a native Raven version uses the existing Raven channel; web/native renderer version guards prevent cross-loading.
+**Installation remains on hold. Do not paste over the working AsgardRaven widget.** The original-control tooling can save a shared native draft and prepare a frozen test; the full-file test exporter now uses AsgardRavenStudioTest. The construction/cloud exporter uses AsgardRavenEffectsTest. Both are separate widget names before device installation. After verifying it on a device, approve that frozen test. The normal connected widget reads the approved native version when opened or resumed. Publishing a native Raven version uses the existing Raven channel; web/native renderer version guards prevent cross-loading.
 
 ## Original cloud conversation
 
@@ -34,6 +36,6 @@ The supplied native conversation already reads `raven_scene_settings` every 15 s
 
 ## Verification and remaining work
 
-147 JavaScript checks, 10 Python checks, 68 reusable Flutter-boundary checks, and 6 native-document checks passed. The complete 5.45 MB Raven file parsed with the official Dart formatter. A real four-product catalog composition produced a 1800 × 1050 PNG and four exact-ID tap zones. Private output policies and owner-only access were checked. No app release or live settings were published.
+The prior release passed 147 JavaScript, 10 Python, 68 reusable Flutter-boundary and 6 native-document checks; current effects checks are recorded in the build status. The complete 5.45 MB Raven file parsed with the official Dart formatter. A real four-product catalog composition produced a 1800 × 1050 PNG and four exact-ID tap zones. Private output policies and owner-only access were checked. No app release or live settings were published.
 
-FlutterFlow compilation/device behavior, an actual Windows Forge run, and the browser-to-Storage rendering upload still require their live environments. The missing original delivery/checkout/merchant/store widget sources remain necessary for their native integration. The full app export and SDK lockfile have not been supplied. The generic web surface now targets immutable renderer v3, matching the current editor, with package pins compatible with the previously reported Flutter 3.35 SDK.
+FlutterFlow compilation/device behavior, an actual Windows Forge run, and the browser-to-Storage rendering upload still require their live environments. The original delivery, checkout, merchant/menu, grocery, live and store widget sources were received on November 14. Their FlutterFlow route wiring and device checks remain necessary. SleipnirCart.onCheckout must be verified to open SleipnirCheckout; do not place a real order for this check. The full app export and SDK lockfile have not been supplied. The generic web surface now targets immutable renderer v3, matching the current editor, with package pins compatible with the previously reported Flutter 3.35 SDK.

@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "updated": "2026-11-14",
+  "studioURL": "https://olympusmajoris-star.github.io/sleipnir-ai/workshop.html",
+  "project": "afnihsdxtisneuyehatw",
+  "documentation": "docs/shared-studio-access.md",
+  "client": "studio-agent-client.js",
+  "media": "shared-media-catalog.json",
+  "nativeSourceInventory": "native-source-inventory.json",
+  "groups": [
+    {
+      "id": "sky",
+      "name": "Sky & people",
+      "pages": [
+        [
+          "raven",
+          "Raven sky",
+          "Black holes, gas, lensing & favorites",
+          "index.html"
+        ],
+        [
+          "rocks",
+          "Floating navigation",
+          "Carved rocks, light & debris",
+          "index.html?section=rocks"
+        ]
+      ]
+    },
+    {
+      "id": "social",
+      "name": "Posts & sharing",
+      "pages": [
+        [
+          "home",
+          "Home & posts",
+          "Your social feed, sky & post appearance",
+          "pages.html?page=home"
+        ],
+        [
+          "share",
+          "Share scene",
+          "Water, figures & sharing",
+          "pages.html?page=share"
+        ],
+        [
+          "swap",
+          "Marketplace",
+          "Buy, sell & listing appearance",
+          "pages.html?page=swap"
+        ],
+        [
+          "shoppost",
+          "Shop the post",
+          "Product tags & display",
+          "pages.html?page=shoppost"
+        ],
+        [
+          "ads",
+          "Local ads",
+          "Ad cards & presentation",
+          "pages.html?page=ads"
+        ],
+        [
+          "deals",
+          "Deals",
+          "Offers & countdown appearance",
+          "pages.html?page=deals"
+        ]
+      ]
+    },
+    {
+      "id": "messages",
+      "name": "Messages & alerts",
+      "pages": [
+        [
+          "effects",
+          "Construction & cloud motion",
+          "Object formation, living clouds & clip editing",
+          "studio-effects.html"
+        ],
+        [
+          "convo",
+          "Messages",
+          "Clouds, Earth, words & movement",
+          "pages.html?page=convo"
+        ],
+        [
+          "heimdall",
+          "Heimdall",
+          "Notification scene",
+          "pages.html?page=heimdall"
+        ]
+      ]
+    },
+    {
+      "id": "shopping",
+      "name": "Stores & displays",
+      "pages": [
+        [
+          "shome",
+          "Shopping home",
+          "Norse art, search & categories",
+          "pages.html?page=shome"
+        ],
+        [
+          "stores",
+          "Edit a store",
+          "Town → type → store",
+          null
+        ],
+        [
+          "grocery",
+          "Grocery discovery",
+          "Store browsing",
+          "pages.html?page=browse&type=grocery"
+        ],
+        [
+          "retail",
+          "Retail discovery",
+          "Store browsing",
+          "pages.html?page=browse&type=retail"
+        ],
+        [
+          "fast_food",
+          "Fast food discovery",
+          "Store browsing",
+          "pages.html?page=browse&type=fast_food"
+        ],
+        [
+          "restaurant",
+          "Restaurant discovery",
+          "Store browsing",
+          "pages.html?page=browse&type=restaurant"
+        ],
+        [
+          "vbrowse",
+          "Valhalla street & stores",
+          "Local store discovery",
+          "pages.html?page=browse&type=valhalla"
+        ]
+      ]
+    },
+    {
+      "id": "delivery",
+      "name": "Delivery & orders",
+      "pages": [
+        [
+          "track",
+          "Tracking",
+          "Tracking editor",
+          "pages.html?page=track"
+        ],
+        [
+          "delivery-original",
+          "Delivery screens",
+          "Sources received; native route verification pending",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "assets",
+      "name": "Images & production",
+      "pages": [
+        [
+          "native-store",
+          "Original store test",
+          "Test a rendered shelf with the original cart",
+          "native-store.html"
+        ],
+        [
+          "native",
+          "Original app controls",
+          "Native Raven & cloud conversation",
+          "native-controls.html"
+        ],
+        [
+          "assets",
+          "All images & videos",
+          "Folders, categories & reusable art",
+          "workspace-tools.html?tool=assets"
+        ],
+        [
+          "jobs",
+          "Forge & render jobs",
+          "Collection, review & rendering briefs",
+          "workspace-tools.html?tool=jobs"
+        ]
+      ]
+    }
+  ],
+  "execution": {
+    "designs": "shared Supabase rows",
+    "imageTools": "browser canvas",
+    "renderer": "connected Studio tab",
+    "forge": "connected Windows PC",
+    "nativeApp": "FlutterFlow and device test",
+    "photoreal": "not yet connected"
+  },
+  "security": {
+    "privateSource": "never upload to public repo/board",
+    "ownerRequired": [
+      "work queue",
+      "private outputs",
+      "catalog apply",
+      "app publication"
+    ],
+    "draftIsLive": false
+  },
+  "effectSettings": "studio_designs/effects_convo",
+  "supportedJobs": [
+    "scrape",
+    "render",
+    "image_inspection",
+    "cloud_prepare"
+  ]
+}

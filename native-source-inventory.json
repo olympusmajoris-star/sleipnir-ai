@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "receivedAt": "2026-11-14",
+  "sources": [
+    {
+      "widgets": [
+        "FreightBoard"
+      ],
+      "bytes": 29430,
+      "sha256": "f24d56565806769b9c7ef26346acbc06d6927fea15aca39e5c874d5a96090f25"
+    },
+    {
+      "widgets": [
+        "StoreEntrances"
+      ],
+      "bytes": 37130,
+      "sha256": "dd6a34266b5219333b8f7b1586baba9648af4c3a0f6da11278e8f260b1184df8"
+    },
+    {
+      "widgets": [
+        "ValhallaStreet"
+      ],
+      "bytes": 243486,
+      "sha256": "4a769e447a92def95f3932aec3f8a0131a4d0568eca80da63913d5d63a69f2c3"
+    },
+    {
+      "widgets": [
+        "RetailStore"
+      ],
+      "bytes": 26715,
+      "sha256": "e985085c1444f4fefe847d63190bb0479e8eee50f96a12fb9297a05044493423"
+    },
+    {
+      "widgets": [
+        "SleipnirCheckout"
+      ],
+      "bytes": 71308,
+      "sha256": "84f172cbb9b3153e1d9c0b853e60dddfe094e4d2221b2e61aa7c025d859cf543"
+    },
+    {
+      "widgets": [
+        "ValkyrieSignup"
+      ],
+      "bytes": 27097,
+      "sha256": "05b897175e45c274f9e22f1907249b7bd0014277677fa31af257ad4e812c500e"
+    },
+    {
+      "widgets": [
+        "ValkyrieHome"
+      ],
+      "bytes": 57921,
+      "sha256": "cd1c5801cacd6411dca64cadcbe09b422a20d60d4bdce48e739fcc06e67430a4"
+    },
+    {
+      "widgets": [
+        "ValkyrieRun"
+      ],
+      "bytes": 57805,
+      "sha256": "5e649f02271f7df329a8f62de7135ce5aa6970e50d5642b0631e0b950b2fd9aa"
+    },
+    {
+      "widgets": [
+        "CustomerHub"
+      ],
+      "bytes": 67071,
+      "sha256": "331596274e85557c6e660f80fa63f6ad01ca5576fd70fdbeac257d7c294d078f"
+    },
+    {
+      "widgets": [
+        "SleipnirTracking"
+      ],
+      "bytes": 49135,
+      "sha256": "521bd77a15291482be29f6b921e8b1906402609fcc828c6105d883e6ffd7dd17"
+    },
+    {
+      "widgets": [
+        "OdinScan"
+      ],
+      "bytes": 33870,
+      "sha256": "98bbaeca84170b276837dd4c3612f621859e6f68546abe4d81216b7121931eaf"
+    },
+    {
+      "widgets": [
+        "ValkyrieHub"
+      ],
+      "bytes": 44285,
+      "sha256": "13b2a2197a0a18b1a7f09280ff5e10f2e19a04bfd60eb2128f9a6bba1019051e"
+    },
+    {
+      "widgets": [
+        "AdminValkyries"
+      ],
+      "bytes": 17490,
+      "sha256": "af01364c8ba42920a43032835213c2dae15eeef1566571d9e701bcab1036be5d"
+    },
+    {
+      "widgets": [
+        "AdStudio"
+      ],
+      "bytes": 47587,
+      "sha256": "fd1470f7caa819abe4fb66206d55dddba1f61ab798b610f0e1d245e9be007c3c"
+    },
+    {
+      "widgets": [
+        "AsgardBottomBar"
+      ],
+      "bytes": 22859,
+      "sha256": "650fae5e6572d488228cf2e7b8609aa9a291228d02f64a8ee545ead59311a351"
+    },
+    {
+      "widgets": [
+        "AsgardLiveHeader"
+      ],
+      "bytes": 353742,
+      "sha256": "850d78db1bf9994fadc9542cfd535d4ec3d22df9d35e105c112224d06bd6f4e2"
+    },
+    {
+      "widgets": [
+        "LiveRoom"
+      ],
+      "bytes": 10710,
+      "sha256": "2f4a14f1cca192155a4b82613da58b9189dc8d0b26b197a0a7c05b2c0570d284"
+    },
+    {
+      "widgets": [
+        "StreamLab"
+      ],
+      "bytes": 12495,
+      "sha256": "514269718293512779da13b3e3afa62923b0ef05625163bf24d2f81be2a47e24"
+    },
+    {
+      "widgets": [
+        "GroceryStoreNavigator"
+      ],
+      "bytes": 55205,
+      "sha256": "338f4110768a5bf1b7750568c7adf17560c424c8ba173a6220db402534a4fd9b"
+    },
+    {
+      "widgets": [
+        "GroceryAisle"
+      ],
+      "bytes": 132149,
+      "sha256": "b18530a761c32cc52971ce9ed5c669763301fc9771e8fa5fde6c006765162aca"
+    },
+    {
+      "widgets": [
+        "AsgardHeimdall"
+      ],
+      "bytes": 42579,
+      "sha256": "e8c93f271eb25b30cc9e11729401af7a88a2b6824bcd1d9ba19cf40602d721c0"
+    },
+    {
+      "widgets": [
+        "AsgardRaven"
+      ],
+      "bytes": 5451959,
+      "sha256": "a286e424882f545081190381a88146cdc982267d71526d08ed0228596dd01d51"
+    },
+    {
+      "widgets": [
+        "McDonaldsComboPanel"
+      ],
+      "bytes": 98101,
+      "sha256": "1f5faa12aab2227ad96b4a47036f786849814e15ccf375915f71af004f068c98"
+    },
+    {
+      "widgets": [
+        "SleipnirCart"
+      ],
+      "bytes": 52477,
+      "sha256": "eaf00e2bfde615d82ea04cbe5ca58c6d4aae318f2bf2a79577e5a6d6f9565447"
+    },
+    {
+      "widgets": [
+        "SitDownRestaurantMenu"
+      ],
+      "bytes": 62431,
+      "sha256": "5402448e5461b08c604516003ad7efaca8c7368048a219925582c8f920c45395"
+    },
+    {
+      "widgets": [
+        "FastCasualMenuBoard"
+      ],
+      "bytes": 66298,
+      "sha256": "20b1614a8518d383220766f584f155345f15999c39be4b4fafe8eece9630bb09"
+    },
+    {
+      "widgets": [
+        "ProduceWall"
+      ],
+      "bytes": 33717,
+      "sha256": "a9cac14f1b2ae7d51c999ab3e0d8230ecd3030287151edeba823ca448bb9f5c1"
+    },
+    {
+      "widgets": [
+        "StationWall"
+      ],
+      "bytes": 64605,
+      "sha256": "557bce4c75c53f77ffe36398f06d8a0ae4dbc61a1ca31e0e99d60c3f3111de24"
+    },
+    {
+      "widgets": [
+        "Asgard"
+      ],
+      "bytes": 1087880,
+      "sha256": "b634599c43072b09532efc5341f7970ce4458a29fe3089f6c6d8dbac07979a0b"
+    }
+  ]
+}

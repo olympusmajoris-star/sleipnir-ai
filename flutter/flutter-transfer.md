@@ -87,3 +87,7 @@ Official sources: [webview_flutter](https://pub.dev/packages/webview_flutter), [
 ## Separate device-test export
 
 The studio can prepare an immutable presentation-only test copy without changing any production channel. Get Test Dart generates a separate `AsgardStudioTestSurface` pinned to its candidate UUID and `mode=test`. Use it only on a test route. It uses the same immutable renderer and real-data/callback boundaries, shows a persistent test badge, and never follows the live channel. The production file remains approved-only. Approval selects that exact frozen test document, not a later draft. See the studio transfer guide for the complete workflow. The generated test Dart was also parsed by the official Dart formatter; device compilation is still required.
+
+## Separate original-widget tests (November 14)
+
+Keep the installed originals. The workshop now exports `AsgardRavenStudioTest`, `AsgardRavenEffectsTest` and `StoreEntrancesStudioTest` as complete separately named widgets. Native source remains private and is processed locally in the browser. These files parse with the Dart formatter; no FlutterFlow/device compile is claimed. Effects footage uses prepared animated WebP in the original decoder. The store test preserves the original shared cart and may add real items when tapped; verify routing without submitting a real checkout. Cart.onCheckout still needs its FlutterFlow action checked.

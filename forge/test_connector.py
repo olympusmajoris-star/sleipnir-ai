@@ -23,19 +23,19 @@ class ConnectorTests(unittest.TestCase):
     def test_live_import_adapters_are_rejected(self):
         worker = c.Connector('http://127.0.0.1:9000', lambda _:None)
         worker.local = lambda _: {'live_catalog_writes':True}
-        self.assertEqual(worker.check_adapter(), [])
+        self.assertNotIn('scrape', worker.check_adapter())
         self.assertIsNone(worker.adapter)
 
     def test_offline_staging_does_not_advertise_collection(self):
         worker = c.Connector('http://127.0.0.1:9000', lambda _:None)
         worker.local = lambda _: {'live_catalog_writes':False,'database':'offline','supabase_configured':True}
-        self.assertEqual(worker.check_adapter(), [])
+        self.assertNotIn('scrape', worker.check_adapter())
 
     def test_staging_adapter_contract(self):
         worker = c.Connector('http://127.0.0.1:9000', lambda _:None)
         data={'/api/health':{'live_catalog_writes':False,'database':'online','supabase_configured':True},'/api/stores':{'stores':[{'store_name':'Store','enabled':1}]},'/api/process-status':{'running':False}}
         worker.local=lambda path:data[path]
-        self.assertEqual(worker.check_adapter(),['scrape'])
+        self.assertIn('scrape', worker.check_adapter())
 
     def test_existing_run_is_never_taken_over(self):
         worker = c.Connector('http://127.0.0.1:9000',lambda _:None)
@@ -47,6 +47,38 @@ class ConnectorTests(unittest.TestCase):
         worker.run_job({'id':'job','store_id':'189581c9-d728-4e5d-9e02-ae4de19a15af'})
         self.assertEqual(patches[-1]['status'],'failed')
         self.assertIn('did not start',patches[-1]['result']['message'])
+
+class CloudPreparationTests(unittest.TestCase):
+    def test_cloud_worker_can_run_without_retail_collector(self):
+        worker = c.Connector('', lambda _: None)
+        worker.cloud_ready = True
+        self.assertEqual(worker.check_adapter(), ['cloud_prepare'])
+        worker.cloud_ready = False
+        self.assertEqual(worker.check_adapter(), [])
+
+    def test_remote_source_cannot_point_outside_the_shared_project(self):
+        worker = c.Connector('', lambda _: None)
+        worker.cloud_ready = True
+        reports = []
+        worker.patch = lambda **kwargs: reports.append(kwargs)
+        worker.run_job({'id': 'job', 'kind': 'cloud_prepare', 'payload': {'sourceUrl': 'https://attacker.example/file.mp4'}})
+        self.assertEqual(reports[-1]['status'], 'failed')
+        self.assertIsNone(worker.job)
+
+    def test_recipe_rejects_unbounded_or_injected_filters(self):
+        for settings in [{'media': {'in': 0, 'out': 31}}, {'media': {'in': 9, 'out': 2}}, {'media': {'in': float('nan'), 'out': 10}}, {'preparation': {'keyColor': '#000000;evil'}}]:
+            with self.assertRaises(ValueError):
+                c.cloud_recipe(settings)
+        command = c.cloud_command('ffmpeg', 'source.mp4', 'cloud.webp', {'media': {'out': 2}})
+        self.assertIn('libwebp_anim', command)
+        self.assertIn('-an', command)
+
+    def test_single_frame_webp_is_rejected_for_native_decoder(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'still.webp'
+            path.write_bytes(b'RIFF' + bytes(4) + b'WEBP' + b'VP8 ' + bytes(4))
+            with self.assertRaises(ValueError):
+                c.cloud_webp_info(path)
 
 class DiscoveryTests(unittest.TestCase):
     def test_only_local_listeners_are_probed(self):

@@ -11,6 +11,9 @@ import subprocess
 import sys
 import os
 import ctypes
+import shutil
+import tempfile
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 import queue
 import threading
@@ -21,9 +24,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
-VERSION = '1.2.0'
+VERSION = '1.3.0'
 CONFIG = Path(__file__).with_name('connector-settings.json')
 PROJECT = 'https://afnihsdxtisneuyehatw.supabase.co'
 OWNER = '533a05da-fed8-4c92-ba94-7e4867ebce8f'
@@ -151,9 +154,123 @@ def configured_names(data):
         raise ValueError('Forge store list has an unsupported format.')
     return [r if isinstance(r, str) else r.get('name', r.get('store_name', '')) for r in rows if not isinstance(r, dict) or r.get('enabled', 1)]
 
+# BEGIN BUNDLED CLOUD PREPARATION
+"""Bounded cloud footage preparation. Inputs remain intact; output is animated RGBA WebP."""
+import json
+import math
+import subprocess
+from pathlib import Path
+
+def cloud_recipe(settings):
+    media = settings.get('media', settings)
+    prep = settings.get('preparation', {})
+    def number(value, default, low, high):
+        value = default if value is None else value
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError('Invalid cloud preparation number')
+        return max(low, min(high, value))
+    start = number(media.get('in'), 0, 0, 36000)
+    end = number(media.get('out'), start + 10, 0, 36000)
+    if end <= start or end - start > 30:
+        raise ValueError('Select a cloud slice longer than zero and no more than 30 seconds')
+    crop = media.get('crop') or {}
+    x = number(crop.get('x'), 0, 0, .95)
+    y = number(crop.get('y'), 0, 0, .95)
+    width = number(crop.get('width'), 1, .05, 1 - x)
+    height = number(crop.get('height'), 1, .05, 1 - y)
+    color = prep.get('keyColor', '#000000')
+    if not isinstance(color, str) or len(color) != 7 or color[0] != '#' or any(c not in '0123456789abcdefABCDEF' for c in color[1:]):
+        raise ValueError('Choose a six-digit key color')
+    fps = int(number(prep.get('fps'), 8, 4, 10))
+    brightness = number(media.get('brightness'), 1, .2, 2)
+    contrast = number(media.get('contrast'), 1, .2, 2)
+    saturation = number(media.get('saturation'), 1, 0, 2)
+    # RGB brightness/contrast followed by the same luminance matrix as CSS saturate.
+    curve = "'clip((val*%s-127.5)*%s+127.5,0,255)'" % (brightness, contrast)
+    luma = [.213, .715, .072]
+    channels = ['r', 'g', 'b']
+    matrix = ':'.join(channels[row] + channels[col] + '=' + str(luma[col] * (1-saturation) + (saturation if row == col else 0))
+                      for row in range(3) for col in range(3))
+    filters = ['fps=' + str(fps),
+               'crop=iw*%s:ih*%s:iw*%s:ih*%s' % (width, height, x, y),
+               'format=rgba', 'lutrgb=r=%s:g=%s:b=%s' % (curve, curve, curve),
+               'colorchannelmixer=' + matrix]
+    if prep.get('removeBackground', True):
+        filters.append('colorkey=0x%s:%s:%s' % (color[1:],
+            number(prep.get('similarity'), .10, .01, .9), number(prep.get('softness'), .12, 0, .8)))
+    filters.extend(['scale=640:426:force_original_aspect_ratio=decrease',
+                    'pad=640:426:(ow-iw)/2:(oh-ih)/2:color=black@0', 'setsar=1'])
+    return {'start': start, 'duration': end-start, 'fps': fps, 'filters': ','.join(filters),
+            'pingpong': bool(prep.get('pingpong', True)),
+            'quality': int(number(prep.get('quality'), 85, 50, 100))}
+
+def cloud_command(ffmpeg, source, destination, settings):
+    r = cloud_recipe(settings)
+    filters = '[0:v]%s[v0];[v0]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=0[v]' % r['filters'] if r['pingpong'] else '[0:v]%s[v]' % r['filters']
+    return [str(ffmpeg), '-nostdin', '-v', 'error', '-y', '-ss', str(r['start']), '-t', str(r['duration']), '-i', str(source),
+            '-filter_complex', filters, '-map', '[v]', '-an', '-c:v', 'libwebp_anim', '-quality', str(r['quality']),
+            '-loop', '0', '-vsync', '0', str(destination)]
+
+def cloud_webp_info(path):
+    data = Path(path).read_bytes()
+    if len(data) < 20 or data[:4] != b'RIFF' or data[8:12] != b'WEBP':
+        raise ValueError('Prepared output is not a WebP file')
+    if int.from_bytes(data[4:8], 'little') + 8 != len(data):
+        raise ValueError('Prepared cloud size is invalid')
+    offset, frames, duration_ms = 12, 0, 0
+    width, height = 0, 0
+    while offset + 8 <= len(data):
+        kind = data[offset:offset+4]
+        size = int.from_bytes(data[offset+4:offset+8], 'little')
+        body = data[offset+8:offset+8+size]
+        if len(body) != size:
+            raise ValueError('Prepared cloud is truncated')
+        if kind == b'VP8X' and len(body) >= 10:
+            width = 1 + int.from_bytes(body[4:7], 'little')
+            height = 1 + int.from_bytes(body[7:10], 'little')
+        if kind == b'ANMF' and len(body) >= 16:
+            frames += 1
+            duration_ms += int.from_bytes(body[12:15], 'little')
+        offset += 8 + size + size % 2
+    if frames < 2:
+        raise ValueError('This slice contains no changing cloud frames; choose a moving cloud clip')
+    if width != 640 or height != 426 or duration_ms <= 0 or frames > 600:
+        raise ValueError('Prepared cloud dimensions, duration or frame count are invalid')
+    return {'frames': frames, 'duration': duration_ms / 1000}
+
+def prepare_cloud(source, destination, settings, ffmpeg='ffmpeg'):
+    source, destination = Path(source).resolve(), Path(destination).resolve()
+    if source == destination or not source.is_file() or source.stat().st_size > 250 * 1024 * 1024:
+        raise ValueError('Choose a source clip under 250 MB and a separate output file')
+    if destination.exists():
+        raise ValueError('Output already exists; choose a new name')
+    command = cloud_command(ffmpeg, source, destination, settings)
+    try:
+        subprocess.run(command, check=True, capture_output=True, timeout=300)
+        if not destination.is_file() or destination.stat().st_size > 25 * 1024 * 1024:
+            raise ValueError('Cloud output exceeds 25 MB; shorten the slice or lower its quality')
+        r = cloud_recipe(settings)
+        animation = cloud_webp_info(destination)
+        return {'width': 640, 'height': 426, 'fps': r['fps'], 'duration': animation['duration'], 'frames': animation['frames'],
+                'alpha': 'keyed' if settings.get('preparation', {}).get('removeBackground', True) else 'source',
+                'format': 'animated-webp', 'bytes': destination.stat().st_size, 'sourceUnchanged': True}
+    except Exception:
+        destination.unlink(missing_ok=True)
+        raise
+
+# END BUNDLED CLOUD PREPARATION
+
 class Connector:
-    def __init__(self, base, log):
-        self.base = local_address(base)
+    def __init__(self, base, log, ffmpeg=""):
+        self.base = local_address(base) if base.strip() else ""
+        self.ffmpeg = ffmpeg or shutil.which("ffmpeg")
+        self.cloud_ready = False
+        if self.ffmpeg:
+            try:
+                check = subprocess.run([self.ffmpeg, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=10, creationflags=0x08000000 if sys.platform == "win32" else 0)
+                self.cloud_ready = check.returncode == 0 and "libwebp_anim" in check.stdout
+            except Exception:
+                self.cloud_ready = False
         self.log = log
         self.session = None
         self.worker = None
@@ -194,6 +311,8 @@ class Connector:
             save_session(session)
 
     def local(self, path, method='GET', data=None):
+        if not self.base:
+            raise ValueError('No local Forge collector selected; cloud preparation may still run.')
         return request(self.base + path, method, data)
 
     def check_adapter(self):
@@ -212,15 +331,15 @@ class Connector:
             if not isinstance(process, dict) or 'running' not in process:
                 raise ValueError('Forge process status is unavailable.')
             self.adapter = {'names': names}
-            return ['scrape']
+            return ['scrape'] + (['cloud_prepare'] if self.cloud_ready else [])
         except Exception as error:
             self.log('Connected to studio; collector unavailable: ' + str(error))
-            return []
+            return ['cloud_prepare'] if self.cloud_ready else []
 
     def heartbeat(self, capabilities):
         body = {'name': 'Danny’s Forge PC', 'capabilities': capabilities,
                 'heartbeat_at': utc(), 'version': VERSION,
-                'details': {'adapter': 'staging-http' if self.adapter else 'unverified', 'liveCatalogWrites': False}}
+                'details': {'adapter': 'staging-http' if self.adapter else 'unverified', 'liveCatalogWrites': False, 'cloudPreparation': self.cloud_ready}}
         if self.worker:
             self.cloud('/rest/v1/studio_forge_workers?id=eq.' + self.worker, 'PATCH', body)
         else:
@@ -232,6 +351,8 @@ class Connector:
                    {**fields, 'updated_at': utc()})
 
     def run_job(self, job):
+        if job.get("kind") == "cloud_prepare":
+            return self.run_cloud_job(job)
         self.job = job
         started = False
         cancel_requested = False
@@ -254,7 +375,7 @@ class Connector:
             started = True
             self.log('Collecting ' + name + ' into staging.')
             while not self.stop.wait(3):
-                self.heartbeat(['scrape'])
+                self.heartbeat(['scrape'] + (['cloud_prepare'] if self.cloud_ready else []))
                 current = self.cloud('/rest/v1/studio_work_jobs?id=eq.' + job['id'] + '&select=requested_action')[0]
                 action = current.get('requested_action')
                 cancel_requested = cancel_requested or action == 'cancel'
@@ -290,10 +411,131 @@ class Connector:
         finally:
             self.job = None
 
+    def run_cloud_job(self, job):
+        self.job = job
+        proc = None
+        folder_path = None
+        try:
+            if not self.cloud_ready:
+                raise ValueError('Choose an installed FFmpeg with animated WebP support.')
+            payload = job['payload']
+            url = payload.get('sourceUrl', '')
+            parsed = urllib.parse.urlsplit(url)
+            if parsed.scheme != 'https' or parsed.netloc != 'afnihsdxtisneuyehatw.supabase.co' or parsed.query or parsed.fragment or not parsed.path.startswith(('/storage/v1/object/public/studio/', '/storage/v1/object/public/asgard_ui/')):
+                raise ValueError('Choose a clip from the existing shared Studio media.')
+            settings = payload.get('settings', {})
+            recipe = cloud_recipe(settings)
+            with tempfile.TemporaryDirectory(prefix='asgard-cloud-', ignore_cleanup_errors=True) as folder:
+                folder_path = folder
+                source, output = Path(folder) / 'source.media', Path(folder) / 'cloud.webp'
+                class NoRedirect(urllib.request.HTTPRedirectHandler):
+                    def redirect_request(self, *args, **kwargs):
+                        return None
+                with urllib.request.build_opener(NoRedirect).open(url, timeout=30) as response, source.open('wb') as target:
+                    total = 0
+                    beat = time.monotonic()
+                    while True:
+                        chunk = response.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        total += len(chunk)
+                        if total > 250 * 1024 * 1024 or self.stop.is_set():
+                            raise ValueError('Cloud source too large or connector disconnected.')
+                        target.write(chunk)
+                        if time.monotonic() - beat > 20:
+                            self.heartbeat(['cloud_prepare'] + (['scrape'] if self.adapter else []))
+                            self.patch(lease_until=utc(180), progress={'message': 'Downloading selected cloud footage'})
+                            beat = time.monotonic()
+                with source.open('rb') as source_header:
+                    header = source_header.read(16)
+                if not (header[4:8] == b'ftyp' or header[:4] == b'\x1aE\xdf\xa3' or header[:4] == b'GIF8' or (header[:4] == b'RIFF' and header[8:12] == b'WEBP')):
+                    raise ValueError('Choose an MP4, WebM, GIF or WebP clip.')
+                error_path = Path(folder) / 'ffmpeg-error.txt'
+                paused = False
+                started = 0
+                with error_path.open('wb') as errors:
+                    while not self.stop.is_set():
+                        self.heartbeat(['cloud_prepare'] + (['scrape'] if self.adapter else []))
+                        rows = self.cloud('/rest/v1/studio_work_jobs?id=eq.' + job['id'] + '&select=requested_action,worker_id,status')
+                        current = rows[0] if rows else {}
+                        if current.get('worker_id') != self.worker or current.get('status') not in ('running', 'paused'):
+                            raise ValueError('Cloud job assignment changed.')
+                        action = current.get('requested_action')
+                        if action == 'cancel':
+                            if proc and proc.poll() is None:
+                                proc.terminate()
+                                proc.wait(timeout=10)
+                            self.patch(status='cancelled', requested_action=None, lease_until=None)
+                            return
+                        if action == 'pause':
+                            if proc and proc.poll() is None:
+                                proc.terminate()
+                                proc.wait(timeout=10)
+                            proc = None
+                            paused = True
+                            self.patch(status='paused', requested_action=None, lease_until=utc(180), progress={'message': 'Cloud preparation paused. Resume restarts this bounded conversion.'})
+                        if action == 'resume':
+                            paused = False
+                            self.patch(status='running', requested_action=None)
+                        if paused:
+                            self.patch(lease_until=utc(180))
+                            self.stop.wait(3)
+                            continue
+                        if proc is None:
+                            command = cloud_command(self.ffmpeg, source, output, settings)
+                            command[1:1] = ['-protocol_whitelist', 'file,pipe']
+                            proc = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=errors,
+                                creationflags=0x08000000 if sys.platform == 'win32' else 0)
+                            started = time.monotonic()
+                        if proc.poll() is not None:
+                            if proc.returncode != 0:
+                                raise ValueError('FFmpeg could not prepare this clip. Check its crop and format.')
+                            break
+                        if time.monotonic() - started > 300:
+                            raise ValueError('Cloud preparation exceeded five minutes. Shorten the slice.')
+                        self.patch(lease_until=utc(180), progress={'message': 'Preparing transparent animated cloud footage'})
+                        self.stop.wait(3)
+                if self.stop.is_set():
+                    raise ValueError('Connector disconnected. Source retained; queue a retry when connected.')
+                metadata = cloud_webp_info(output)
+                content = output.read_bytes()
+                if len(content) > 25 * 1024 * 1024:
+                    raise ValueError('Cloud exceeds 25 MB. Shorten the slice or lower quality.')
+                self.cloud('/rest/v1/studio_forge_workers?select=id&limit=1')
+                path = OWNER + '/' + job['id'] + '/cloud.webp'
+                req = urllib.request.Request(PROJECT + '/storage/v1/object/studio-job-artifacts/' + path,
+                    data=content, method='POST', headers={'apikey': PUBLIC_KEY, 'Authorization': 'Bearer ' + self.session['access_token'],
+                    'Content-Type': 'image/webp', 'x-upsert': 'false'})
+                with urllib.request.build_opener(NoRedirect).open(req, timeout=60) as response:
+                    if response.status not in (200, 201):
+                        raise ValueError('Could not save the prepared cloud.')
+                artifact = {'path': path, 'width': 640, 'height': 426, 'kind': 'cloud', 'format': 'animated-webp',
+                            'sha256': hashlib.sha256(content).hexdigest(), 'bytes': len(content), **metadata}
+                self.patch(status='review_ready', lease_until=None, requested_action=None,
+                    result={'artifacts': [artifact], 'sourceUnchanged': True, 'message': 'Animated cloud prepared. Review transparency and assign a cloud slot in Construction & cloud motion.'})
+                self.log('Cloud prepared for review. The installed app was not changed.')
+        except Exception as error:
+            try:
+                self.patch(status='failed', lease_until=None, result={'message': str(error), 'sourceUnchanged': True})
+            except Exception:
+                self.log('Cloud job could not report its final status. Inspect this job before retrying.')
+            self.log(str(error))
+        finally:
+            if proc and proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=5)
+            if folder_path:
+                shutil.rmtree(folder_path, ignore_errors=True)
+            self.job = None
+
     def run(self):
         capabilities = self.check_adapter()
         self.heartbeat(capabilities)
-        self.log('Studio connected. ' + ('Waiting for scrape jobs.' if capabilities else 'Waiting for a compatible running Forge collector.'))
+        self.log('Studio connected. ' + ('Ready for ' + ', '.join(capabilities) + ' jobs.' if capabilities else 'Choose FFmpeg for clouds or connect a compatible Forge collector.'))
         while not self.stop.is_set():
             try:
                 capabilities = self.check_adapter()
@@ -316,12 +558,12 @@ class Connector:
 def main():
     root = tk.Tk()
     root.title('Asgard • Forge connection')
-    root.geometry('660x600')
+    root.geometry('680x730')
     root.minsize(570, 490)
     frame = ttk.Frame(root, padding=22)
     frame.pack(fill='both', expand=True)
     ttk.Label(frame, text='Connect your Forge to the studio', font=('Segoe UI', 16, 'bold')).pack(anchor='w')
-    ttk.Label(frame, text='Keep Forge running. This window receives collection jobs from your studio.\n'
+    ttk.Label(frame, text='This window receives collection and cloud-preparation jobs from your studio.\n'
               'Products stay in staging for review; this connector does not publish.', wraplength=580).pack(anchor='w', pady=12)
     try:
         settings = json.loads(CONFIG.read_text())
@@ -329,6 +571,7 @@ def main():
         settings = {}
     entries = {}
     for key, label, default in [('base', 'Local Forge address', settings.get('base', '')),
+                                ('ffmpeg', 'FFmpeg program (optional; detected from PATH)', settings.get('ffmpeg', shutil.which('ffmpeg') or '')),
                                 ('email', 'App owner email', ''), ('password', 'App owner password', '')]:
         ttk.Label(frame, text=label).pack(anchor='w')
         inp = ttk.Entry(frame, show='•' if key == 'password' else '')
@@ -345,6 +588,12 @@ def main():
                 log(str(error))
         threading.Thread(target=work, daemon=True).start()
     ttk.Button(frame, text='Find my running Forge', command=detect).pack(anchor='w', pady=4)
+    def choose_ffmpeg():
+        name = filedialog.askopenfilename(title='Choose your installed FFmpeg program', filetypes=[('FFmpeg program', '*.exe'), ('All files', '*')])
+        if name:
+            entries['ffmpeg'].delete(0, 'end')
+            entries['ffmpeg'].insert(0, name)
+    ttk.Button(frame, text='Choose FFmpeg for cloud clips', command=choose_ffmpeg).pack(anchor='w', pady=4)
     remember = tk.BooleanVar(value=bool(settings.get('remember', False)))
     ttk.Checkbutton(frame, text='Keep connected after Windows restarts (encrypted on this Windows account)', variable=remember).pack(anchor='w')
     ttk.Label(frame, text='Password is never saved. Remembered connection uses Windows encryption. Keep this file in Downloads.', wraplength=580).pack(anchor='w')
@@ -370,7 +619,7 @@ def main():
         if active['thread'] and active['thread'].is_alive():
             return
         try:
-            c = Connector(entries['base'].get(), log)
+            c = Connector(entries['base'].get(), log, entries['ffmpeg'].get().strip())
         except ValueError as error:
             messagebox.showerror('Forge address', str(error))
             return
@@ -404,7 +653,7 @@ def main():
                     set_startup(True)
                 elif sys.platform == 'win32':
                     set_startup(False)
-                CONFIG.write_text(json.dumps({'base': c.base, 'remember': c.remember}))
+                CONFIG.write_text(json.dumps({'base': c.base, 'remember': c.remember, 'ffmpeg': c.ffmpeg or ''}))
                 while not c.stop.is_set():
                     try:
                         c.run()
@@ -430,17 +679,22 @@ def main():
         try:
             set_startup(False)
             remember.set(False)
-            CONFIG.write_text(json.dumps({'base': entries['base'].get(), 'remember': False}))
+            CONFIG.write_text(json.dumps({'base': entries['base'].get(), 'remember': False, 'ffmpeg': entries['ffmpeg'].get()}))
             log('Saved owner connection and Windows startup entry removed.')
         except Exception as error:
             log(str(error))
     ttk.Button(bar, text='Forget saved connection', command=forget).pack(side='left')
     def close():
         if active['connector'] and active['connector'].job:
-            if not messagebox.askyesno('Collection running', 'Disconnect and request Forge to stop this collection?'):
+            if not messagebox.askyesno('Work running', 'Disconnect and stop this job? Its original inputs will be retained.'):
                 return
             disconnect()
-            root.after(1500, root.destroy)
+            def finish_close():
+                if active['thread'] and active['thread'].is_alive():
+                    root.after(100, finish_close)
+                else:
+                    root.destroy()
+            root.after(100, finish_close)
         else:
             disconnect()
             root.destroy()
