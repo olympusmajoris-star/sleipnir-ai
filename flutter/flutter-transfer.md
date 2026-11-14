@@ -83,3 +83,7 @@ To repeat the allowed pure-Dart checks, run `python run_contract_tests.py /path/
 - Draft edits, widget download and preview must never perform publication. Danny's explicit approval is a separate authenticated operation.
 
 Official sources: [webview_flutter](https://pub.dev/packages/webview_flutter), [NavigationDelegate API](https://pub.dev/documentation/webview_flutter/latest/webview_flutter/NavigationDelegate-class.html), [Android 4.12.0 metadata](https://pub.dev/api/packages/webview_flutter_android/versions/4.12.0), [WKWebView 3.25.1 metadata](https://pub.dev/api/packages/webview_flutter_wkwebview/versions/3.25.1).
+
+## Separate device-test export
+
+The studio can prepare an immutable presentation-only test copy without changing any production channel. Get Test Dart generates a separate `AsgardStudioTestSurface` pinned to its candidate UUID and `mode=test`. Use it only on a test route. It uses the same immutable renderer and real-data/callback boundaries, shows a persistent test badge, and never follows the live channel. The production file remains approved-only. Approval selects that exact frozen test document, not a later draft. See the studio transfer guide for the complete workflow. The generated test Dart was also parsed by the official Dart formatter; device compilation is still required.
