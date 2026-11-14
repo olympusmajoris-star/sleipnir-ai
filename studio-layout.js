@@ -11,7 +11,17 @@ function mount(config){
  hooks=config;currentPage=config.page||'raven';document.body.classList.add('studio-shell');
  const top=$('.top'),main=$('main'),right=$('.right'),left=$('.left');
  const areas=el('nav','app-tabs');areas.setAttribute('aria-label','Main app areas');
- for(const name of ['Sleipnir','Asgard','Valhalla']){const b=button(name,()=>{},'app-tab');b.setAttribute('role','tab');b.setAttribute('aria-selected',String(name==='Asgard'));if(name!=='Asgard'){b.disabled=true;b.title='This area’s existing editor has not been connected to this studio yet';}areas.append(b);}
+ for(const name of ['Sleipnir','Asgard','Valhalla']){
+  const b=button(name,async()=>{
+   if(name==='Asgard'||b.disabled)return;
+   b.disabled=true;
+   try{
+    await hooks.beforePage?.();
+    location.href='workshop.html?area='+encodeURIComponent(name);
+   }catch(error){b.disabled=false;b.title='Could not save your edits. Try again.';console.error('Area switch stopped because saving failed',error);}
+  },'app-tab');
+  b.setAttribute('role','tab');b.setAttribute('aria-selected',String(name==='Asgard'));areas.append(b);
+ }
  top.after(areas);
  const feature=el('nav','feature-tabs');feature.setAttribute('aria-label','Page features');feature.id='studioFeatures';
  if(config.kind==='pages'){const old=$('#secNav');old.classList.remove('left');old.classList.add('feature-source');feature.append(old);const replacement=el('nav','left');main.prepend(replacement);}
@@ -105,3 +115,4 @@ async function saveNavigation(nav){
 }
 G.AsgardStudioLayout={mount,setPage,arrange,select,category,saveNavigation};
 })(window);
+

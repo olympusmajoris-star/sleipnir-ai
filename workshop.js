@@ -37,8 +37,15 @@ const TYPE = { fast_food:'Fast food', fast_casual:'Fast casual', sit_down:'Sit-d
 const townOf = (a) => { const m = String(a || '').match(/,\s*([^,]+),\s*FL/i); return m ? m[1].trim() : 'Other'; };
 
 let M = {}; try { M = JSON.parse(localStorage.getItem('sleipnir-workshop') || '{}'); } catch(e){}
-M.area ||= 'Asgard'; M.page ||= {}; M.pick ||= {};
-const keep = () => { try { localStorage.setItem('sleipnir-workshop', JSON.stringify(M)); } catch(e){} };
+const requestedArea = new URLSearchParams(location.search).get('area');
+if(Object.hasOwn(AREAS, requestedArea)) M.area = requestedArea;
+if(!Object.hasOwn(AREAS, M.area)) M.area = 'Asgard';
+M.page ||= {}; M.pick ||= {};
+const keep = () => {
+  try { localStorage.setItem('sleipnir-workshop', JSON.stringify(M)); } catch(e){}
+  const url = new URL(location.href); url.searchParams.set('area', M.area);
+  history.replaceState(null, '', url);
+};
 let STORES = null;
 
 async function stores(){
@@ -120,5 +127,6 @@ $('#ed').addEventListener('load', () => {
   }, true);
 });
 
-areas(); pages();
+keep(); areas(); pages();
 })();
+
