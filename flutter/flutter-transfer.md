@@ -1,6 +1,6 @@
 # Approved studio surface for Flutter
 
-`AsgardStudioSurface` is a reusable Flutter widget that displays the same web scene renderer used by the studio. It loads approved release snapshots through the immutable `runtime/transfer-20261114-v1/app-runtime.html` build; it never reads a draft or accepts a preview mode. This is a WebView integration, not conversion of JavaScript artwork into native Flutter drawing code.
+`AsgardStudioSurface` is a reusable Flutter widget that displays the same web scene renderer used by the studio. It loads approved release snapshots through the immutable `runtime/transfer-20261114-v2/app-runtime.html` build; it never reads a draft or accepts a preview mode. This is a WebView integration, not conversion of JavaScript artwork into native Flutter drawing code.
 
 ## What is implemented
 
@@ -55,12 +55,12 @@ The following mutually compatible versions were checked against their official p
 dependencies:
   flutter:
     sdk: flutter
-  webview_flutter: 4.14.1
-  webview_flutter_android: 4.12.0
-  webview_flutter_wkwebview: 3.25.1
+  webview_flutter: 4.13.0
+  webview_flutter_android: 4.10.5
+  webview_flutter_wkwebview: 3.22.0
 ```
 
-Together these require Flutter 3.38.0 or newer and Dart 3.10.0 or newer. **The actual FlutterFlow project's SDK and lockfile have not been supplied or verified.** Resolve against that project before installation; retain its generated lockfile. These pins deliberately do not select the newest Android/iOS implementation packages, which require newer Flutter versions.
+Together these require Flutter 3.35.0 or newer and Dart 3.9.0 or newer. The previously reported FlutterFlow SDK was 3.35.x; its current lockfile has not been supplied or verified. Resolve against that project before installation; retain its generated lockfile. These pins deliberately do not select the newest Android/iOS implementation packages, which require newer Flutter versions.
 
 The package supports Android (SDK 24+), iOS (13.0+) and macOS (10.15+). It does not support Flutter web or Windows/Linux desktop. Browser builds show an explicit unsupported message, not an empty WebView or a false successful preview. Web support would need a separate tested iframe adapter or another compatible package.
 
@@ -78,11 +78,11 @@ To repeat the allowed pure-Dart checks, run `python run_contract_tests.py /path/
 ## Release and original-app boundaries
 
 - The runtime must fail closed if there is no approved release. Never fall back to `studio_designs`, local editor storage or test/demo data.
-- The widget hardcodes renderer build `transfer-20261114-v1`, and approvals must reference that build. A release for another renderer build must be rejected with an upgrade notice rather than silently loading different code. Future renderer features require an explicitly installed app-code upgrade; approved design settings within this build can update without repasting Dart.
+- The widget hardcodes renderer build `transfer-20261114-v2`, and approvals must reference that build. A release for another renderer build must be rejected with an upgrade notice rather than silently loading different code. Future renderer features require an explicitly installed app-code upgrade; approved design settings within this build can update without repasting Dart.
 - This surface does not replace the native cloud-messaging widget or its authenticated backend. The existing original Dart implementation must remain the authoritative baseline until parity is demonstrated.
 - Draft edits, widget download and preview must never perform publication. Danny's explicit approval is a separate authenticated operation.
 
-Official sources: [webview_flutter](https://pub.dev/packages/webview_flutter), [NavigationDelegate API](https://pub.dev/documentation/webview_flutter/latest/webview_flutter/NavigationDelegate-class.html), [Android 4.12.0 metadata](https://pub.dev/api/packages/webview_flutter_android/versions/4.12.0), [WKWebView 3.25.1 metadata](https://pub.dev/api/packages/webview_flutter_wkwebview/versions/3.25.1).
+Official sources: [webview_flutter](https://pub.dev/packages/webview_flutter), [NavigationDelegate API](https://pub.dev/documentation/webview_flutter/latest/webview_flutter/NavigationDelegate-class.html), [Android 4.10.5 metadata](https://pub.dev/api/packages/webview_flutter_android/versions/4.10.5), [WKWebView 3.22.0 metadata](https://pub.dev/api/packages/webview_flutter_wkwebview/versions/3.22.0).
 
 ## Separate device-test export
 

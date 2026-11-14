@@ -48,3 +48,8 @@ class ConnectorTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+class DiscoveryTests(unittest.TestCase):
+    def test_only_local_listeners_are_probed(self):
+        sample='  TCP    0.0.0.0:8000   0.0.0.0:0   LISTENING   1\n  TCP    127.0.0.1:8738   0.0.0.0:0   LISTENING   2\n  TCP    192.168.1.10:9000   0.0.0.0:0   LISTENING   3\n  TCP    127.0.0.1:5000   127.0.0.1:8000   ESTABLISHED   4'
+        self.assertEqual(c.listening_ports(sample), [8000,8738])

@@ -25,7 +25,7 @@ void main() {
   const release = '11111111-2222-4333-8444-555555555555';
   final raven = asgardApprovedRuntimeUri(page: 'raven', designId: 'raven');
   check(
-    raven.path == '/sleipnir-ai/runtime/transfer-20261114-v1/app-runtime.html',
+    raven.path == '/sleipnir-ai/runtime/transfer-20261114-v2/app-runtime.html',
     'pin immutable renderer build',
   );
   check(raven.queryParameters['mode'] == 'approved', 'production mode');

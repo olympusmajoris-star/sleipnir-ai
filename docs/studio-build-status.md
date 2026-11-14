@@ -16,6 +16,6 @@ Built on the existing gh-pages studio and shared Supabase project. No active app
 
 ## Remaining integrations
 
-No Forge PC worker is connected. Scrape execution requires the installed staging-only Forge adapter and the PC connector to be running. Render jobs require a compatible renderer; creating a brief does not generate art. This workspace cannot start programs on Danny’s Windows PC.
+The original staging Forge endpoints are verified against the recovered source. The updated PC connector detects that running app. A foreground studio compositor now handles render and image-inspection jobs, with private outputs and review. No Windows worker is connected yet. This workspace cannot start programs on Danny’s Windows PC. See `native-and-worker-connection.md` for operation, verification and rendering limits.
 
-Original native app screens and production callbacks still require their source and FlutterFlow integration/device verification. In particular the original Dart cloud conversation must remain the app screen until that integration is verified. App application remains separate from studio editing. Current source includes Asgard and AsgardRaven handoff files separately; this expansion does not replace them with web previews.
+The full supplied Raven widget now has an approved native-settings connection, with its original cloud conversation unchanged. The studio exposes the original conversation's existing database controls. Asgard already opens Raven and needs no caller replacement. FlutterFlow compilation and device verification remain outstanding; other original native app screens still require their widget source. App application remains separate from studio editing, and original native screens have not been replaced with web previews.

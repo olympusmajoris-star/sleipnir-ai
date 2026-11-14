@@ -6,6 +6,10 @@ No products are imported into the live catalog by this connector.
 """
 import datetime as dt
 import json
+import re
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor
 import queue
 import threading
 import time
@@ -17,7 +21,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 CONFIG = Path(__file__).with_name('connector-settings.json')
 PROJECT = 'https://afnihsdxtisneuyehatw.supabase.co'
 OWNER = '533a05da-fed8-4c92-ba94-7e4867ebce8f'
@@ -33,7 +37,7 @@ def local_address(value):
         raise ValueError('Enter the local address displayed by the staging Forge app. The direct-import bridge is not supported.')
     return value.strip().rstrip('/')
 
-def request(url, method='GET', data=None, headers=None):
+def request(url, method='GET', data=None, headers=None, timeout=25):
     req = urllib.request.Request(url, method=method, headers=headers or {},
                                  data=None if data is None else json.dumps(data).encode())
     if data is not None:
@@ -42,11 +46,46 @@ def request(url, method='GET', data=None, headers=None):
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *args, **kwargs):
             return None
-    with urllib.request.build_opener(NoRedirect).open(req, timeout=25) as response:
+    with urllib.request.build_opener(NoRedirect).open(req, timeout=timeout) as response:
         body = response.read(4 * 1024 * 1024 + 1)
         if len(body) > 4 * 1024 * 1024:
             raise ValueError('Forge response is too large. Review it in Forge before continuing.')
         return json.loads(body) if body else None
+
+def listening_ports(output):
+    ports = set()
+    for line in output.splitlines():
+        cols = line.split()
+        if len(cols) >= 4 and cols[0].upper() == 'TCP' and cols[3].upper() == 'LISTENING':
+            address = cols[1]
+            host, _, port = address.rpartition(':')
+            if host in ('127.0.0.1', '0.0.0.0', '[::]', '[::1]') and port.isdigit():
+                ports.add(int(port))
+    return sorted(ports)
+
+def discover_forge():
+    """Read running local listeners; never start or change a Forge process."""
+    if sys.platform != 'win32':
+        raise ValueError('Automatic detection is for your Windows Forge PC. Enter the local address on other systems.')
+    result = subprocess.run(['netstat', '-ano', '-p', 'tcp'], capture_output=True,
+                            text=True, timeout=10, creationflags=0x08000000, check=True)
+    ports = listening_ports(result.stdout)
+    def check(port):
+        url = 'http://127.0.0.1:' + str(port)
+        try:
+            health = request(url + '/api/health', timeout=2)
+            if isinstance(health, dict) and health.get('live_catalog_writes') is False and health.get('app_server') == 'online':
+                return url
+        except Exception:
+            pass
+        return None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        found = [url for url in pool.map(check, ports) if url]
+    if len(found) != 1:
+        raise ValueError('No running staging Forge found. Open Sleipnir Product Forge first.' if not found
+                         else 'More than one Forge is running. Enter the address shown by the one you want.')
+    return found[0]
+
 
 def configured_names(data):
     rows = data.get('stores', []) if isinstance(data, dict) else data
@@ -123,6 +162,7 @@ class Connector:
     def run_job(self, job):
         self.job = job
         started = False
+        cancel_requested = False
         try:
             stores = self.cloud('/rest/v1/stores?id=eq.' + str(uuid.UUID(job['store_id'])) + '&select=name')
             if not stores:
@@ -145,12 +185,15 @@ class Connector:
                 self.heartbeat(['scrape'])
                 current = self.cloud('/rest/v1/studio_work_jobs?id=eq.' + job['id'] + '&select=requested_action')[0]
                 action = current.get('requested_action')
+                cancel_requested = cancel_requested or action == 'cancel'
                 if action:
                     endpoint = {'pause': '/api/pause', 'resume': '/api/resume', 'cancel': '/api/stop'}[action]
                     self.local(endpoint, 'POST', {})
                 proc = self.local('/api/process-status')
                 stages = self.local('/api/current-stages')
-                if action == 'cancel' and not proc.get('running'):
+                if proc.get('running') and proc.get('process_id') != result['process_id']:
+                    raise ValueError('Forge process changed. This connector will not control the new process.')
+                if cancel_requested and not proc.get('running'):
                     self.patch(status='cancelled', requested_action=None, lease_until=None,
                                progress={'message': 'Forge confirmed collection stopped.'})
                     return
@@ -164,7 +207,7 @@ class Connector:
                     self.log(name + ': collection ready for review; no live import.')
                     return
                 self.patch(status='paused' if proc.get('paused') else 'running', requested_action=None,
-                           lease_until=utc(180), progress={'message': 'Collecting ' + name, 'stages': stages})
+                           lease_until=utc(180), progress={'message': ('Stopping ' if cancel_requested else 'Collecting ') + name, 'stages': stages})
             # Disconnect does not silently relaunch or take over another process.
             if started:
                 self.local('/api/stop', 'POST', {})
@@ -181,8 +224,7 @@ class Connector:
         self.log('Studio connected. ' + ('Waiting for scrape jobs.' if capabilities else 'Waiting for a compatible running Forge collector.'))
         while not self.stop.is_set():
             try:
-                if not self.adapter:
-                    capabilities = self.check_adapter()
+                capabilities = self.check_adapter()
                 self.heartbeat(capabilities)
                 if capabilities:
                     jobs = self.cloud('/rest/v1/rpc/claim_studio_work_job', 'POST', {'p_worker_id': self.worker})
@@ -202,7 +244,7 @@ class Connector:
 def main():
     root = tk.Tk()
     root.title('Asgard • Forge connection')
-    root.geometry('640x530')
+    root.geometry('660x600')
     root.minsize(570, 490)
     frame = ttk.Frame(root, padding=22)
     frame.pack(fill='both', expand=True)
@@ -221,6 +263,16 @@ def main():
         inp.insert(0, default)
         inp.pack(fill='x', pady=(2, 9))
         entries[key] = inp
+    def detect():
+        def work():
+            try:
+                value = discover_forge()
+                events.put(('address', value))
+                log('Found staging Forge: ' + value)
+            except Exception as error:
+                log(str(error))
+        threading.Thread(target=work, daemon=True).start()
+    ttk.Button(frame, text='Find my running Forge', command=detect).pack(anchor='w', pady=4)
     ttk.Label(frame, text='Your password and session are held in memory only. Reconnect after restarting.', wraplength=580).pack(anchor='w')
     output = tk.Text(frame, height=9, state='disabled', wrap='word')
     output.pack(fill='both', expand=True, pady=12)
@@ -230,8 +282,13 @@ def main():
         events.put(value)
     def pump():
         while not events.empty():
+            value = events.get()
+            if isinstance(value, tuple) and value[0] == 'address':
+                entries['base'].delete(0, 'end')
+                entries['base'].insert(0, value[1])
+                continue
             output.configure(state='normal')
-            output.insert('end', events.get() + '\n')
+            output.insert('end', value + '\n')
             output.see('end')
             output.configure(state='disabled')
         root.after(200, pump)
