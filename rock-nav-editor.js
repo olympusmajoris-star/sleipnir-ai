@@ -22,7 +22,7 @@ function controls(fields,N,definitions,local){
   else if(type==='color'){const inp=el('input');inp.type='color';inp.value=v;inp.setAttribute('aria-label',label);inp.oninput=()=>N.change(path,inp.value);control.append(inp);}
   else if(type==='select'){const inp=el('select','rn-select');inp.setAttribute('aria-label',label);max.forEach(([v,l])=>{const o=el('option','',l);o.value=v;inp.append(o);});inp.value=v;inp.onchange=()=>N.change(path,+inp.value);control.append(inp);}
   else {const nums=el('div','rn-slider'),slider=el('input'),num=el('input');slider.type='range';num.type='number';for(const input of [slider,num]){input.min=type;input.max=max;input.step=step;input.value=v;input.setAttribute('aria-label',label+(input===num?' value':''));}let started=false;const update=(from,to)=>{let n=Number(from.value);if(!Number.isFinite(n))return;n=Math.max(type,Math.min(max,n));to.value=n;N.change(path,n,!started);started=true;};slider.oninput=()=>update(slider,num);num.oninput=()=>update(num,slider);slider.onchange=num.onchange=()=>{started=false;};nums.append(slider,num);control.append(nums);}
-  fields.append(control);
+  control.querySelectorAll('input,select').forEach(i=>i.dataset.control=path);fields.append(control);
  }
 }
 A.Navigation.prototype.renderEditor=function(host){

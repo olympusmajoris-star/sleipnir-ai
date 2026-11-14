@@ -592,17 +592,17 @@ Object.assign(PAGES, {
 });
 function drawStore(x, t, S){
   loadStore(); bgDraw(x, S.bg); const sk = S.sky, skyH = sk.show ? HH * sk.height : 0, L = S.list, Hd = S.head;
-  const st = STORE.row || { name: STORE.id ? 'Loading…' : 'Pick a store on the left', address: '', logo_url: '' };
+  const catalogDraft=!RUNTIME?S._catalogDraft:null;const st = {...(STORE.row || { name: STORE.id ? 'Loading…' : 'Pick a store on the left', address: '', logo_url: '' }),...(catalogDraft?.storeOverrides||{})};const previewItems=(!RUNTIME?[...(catalogDraft?.added||[]),...STORE.items]:STORE.items).map(p=>{const a={...p,...(catalogDraft?.overrides?.[p.id]||{})};return {...a,img:fixUrl(a.image_url||a.img||'')};});
   // products scroll under the sky
   const cols = L.layout === 'grid' ? Math.round(L.cols) : 1, cw = (W - L.margin * 2 - (cols - 1) * L.gap) / cols;
   const ph = L.layout === 'list' ? cw * 0.28 * L.ratio : cw * L.ratio, info = 14 + L.nameT.size + 8 + L.priceT.size + 10, ch = L.layout === 'list' ? Math.max(ph + 20, info + 6) : ph + info;
   const headH = Math.max(Hd.logo, 30) + 30, top = skyH + headH;
-  const n = STORE.items.length, rows = Math.ceil(n / cols), rowH = ch + L.gap, total = Math.max(1, rows * rowH);
+  const n = previewItems.length, rows = Math.ceil(n / cols), rowH = ch + L.gap, total = Math.max(1, rows * rowH);
   STORE.scrollMax=Math.max(0,total-(HH-top-210));
   const sc = RUNTIME ? clamp(STORE.scroll,0,STORE.scrollMax) : rows > 3 ? (t * L.scroll) % total : 0;
   x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
   for(let rep = 0; rep < (RUNTIME?1:2); rep++) for(let i = 0; i < n; i++){ const r = Math.floor(i / cols), c = i % cols, y = top + 8 + r * rowH - sc + rep * total; if(y > HH || y + ch < top) continue;
-    const it = STORE.items[i], X0 = L.margin + c * (cw + L.gap); box(x, X0, y, cw, ch, L.card);
+    const it = previewItems[i], X0 = L.margin + c * (cw + L.gap); box(x, X0, y, cw, ch, L.card);
     const pw = L.layout === 'list' ? ph : cw, pX = L.layout === 'list' ? X0 + 10 : X0, pY = L.layout === 'list' ? y + 10 : y;
     x.save(); if(L.layout === 'list') rr(x, pX, pY, pw, ph, 10); else rr(x, X0, y, cw, ph + L.card.radius, Math.min(L.card.radius, cw / 2)); x.clip(); x.fillStyle = L.photoBg; x.fillRect(pX, pY, pw, ph); if(it.img) contain(x, img(it.img), pX, pY, pw, ph, L.photoPad); x.restore();
     const ix = L.layout === 'list' ? pX + pw + 12 : X0 + 10, iw = L.layout === 'list' ? cw - (ix - X0) - 10 : cw - 20; let yy = (L.layout === 'list' ? y + 4 : y + ph) + 12 + L.nameT.size;
@@ -788,9 +788,9 @@ function set(o, p, v){ const ks = p.split('.'); let a = o; for(let i=0;i<ks.leng
 const saveTimers = new Map();
 const editHistory=new Map();
 function rememberPage(){let h=editHistory.get(STATE.page);if(!h){h={items:[deep(STATE.S)],at:0};editHistory.set(STATE.page,h);}const snap=JSON.stringify(STATE.S);if(JSON.stringify(h.items[h.at])!==snap){h.items=h.items.slice(0,h.at+1);h.items.push(deep(STATE.S));if(h.items.length>120)h.items.shift();h.at=h.items.length-1;}}
-function save(record=true){ if(RUNTIME)return; if(record)rememberPage(); const page=STATE.page, snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
-  try { localStorage.setItem('asgard-' + docId(page), JSON.stringify(snapshot)); } catch(e){}
-  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id: docId(page), page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
+function save(record=true){ if(RUNTIME)return; if(record)rememberPage(); const page=STATE.page, id=docId(page), snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
+  try { localStorage.setItem('asgard-' + id, JSON.stringify(snapshot)); } catch(e){}
+  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id, page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
     $('#saveState').textContent = r.ok ? '● All changes saved' : '● Saved on this computer only'; } catch(e){ $('#saveState').textContent = '● Saved on this computer only'; }
 }, 700)); }
 async function load(page){
@@ -812,11 +812,13 @@ async function pushToApp(){
 /* ======================= UI ======================= */
 function nav(){
   const P = PAGES[STATE.page]; const n = $('#secNav'); n.innerHTML = '<div class="cap">THIS PAGE</div>';
-  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; { const q=new URLSearchParams(location.search); q.set('page',STATE.page); if(s.id==='rocks') q.set('section','rocks'); else q.delete('section'); history.replaceState(null,'','?'+q.toString()); } nav(); panel(); }; n.appendChild(b); });
+  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; AsgardStudioLayout.rememberFeature(s.id); { const q=new URLSearchParams(location.search); q.set('page',STATE.page); if(s.id==='rocks') q.set('section','rocks'); else q.delete('section'); history.replaceState(null,'','?'+q.toString()); } nav(); panel(); }; n.appendChild(b); });
   (P.actions || []).forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'cosmic'; b.innerHTML = `<b>▶ ${label}</b>`; b.onclick = fn; n.appendChild(b); });
   AsgardStudioLayout.setPage(STATE.page); $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
 }
 function panel(){
+  if(!STATE.S)return;
+  if(STATE.sec==='catalog'&&STATE.page==='store'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');STORE_WORKBENCH.panel($('#panel'));return;}
   if(STATE.sec==='design'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');PAGE_TOOLS.panel($('#panel'));return;}
   if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
   const P = PAGES[STATE.page], sec = P.sections.find(s => s.id === STATE.sec) || P.sections[0], pn = $('#panel'); pn.innerHTML = '';
@@ -838,20 +840,23 @@ const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 1
 async function openPage(page){
   if(RUNTIME){runtimeAction({type:'navigate',target:page});return;}
   if(page === 'raven'){ location.href = 'index.html'; return; }
-  STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')==='rocks'?'rocks':PAGES[page].sections[0].id; STATE.t0 = performance.now();
+  STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')||AsgardStudioLayout.lastFeature(page)||PAGES[page].sections[0].id;if(!PAGES[page].sections.some(s=>s.id===STATE.sec))STATE.sec=PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
   { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); if(page!=='browse') q.delete('type'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
   const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
 }
 if(!RUNTIME){
 $('#pagePick').onchange = (e) => openPage(e.target.value);
-$('#resetBtn').onclick = () => { if(confirm('Put this page back to its starting settings?')){ STATE.S = deep(PAGES[STATE.page].defaults); save(); panel(); } };
+$('#resetBtn').onclick = () => { if(confirm('Put this page back to its starting settings?')){ STATE.S = StudioWorkspaceCore.preserveLocks(STATE.S,PAGES[STATE.page].defaults); save(); panel(); } };
 $('#pushBtn').onclick = ()=>window.StudioTransfer?StudioTransfer.open():pushToApp();
 }
+
+PAGES.store.sections.push({id:'catalog',name:'Products & displays',sub:'Search, corrections, grouping, inspection & Forge',groups:[]});
 
 /* ======================= RENDER LOOP ======================= */
 const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
 const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,readOnly:!!RUNTIME,onAction:runtimeAction,arrange:RUNTIME?(()=>{}):AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
+const STORE_WORKBENCH=!RUNTIME?StudioStoreWorkbench.mount({url:SB.url,headers:H,getStore:()=>STORE,getDocument:()=>STATE.S,save:savePageNow,media:SHARED_MEDIA,arrange:AsgardStudioLayout.arrange,addLayers:assets=>PAGE_TOOLS.add('image',assets)}):null;
 function frame(now){
   if(runtimeStopped)return;
   if(RUNTIME)now=(runtimePaused?runtimePauseAt:now)-runtimePauseOffset;
@@ -1051,9 +1056,13 @@ if(RUNTIME){
  runtimeUpdate(RUNTIME.envelope);
  RUNTIME.setRenderer({update:runtimeUpdate,setContext(context){runtimeContext=context&&typeof context==='object'?context:{};return runtimeDescriptor();},pause:runtimePause,descriptor:runtimeDescriptor,referencedAssets,getCatalogPage:(offset=0,query='')=>loadStore(offset,query,true),destroy(){runtimeStopped=true;cancelAnimationFrame(runtimeFrame);STORE.abort?.abort();for(const v of Object.values(VID))v.pause();PAGE_TOOLS.pause?.(true);catalogControls?.bar.remove();}});
 }else{
- AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=deep(h.items[--h.at]);save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
- const start=new URLSearchParams(location.search).get('page');openPage(PAGES[start]?start:'home');
+ AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=StudioWorkspaceCore.preserveLocks(STATE.S,deep(h.items[--h.at]));save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
+ const start=new URLSearchParams(location.search).get('page');const editorReady=openPage(PAGES[start]?start:'home');
  // Export adapter reads the current in-memory edit without changing the saved draft.
+ function wbDocument(){return STATE.sec==='rocks'?ROCK_NAV.S:STATE.S;}
+ function wbPath(path){if(path.startsWith('_studioLayers.')&&STATE.sec==='design'){const id=PAGE_TOOLS.selectedId?.(),i=STATE.S._studioLayers?.findIndex(l=>l.id===id);return i>=0?'_studioLayers.'+i+'.'+path.slice(14):null;}return path;}
+ StudioWorkbench.mount({document:wbDocument,path:wbPath,read:p=>StudioWorkspaceCore.get(wbDocument(),p),navigation:()=>ROCK_NAV.S,save:async()=>{if(STATE.sec==='rocks')ROCK_NAV.edits.set('_studioEditor',deep(ROCK_NAV.S._studioEditor));await savePageNow();},restore:async(doc,nav)=>{if(STATE.sec==='rocks')ROCK_NAV.applyState(StudioWorkspaceCore.preserveLocks(ROCK_NAV.S,doc));else {STATE.S=StudioWorkspaceCore.preserveLocks(STATE.S,doc);if(nav)ROCK_NAV.applyState(StudioWorkspaceCore.preserveLocks(ROCK_NAV.S,nav));panel();}}});
+ window.AsgardWorkspaceEditor={ready:editorReady,save:savePageNow,feature(id){if(!STATE.S)return;if(PAGES[STATE.page].sections.some(s=>s.id===id)){STATE.sec=id;nav();panel();}},topic:AsgardStudioLayout.select};
  window.AsgardPageEditor={snapshot:()=>({schemaVersion:1,designId:docId(STATE.page),page:STATE.page,storeId:STATE.page==='store'?STORE.id:null,pageType:STATE.page==='browse'?BROWSE.type:null,settings:deep(STATE.S),navigation:deep(ROCK_NAV.S),bindingContract:{version:1}}),save:savePageNow,descriptor:runtimeDescriptor,referencedAssets};
  if(window.StudioTransfer)StudioTransfer.mount(window.AsgardPageEditor);
 }

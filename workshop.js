@@ -1,5 +1,4 @@
-/* Sleipnir Workshop: area tabs on top, that area's pages on the left, the existing editors on the right.
-   Editors are the same files Danny, Claude and ChatGPT already use (index.html, pages.html); nothing is copied. */
+/* Five-area workspace around the existing editors. */
 (() => {
 'use strict';
 const SB = { url:'https://afnihsdxtisneuyehatw.supabase.co', key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps' };
@@ -7,163 +6,37 @@ const H = { apikey: SB.key, Authorization: 'Bearer ' + SB.key };
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
-const transferButton=document.getElementById('workshopTransfer');if(transferButton)transferButton.onclick=()=>{const frame=document.getElementById('ed');if(frame&&!frame.hidden)frame.contentWindow.postMessage({type:'asgard-open-transfer'},location.origin);};
-const AREAS = {
-  Sleipnir: [
-    { id:'shome', name:'Home page', sub:'Logo, search, Odin, category buttons', url:'pages.html?page=shome' },
-    { id:'grocery', name:'Grocery', sub:'Store list page', url:'pages.html?page=browse&type=grocery' },
-    { id:'fast_food', name:'Fast Food', sub:'Store list page', url:'pages.html?page=browse&type=fast_food' },
-    { id:'restaurant', name:'Restaurants', sub:'Store list page', url:'pages.html?page=browse&type=restaurant' },
-    { id:'retail', name:'Retail', sub:'Store list page', url:'pages.html?page=browse&type=retail' },
-    { id:'stores', name:'Stores', sub:'Town → type → store, then its page look', stores: s => !s.is_valhalla },
-    { id:'swap', name:'Swap & Sell', sub:'Swipe to buy, sell, trade', url:'pages.html?page=swap' },
-    { id:'ads', name:'Local ads', sub:'Feed card, banner, deal of the day', url:'pages.html?page=ads' },
-    { id:'shoppost', name:'Shop the post', sub:'Tag dot, product card, credit', url:'pages.html?page=shoppost' },
-    { id:'deals', name:'Flash deals', sub:'Countdown, % off, near you', url:'pages.html?page=deals' },
-  ],
-  Asgard: [
-    { id:'raven', name:'Raven sky', sub:'Black holes, sphere, busts, rocks', url:'index.html' },
-    { id:'home', name:'Home & posts', sub:'Sky strip, posts, floating icons', url:'pages.html?page=home' },
-    { id:'convo', name:'Messages', sub:'Clouds & earth below', url:'pages.html?page=convo' },
-    { id:'share', name:'Share', sub:'Favs as 3D figures', url:'pages.html?page=share' },
-    { id:'heimdall', name:'Heimdall', sub:'Notifications', url:'pages.html?page=heimdall' },
-  ],
-  Valhalla: [
-    { id:'vbrowse', name:'Valhalla page', sub:'Local store list page', url:'pages.html?page=browse&type=valhalla' },
-    { id:'vstores', name:'Valhalla stores', sub:'Town → type → store, then its page look', stores: s => !!s.is_valhalla },
-  ],
-  Valkyries: [],
-};
-const TYPE = { fast_food:'Fast food', fast_casual:'Fast casual', sit_down:'Sit-down', grocery:'Grocery', retail:'Retail', convenience:'Convenience' };
-const townOf = (a) => { const m = String(a || '').match(/,\s*([^,]+),\s*FL/i); return m ? m[1].trim() : 'Other'; };
 
-let M = {}; try { M = JSON.parse(localStorage.getItem('sleipnir-workshop') || '{}'); } catch(e){}
-const requestedArea = new URLSearchParams(location.search).get('area');
-if(Object.hasOwn(AREAS, requestedArea)) M.area = requestedArea;
-if(!Object.hasOwn(AREAS, M.area)) M.area = 'Asgard';
-M.page ||= {}; M.pick ||= {};
-const keep = () => {
-  try { localStorage.setItem('sleipnir-workshop', JSON.stringify(M)); } catch(e){}
-  const url = new URL(location.href); url.searchParams.set('area', M.area);
-  history.replaceState(null, '', url);
-};
-let STORES = null, inventoryLoadedAt = 0, inventoryRequest = null, navRevision = 0;
+const C=StudioWorkspaceCore,AREAS=Object.fromEntries(C.GROUPS.map(g=>[g.id,g.pages.map(([id,name,sub,url])=>({id,name,sub,url,stores:id==='stores'?()=>true:null}))]));
+const TYPE={fast_food:'Fast food',fast_casual:'Fast casual',sit_down:'Sit-down',grocery:'Grocery',retail:'Retail',convenience:'Convenience'};
+const townOf=a=>String(a||'').match(/,\s*([^,]+),\s*FL/i)?.[1]?.trim()||'Other';
+let M={};try{M=JSON.parse(localStorage.getItem('asgard-workspace-v2')||'{}');}catch{}
+M.page||={};M.pick||={};M.locations||={};
+const q=new URLSearchParams(location.search),legacy={Asgard:'sky',Sleipnir:'shopping',Valhalla:'shopping',Valkyries:'delivery'};
+let here=C.normalizeLocation({group:q.get('group')||legacy[q.get('area')]||M.group||'sky',page:q.get('item')||M.page[q.get('group')||M.group||'sky'],store:q.get('store')||'',feature:q.get('feature')||'',topic:q.get('topic')||''});
+let trail={items:[here],at:0},loading=false,curUrl='',frameReady=Promise.resolve(),frameResolve=null,navRevision=0,STORES=null,inventoryRequest=null,inventoryLoadedAt=0,flushCounter=0,restoring=false;const pending=new Map();
+const keep=()=>{M.group=here.group;M.page[here.group]=here.page;try{localStorage.setItem('asgard-workspace-v2',JSON.stringify(M));}catch{}const u=new URL(location.href);u.searchParams.delete('area');u.searchParams.set('group',here.group);u.searchParams.set('item',here.page);if(here.store)u.searchParams.set('store',here.store);else u.searchParams.delete('store');history.replaceState(null,'',u);};
+async function flush(){const f=$('#ed');if(f.hidden||!curUrl)return;try{const api=f.contentWindow.AsgardWorkspaceEditor;if(api?.save){await api.save();return;}}catch(e){if(e.name!=='SecurityError')throw e;} }
+async function move(next,travel=false){if(loading)return;loading=true;$('#workspaceStatus').textContent='Saving your place…';try{await flush();here=C.normalizeLocation(next);if(!travel)trail=C.historyPush(trail,here);keep();areas();restoring=true;await pages();if(here.feature){const api=$('#ed').contentWindow.AsgardWorkspaceEditor;api?.feature(here.feature);api?.topic(here.topic||null);}restoring=false;breadcrumbs();}catch(e){$('#workspaceStatus').textContent='Could not save before leaving: '+e.message;}finally{loading=false;restoring=false;}}
+function areas(){$('#areas').innerHTML=C.GROUPS.map(g=>`<button class="area ${g.id===here.group?'on':''}" data-a="${g.id}">${esc(g.name)}</button>`).join('');document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>move({group:b.dataset.a,page:M.page[b.dataset.a]}));}
+function breadcrumbs(){const g=C.GROUPS.find(g=>g.id===here.group),p=AREAS[here.group].find(p=>p.id===here.page),loc=M.locations[curUrl]||{};$('#crumbPath').replaceChildren();for(const [label,fn]of [[g.name,()=>move({group:g.id,page:M.page[g.id]})],[p.name,()=>{const a=$('#ed').contentWindow.AsgardWorkspaceEditor;if(a?.topic)a.topic(null);}],[loc.feature,()=>$('#ed').contentWindow.AsgardWorkspaceEditor?.topic(null)],[loc.topic,null]]){if(!label)continue;const b=document.createElement('button');b.textContent=({holes:'Black holes',catalog:'Products & displays',design:'Images & buttons',bg:'Background',sky:'Sky',rocks:'Floating rocks',tabs:'Message tabs',sphere:'Sphere',media:'Images & videos'})[label]||label.replaceAll('_',' ');if(fn)b.onclick=fn;else b.className='trail-current';$('#crumbPath').append(b);const sep=document.createElement('span');sep.textContent='›';$('#crumbPath').append(sep);}$('#navBack').disabled=trail.at===0;$('#navForward').disabled=trail.at>=trail.items.length-1;}
+$('#navBack').onclick=async()=>{if(trail.at<=0)return;try{await flush();trail.at--;await move(trail.items[trail.at],true);}catch(e){$('#workspaceStatus').textContent=e.message;}};
+$('#navForward').onclick=async()=>{if(trail.at>=trail.items.length-1)return;try{await flush();trail.at++;await move(trail.items[trail.at],true);}catch(e){$('#workspaceStatus').textContent=e.message;}};
+$('#workshopTransfer').onclick=()=>{const f=$('#ed');if(!f.hidden)f.contentWindow.postMessage({type:'asgard-open-transfer'},location.origin);};
+async function stores(){if(STORES&&Date.now()-inventoryLoadedAt<60000)return STORES;if(inventoryRequest)return inventoryRequest;inventoryRequest=StudioStoreCatalog.load({baseUrl:SB.url,headers:H}).then(rows=>{rows.forEach(s=>{s.town=townOf(s.address);s.type=TYPE[s.menu_type]||'Other';});STORES=rows.sort((a,b)=>a.name.localeCompare(b.name));inventoryLoadedAt=Date.now();return STORES;}).finally(()=>inventoryRequest=null);return inventoryRequest;}
+async function pages(){++navRevision;const nav=$('#pages'),list=AREAS[here.group];nav.innerHTML=`<div class="cap">CHOOSE WHAT TO WORK ON</div>`+list.map(p=>`<button class="pg ${p.id===here.page?'on':''}" data-p="${p.id}">${esc(p.name)}<small>${esc(p.sub)}</small></button>${p.stores&&p.id===here.page?'<div class="drill" id="drill">Loading stores…</div>':''}`).join('');nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>move({group:here.group,page:b.dataset.p}));const p=list.find(p=>p.id===here.page);if(p.stores)await drill(p);else if(p.url)return show(p.url);else show(null,'<div class="workspace-source-note"><h2>Keep the original app screen</h2><p>Your delivery, checkout and merchant screens already exist in the app. Their current source is needed to expose their real controls here without substituting a different screen.</p><p>Existing app behavior is preserved. Work on the connected editors using the sections above.</p></div>');}
+async function drill(page){const ticket=++navRevision,d=$('#drill');let all;try{all=await stores();}catch(e){if(ticket!==navRevision)return;d.innerHTML='<p>Store information could not load.</p><button id="retryStores">Retry</button>';$('#retryStores').onclick=()=>drill(page);return;}if(ticket!==navRevision||d!==$('#drill'))return;
+ const pk=M.pick.stores||={town:'',type:'',store:'',folder:'working'};if(here.store)pk.store=here.store;
+ const folders=[['working','Selected stores'],['empty','Stores with no info'],['other','Other populated stores']];let rows=all.filter(s=>s.folder===pk.folder);const towns=[...new Set(rows.map(s=>s.town))].sort();if(pk.town&&!towns.includes(pk.town))pk.town='';rows=rows.filter(s=>!pk.town||s.town===pk.town);const types=[...new Set(rows.map(s=>s.type))].sort();if(pk.type&&!types.includes(pk.type))pk.type='';rows=rows.filter(s=>!pk.type||s.type===pk.type);if(pk.store&&!rows.some(s=>s.id===pk.store))pk.store='';const opt=(v,l,sel)=>`<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(l)}</option>`;
+ d.innerHTML=`<label>FOLDER<select id="dFolder">${folders.map(([id,l])=>opt(id,l+' ('+all.filter(s=>s.folder===id).length+')',pk.folder)).join('')}</select></label><label>TOWN<select id="dTown">${opt('','Every town',pk.town)}${towns.map(t=>opt(t,t,pk.town)).join('')}</select></label><label>TYPE<select id="dType">${opt('','Every type',pk.type)}${types.map(t=>opt(t,t,pk.type)).join('')}</select></label><label>STORE<select id="dStore">${opt('','Choose a store…',pk.store)}${rows.map(s=>opt(s.id,s.name+' · '+s.town,pk.store)).join('')}</select></label><small>${rows.length} stores</small><button id="refreshStores" class="retry-stores">Refresh store info</button><button id="newStore" class="retry-stores">＋ Create store draft</button><div id="storeInfo" class="store-info"></div>`;
+ for(const [id,key]of [['dFolder','folder'],['dTown','town'],['dType','type'],['dStore','store']])$('#'+id).onchange=async e=>{try{await flush();pk[key]=e.target.value;if(key!=='store')pk.store='';if(key==='folder'){pk.town='';pk.type='';}here.store=pk.store;trail=C.historyPush(trail,here);keep();await drill(page);breadcrumbs();}catch(error){$('#workspaceStatus').textContent=error.message;}};
+ $('#refreshStores').onclick=()=>{inventoryLoadedAt=0;drill(page);};$('#newStore').onclick=()=>show('workspace-tools.html?tool=new-store');
+ if(pk.store){const s=rows.find(s=>s.id===pk.store);$('#storeInfo').innerHTML=`<strong>${esc(s.name)}</strong><p>${s.product_count.toLocaleString()} products<br>${s.image_count.toLocaleString()} with images</p><p>${esc(s.address||'No address')}</p>`;here.store=s.id;await show('pages.html?page=store&store='+encodeURIComponent(s.id));}else show(null,'<div><h2>Choose your store</h2><p>Filter by town and type. Stores without products remain in their own folder.</p></div>');}
+function show(url,message){const f=$('#ed'),e=$('#empty');if(!url){f.hidden=true;e.hidden=false;e.innerHTML=message||'';curUrl='';return;}e.hidden=true;f.hidden=false;if(curUrl===url)return frameReady;curUrl=url;frameReady=new Promise(resolve=>{frameResolve=resolve;});f.src=url+(url.includes('?')?'&':'?')+'embed=1&editor=workbench2';$('#workspaceStatus').textContent='Draft workspace · app changes require approval';breadcrumbs();return frameReady;}
+$('#ed').addEventListener('load',async()=>{const f=$('#ed');let doc;try{doc=f.contentDocument;}catch{return;}if(!doc||doc.getElementById('ws-embed'))return;const isPages=/pages\.html/.test(doc.location.pathname),st=doc.createElement('style');st.id='ws-embed';st.textContent=`.app-tabs,.page-tree,main>.left{display:none!important}.studio-shell main{height:calc(100% - 60px)!important;grid-template-columns:minmax(280px,390px) minmax(350px,1fr)!important;overflow:hidden!important}.studio-shell .center{padding:10px!important;height:100%!important}.studio-shell .right{min-width:0!important}.studio-shell .top{min-width:0!important}.studio-shell .top .brand{display:none}.studio-shell .phone{max-width:100%;max-height:100%}.studio-shell .panel,#panel{overflow:auto!important;min-height:0}.studio-shell .center .phonewrap{min-height:0}.studio-shell .ctitle h1{font-size:18px!important}`;doc.head.append(st);
+ const loadingUrl=curUrl,resolve=frameResolve;try{await f.contentWindow.AsgardWorkspaceEditor?.ready;}catch(error){$('#workspaceStatus').textContent='Could not open this editor: '+error.message;resolve?.();return;}if(curUrl!==loadingUrl){resolve?.();return;}
+ const left=doc.querySelector('main>.left');if(left){const opener=doc.createElement('button');opener.className='btn';opener.textContent='Layers & versions';opener.onclick=()=>{const d=doc.createElement('dialog'),marker=doc.createComment('original layer panel'),close=doc.createElement('button');d.className='wb-help ws-original-panel';close.className='btn';close.textContent='Close';close.onclick=()=>d.close();left.before(marker);d.append(close,left);doc.body.append(d);d.addEventListener('close',()=>{marker.replaceWith(left);d.remove();},{once:true});d.showModal();};doc.querySelector('.editor-toolbar')?.append(opener);}
 
-async function stores(){
-  if(STORES && Date.now() - inventoryLoadedAt < 60000) return STORES;
-  if(inventoryRequest) return inventoryRequest;
-  inventoryRequest = StudioStoreCatalog.load({ baseUrl:SB.url, headers:H }).then(rows => {
-    rows.forEach(s => { s.town = townOf(s.address); s.type = TYPE[s.menu_type] || 'Other'; });
-    STORES = rows.sort((a,b) => a.name.localeCompare(b.name)); inventoryLoadedAt = Date.now(); return STORES;
-  }).finally(() => { inventoryRequest = null; });
-  return inventoryRequest;
-}
-
-function areas(){
-  $('#areas').innerHTML = Object.keys(AREAS).map(a => `<button class="area ${a === M.area ? 'on' : ''}" data-a="${a}">${a}</button>`).join('');
-  document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { M.area = b.dataset.a; keep(); areas(); pages(); });
-}
-
-async function pages(){
-  ++navRevision;
-  const list = AREAS[M.area], nav = $('#pages');
-  if(!list.length){ nav.innerHTML = `<div class="cap">${M.area.toUpperCase()} · PAGES</div><p class="note">No ${M.area} screens exist yet. Tell Claude which one to start (order board, tracking, earnings) and it gets its own controls here.</p>`; show(null); return; }
-  const cur = M.page[M.area] && list.find(p => p.id === M.page[M.area]) ? M.page[M.area] : list[0].id;
-  let h = `<div class="cap">${M.area.toUpperCase()} · PAGES</div>`;
-  for(const p of list){
-    h += `<button class="pg ${p.id === cur ? 'on' : ''}" data-p="${p.id}">${esc(p.name)}<small>${esc(p.sub)}</small></button>`;
-    if(p.stores && p.id === cur) h += `<div class="drill" id="drill"><span class="note">Loading stores…</span></div>`;
-  }
-  nav.innerHTML = h;
-  nav.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { M.page[M.area] = b.dataset.p; keep(); pages(); });
-  const page = list.find(p => p.id === cur);
-  if(page.stores) await drill(page); else show(page.url);
-}
-
-async function drill(page){
-  const ticket = ++navRevision, d = $('#drill'); if(!d) return;
-  let areaStores;
-  try { areaStores = (await stores()).filter(page.stores); }
-  catch(error){
-    if(ticket !== navRevision || d !== $('#drill')) return;
-    d.innerHTML = '<p class="note">Could not load store information.</p><button class="retry-stores" id="retryStores">Try again</button>';
-    $('#retryStores').onclick = () => drill(page); show(null,'<b>Store information unavailable</b>Try again to load your stores.'); return;
-  }
-  if(ticket !== navRevision || d !== $('#drill')) return;
-  const pk = M.pick[page.id] ||= { town:'', type:'', store:'', folder:'working' };
-  const folders = [['working','Selected stores'],['empty','Stores with no info']];
-  if(areaStores.some(s => s.folder === 'other')) folders.push(['other','Other stores with products']);
-  if(!folders.some(([id]) => id === pk.folder)) pk.folder = 'working';
-  const all = areaStores.filter(s => s.folder === pk.folder);
-  const towns = [...new Set(all.map(s => s.town))].sort((a, b) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b));
-  if(pk.town && !towns.includes(pk.town)) pk.town = '';
-  const inTown = all.filter(s => !pk.town || s.town === pk.town);
-  const types = [...new Set(inTown.map(s => s.type))].sort();
-  if(pk.type && !types.includes(pk.type)) pk.type = '';
-  const list = inTown.filter(s => !pk.type || s.type === pk.type);
-  if(pk.store && !list.some(s => s.id === pk.store)) pk.store = '';
-  const opt = (v, l, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(l)}</option>`;
-  d.innerHTML = `<label>FOLDER<select id="dFolder">${folders.map(([id,label]) => opt(id,label+' ('+areaStores.filter(s=>s.folder===id).length+')',pk.folder)).join('')}</select></label>
-    <label>1 · TOWN<select id="dTown">${opt('', 'Every town', pk.town)}${towns.map(t => opt(t, t, pk.town)).join('')}</select></label>
-    <label>2 · TYPE<select id="dType">${opt('', 'Every type', pk.type)}${types.map(t => opt(t, t, pk.type)).join('')}</select></label>
-    <label>3 · STORE<select id="dStore">${opt('', 'Choose a store…', pk.store)}${list.map(s => opt(s.id, s.name + (pk.town ? '' : ' · ' + s.town), pk.store)).join('')}</select></label>
-    <span class="count">${list.length} store${list.length === 1 ? '' : 's'}</span>
-    <button class="retry-stores" id="refreshStores">Refresh store info</button>
-    <div id="storeInfo" class="store-info" ${pk.store ? '' : 'hidden'}></div>`;
-  $('#dFolder').onchange = e => { pk.folder=e.target.value; pk.town=''; pk.type=''; pk.store=''; keep(); drill(page); };
-  $('#refreshStores').onclick = () => { inventoryLoadedAt=0; drill(page); };
-  $('#dTown').onchange = e => { pk.town = e.target.value; keep(); drill(page); };
-  $('#dType').onchange = e => { pk.type = e.target.value; keep(); drill(page); };
-  $('#dStore').onchange = e => { pk.store = e.target.value; keep(); drill(page); };
-  if(pk.store){
-    const selected = list.find(s=>s.id===pk.store); $('#storeInfo').innerHTML = storeInfo(selected);
-    show('pages.html?page=store&store=' + encodeURIComponent(pk.store));
-  }
-  else show(null, '<b>Pick a store</b>Choose a town, a type, then a store on the left. Its page opens here with every control.');
-}
-
-function storeInfo(s){
-  let website='';
-  try{const u=new URL(s.website_url);if(['https:','http:'].includes(u.protocol))website=`<p><a href="${esc(u.href)}" target="_blank" rel="noopener noreferrer">Store website</a></p>`;}catch{}
-  const hours = typeof s.hours==='string' ? s.hours : s.hours ? JSON.stringify(s.hours) : '';
-  return `<strong>${esc(s.name)}</strong><p>${s.product_count.toLocaleString()} products / menu items<br>${s.image_count.toLocaleString()} with image links</p>
-    <p>${esc(s.address||'Address not added')}</p>${website}${hours?`<details><summary>Hours</summary><p>${esc(hours)}</p></details>`:''}
-    <small>${s.product_count===0?'No products or menu items yet.':'Image quality is checked separately.'}</small>`;
-}
-
-let curUrl = '';
-function show(url, msg){
-  const f = $('#ed'), e = $('#empty');
-  if(!url){ f.hidden = true; e.hidden = false; e.innerHTML = msg || '<b>Nothing here yet</b>'; curUrl = ''; return; }
-  e.hidden = true; f.hidden = false;
-  const full = url + (url.includes('?') ? '&' : '?') + 'embed=1';
-  if(full !== curUrl){ curUrl = full; f.src = full + (full.includes('?') ? '&' : '?') + 'editor=transfer1'; }
-}
-
-// Inside the editor: hide its own area tabs and page list (they live out here now), keep every control.
-$('#ed').addEventListener('load', () => {
-  let doc; try { doc = $('#ed').contentDocument; } catch(e){ return; }
-  if(!doc || doc.getElementById('ws-embed')) return;
-  const pagesEditor = /pages\.html/.test(doc.location.pathname);
-  const st = doc.createElement('style'); st.id = 'ws-embed';
-  st.textContent = `.app-tabs,.page-tree{display:none!important}
-    .studio-shell main{height:calc(100% - 60px)!important}
-    .studio-shell main{grid-template-columns:${pagesEditor ? '' : '200px '}minmax(390px,430px) minmax(360px,1fr)!important;overflow:auto}
-    .studio-shell .center{padding:10px 10px 6px!important}.studio-shell .phone{border-radius:44px!important}
-    ${pagesEditor ? '.studio-shell main>.left{display:none!important}' : ''}`;
-  doc.head.appendChild(st);
-  // After Save, move straight on to the next option so the next change is one click away.
-  doc.addEventListener('click', ev => {
-    if(!ev.target.closest || !ev.target.closest('[data-editor-save]')) return;
-    setTimeout(() => {
-      const btns = [...doc.querySelectorAll('#studioOptions .option-button[data-option]')], i = btns.findIndex(b => b.classList.contains('on'));
-      if(i >= 0 && btns[i + 1]) btns[i + 1].click();
-    }, 1400);
-  }, true);
-});
-
-keep(); areas(); pages();
+ f.contentWindow.addEventListener('workspace-feature',e=>{M.locations[curUrl]={feature:e.detail.feature,topic:e.detail.topic};if(!restoring){here={...here,feature:e.detail.feature,topic:e.detail.topic||''};trail=C.historyPush(trail,here);}keep();breadcrumbs();});const loc=M.locations[curUrl];restoring=true;if(loc?.feature){f.contentWindow.AsgardWorkspaceEditor?.feature(loc.feature);if(loc.topic)f.contentWindow.AsgardWorkspaceEditor?.topic(loc.topic);}restoring=false;breadcrumbs();resolve?.();});
+keep();areas();pages().then(()=>{const a=$('#ed').contentWindow.AsgardWorkspaceEditor;if(here.feature){restoring=true;a?.feature(here.feature);a?.topic(here.topic||null);restoring=false;}breadcrumbs();});
 })();
-
-
-

@@ -11,16 +11,17 @@ function mount(config){
  hooks=config;currentPage=config.page||'raven';document.body.classList.add('studio-shell');
  const top=$('.top'),main=$('main'),right=$('.right'),left=$('.left');
  const areas=el('nav','app-tabs');areas.setAttribute('aria-label','Main app areas');
- for(const name of ['Sleipnir','Asgard','Valhalla']){
+ const groups=G.StudioWorkspaceCore.GROUPS,activeGroup=groups.find(g=>g.pages.some(p=>p[0]===currentPage))?.id||'sky';
+ for(const {id,name} of groups){
   const b=button(name,async()=>{
-   if(name==='Asgard'||b.disabled)return;
+   if(b.disabled)return;
    b.disabled=true;
    try{
     await hooks.beforePage?.();
-    location.href='workshop.html?area='+encodeURIComponent(name);
+    location.href='workshop.html?group='+encodeURIComponent(id);
    }catch(error){b.disabled=false;b.title='Could not save your edits. Try again.';console.error('Area switch stopped because saving failed',error);}
   },'app-tab');
-  b.setAttribute('role','tab');b.setAttribute('aria-selected',String(name==='Asgard'));areas.append(b);
+  b.setAttribute('role','tab');b.setAttribute('aria-selected',String(id===activeGroup));areas.append(b);
  }
  top.after(areas);
  const feature=el('nav','feature-tabs');feature.setAttribute('aria-label','Page features');feature.id='studioFeatures';
@@ -68,6 +69,7 @@ function arrange(host,key){
  context=bank.querySelector('[aria-label="Views tier selection"],[data-editor-context]');if(context){context.classList.add('editor-context');host.prepend(context);}
  const map=new Map();
  function unit(name){if(map.has(name))return map.get(name);const body=el('section','tool-page');body.hidden=true;body.dataset.tool=name;body.append(el('h2','tool-title',name));host.append(body);map.set(name,body);items.push({name,body});return body;}
+ for(const node of [...bank.querySelectorAll('[data-workbench-topic],details[data-studio-group]')])unit(node.dataset.workbenchTopic||node.dataset.studioGroup).append(node);
  const fields=[...bank.querySelectorAll('.c,.pg-row,.pg-chk,.rn-control')].filter(n=>n.querySelector('input,select,textarea'));
  const headings=new Set();
  for(const row of fields){
@@ -97,6 +99,8 @@ function arrange(host,key){
  if(key==='holes'){menu.append(button('Images & videos',()=>document.getElementById('openLib')?.click(),'option-button'));}
  if(!items.length)unit('Options').append(el('p','note','Choose a page feature above.'));
  select(memory[activeKey]||null,false);
+ G.StudioWorkbench?.enhance(host,items.find(i=>!i.body.hidden)?.name||key);
+ G.dispatchEvent(new CustomEvent('workspace-feature',{detail:{page:currentPage,feature:key,topic:memory[activeKey]||''}}));
 }
 function select(name,persist=true){
  if(name&&!items.some(i=>i.name===name))name=null;
@@ -105,15 +109,15 @@ function select(name,persist=true){
  if(context)context.hidden=!!name;
  $('#editorCrumb').textContent=name||'Choose an option';
  const back=$('.editor-back');if(back)back.disabled=!name;
- if(currentHost)currentHost.scrollTop=0;
- memory[activeKey]=name;if(persist)saveNav();
+ if(currentHost){currentHost.scrollTop=0;G.StudioWorkbench?.enhance(currentHost,name||activeKey.split(':').at(-1));}
+ memory[activeKey]=name;if(persist){saveNav();G.dispatchEvent(new CustomEvent('workspace-feature',{detail:{page:currentPage,feature:activeKey.split(':').at(-1),topic:name||''}}));}
 }
 async function saveNavigation(nav){
  await nav.save();const until=Date.now()+10000;
  while(nav.saving&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,80));
  if(nav.saving||nav.edits.size)throw Error('Navigation has unsaved changes');
 }
-G.AsgardStudioLayout={mount,setPage,arrange,select,category,saveNavigation};
+G.AsgardStudioLayout={mount,setPage,arrange,select,category,saveNavigation,rememberFeature(key){memory[currentPage+':feature']=key;saveNav();},lastFeature(page){return memory[page+':feature'];}};
 })(window);
 
 

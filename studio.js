@@ -72,8 +72,8 @@ function commit(label){
 let pt;
 function persist(){ dirty = true; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving…'; clearTimeout(pt); pt = setTimeout(async () => { store.set(KEY, S); dbSave(); await dbWriting; dirty=false; $('#saveState').className='unsaved'; $('#saveState').textContent='● Saving to shared studio…'; }, 700); }
 let ct; function change(){ applyToScene(); clearTimeout(ct); ct = setTimeout(commit, 350); }
-function undo(){ if(hi>0){ hi--; S = clone(hist[hi]); persist(); applyToScene(true); render(); } }
-function redo(){ if(hi<hist.length-1){ hi++; S = clone(hist[hi]); persist(); applyToScene(true); render(); } }
+function undo(){ if(hi>0){ hi--; S = StudioWorkspaceCore.preserveLocks(S,clone(hist[hi])); persist(); applyToScene(true); render(); } }
+function redo(){ if(hi<hist.length-1){ hi++; S = StudioWorkspaceCore.preserveLocks(S,clone(hist[hi])); persist(); applyToScene(true); render(); } }
 
 /* ---------------- scene ---------------- */
 const scene = new Raven.RavenScene($('#stage'), S, {});
@@ -409,7 +409,7 @@ function render(){
   $('#modeSky').classList.toggle('on', S.holes.mode!=='focus'); $('#modeFocus').classList.toggle('on', S.holes.mode==='focus'); if(scene.anglePractice)setAnglePractice(scene.anglePractice);
 }
 function fsReadout(){ const el=document.getElementById('fsRead'); if(!el) return; const fs=S.holes.friendSize, n=S.holes.dashboards.friends.tiers.length; el.innerHTML = Array.from({length:n},(_,i)=>`<span>T${i+1}: ${(fs.auto? fs.min+(fs.max-fs.min)*(n>1?i/(n-1):0) : S.holes.dashboards.friends.tiers[i].look.size).toFixed(1)}</span>`).join(''); }
-function showSec(s){ if(s!==secNow)$('#panel').scrollTop=0;secNow=s;render(); }
+function showSec(s){ AsgardStudioLayout.rememberFeature(s);if(s!==secNow)$('#panel').scrollTop=0;secNow=s;render(); }
 let lookClip = null;
 function bindPanel(p){
   p.querySelectorAll('[data-dash]').forEach(b=>b.onclick=()=>{ S.holes.active=b.dataset.dash;S.holes.selTier=0;S.holes.quickTier=0;if(S.holes.together)S.holes.together.on=false;if(S.holes.modelPreview)S.holes.modelPreview.on=false;S.holes.referencePreview.on=false;S.holes.mode='sky';change();render(); });
@@ -474,7 +474,7 @@ async function renderVersions(){
   verCache = await versionsList();
   $('#versionList').innerHTML = `<div class="vr"><input id="verName" placeholder="Name this version" style="flex:1;background:#0f1316;border:1px solid #2a3138;border-radius:7px;padding:5px 7px;font-size:12px"><button id="verAdd" title="Save">＋</button></div>` + (verCache.map(v=>`<div class="vr"><span data-ver="${v.id}" title="Restore">${esc(v.name)}</span><button data-vdel="${v.id}" title="Delete">✕</button></div>`).join('') || '<div class="kv">None yet</div>');
   $('#verAdd').onclick = async () => { const n = $('#verName').value.trim() || ('Version '+new Date().toLocaleString()); await versionAdd(n); renderVersions(); toast('Saved “'+n+'”'); };
-  $$('[data-ver]').forEach(s=>s.onclick=()=>{ const v=verCache.find(x=>x.id===s.dataset.ver); if(!v) return; S=Raven.ensureDashboards(JSON.parse(v.json)); commit(); applyToScene(true); render(); toast('Restored “'+v.name+'” (Undo to go back)'); });
+  $$('[data-ver]').forEach(s=>s.onclick=()=>{ const v=verCache.find(x=>x.id===s.dataset.ver); if(!v) return; S=StudioWorkspaceCore.preserveLocks(S,Raven.ensureDashboards(JSON.parse(v.json))); commit(); applyToScene(true); render(); toast('Restored “'+v.name+'” (Undo to go back)'); });
   $$('[data-vdel]').forEach(b=>b.onclick=async ()=>{ if(b.dataset.armed){ await versionDel(b.dataset.vdel); renderVersions(); } else { b.dataset.armed=1; b.textContent='Delete?'; setTimeout(()=>{ b.textContent='✕'; delete b.dataset.armed; }, 2500); } });
 }
 
@@ -654,6 +654,20 @@ async function saveCurrentDesign(){
   dirty=false;SB.ok=true;$('#saveState').className='saved';$('#saveState').textContent='● Saved to shared studio';toast('Saved');
 }
 AsgardStudioLayout.mount({kind:'raven',page:'raven',undo:()=>{if(secNow==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(clone(ROCK_NAV.S));ROCK_NAV.applyState(prev);}}else undo();},save:()=>secNow==='rocks'?AsgardStudioLayout.saveNavigation(ROCK_NAV):saveCurrentDesign(),beforePage:async()=>{if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);await saveCurrentDesign();},preview:()=>{scene.playing=true;if(scene.speed<=0){scene.speed=1;$('#speed').value=1;}$('#playBtn').textContent='❚❚';$('#playLbl').textContent='Moving';}});
+
+function wbDocument(){return secNow==='rocks'?ROCK_NAV.S:S;}
+function wbPath(path){
+ if(secNow==='rocks')return path;
+ if(path.startsWith('look.'))return (S.holes.active==='viewers'&&S.holes.quickTier>=3&&currentModel()?currentModelPath()+'.look':'holes.dashboards.'+S.holes.active+'.tiers.'+S.holes.selTier+'.look')+'.'+path.slice(5);
+ if(path.startsWith('layer.')){const i=S.bg.layers.findIndex(l=>l.id===selLayer);return i<0?null:'bg.layers.'+i+'.'+path.slice(6);}return path;
+}
+StudioWorkbench.mount({document:wbDocument,path:wbPath,read:p=>StudioWorkspaceCore.get(wbDocument(),p),navigation:()=>ROCK_NAV.S,
+ save:async()=>{if(secNow==='rocks'){ROCK_NAV.edits.set('_studioEditor',clone(ROCK_NAV.S._studioEditor));await AsgardStudioLayout.saveNavigation(ROCK_NAV);}else await saveCurrentDesign();},
+ restore:async(doc,nav)=>{if(secNow==='rocks')ROCK_NAV.applyState(StudioWorkspaceCore.preserveLocks(ROCK_NAV.S,doc));else {S=StudioWorkspaceCore.preserveLocks(S,doc);if(nav)ROCK_NAV.applyState(StudioWorkspaceCore.preserveLocks(ROCK_NAV.S,nav));applyToScene(true);render();} }
+});
+window.AsgardWorkspaceEditor={save:async()=>{if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);await saveCurrentDesign();},feature:showSec,topic:AsgardStudioLayout.select};
+const requestedSection=new URLSearchParams(location.search).get('section')||AsgardStudioLayout.lastFeature('raven');if(requestedSection&&document.querySelector('.sec[data-sec="'+CSS.escape(requestedSection)+'"]'))showSec(requestedSection);
+
 /* ---------------- top bar & misc ---------------- */
 function toast(m){ const t=$('#toast'); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true, 2600); }
 $$('.sec').forEach(b=>b.onclick=()=>showSec(b.dataset.sec));
@@ -664,7 +678,7 @@ $('#undoBtn').onclick=undo; $('#redoBtn').onclick=redo;
 document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); } if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); } });
 $('#saveBtn').onclick=async ()=>{ const n='Version '+new Date().toLocaleString(); await versionAdd(n); renderVersions(); toast('Saved “'+n+'”'); };
 $('#exportBtn').onclick=()=>saveFile('asgard-raven-settings-'+Date.now()+'.json', JSON.stringify(S,null,1));
-$('#importFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ S=Raven.ensureDashboards(JSON.parse(await f.text())); commit(); applyToScene(true); render(); toast('Settings loaded'); }catch(err){ toast('That file is not a studio settings file'); } };
+$('#importFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ S=StudioWorkspaceCore.preserveLocks(S,Raven.ensureDashboards(JSON.parse(await f.text()))); commit(); applyToScene(true); render(); toast('Settings loaded'); }catch(err){ toast('That file is not a studio settings file'); } };
 $('#dartBtn').onclick=getDart;
 if(window.StudioTransfer)StudioTransfer.mount({snapshot:()=>({page:'raven',settings:clone(S),navigation:clone(ROCK_NAV.S)}),resolveAsset:resolveSrc});
 $('#boardBtn').onclick=boardShow; $('#boardClose').onclick=()=>$('#board').hidden=true;
@@ -693,7 +707,7 @@ $('#zm').onclick=()=>{ ui.fs=Math.max(.8,ui.fs-.1); setFs(); }; $('#zp').onclick
 window.addEventListener('beforeunload', ()=>{ store.set(KEY, S); });
 render();
 setAnglePractice(new URLSearchParams(location.search).get('angles'));
-capReady.then(async () => {
+window.AsgardWorkspaceEditor.ready=capReady.then(async () => {
   const remote = (await sbLoad()) || (await dbLoad());
   if(remote){ const was = remote.chatImported >= 3; S = applyChatImport(Raven.ensureDashboards(remote)); hist=[clone(S)]; hi=0; store.set(KEY,S); if(!was) dbSave(); applyToScene(true); render(); }
   else if(P.db) dbSave();

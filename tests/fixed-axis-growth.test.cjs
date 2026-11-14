@@ -30,7 +30,7 @@ test('tier 2 hits both approved endpoints and grows monotonically without changi
 });
 test('manual orientation and manual disk settings remain available',()=>{
  const s={...base,view3d:false,tilt:28,axisY:7,axisZ:-50};
- assert.deepEqual(V.liveSettings(s,'freya',{random:false},{on:false}),s);
+ assert.deepEqual(JSON.parse(JSON.stringify(V.liveSettings(s,'freya',{random:false},{on:false}))),s);
 });
 test('scene preserves per-contact axes across time and tier changes and leaves angle studies alone',()=>{
  const scene=Object.create(R.RavenScene.prototype);scene.s={holes:{orientation:{random:true,seed:1}}};

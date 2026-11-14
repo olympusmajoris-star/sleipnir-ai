@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-13",
+  "updated": "2026-11-14",
   "sources": [
     {
       "id": "studio",
@@ -2848,6 +2848,178 @@
       "source": "Studio files",
       "path": "ui/sphere_teal.jpg",
       "kind": "image"
+    },
+    {
+      "source": "Studio files",
+      "path": "assets/fixtures/hardware-pegboard-three-bay.webp",
+      "kind": "image"
+    },
+    {
+      "source": "Studio files",
+      "path": "assets/fixtures/boutique-clothing-rail-three-bay.webp",
+      "kind": "image"
+    },
+    {
+      "source": "Studio files",
+      "path": "assets/fixtures/cosmetics-gondola-three-bay.webp",
+      "kind": "image"
+    }
+  ],
+  "categories": [
+    {
+      "id": "new-fixtures",
+      "label": "New empty fixtures — hardware, clothing & cosmetics",
+      "source": "Studio files",
+      "paths": [
+        "assets/fixtures"
+      ]
+    },
+    {
+      "id": "shelves",
+      "label": "Shelves & racks",
+      "source": "menu-images",
+      "paths": [
+        "grocery stations"
+      ],
+      "examples": [
+        "grocery stations/shelf_canned_4tag_0918.png.png",
+        "grocery stations/shelf_tan_6tag_0925.png",
+        "grocery stations/fx_bread_rack_0927.png",
+        "grocery stations/fx_wine_shelf_0927.png"
+      ]
+    },
+    {
+      "id": "cold",
+      "label": "Refrigerators & freezers",
+      "source": "menu-images",
+      "paths": [
+        "grocery stations"
+      ],
+      "examples": [
+        "grocery stations/shelf_dairy_cooler_0926.png",
+        "grocery stations/fx_beer_cooler_0927.png",
+        "grocery stations/fx_freezer_doors_0927.png",
+        "grocery stations/fx_coffin_0927.png",
+        "grocery stations/fx_meat_case_empty_0927.png",
+        "grocery stations/fx_specialty_cheese_empty_0927.png"
+      ]
+    },
+    {
+      "id": "stocked",
+      "label": "Stocked shelf renders",
+      "source": "menu-images",
+      "paths": [
+        "target-canned-aisle",
+        "target-canned",
+        "canned-test",
+        "breakfast aisle",
+        "dry goods & pasta",
+        "dry-goods-pasta",
+        "health-care"
+      ]
+    },
+    {
+      "id": "entrances",
+      "label": "Aisle entrances",
+      "source": "menu-images",
+      "paths": [
+        "target-entrances",
+        "produce-entrances",
+        "grocery-boards"
+      ]
+    },
+    {
+      "id": "produce",
+      "label": "Produce bins & walls",
+      "source": "menu-images",
+      "paths": [
+        "produce-fixtures",
+        "produce-bins",
+        "produce-wall",
+        "produce-packaged"
+      ]
+    },
+    {
+      "id": "departments",
+      "label": "Fresh departments",
+      "source": "menu-images",
+      "paths": [
+        "stations-0927",
+        "deli-0928",
+        "meat-0928",
+        "cheese-0928",
+        "hot-0928",
+        "bakery-0928"
+      ]
+    },
+    {
+      "id": "boards",
+      "label": "Menu boards",
+      "source": "menu-images",
+      "paths": [
+        "boards"
+      ]
+    },
+    {
+      "id": "storefronts",
+      "label": "Storefronts & streets",
+      "source": "menu-images",
+      "paths": [
+        "valhalla-storefronts",
+        "valhalla-v1"
+      ]
+    },
+    {
+      "id": "cutouts",
+      "label": "Product images & cutouts",
+      "source": "menu-images",
+      "paths": [
+        "products",
+        "products-nobg",
+        "retail"
+      ]
+    },
+    {
+      "id": "gas",
+      "label": "Gas & dust",
+      "source": "studio",
+      "paths": [
+        "layers"
+      ],
+      "examples": [
+        "layers/dust_far.png",
+        "layers/dust_lanes.png",
+        "layers/gas_warm.png",
+        "layers/gas_cool.png",
+        "layers/gas_magenta.png",
+        "layers/wisps_near.png"
+      ]
+    },
+    {
+      "id": "space",
+      "label": "Black holes & clips",
+      "source": "studio",
+      "paths": [
+        "clips",
+        "references/followers"
+      ]
+    },
+    {
+      "id": "rocks",
+      "label": "Rune rocks & layers",
+      "source": "studio",
+      "paths": [
+        "navigation/rocks-v1"
+      ]
+    },
+    {
+      "id": "clouds",
+      "label": "Clouds & water",
+      "source": "studio",
+      "paths": [
+        "clouds",
+        "ui"
+      ]
     }
   ]
 }

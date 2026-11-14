@@ -48,14 +48,14 @@ test('random axes stay fixed per streamer across time and saved reloads',()=>{
 });
 test('live renderer gives selected model precedence and passes scene time for its spin',()=>{
  const prototype=G.Raven.RavenScene.prototype,m=M.create(item),seen=[];
- const scene={s:{holes:{modelPreview:m,referencePreview:{on:true},behavior:{autoQuality:false},hideFaces:true,refl:{}},rolodex:{settle:false}},time:10,speed:1,playing:true,roll:{vel:0},_last:1000,
+ const scene={opts:{production:false},contacts:[],s:{holes:{modelPreview:m,referencePreview:{on:true},behavior:{autoQuality:false},hideFaces:true,refl:{}},rolodex:{settle:false}},time:10,speed:1,playing:true,roll:{vel:0},_last:1000,
  engine:{render(t){seen.push([this.holes,t]);}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
  context.requestAnimationFrame=()=>{};prototype._loop.call(scene,1016);
  assert.equal(seen[0][0].length,1);assert.equal(seen[0][0][0]._modelPreview,true);assert.equal(seen[0][0][0].disk,1);assert.equal(seen[0][0][0].diskBright,3);assert.ok(seen[0][1]>10);
 });
 test('returning to tier 2 removes the 3D model without altering reference settings',()=>{
  const prototype=G.Raven.RavenScene.prototype,m=M.create(item);m.on=false;G.AsgardReference={};
- const reference={on:true,ringSize:1.26},scene={s:{holes:{modelPreview:m,referencePreview:reference,behavior:{autoQuality:false}},rolodex:{settle:false}},time:0,playing:false,roll:{vel:0},engine:{render(){}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
+ const reference={on:true,ringSize:1.26},scene={opts:{production:false},contacts:[],s:{holes:{modelPreview:m,referencePreview:reference,behavior:{autoQuality:false}},rolodex:{settle:false}},time:0,playing:false,roll:{vel:0},engine:{render(){}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
  context.requestAnimationFrame=()=>{};prototype._loop.call(scene,1);assert.equal(scene.engine.holes.length,0);assert.deepEqual(reference,{on:true,ringSize:1.26});
 });
 function pairSettings(){
@@ -85,7 +85,7 @@ test('both tiers respond to views and follower changes independently',()=>{
 });
 test('simultaneous mode renders the model and the reference on the same animation clock',()=>{
  const p=G.Raven.RavenScene.prototype,s=pairSettings(),seen=[],draws=[];
- const scene={s,time:0,speed:1,playing:true,roll:{vel:0},_last:1000,
+ const scene={opts:{production:false},contacts:[],s,time:0,speed:1,playing:true,roll:{vel:0},_last:1000,
  engine:{render(t){seen.push({time:t,model:plain(this.holes[0])});}},friendSizeAt:i=>26+i*3.2,
  _updateSky(){},_updateFeed(){},_composeBg(){},_drawOverlay(){},_loop(){},ovScale:1,
  fx:{style:{},width:390,height:844,getContext(){return {setTransform(){},clearRect(){},save(){},restore(){},beginPath(){},rect(){},arc(){},moveTo(){},clip(){}};}},gl:{liveSky:true},
@@ -126,7 +126,7 @@ test('random axes stay fixed across movement and a full lap and follower sizing 
 test('live sky sends all mixed tiers to their original renderers and composites reference fields',()=>{
  const p=G.Raven.RavenScene.prototype,s=pairSettings();s.holes.together.variety=true;const draws=[],rendered=[];
  const cx={setTransform(){},clearRect(){},drawImage(){},save(){},restore(){},beginPath(){},rect(){},arc(){},moveTo(){},clip(){}};context.document={createElement:()=>({width:0,height:0,getContext:()=>cx})};
- const scene={s,time:0,speed:1,playing:true,roll:{vel:0},_last:1000,engine:{render(t){rendered.push({time:t,holes:plain(this.holes)});}},friendSizeAt:i=>26+i*3.2,
+ const scene={opts:{production:false},contacts:[],s,time:0,speed:1,playing:true,roll:{vel:0},_last:1000,engine:{render(t){rendered.push({time:t,holes:plain(this.holes)});}},friendSizeAt:i=>26+i*3.2,
  _updateSky(){},_updateFeed(){},_composeBg(){},_drawOverlay(){},_loop(){},ovScale:1,
  fx:{style:{},width:390,height:844,getContext:()=>cx},gl:{width:390,height:844},referenceHole:{draw(...a){draws.push(a);}},_drawClips(){p._drawClips.call(this);}};
  G.AsgardReference={};context.requestAnimationFrame=()=>{};p._loop.call(scene,1016);
@@ -166,7 +166,7 @@ test('all saved view-growth examples reappear over time without changing axes in
 });
 test('sustained slow frames do not reduce the saved rendering sharpness',()=>{
  const p=G.Raven.RavenScene.prototype,s=pairSettings();let rendered=0;
- const scene={s,contacts:[],time:0,speed:1,playing:true,roll:{vel:0},engine:{render(){rendered++;}},friendSizeAt:()=>32.5,
+ const scene={opts:{production:false},contacts:[],s,contacts:[],time:0,speed:1,playing:true,roll:{vel:0},engine:{render(){rendered++;}},friendSizeAt:()=>32.5,
   _updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){},_resize(){throw Error('Sharpness was silently changed');}};
  const scale=s.holes.behavior.renderScale;context.requestAnimationFrame=()=>{};
  for(let t=100;t<30100;t+=100)p._loop.call(scene,t);
@@ -195,7 +195,7 @@ test('Tier 4 joins all tiers without exceeding the population limit and retains 
  s.behavior.count=5;for(let t=0;t<400;t+=3){const p=M.population(s,t,n=>n<100?28:42);assert.equal(p.entries.length,5);assert.ok(p.entries.filter(e=>e.radius<=32.5).length>=2);}
 });
 test('Tier 4 renders live with its own parameters and animation time',()=>{
- const s=pairSettings();M.put(s.holes,4,M.tier4());M.select(s.holes,4);s.holes.together.on=false;const scene={s,time:10,speed:1,playing:true,roll:{vel:0},_last:1000,engine:{render(t){this.drawTime=t;}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
+ const s=pairSettings();M.put(s.holes,4,M.tier4());M.select(s.holes,4);s.holes.together.on=false;const scene={opts:{production:false},contacts:[],s,time:10,speed:1,playing:true,roll:{vel:0},_last:1000,engine:{render(t){this.drawTime=t;}},_updateSky(){},_updateFeed(){},_composeBg(){},_drawClips(){},_drawOverlay(){},_loop(){}};
  context.requestAnimationFrame=()=>{};G.Raven.RavenScene.prototype._loop.call(scene,1016);
  assert.equal(scene.engine.holes.length,1);assert.equal(scene.engine.holes[0]._fid,'gallery-danny-tier4-start');assert.equal(scene.engine.holes[0].diskDir,-1);assert.equal(scene.engine.holes[0].secondaryLight,.08);assert.ok(scene.engine.drawTime>10);
 });

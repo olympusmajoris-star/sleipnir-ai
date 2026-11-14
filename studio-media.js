@@ -33,13 +33,13 @@ function create({url,headers}){
   pick.onchange=async()=>{const f=pick.files[0];if(!f)return;pick.disabled=true;status.textContent='Uploading…';try{onChange(await upload(f));}catch(e){status.textContent=e.message;}finally{pick.disabled=false;}};
   const clear=E('button','ghost','Clear');clear.type='button';clear.disabled=!value;clear.onclick=()=>onChange({url:'',kind:'image',name:''});actions.append(browse,clear);row.append(pick,status);return row;
  }
- async function open({accept='image/*,video/*',multiple=false,onSelect}){
+ async function open({accept='image/*,video/*',multiple=false,onSelect,initialSource=null,initialPath=null}){
   const previous=document.activeElement,dialog=E('dialog','sm-dialog'),head=E('header'),title=E('h2',null,'Shared images & videos'),close=E('button','ghost','Close');close.type='button';head.append(title,close);
   dialog.setAttribute('aria-label','Shared images and videos');
   const tools=E('div','sm-tools'),source=E('select','pg-sel'),up=E('button','ghost','↑ Parent folder'),search=E('input','pg-sel'),type=E('select','pg-sel');
   source.setAttribute('aria-label','Image folder source');search.type='search';search.placeholder='Search this folder';search.setAttribute('aria-label','Search this folder');type.setAttribute('aria-label','Media type');
   for(const [v,l]of [['all','Images & videos'],['image','Images'],['video','Videos']]){if(v==='video'&&!accept.includes('video'))continue;const o=E('option',null,l);o.value=v;type.append(o);}if(!accept.includes('video'))type.value='image';
-  tools.append(source,up,search,type);const pathLabel=E('div','sm-path'),status=E('p','sm-status','Loading folders…'),grid=E('div','sm-grid'),pager=E('div','sm-actions'),prev=E('button','ghost','Previous'),next=E('button','ghost','Next'),foot=E('footer'),chosen=E('span',null,'Choose a file to preview'),apply=E('button','primary','Use selected');apply.disabled=true;pager.append(prev,next);foot.append(chosen,apply);dialog.append(head,tools,pathLabel,status,grid,pager,foot);document.body.append(dialog);dialog.showModal();
+  const category=E('select','pg-sel');category.setAttribute('aria-label','Asset category');const all=E('option',null,'All asset categories');all.value='';category.append(all);tools.append(category,source,up,search,type);const pathLabel=E('div','sm-path'),status=E('p','sm-status','Loading folders…'),grid=E('div','sm-grid'),pager=E('div','sm-actions'),prev=E('button','ghost','Previous'),next=E('button','ghost','Next'),foot=E('footer'),chosen=E('span',null,'Choose a file to preview'),apply=E('button','primary','Use selected');apply.disabled=true;pager.append(prev,next);foot.append(chosen,apply);dialog.append(head,tools,pathLabel,status,grid,pager,foot);document.body.append(dialog);dialog.showModal();
   let path='',offset=0,revision=0,selected=null,data=null,abort=null;const selections=new Map();
   function stopMedia(){grid.querySelectorAll('video').forEach(v=>{v.pause();v.removeAttribute('src');v.load();});}
   function finish(){revision++;abort?.abort();stopMedia();dialog.close();dialog.remove();previous?.focus();}
@@ -62,7 +62,7 @@ function create({url,headers}){
    }catch(e){if(rev!==revision||e.name==='AbortError')return;status.textContent=e.message;const retry=E('button','ghost','Retry');retry.onclick=draw;grid.append(retry);}
   }
   source.onchange=()=>{path='';offset=0;search.value='';draw();};up.onclick=()=>{path=path.split('/').slice(0,-1).join('/');offset=0;search.value='';draw();};prev.onclick=()=>{offset=Math.max(0,offset-60);draw();};next.onclick=()=>{offset+=60;draw();};type.onchange=()=>{offset=0;draw();};let timer;search.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{offset=0;draw();},250);};dialog.addEventListener('close',()=>clearTimeout(timer));
-  try{data=await manifest();if(!dialog.isConnected)return;for(const s of data.sources){const o=E('option',null,s.label);o.value=s.id;source.append(o);}source.value=lastSource;path=lastPath;await draw();}catch(e){status.textContent=e.message;}
+  try{data=await manifest();if(!dialog.isConnected)return;for(const s of data.sources){const o=E('option',null,s.label);o.value=s.id;source.append(o);}for(const c of data.categories||[]){for(const p of c.paths||[]){const o=E('option',null,c.label+(c.paths.length>1?' · '+p:''));o.value=JSON.stringify({source:c.source,path:p});category.append(o);}}category.onchange=()=>{if(!category.value)return;const c=JSON.parse(category.value);source.value=c.source;path=c.path;offset=0;search.value='';draw();};source.value=initialSource||lastSource;if(!source.value)source.selectedIndex=0;path=initialPath??lastPath;await draw();}catch(e){status.textContent=e.message;}
  }
  return {open,field,upload,assetURL};
 }
