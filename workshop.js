@@ -46,13 +46,16 @@ const keep = () => {
   const url = new URL(location.href); url.searchParams.set('area', M.area);
   history.replaceState(null, '', url);
 };
-let STORES = null;
+let STORES = null, inventoryLoadedAt = 0, inventoryRequest = null, navRevision = 0;
 
 async function stores(){
-  if(STORES) return STORES;
-  try { const r = await fetch(SB.url + '/rest/v1/stores?select=id,name,address,menu_type,category,is_valhalla&is_live=is.true&order=name', { headers: H }); STORES = r.ok ? await r.json() : []; } catch(e){ STORES = []; }
-  STORES.forEach(s => { s.town = townOf(s.address); s.type = TYPE[s.menu_type] || 'Other'; });
-  return STORES;
+  if(STORES && Date.now() - inventoryLoadedAt < 60000) return STORES;
+  if(inventoryRequest) return inventoryRequest;
+  inventoryRequest = StudioStoreCatalog.load({ baseUrl:SB.url, headers:H }).then(rows => {
+    rows.forEach(s => { s.town = townOf(s.address); s.type = TYPE[s.menu_type] || 'Other'; });
+    STORES = rows.sort((a,b) => a.name.localeCompare(b.name)); inventoryLoadedAt = Date.now(); return STORES;
+  }).finally(() => { inventoryRequest = null; });
+  return inventoryRequest;
 }
 
 function areas(){
@@ -61,6 +64,7 @@ function areas(){
 }
 
 async function pages(){
+  ++navRevision;
   const list = AREAS[M.area], nav = $('#pages');
   if(!list.length){ nav.innerHTML = `<div class="cap">${M.area.toUpperCase()} · PAGES</div><p class="note">No ${M.area} screens exist yet. Tell Claude which one to start (order board, tracking, earnings) and it gets its own controls here.</p>`; show(null); return; }
   const cur = M.page[M.area] && list.find(p => p.id === M.page[M.area]) ? M.page[M.area] : list[0].id;
@@ -76,24 +80,54 @@ async function pages(){
 }
 
 async function drill(page){
-  const all = (await stores()).filter(page.stores), pk = M.pick[page.id] ||= { town:'', type:'', store:'' };
+  const ticket = ++navRevision, d = $('#drill'); if(!d) return;
+  let areaStores;
+  try { areaStores = (await stores()).filter(page.stores); }
+  catch(error){
+    if(ticket !== navRevision || d !== $('#drill')) return;
+    d.innerHTML = '<p class="note">Could not load store information.</p><button class="retry-stores" id="retryStores">Try again</button>';
+    $('#retryStores').onclick = () => drill(page); show(null,'<b>Store information unavailable</b>Try again to load your stores.'); return;
+  }
+  if(ticket !== navRevision || d !== $('#drill')) return;
+  const pk = M.pick[page.id] ||= { town:'', type:'', store:'', folder:'working' };
+  const folders = [['working','Selected stores'],['empty','Stores with no info']];
+  if(areaStores.some(s => s.folder === 'other')) folders.push(['other','Other stores with products']);
+  if(!folders.some(([id]) => id === pk.folder)) pk.folder = 'working';
+  const all = areaStores.filter(s => s.folder === pk.folder);
   const towns = [...new Set(all.map(s => s.town))].sort((a, b) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b));
+  if(pk.town && !towns.includes(pk.town)) pk.town = '';
   const inTown = all.filter(s => !pk.town || s.town === pk.town);
   const types = [...new Set(inTown.map(s => s.type))].sort();
   if(pk.type && !types.includes(pk.type)) pk.type = '';
   const list = inTown.filter(s => !pk.type || s.type === pk.type);
   if(pk.store && !list.some(s => s.id === pk.store)) pk.store = '';
   const opt = (v, l, sel) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(l)}</option>`;
-  const d = $('#drill'); if(!d) return;
-  d.innerHTML = `<label>1 · TOWN<select id="dTown">${opt('', 'Every town', pk.town)}${towns.map(t => opt(t, t, pk.town)).join('')}</select></label>
+  d.innerHTML = `<label>FOLDER<select id="dFolder">${folders.map(([id,label]) => opt(id,label+' ('+areaStores.filter(s=>s.folder===id).length+')',pk.folder)).join('')}</select></label>
+    <label>1 · TOWN<select id="dTown">${opt('', 'Every town', pk.town)}${towns.map(t => opt(t, t, pk.town)).join('')}</select></label>
     <label>2 · TYPE<select id="dType">${opt('', 'Every type', pk.type)}${types.map(t => opt(t, t, pk.type)).join('')}</select></label>
     <label>3 · STORE<select id="dStore">${opt('', 'Choose a store…', pk.store)}${list.map(s => opt(s.id, s.name + (pk.town ? '' : ' · ' + s.town), pk.store)).join('')}</select></label>
-    <span class="count">${list.length} store${list.length === 1 ? '' : 's'}</span>`;
+    <span class="count">${list.length} store${list.length === 1 ? '' : 's'}</span>
+    <button class="retry-stores" id="refreshStores">Refresh store info</button>
+    <div id="storeInfo" class="store-info" ${pk.store ? '' : 'hidden'}></div>`;
+  $('#dFolder').onchange = e => { pk.folder=e.target.value; pk.town=''; pk.type=''; pk.store=''; keep(); drill(page); };
+  $('#refreshStores').onclick = () => { inventoryLoadedAt=0; drill(page); };
   $('#dTown').onchange = e => { pk.town = e.target.value; keep(); drill(page); };
   $('#dType').onchange = e => { pk.type = e.target.value; keep(); drill(page); };
   $('#dStore').onchange = e => { pk.store = e.target.value; keep(); drill(page); };
-  if(pk.store) show('pages.html?page=store&store=' + encodeURIComponent(pk.store));
+  if(pk.store){
+    const selected = list.find(s=>s.id===pk.store); $('#storeInfo').innerHTML = storeInfo(selected);
+    show('pages.html?page=store&store=' + encodeURIComponent(pk.store));
+  }
   else show(null, '<b>Pick a store</b>Choose a town, a type, then a store on the left. Its page opens here with every control.');
+}
+
+function storeInfo(s){
+  let website='';
+  try{const u=new URL(s.website_url);if(['https:','http:'].includes(u.protocol))website=`<p><a href="${esc(u.href)}" target="_blank" rel="noopener noreferrer">Store website</a></p>`;}catch{}
+  const hours = typeof s.hours==='string' ? s.hours : s.hours ? JSON.stringify(s.hours) : '';
+  return `<strong>${esc(s.name)}</strong><p>${s.product_count.toLocaleString()} products / menu items<br>${s.image_count.toLocaleString()} with image links</p>
+    <p>${esc(s.address||'Address not added')}</p>${website}${hours?`<details><summary>Hours</summary><p>${esc(hours)}</p></details>`:''}
+    <small>${s.product_count===0?'No products or menu items yet.':'Image quality is checked separately.'}</small>`;
 }
 
 let curUrl = '';
@@ -129,4 +163,5 @@ $('#ed').addEventListener('load', () => {
 
 keep(); areas(); pages();
 })();
+
 

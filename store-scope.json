@@ -1,0 +1,495 @@
+{
+  "version": 1,
+  "approvedOn": "2026-11-13",
+  "source": "Danny's explicitly supplied store list, matched by store ID; includes all three Mezzaluna locations.",
+  "stores": [
+    {
+      "id": "2d8bbe31-50a6-4565-b7e7-911130bfa4fa",
+      "name": "Advance Auto Parts (PC Pkwy)"
+    },
+    {
+      "id": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+      "name": "Target"
+    },
+    {
+      "id": "5909c7b8-fedb-4d28-b6aa-64cd80e23c1f",
+      "name": "The Home Depot"
+    },
+    {
+      "id": "189581c9-d728-4e5d-9e02-ae4de19a15af",
+      "name": "Publix (Island Walk)"
+    },
+    {
+      "id": "fea775c8-8612-4f2e-bfc6-70d8e6ace6be",
+      "name": "Dollar General Market (Bunnell)"
+    },
+    {
+      "id": "e466b922-93f8-4126-bf2d-20a1368e84a0",
+      "name": "DG Ace Hardware"
+    },
+    {
+      "id": "81e05549-bb90-4e1f-ad32-3dd21f1b7a14",
+      "name": "CVS Pharmacy (Belle Terre)"
+    },
+    {
+      "id": "51c3a671-26ba-4d66-9716-de34f393eef7",
+      "name": "Sprouts Farmers Market"
+    },
+    {
+      "id": "0600cb61-45f9-402b-a209-134abdaef10f",
+      "name": "Dollar General (#1350)"
+    },
+    {
+      "id": "fdb925c1-8dd3-4e46-b98e-87c0658e6ed7",
+      "name": "The Fresh Market"
+    },
+    {
+      "id": "1940c914-9174-4e2e-b15f-8044ad018644",
+      "name": "Tractor Supply Co."
+    },
+    {
+      "id": "0acd38cb-82d6-4635-aa43-5dab357bbd3e",
+      "name": "Best Buy"
+    },
+    {
+      "id": "97ee0302-4e97-4e74-aaca-9fd64d3cd35f",
+      "name": "PetSmart"
+    },
+    {
+      "id": "168323a0-1eb9-44c4-9769-b40b8dfbe72a",
+      "name": "Kohl's"
+    },
+    {
+      "id": "03dbd8fa-ed64-4236-85be-206c952da024",
+      "name": "Walmart Supercenter"
+    },
+    {
+      "id": "5d091d4a-b0dd-4de1-9fe3-5ce974d3d22e",
+      "name": "ABC Fine Wine & Spirits"
+    },
+    {
+      "id": "7f3b0214-bfcb-43da-83cd-b7c24cba51cb",
+      "name": "Save-A-Lot"
+    },
+    {
+      "id": "9d8b5e41-aba3-42c1-9250-956e585230e0",
+      "name": "Walgreens (SR 100)"
+    },
+    {
+      "id": "e5a01340-424a-4a41-b0e6-99cb9e944733",
+      "name": "ALDI (Palm Coast Pkwy)"
+    },
+    {
+      "id": "26cf8931-69ba-47f8-a471-61a1250a0ded",
+      "name": "BJ's Wholesale Club (PO)"
+    },
+    {
+      "id": "30fcc2c8-e1d7-4351-b2f2-56d0eab7086b",
+      "name": "Staples"
+    },
+    {
+      "id": "ee9f9732-5287-43e5-bf68-3d124b2ff09d",
+      "name": "Sam's Club"
+    },
+    {
+      "id": "26b05ad5-1d42-40de-8d1a-f204443c8565",
+      "name": "7-Eleven (Dunlawton)"
+    },
+    {
+      "id": "d7b73397-bc46-450b-a2f0-0990a66902d5",
+      "name": "Costco Wholesale"
+    },
+    {
+      "id": "41fefb5a-42d2-4eff-829e-d30661711259",
+      "name": "Michaels"
+    },
+    {
+      "id": "4bb8cb5d-c64d-4efd-a0dd-9ee397cc61a4",
+      "name": "Ulta Beauty"
+    },
+    {
+      "id": "d18dedd7-7d90-4b73-be85-21b6e1a697af",
+      "name": "Lowe's (Speedway)"
+    },
+    {
+      "id": "e242e324-4b0c-4ff8-ae09-982aac884cea",
+      "name": "Whole Foods Market"
+    },
+    {
+      "id": "79377a42-fde7-40a4-b8d1-4bfc78d76bcb",
+      "name": "Bath & Body Works"
+    },
+    {
+      "id": "46ece11c-d9ef-4f61-b40d-895c1d5ac450",
+      "name": "Wild Ginger"
+    },
+    {
+      "id": "71ceefd9-1afe-41b6-82bc-43dabfe0f9eb",
+      "name": "Bob Evans"
+    },
+    {
+      "id": "89ff69c2-59b2-4c47-870f-00309ff0e0b9",
+      "name": "Cracker Barrel Old Country Store"
+    },
+    {
+      "id": "ffd58857-dd29-4da2-b115-c2ec5ad5551c",
+      "name": "Cinco de Mayo"
+    },
+    {
+      "id": "7fa8bc01-81ca-4f96-8799-ec93128a5196",
+      "name": "China One Restaurant"
+    },
+    {
+      "id": "ecc12829-1534-48a5-9ebd-01279c3d1195",
+      "name": "Olive Garden"
+    },
+    {
+      "id": "9ad1500e-886a-42db-9523-9813862f1fcf",
+      "name": "King Palace"
+    },
+    {
+      "id": "a3358438-9b8d-4c8f-9a24-615924d32e50",
+      "name": "China King"
+    },
+    {
+      "id": "c7c44238-b870-4bad-a293-d399eb334672",
+      "name": "Burger King"
+    },
+    {
+      "id": "21eeb181-e333-4d45-ab10-563efb1500d3",
+      "name": "McK’s Tavern"
+    },
+    {
+      "id": "2b145836-6d20-43dc-b01e-373c88c5aead",
+      "name": "McDonald's"
+    },
+    {
+      "id": "5ada4f71-6a2c-470a-aa99-8df2550cbcca",
+      "name": "Outback Steakhouse"
+    },
+    {
+      "id": "64ebe91a-2508-4e8f-b078-27eae69237c1",
+      "name": "Red Lobster"
+    },
+    {
+      "id": "69a53984-05ee-47a8-ae1d-282c65033dec",
+      "name": "Chick-fil-A"
+    },
+    {
+      "id": "a5b1f9cd-5114-4dae-bb3e-381ed912c8db",
+      "name": "IHOP"
+    },
+    {
+      "id": "610a66ac-c917-41cb-81a2-7ec4b7672c8d",
+      "name": "Portugal Wine Bar & Grill"
+    },
+    {
+      "id": "fcddec3d-afbb-4033-8cb7-92e68584ad80",
+      "name": "Hardee's"
+    },
+    {
+      "id": "89e20d57-c44e-4718-9ebc-1bf671f3955d",
+      "name": "Rustic Dough Works"
+    },
+    {
+      "id": "3c9adfe6-8060-427e-9d08-9677cbe0ade6",
+      "name": "Cheddar's Scratch Kitchen"
+    },
+    {
+      "id": "6e53eb95-502f-4521-b43c-924d86d00239",
+      "name": "PF Chang's"
+    },
+    {
+      "id": "0b9be320-2db0-4458-b94e-476cbc50d5f9",
+      "name": "First Watch (Port Orange)"
+    },
+    {
+      "id": "ba38967a-45b0-49b4-9830-5e5bdc2ba04b",
+      "name": "Wendy's"
+    },
+    {
+      "id": "d220fd84-31c7-4710-a48c-6d10b73ed5b7",
+      "name": "Ronin Sushi & Bar"
+    },
+    {
+      "id": "0a7a3411-3c6a-4a43-9b87-e48b22b05cf3",
+      "name": "Mezzaluna Pizzeria"
+    },
+    {
+      "id": "9dbeba74-d411-4289-920f-00b6c24fb5b7",
+      "name": "Texas Roadhouse"
+    },
+    {
+      "id": "404feaf2-d40d-4d1c-81a0-b357cbb2d5fb",
+      "name": "Chili's Grill & Bar"
+    },
+    {
+      "id": "3efc3392-020b-43c9-822c-85a8309bb705",
+      "name": "Carrabba's Italian Grill"
+    },
+    {
+      "id": "282f9564-1b1d-4cb8-9c2e-ba9c962a1ef7",
+      "name": "Dominics Deli"
+    },
+    {
+      "id": "8d687884-4576-4fb2-a9bb-03df08a2c5bc",
+      "name": "Mezzaluna Pizzeria at Town Center"
+    },
+    {
+      "id": "daf5b3e3-d19d-4409-ae9f-e6e499bce227",
+      "name": "Subway"
+    },
+    {
+      "id": "ee313df1-44c2-4549-af87-3c1e5c762d08",
+      "name": "LongHorn Steakhouse"
+    },
+    {
+      "id": "fc3938ea-13a4-4382-a98c-13dd945ded68",
+      "name": "Mezzaluna Pizzeria at European Village"
+    },
+    {
+      "id": "f8f2c007-4e73-4f82-ab36-72c1026de112",
+      "name": "Culver's"
+    },
+    {
+      "id": "e878a96d-a744-4d2a-a16f-67b97fb5183d",
+      "name": "Popeyes"
+    },
+    {
+      "id": "07fd76aa-9a3e-460d-8ead-4d4ec807d978",
+      "name": "Atlantic Grille"
+    },
+    {
+      "id": "a5f6604f-9ac0-4819-9822-f6f71abb1c9b",
+      "name": "Kinfolks Cafe"
+    },
+    {
+      "id": "5ed16fbc-7c88-434b-82e2-aa2ab0513ac9",
+      "name": "Taco Bell"
+    },
+    {
+      "id": "e7fd5d71-0cbb-4423-ad1c-60ce92e84c12",
+      "name": "Arepita Beach"
+    },
+    {
+      "id": "8f94c0df-d958-4a5f-973e-1a76ddfc050e",
+      "name": "Houligan's Palm Coast"
+    },
+    {
+      "id": "15540994-9d0f-4f0d-a371-6bec13c1fbf3",
+      "name": "Waffle House (Bunnell)"
+    },
+    {
+      "id": "3eb517cb-1328-4e94-a73e-68ed48398c7d",
+      "name": "Panda Express"
+    },
+    {
+      "id": "2e1cbe2d-ef15-42f4-9ea4-c5b6e9d99a6f",
+      "name": "Racing's North Turn"
+    },
+    {
+      "id": "86a231cb-1138-44f0-877e-7c9e002523db",
+      "name": "Panera Bread (Speedway)"
+    },
+    {
+      "id": "b1da9e55-f933-470a-a863-21ad27492166",
+      "name": "Zaxby's"
+    },
+    {
+      "id": "9931a6d5-d20f-4e4c-9c69-4b80f5468cfa",
+      "name": "Far East Fusion"
+    },
+    {
+      "id": "bdca006b-9241-4cc6-817a-3aad9c947dab",
+      "name": "Tia Cori’s Tacos"
+    },
+    {
+      "id": "0aa79ffb-a72a-491d-9baa-ca5a7bfb71c6",
+      "name": "Bethune Grill"
+    },
+    {
+      "id": "8f6550fd-4bcc-4f4e-9b42-dfd1297a257b",
+      "name": "JP's Italian American Bistro"
+    },
+    {
+      "id": "3d6f7e41-3638-4b43-a838-beefe1ca8f5c",
+      "name": "Metro Diner"
+    },
+    {
+      "id": "58da7064-b310-4886-81c6-6fa841f34a54",
+      "name": "Tidewater Seafood"
+    },
+    {
+      "id": "e70b08e2-75f7-480f-ac14-2bc70f6abdbc",
+      "name": "Dim Sum Express"
+    },
+    {
+      "id": "74e24014-a822-45f5-ac3b-9f24ea71488d",
+      "name": "Stonewood Grill & Tavern"
+    },
+    {
+      "id": "a05ff3fe-1a45-4f6d-a1e5-170094f9b3e7",
+      "name": "Redefined Food Co"
+    },
+    {
+      "id": "5e3bd22e-d702-4752-b07a-5ead492d7764",
+      "name": "The Jacked Up Bean"
+    },
+    {
+      "id": "fb570030-97cf-4b46-b426-9974796adb06",
+      "name": "Firehouse Subs Palm Coast"
+    },
+    {
+      "id": "d3ad1ec5-bd09-4579-94b8-d85622d687cb",
+      "name": "Boondocks Restaurant"
+    },
+    {
+      "id": "a3495ce5-d61e-435d-979a-cc7d76b90e61",
+      "name": "Peach Valley Cafe"
+    },
+    {
+      "id": "2f1f83e5-7440-444f-9fce-4a569281becd",
+      "name": "Red Robin"
+    },
+    {
+      "id": "019a74b8-78c9-495b-9212-20da3f0d54eb",
+      "name": "El Pollo Colorao"
+    },
+    {
+      "id": "e0d25d4e-81c7-4f72-8427-37602cfaaf7a",
+      "name": "Down the Hatch Seafood"
+    },
+    {
+      "id": "81449e6f-fe90-4b14-8531-781c99f15892",
+      "name": "Miller's Ale House (ISB)"
+    },
+    {
+      "id": "c33a56ce-b74d-4cb2-8fb6-2b9d4f43e206",
+      "name": "La Piazza Cafe"
+    },
+    {
+      "id": "8387b060-6308-4fb3-9c41-386d73f53e19",
+      "name": "Zen Bistro"
+    },
+    {
+      "id": "63c2a490-15ea-4d3d-8d09-69c2a0f60dfb",
+      "name": "Moe's Southwest Grill"
+    },
+    {
+      "id": "4976e761-5e89-4a9e-805b-e36b3cab7a6e",
+      "name": "Bubba Gump Shrimp Co."
+    },
+    {
+      "id": "30dd81a7-bb35-4d97-bb37-51291524312c",
+      "name": "Burger Bros PC"
+    },
+    {
+      "id": "c6ce15b5-05b8-4129-a50e-24bbc9736519",
+      "name": "The Brown Dog"
+    },
+    {
+      "id": "b53131eb-dec6-4f39-bdf6-3586eb20094c",
+      "name": "Wayback Burgers"
+    },
+    {
+      "id": "6c976bce-b53f-4cc2-a112-c7b1ae37a5d3",
+      "name": "Johnny Rockets"
+    },
+    {
+      "id": "a8d0285d-043e-4be3-b39b-58f78857b59b",
+      "name": "Kreyol Bistro Bar and Grill"
+    },
+    {
+      "id": "fa7af0ad-2a1f-4ad1-8ec2-36ad94c10e25",
+      "name": "Applebee's Grill + Bar"
+    },
+    {
+      "id": "36d1ada2-3633-4148-b025-679f62d6e0f4",
+      "name": "Denny's"
+    },
+    {
+      "id": "cd4abecc-d151-420f-bcfa-7479edd2c0a9",
+      "name": "Scoops & Subs"
+    },
+    {
+      "id": "4d38c045-9790-4f0d-8aec-5c7df9c2a6df",
+      "name": "TGI Fridays"
+    },
+    {
+      "id": "e94d91f3-c0c9-474c-91ba-8795bbfd6680",
+      "name": "Hull’s Seafood Market"
+    },
+    {
+      "id": "1c0deab1-39b8-43a9-8f2f-d4d4c324fee8",
+      "name": "The Southern Table"
+    },
+    {
+      "id": "5c8c0004-1668-439f-a4b0-d955c1d7a5f5",
+      "name": "Buffalo Wild Wings"
+    },
+    {
+      "id": "72b8b162-6795-439b-bf29-634ad5f839ab",
+      "name": "Domino's Pizza"
+    },
+    {
+      "id": "1b11c0ec-87a2-4ec7-8a9d-e8f1a83f0057",
+      "name": "Starbucks (ISB)"
+    },
+    {
+      "id": "7bc6802d-ff8c-4239-a5ea-e49a7c8d0651",
+      "name": "Sloppy Joe's"
+    },
+    {
+      "id": "c141f0dc-e3e7-410a-b9ab-bc2f9219c640",
+      "name": "Mamaling Asian Street Food"
+    },
+    {
+      "id": "6097455d-e5f2-4758-aeff-5575c34c44c4",
+      "name": "Dunkin' (North US-1)"
+    },
+    {
+      "id": "25ecabff-a920-4a40-8154-ddc611fee9a1",
+      "name": "Joe’s New York Pizza"
+    },
+    {
+      "id": "4faacdd3-0b03-4562-83d9-aa9e455aa0a4",
+      "name": "The Cracked Egg"
+    },
+    {
+      "id": "0cf51aa1-a6ce-40e4-bf46-77dce0cf8fc2",
+      "name": "Chipotle Mexican Grill"
+    },
+    {
+      "id": "9b21b5ab-47e8-46bf-9761-5ad1681ad9f4",
+      "name": "Conceited Munchies"
+    },
+    {
+      "id": "1a7783b9-8401-4775-a636-00ee9ce794cc",
+      "name": "Pizza Hut (N Atlantic)"
+    },
+    {
+      "id": "b47563fd-d29f-4982-a105-ae3ed317a85f",
+      "name": "Jersey Mike's Subs"
+    },
+    {
+      "id": "b03a4a06-c30b-414c-97e5-67cd1f9f083e",
+      "name": "Midtown Cafe Daytona"
+    },
+    {
+      "id": "00726d7d-d415-482e-93bf-e76f56ec4c39",
+      "name": "Loggerheads Sports Pub"
+    },
+    {
+      "id": "07212d88-d34c-4444-b1b6-d042f8cf56c2",
+      "name": "Golden Lion Gift Shop"
+    },
+    {
+      "id": "baef9153-11ed-4a50-a521-9fd459bac647",
+      "name": "Moe's Market / The Kitchen"
+    },
+    {
+      "id": "94057899-1f2e-41e6-b2db-f2e059cba0da",
+      "name": "Panda House Grill"
+    }
+  ]
+}
