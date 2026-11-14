@@ -16,7 +16,7 @@ This is the durable implementation checklist for the existing shared studio. Upd
 
 ## Dependency order and acceptance criteria
 
-### 1. Inventory and store foundation — implemented; verify deployment
+### 1. Inventory and store foundation — deployed and verified; source adapters pending
 
 - [x] Inspect current studio source and Supabase schema rather than reconstructing from screenshots.
 - [x] Match the supplied store list to exact IDs and preserve the three Mezzaluna locations.
@@ -24,7 +24,7 @@ This is the durable implementation checklist for the existing shared studio. Upd
 - [x] Separate selected stores, empty stores, and other populated stores without changing catalog records.
 - [x] Show selected-store address, website/hours when present, product/menu count, and image-link count.
 - [x] Page through the complete store inventory; failed fetches must not masquerade as empty stores.
-- [ ] Verify working/empty folders and a selected store's details in the deployed studio.
+- [x] Verify working/empty folders and a selected store's details in the deployed studio.
 - [ ] Confirm current app and installed Forge source versions before implementing their adapters.
 
 Pass condition: every supplied store remains findable; an approved store with zero images remains in the working list; empty stores remain editable; customer-facing store records are unchanged.
@@ -115,3 +115,12 @@ Snapshot taken during the 2026-11-13 session; live counts must come from the dat
 - No customer-catalog mutation, automatic deletion, broad permissions, public secrets, or paid render/scrape jobs merely to demonstrate a mock integration.
 - User-facing status must distinguish implemented, verified, planned, and blocked.
 - Both assistants work from the same checked-in scope and current shared data; read the current revision before editing.
+
+## Verification evidence — inventory foundation
+
+- Published implementation commit: `e1d1d86d459865c1664d0727fd0654ca759663b1`.
+- Five automated checks passed: approved scope and three Mezzaluna records, image-less populated stores, invalid-count handling, pagination across 535 stores, and fetch-failure handling. Both modified JavaScript modules passed syntax checks.
+- Live Sleipnir store picker: 77 selected stores and 73 stores with no info. Live Valhalla store picker: 45 selected stores and 340 stores with no info. Totals match all 535 records.
+- Live Publix detail: 12,621 products/menu items, 12,612 image links, correct stored address.
+- Live China One detail: 200 menu items, zero image links, retained in Selected stores with its address and website.
+- Customer catalog and app availability were not modified. Next dependency remains current FlutterFlow app/store source; current Forge source is needed before the Forge milestone.
