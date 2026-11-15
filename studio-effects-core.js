@@ -35,8 +35,8 @@ function cloudParticle(event,age,c,contained=false){
  const parentY=155+e.source*125,targetY=155+((e.source+1)%3)*125;
  const position=seconds=>{
   const distance=seconds*7*c.speed;
-  const reach=Math.max(16,135-e.width*.3);
-  return {x:195+e.side*(e.width*.3*growth+(contained?reach*(1-Math.exp(-distance/reach)):distance))+Math.sin(age*.13+e.phase)*c.wander*8,
+  const attachment=95+e.width*.15*growth,reach=Math.max(10,180-attachment-e.width*.5);
+  return {x:195+e.side*(attachment+(contained?reach*(1-Math.exp(-distance/reach)):distance))+Math.sin(age*.13+e.phase)*c.wander*8,
    y:parentY+(contained?Math.min(30,seconds*1.5):seconds*1.5)+Math.cos(age*.11+e.phase)*c.wander*4};
  };
  const pos=position(Math.min(travel,e.life));

@@ -22,7 +22,7 @@ function clouds(ctx,w,h,t,input,images=[],seed=137,text='Your message takes shap
  const keys=['cloud-mine-billows-v27.webp','cloud-peer-billows-v27.webp','cloud-anvil-258398-v29.webp','cloud-tower-365034-v29.webp','cloud-billows-166852-v29.webp'];
  for(const p of parts){const index=p.id%images.length;draw(images[index],p.x,p.y,p.width*(.42+.58*p.growth),p.opacity,p.turn,d.cloudAssets[keys[index]]?.crown);}
  for(let i=0;i<3;i++){ctx.save();ctx.shadowColor='#17313d';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='white';ctx.font='15px system-ui';ctx.textAlign='center';ctx.fillText(i===1?text:'Message cloud '+(i+1),195,158+i*125,230);ctx.restore();}
- if(preview.editing){ctx.font='12px system-ui';for(const p of parts){if(p.opacity<.08)continue;const label=p.stage,tw=ctx.measureText(label).width,x=Math.max(6,Math.min(384-tw-12,p.x-tw/2-6)),y=Math.max(30,Math.min(480,p.y+Math.min(60,p.width*.25)));ctx.fillStyle='#0d202ddd';ctx.fillRect(x,y-14,tw+12,20);ctx.fillStyle='#8ff3df';ctx.fillText(label,x+6,y);}}
+ if(preview.editing){ctx.font='12px system-ui';for(const p of parts){if(p.opacity<.08)continue;const label=p.stage,tw=ctx.measureText(label).width,x=Math.max(6,Math.min(384-tw-12,p.x-tw/2-6));let y=Math.max(30,Math.min(480,p.y+Math.min(60,p.width*.25)));for(let i=0;i<3;i++)if(Math.abs(y-(158+i*125))<22)y=188+i*125;ctx.fillStyle='#0d202ddd';ctx.fillRect(x,y-14,tw+12,20);ctx.fillStyle='#8ff3df';ctx.fillText(label,x+6,y);}}
  ctx.restore();return parts;
 }
 
