@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restore Raven design</title>
+<style>
+body{margin:0;background:#0e1316;color:#e6eef0;font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;padding:30px;max-width:760px}
+h1{font-size:22px;margin:0 0 6px}p{color:#9fb3ba}
+.item{border:1px solid #26323a;border-radius:8px;padding:14px;margin:12px 0;background:#13191d;display:flex;gap:12px;align-items:center}
+.item div{flex:1}.item b{display:block;color:#e6eef0}.item small{color:#8fa3ab}
+button{background:#7fe3e0;color:#05201f;border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+#msg{margin-top:18px;font-weight:600}.bad{color:#ff8c8c}.good{color:#7fe3e0}
+a{color:#7fe3e0}
+</style>
+</head>
+<body>
+<h1>Restore your Raven design</h1>
+<p>This page only reads the copy of your Raven design kept in this browser. It does not load the shared studio, so it cannot overwrite your local copy. Pick a copy and put it back.</p>
+<div id="list"></div>
+<div id="msg"></div>
+<p><a href="workshop.html?group=sky">Go to the studio</a> after it says restored.</p>
+<script>
+(function(){
+'use strict';
+const SB={url:'https://afnihsdxtisneuyehatw.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps'};
+const list=document.getElementById('list'),msg=document.getElementById('msg');
+function read(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+const copies=[];
+const current=read('asgard-claude-raven-v1');
+if(current&&current.holes)copies.push({name:'Last design open in this browser',at:'',data:current});
+for(const v of (read('asgard-claude-raven-versions-v1')||[]))if(v&&v.data&&v.data.holes)copies.push({name:'Saved version: '+(v.name||'unnamed'),at:v.at?new Date(v.at).toLocaleString():'',data:v.data});
+if(!copies.length){msg.className='bad';msg.textContent='No Raven copy found in this browser. Open this page in the browser you normally use for the studio.';}
+copies.forEach(c=>{
+  const row=document.createElement('div');row.className='item';
+  const info=document.createElement('div');const b=document.createElement('b');b.textContent=c.name;const s=document.createElement('small');s.textContent=(c.at?c.at+' · ':'')+Math.round(JSON.stringify(c.data).length/1024)+' KB';info.append(b,s);
+  const btn=document.createElement('button');btn.textContent='Put this back';
+  btn.onclick=async()=>{
+    if(!confirm('Replace the shared Raven design with "'+c.name+'"?'))return;
+    btn.disabled=true;msg.className='';msg.textContent='Restoring…';
+    try{
+      const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:{apikey:SB.key,Authorization:'Bearer '+SB.key,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:'raven',page:'raven',data:c.data,updated_by:'restore-'+(c.at?'version':'browser'),updated_at:new Date().toISOString()})});
+      if(!r.ok)throw Error('HTTP '+r.status);
+      msg.className='good';msg.textContent='Restored. Your Raven design is back in the shared studio.';
+    }catch(e){msg.className='bad';msg.textContent='Restore failed: '+e.message;btn.disabled=false;}
+  };
+  row.append(info,btn);list.append(row);
+});
+})();
+</script>
+</body>
+</html>
