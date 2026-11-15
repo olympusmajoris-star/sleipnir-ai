@@ -1,0 +1,56 @@
+/* Danny's sketch, 2026-11-15: 3 feature tabs → 4 narrow option column → 5 compact controls.
+   Loaded last so it wins over older layout rules. Layout only; no rendering here. */
+
+/* "Make it yours" header line wastes a row; keep only the zoom buttons. */
+.studio-shell .phead{display:none}
+.studio-shell .rhead{padding:4px 12px;min-height:0;justify-content:flex-end}
+.studio-shell .rhead>span:first-child{display:none}
+
+/* Zones 4 + 5 side by side */
+.studio-shell .right{display:flex;flex-direction:column}
+.work-area{flex:1;min-height:0;display:grid;grid-template-columns:200px minmax(0,1fr);position:relative}
+.work-area:has(>.option-menu[hidden]),.work-area:has(>.option-menu:empty){grid-template-columns:minmax(0,1fr)}
+.work-area>.option-menu{flex:none;border-right:1px solid var(--line,#26323a);padding:10px 8px;gap:4px;overflow:auto;align-items:stretch;background:#11181c}
+.work-area>.option-menu .option-button{width:100%;padding:9px 10px;font-size:13px;line-height:1.25}
+.work-area>.option-menu .option-button.on{background:#234340;border-color:#5a8e88}
+.work-area>#panel{min-width:0;min-height:0;overflow:auto;padding:12px 16px 40px!important}
+.studio-shell .work-area>#panel:has(.tool-page):not(:has(.tool-page:not([hidden]))){padding:12px 16px!important;overflow:auto}
+.work-empty{position:absolute;left:216px;top:18px;color:#7f969e;font-size:14px;pointer-events:none}
+.work-area:has(>.option-menu[hidden])>.work-empty{display:none}
+
+/* Zone 5: compact boxes — controls grouped, sliders never span the whole panel */
+.tool-page{max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;align-items:start}
+.tool-page>.tool-title{grid-column:1/-1;font-size:18px!important;margin:0 0 4px!important}
+.tool-page>.source-heading{grid-column:1/-1;margin:10px 0 0;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.tool-page>*:not(.c):not(.pg-row):not(.pg-chk):not(.rn-control):not(.tool-title):not(.source-heading){grid-column:1/-1}
+.tool-page .c,.tool-page .pg-row,.tool-page .pg-chk,.tool-page .rn-control{margin:0!important;max-width:none;background:#141c21;border:1px solid #26343c;border-radius:9px;padding:9px 10px 8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tool-page .c label,.tool-page .pg-row label{font-size:12.5px;display:flex;justify-content:space-between;gap:8px;color:#d6e4e6}
+.tool-page .c label em,.tool-page .pg-row label em{color:#7fe3e0;font-style:normal;font-variant-numeric:tabular-nums}
+.tool-page input[type=range]{width:100%;min-height:20px;margin:0}
+.tool-page input[type=color]{width:100%;height:30px;padding:0;border:0;background:none}
+.tool-page .pg-chk,.tool-page .c.chk{flex-direction:row;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.tool-page details .gb,.tool-page details>div{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.tool-page details>summary{margin-bottom:8px}
+
+/* (i) and lock sit small in the box corner instead of a full row */
+.tool-page .wb-setting-tools{margin:0;justify-content:flex-end;gap:4px}
+.tool-page .wb-setting-tools button{min-height:0;padding:2px 7px;font-size:11px;border-radius:5px}
+.tool-page .wb-setting-tools .wb-info{font-size:13px;line-height:16px}
+
+/* Lots of controls: page list folds away so the boxes get the room */
+body.wide-tools.studio-shell main{grid-template-columns:430px minmax(0,1fr)!important}
+body.wide-tools.studio-shell main>.left{display:none!important}
+body.wide-tools .app-tabs{padding-left:0}
+
+/* Click-in-preview chooser */
+.canvas-pick{position:fixed;z-index:1000;width:250px;background:#131c22;border:1px solid #43606b;border-radius:10px;padding:6px;box-shadow:0 14px 50px #000a}
+.canvas-pick-title{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#8fa3ab;padding:6px 8px}
+.canvas-pick button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:8px;color:#e6eef0;cursor:pointer}
+.canvas-pick button:hover{background:#1f3236}
+.canvas-pick small{display:block;color:#8fa3ab;font-size:11px}
+.preview-motion{cursor:pointer}
+.studio-shell .work-area>.option-menu{order:0!important}.studio-shell .work-area>#panel{order:1!important}
+.work-area>#panel>.editor-context{padding:0 0 10px!important;border-bottom:1px solid #26343c!important;margin-bottom:10px}
+.work-area:has(>#panel>.editor-context:not([hidden]))>.work-empty{top:118px}
+.off-note{grid-column:1/-1;background:#3a3424;border:1px solid #6b5a2e;color:#f1dfae;border-radius:8px;padding:8px 12px;font-size:13px}
+.tool-page.feature-off .c:not(:has(input[type=checkbox])),.tool-page.feature-off .pg-row{opacity:.55}

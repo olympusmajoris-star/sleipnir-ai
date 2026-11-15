@@ -403,7 +403,7 @@ function drawAdCard(x, S, it, X0, Y0, cw){
   return h; }
 function feedDraw(x, t, S, dim){
   const F = S.feed, cw = W - F.margin * 2, normH = cw * 1.1 + 70; let entries = []; for(let k = 0; k < 24; k++) entries.push((k + 1) % Math.round(F.every) === 0 ? 'ad' : 'post');
-  const hs = entries.map(e => (e === 'ad' ? adCardH(S, cw) : normH) + F.gap), total = hs.reduce((a, b) => a + b, 0), sc = (t * F.scroll) % total;
+  const hs = entries.map(e => (e === 'ad' ? adCardH(S, cw) : normH) + F.gap), total = hs.reduce((a, b) => a + b, 0), sc = feedOffset(t, F.scroll, total, HH);
   let y = 20 - sc, ai = 0;
   for(let rep = 0; rep < 2; rep++) entries.forEach((e, k) => { const hh = hs[k]; if(y < HH && y + hh > 0){
       if(e === 'ad') drawAdCard(x, S, item(7 + ai * 3), F.margin, y, cw);
@@ -501,8 +501,8 @@ function drawDeals(x, t, S){
     if(S.timer.show && S.timer.place === 'under'){ y += 8; timerAt(ix, y); y += S.timer.t.size + 8; }
     if(S.qty.show){ const Q = S.qty, leftN = Math.max(1, Math.round(Q.total * (0.15 + 0.7 * ((i * 0.37) % 1)) - (t * 0.05 % 3))); y += 10; x.fillStyle = Q.bg; rr(x, ix, y, iw, Q.h, Q.h / 2); x.fill(); x.fillStyle = Q.fill; rr(x, ix, y, Math.max(Q.h, iw * leftN / Q.total), Q.h, Q.h / 2); x.fill(); y += Q.h + Q.t.size + 3; tx(x, Q.t, leftN + ' ' + Q.label, ix, y); } };
   // header (drawn after the cards so cards scroll under it)
-  if(L.layout === 'carousel'){ const off = (t * L.scroll) % (cw + L.gap); for(let i = -1; i < 6; i++) drawCard(i + 1 + Math.floor(t * L.scroll / (cw + L.gap)), L.margin + i * (cw + L.gap) - off, top); for(let i = 0; i < 4; i++) drawCard(i + 20, L.margin + i * ((W - L.margin * 2 - L.gap) / 2 + L.gap), top + ch + 24); }
-  else { const rowH = ch + L.gap, rows = 40, sc = (t * L.scroll) % (rowH * 20); x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip(); for(let r = 0; r < rows; r++){ const y = top + r * rowH - sc; if(y > HH || y + ch < top) continue; for(let c = 0; c < cols; c++) drawCard(r * cols + c, L.margin + c * (cw + L.gap), y); } x.restore(); }
+  if(L.layout === 'carousel'){ const off = PREVIEW_MOTION ? (t * L.scroll) % (cw + L.gap) : 0; for(let i = -1; i < 6; i++) drawCard(i + 1 + Math.floor((PREVIEW_MOTION ? t * L.scroll : 0) / (cw + L.gap)), L.margin + i * (cw + L.gap) - off, top); for(let i = 0; i < 4; i++) drawCard(i + 20, L.margin + i * ((W - L.margin * 2 - L.gap) / 2 + L.gap), top + ch + 24); }
+  else { const rowH = ch + L.gap, rows = 40, sc = feedOffset(t, L.scroll, rowH * 20, HH - top); x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip(); for(let r = 0; r < rows; r++){ const y = top + r * rowH - sc; if(y > HH || y + ch < top) continue; for(let c = 0; c < cols; c++) drawCard(r * cols + c, L.margin + c * (cw + L.gap), y); } x.restore(); }
   tx(x, S.head.t, S.head.text, W / 2, HH * S.head.y, 'center', W - 30);
   if(S.near.show){ const s = S.near.text + ' · ' + S.near.miles + ' mi', fw = tw(x, S.near.t, s) + 28, fh = S.near.t.size + 14, fy = HH * S.near.y; box(x, (W - fw) / 2, fy, fw, fh, S.near.box); tx(x, S.near.t, s, W / 2, fy + fh / 2 + S.near.t.size * 0.36, 'center'); }
 }
@@ -599,7 +599,7 @@ function drawStore(x, t, S){
   const headH = Math.max(Hd.logo, 30) + 30, top = skyH + headH;
   const n = previewItems.length, rows = Math.ceil(n / cols), rowH = ch + L.gap, total = Math.max(1, rows * rowH);
   STORE.scrollMax=Math.max(0,total-(HH-top-210));
-  const sc = RUNTIME ? clamp(STORE.scroll,0,STORE.scrollMax) : rows > 3 ? (t * L.scroll) % total : 0;
+  const sc = (RUNTIME||!PREVIEW_MOTION) ? clamp(STORE.scroll,0,STORE.scrollMax) : rows > 3 ? (t * L.scroll) % total : 0;
   x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
   for(let rep = 0; rep < (RUNTIME?1:2); rep++) for(let i = 0; i < n; i++){ const r = Math.floor(i / cols), c = i % cols, y = top + 8 + r * rowH - sc + rep * total; if(y > HH || y + ch < top) continue;
     const it = previewItems[i], X0 = L.margin + c * (cw + L.gap); box(x, X0, y, cw, ch, L.card);
@@ -788,7 +788,7 @@ function drawSHome(x, t, S){
 function drawBrowse(x, t, S){
   loadBrowse(); bgDraw(x, S.bg); norseLayer(x, t, S.norse);
   const list = browseList(), G2 = S.grid, cols = Math.round(G2.cols), cw = (W - G2.margin * 2 - (cols - 1) * G2.gap) / cols, th = cw * G2.tileH, top = HH * G2.top;
-  const rows = Math.ceil(list.length / cols), rowH = th + G2.gap, total = Math.max(1, rows * rowH), sc = rows * rowH > HH - top ? (t * G2.scroll) % total : 0;
+  const rows = Math.ceil(list.length / cols), rowH = th + G2.gap, total = Math.max(1, rows * rowH), sc = rows * rowH > HH - top ? feedOffset(t, G2.scroll, total, HH - top) : 0;
   x.save(); x.beginPath(); x.rect(0, top, W, HH - top); x.clip();
   for(let rep = 0; rep < (sc ? 2 : 1); rep++) list.forEach((s, i) => { const c = i % cols, r = Math.floor(i / cols), X0 = G2.margin + c * (cw + G2.gap), y = top + 6 + r * rowH - sc + rep * total; if(y > HH || y + th < top) return;
     box(x, X0, y, cw, th, G2.box);if(y+th>top&&y<HH-110)hit(X0,Math.max(top,y),cw,Math.max(0,Math.min(y+th,HH-110)-Math.max(top,y)),{type:'navigate',target:'store',storeId:s.id}); const textH = (G2.name ? G2.nameT.size + 6 : 0) + (G2.town ? G2.townT.size + 4 : 0), ls = Math.min(cw, th - textH - 8) * G2.logo;
@@ -877,6 +877,7 @@ function panel(){
 const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000) : v;
 async function openPage(page){
   if(RUNTIME){runtimeAction({type:'navigate',target:page});return;}
+  STORE.scroll=0;STORE.scrollMax=0;
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')||AsgardStudioLayout.lastFeature(page)||PAGES[page].sections[0].id;if(!PAGES[page].sections.some(s=>s.id===STATE.sec))STATE.sec=PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.root.hidden=page==='shome';
@@ -892,6 +893,9 @@ $('#pushBtn').onclick = ()=>window.StudioTransfer?StudioTransfer.open():pushToAp
 
 PAGES.store.sections.push({id:'catalog',name:'Products & displays',sub:'Search, corrections, grouping, inspection & Forge',groups:[]});
 
+/* Preview auto-scroll is OFF unless Danny turns it on; when off, drag or wheel scrolls the preview by hand. */
+let PREVIEW_MOTION=(()=>{try{return localStorage.getItem('asgard-preview-motion')==='1';}catch(e){return false;}})();
+function feedOffset(t,speed,total,visible){const span=Math.max(0,total-(visible||0));if(PREVIEW_MOTION||RUNTIME)return (t*speed)%total;STORE.scrollMax=span;return clamp(STORE.scroll,0,span);}
 /* ======================= RENDER LOOP ======================= */
 const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
 const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,readOnly:!!RUNTIME,onAction:runtimeAction,arrange:RUNTIME?(()=>{}):AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
@@ -925,7 +929,7 @@ function drawHome(x, t, S){
   x.fillStyle = S.bg; x.fillRect(0, 0, W, HH);
   // feed (drawn first, scrolls under the sky)
   const cardW = W - P.margin * 2, imgH = cardW * P.imgRatio, headH = 44, actH = A.place === 'under' ? A.size + 24 : 8, capH = 40, cardH = headH + imgH + actH + capH;
-  const total = POSTS.length * (cardH + P.gap), scroll = (t * P.autoScroll) % total;
+  const total = POSTS.length * (cardH + P.gap), scroll = feedOffset(t, P.autoScroll, total, HH - skyH);
   for(let k = -1; k < POSTS.length + 1; k++){ const idx = ((k % POSTS.length) + POSTS.length) % POSTS.length, p = POSTS[idx]; let y = skyH + 10 + k * (cardH + P.gap) - scroll; if(y > HH || y + cardH < skyH - cardH) continue;
     const X = P.margin;
     // glow + border (sandstone ruins)
@@ -1096,6 +1100,18 @@ if(RUNTIME){
  RUNTIME.setRenderer({update:runtimeUpdate,setContext(context){runtimeContext=context&&typeof context==='object'?context:{};return runtimeDescriptor();},pause:runtimePause,descriptor:runtimeDescriptor,referencedAssets,getCatalogPage:(offset=0,query='')=>loadStore(offset,query,true),destroy(){runtimeStopped=true;cancelAnimationFrame(runtimeFrame);STORE.abort?.abort();for(const v of Object.values(VID))v.pause();PAGE_TOOLS.pause?.(true);catalogControls?.bar.remove();}});
 }else{
  AsgardStudioLayout.mount({kind:'pages',page:new URLSearchParams(location.search).get('page')||'home',openPage,beforePage:savePageNow,save:savePageNow,undo:()=>{if(STATE.sec==='rocks'){const prev=ROCK_NAV.history.pop();if(prev){ROCK_NAV.future.push(deep(ROCK_NAV.S));ROCK_NAV.applyState(prev);}return;}const h=editHistory.get(STATE.page);if(h?.at>0){STATE.S=StudioWorkspaceCore.preserveLocks(STATE.S,deep(h.items[--h.at]));save(false);panel();}},preview:()=>{STATE.t0=performance.now();}});
+ /* Hands-on preview: drag or wheel scrolls a still preview; a plain click picks what to edit at that spot. */
+ {let pan=null,moved=0;const canPan=()=>!PREVIEW_MOTION&&STORE.scrollMax>0;const by=dy=>{STORE.scroll=clamp(STORE.scroll+dy,0,STORE.scrollMax);};
+  cv.addEventListener('wheel',e=>{if(canPan()){e.preventDefault();by(e.deltaY);}},{passive:false});
+  cv.addEventListener('pointerdown',e=>{pan={y:e.clientY};moved=0;});
+  cv.addEventListener('pointermove',e=>{if(!pan)return;const dy=(pan.y-e.clientY)*W/cv.getBoundingClientRect().width;pan.y=e.clientY;moved+=Math.abs(dy);if(canPan())by(dy);});
+  cv.addEventListener('pointerup',()=>{pan=null;});cv.addEventListener('pointercancel',()=>{pan=null;});
+  cv.addEventListener('click',e=>{if(moved>6)return;const P=PAGES[STATE.page];if(!P)return;const items=(P.sections||[]).map(sec=>({id:sec.id,name:sec.name,sub:sec.sub}));
+   document.querySelector('.canvas-pick')?.remove();const m=document.createElement('div');m.className='canvas-pick';m.style.left=Math.max(4,Math.min(e.clientX,innerWidth-260))+'px';m.style.top=Math.max(4,Math.min(e.clientY,innerHeight-50-items.length*46))+'px';const h=document.createElement('div');h.className='canvas-pick-title';h.textContent='Edit what is here';m.append(h);
+   for(const it of items){const b=document.createElement('button');b.type='button';const bb=document.createElement('b');bb.textContent=it.name;const sm=document.createElement('small');sm.textContent=it.sub||'';b.append(bb,sm);b.onclick=()=>{m.remove();STATE.sec=it.id;nav();panel();};m.append(b);}
+   document.body.append(m);setTimeout(()=>document.addEventListener('pointerdown',function off(ev){if(!m.contains(ev.target)){m.remove();document.removeEventListener('pointerdown',off,true);}},true),0);});
+ }
+ {const t=document.querySelector('.ctitle');if(t){const l=document.createElement('label');l.className='phone-size-control preview-motion';l.title='Off: the preview stays still and you scroll it by dragging or with the mouse wheel. On: lists and feeds scroll by themselves.';const c=document.createElement('input');c.type='checkbox';c.checked=PREVIEW_MOTION;c.onchange=()=>{PREVIEW_MOTION=c.checked;STORE.scroll=0;try{localStorage.setItem('asgard-preview-motion',c.checked?'1':'0');}catch(e){}};l.append(c,document.createTextNode(' Auto-scroll preview'));t.append(l);}}
  const start=new URLSearchParams(location.search).get('page');const editorReady=openPage(PAGES[start]?start:'home');
  // Export adapter reads the current in-memory edit without changing the saved draft.
  function wbDocument(){return STATE.sec==='rocks'?ROCK_NAV.S:STATE.S;}

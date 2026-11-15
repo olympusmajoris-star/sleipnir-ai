@@ -36,27 +36,28 @@ iframe{border:0;width:100%;height:100%;display:block;background:var(--bg)}
 .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);text-align:center;padding:40px}
 .empty b{display:block;color:var(--text);font-size:18px;margin-bottom:8px}
 </style>
-<link rel="stylesheet" href="editor-workbench.css?v=original-home3"><style>header{height:58px}.areas{overflow:auto}.area{padding:0 16px;white-space:nowrap;font-size:14px}.brand{width:190px;flex-shrink:0}.hdr-right{padding:0 8px}.hdr-right a{white-space:nowrap}.hdr-right button{font-size:12px}body{display:flex;flex-direction:column}main{height:auto;flex:1;min-height:0;grid-template-columns:190px minmax(0,1fr)}.frame{min-height:0}.workspace-crumbs #crumbPath{display:flex;gap:5px;align-items:center;flex:1}#workspaceStatus{font-size:11px;color:#8fa3ab;margin-left:auto}.workspace-crumbs>button{border:1px solid #33434d;border-radius:5px}button:disabled{opacity:.4;cursor:default}@media(max-width:1050px){.brand{width:155px;font-size:11px}.area{padding:0 10px}.hdr-right a{display:none}main{grid-template-columns:165px minmax(0,1fr)}#workspaceStatus{display:none}}@media(max-width:800px){.hdr-right{display:none}main{min-width:800px}.brand{width:135px}.workspace-crumbs{min-width:800px}}</style></head>
+<link rel="stylesheet" href="editor-workbench.css?v=original-home3"><style>header{height:58px}.areas{overflow:auto}.area{padding:0 16px;white-space:nowrap;font-size:14px}.brand{width:190px;flex-shrink:0}.hdr-right{padding:0 8px}.hdr-right a{white-space:nowrap}.hdr-right button{font-size:12px}body{display:flex;flex-direction:column}main{height:auto;flex:1;min-height:0;grid-template-columns:190px minmax(0,1fr)}.frame{min-height:0}.workspace-crumbs #crumbPath{display:flex;gap:5px;align-items:center;flex:1}#workspaceStatus{font-size:11px;color:#8fa3ab;margin-left:auto}.workspace-crumbs>button{border:1px solid #33434d;border-radius:5px}button:disabled{opacity:.4;cursor:default}@media(max-width:1050px){.brand{width:155px;font-size:11px}.area{padding:0 10px}.hdr-right a{display:none}main{grid-template-columns:165px minmax(0,1fr)}#workspaceStatus{display:none}}@media(max-width:800px){.hdr-right{display:none}main{min-width:800px}.brand{width:135px}.workspace-crumbs{min-width:800px}}</style><style>.area.tools-area{margin-left:auto;border-left:1px solid var(--line);font-size:13px;color:#b9a77a}.area.tools-area.on{background:#3a3424;color:#f1dfae}body.wide-tools main{grid-template-columns:0 1fr}body.wide-tools nav.pages{display:none}#navHome{color:#7fe3e0!important;font-weight:600}</style>
+</head>
 <body>
 <header>
   <div class="brand"><i>ᛋ</i>WORKSHOP</div>
   <nav class="areas" id="areas" aria-label="App areas"></nav>
   <div class="hdr-right"><button id="workshopTransfer" class="retry-stores">App transfer / Get Dart</button><a href="index.html" title="The studio as it was">Classic studio</a></div>
 </header>
-<div class="workspace-crumbs"><button id="navBack" title="Previous workspace location">← Back</button><button id="navForward" title="Next workspace location">Forward →</button><div id="crumbPath" aria-label="Your place in the studio"></div><span id="workspaceStatus"></span></div>
+<div class="workspace-crumbs"><button id="navHome" title="Go to the start of the studio">⌂ Home</button><button id="navBack" title="Previous workspace location">← Back</button><button id="navForward" title="Next workspace location">Forward →</button><div id="crumbPath" aria-label="Your place in the studio"></div><span id="workspaceStatus"></span></div>
 <main>
   <nav class="pages" id="pages" aria-label="Pages in this area"></nav>
   <section class="frame"><iframe id="ed" title="Editor"></iframe><div class="empty" id="empty" hidden></div></section>
 </main>
 <script src="studio-store-catalog.js?v=foundation-20261114a"></script>
-<script src="workspace-core.js?v=effects7"></script>
+<script src="workspace-core.js?v=danny-20261115a"></script>
 <script src="studio-transfer-config.js"></script>
 <script src="studio-auth-core.js?v=email8"></script><script src="studio-jobs.js?v=email8"></script>
 <script src="catalog-quality-core.js?v=complete6"></script>
 <script src="catalog-image-tools.js?v=complete6"></script>
 <script src="studio-render-core.js?v=complete6"></script>
 <script src="studio-render-worker.js?v=complete6"></script>
-<script src="workshop.js?v=original-home3"></script>
+<script src="workshop.js?v=danny-20261115a"></script>
 </body>
 </html>
 

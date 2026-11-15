@@ -89,6 +89,9 @@ async function applyToScene(full){
 }
 applyToScene(true);
 scene.onHoleTap = h => { const d = S.holes.dashboards[S.holes.active]; S.holes.selTier = parseInt(h.tier) || 0; testContact = h.c; showSec('holes'); toast(`${h.c.name}: ${DASH[S.holes.active]} tier ${(parseInt(h.tier)||0)+1} (${h.c.counts[S.holes.active]} ${COUNT_WORD[S.holes.active]})`); applyToScene(); };
+/* Hands-on: tapping anything in the preview opens the controls for that thing. */
+scene.onContactTap = () => showSec('tabs');
+scene.onTapEmpty = p => { const sp = S.sphere; showSec(sp && p.y > sp.y * 844 - sp.r * 390 ? 'sphere' : 'background'); };
 scene.onTurn = (dx, dy) => { if(currentModel()?.on){const m=currentModel(),a=AsgardModelPreview.hole(m);m.randomAxis=false;if('skyRandomAxis' in m)m.skyRandomAxis=false;m.look.rotX=clamp(a.rotX-dy*.4,3,90);m.look.rotY=clamp(a.rotY+dx*.6,-80,80);m.look.rotZ=a.rotZ;change();refreshValues();return;} if(scene.anglePractice)return; const L = curLook(); L.angleManual=true; L.rotY = clamp(L.rotY + dx*0.6, -180, 180); L.rotX = clamp(L.rotX - dy*0.4, -90, 90); change(); if(secNow==='holes') refreshValues(); };
 scene.onFrame = sc => { $('#tLbl').textContent = sc.time.toFixed(1)+'s'; referenceReadout(); };
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));

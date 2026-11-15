@@ -46,6 +46,9 @@ function mount(config){
  toolbar.append(button('Undo',()=>hooks.undo?.()),button('Preview',()=>hooks.preview?.()),button('Save',async()=>{const b=toolbar.querySelector('[data-editor-save]');b.disabled=true;b.textContent='Saving…';try{await hooks.save?.();b.textContent='Saved';}catch{b.textContent='Retry save';}finally{b.disabled=false;}}));toolbar.lastChild.dataset.editorSave='true';
  feature.after(toolbar);
  const menu=el('nav','option-menu');menu.id='studioOptions';menu.setAttribute('aria-label','Feature options');toolbar.after(menu);
+ // Zone 4 (options) sits in a narrow column beside zone 5 (controls); picking an option hides it so the controls get the full width.
+ const work=el('div','work-area');toolbar.after(work);work.append(menu);const pnl=$('#panel');if(pnl)work.append(pnl);
+ const empty=el('div','work-empty','← Pick what to change. Or click anything in the phone preview.');empty.id='workEmpty';work.append(empty);
  document.addEventListener('input',()=>{const b=toolbar.querySelector('[data-editor-save]');if(b&&!b.disabled)b.textContent='Save';});
  setPage(currentPage);
 }
@@ -120,6 +123,14 @@ function select(name,persist=true){
  $('#editorCrumb').textContent=name||'Choose an option';
  const back=$('.editor-back');if(back)back.disabled=!name;
  if(currentHost){currentHost.scrollTop=0;G.StudioWorkbench?.enhance(currentHost,name||activeKey.split(':').at(-1));}
+ const emptyNote=$('#workEmpty');if(emptyNote)emptyNote.hidden=!!name||!items.length;
+ // Lots of controls: give them the room (the page list folds away until Back).
+ const shown=items.find(i=>i.name===name),many=!!shown&&shown.body.querySelectorAll('.c,.pg-row,.pg-chk,.rn-control').length>12;
+ document.body.classList.toggle('wide-tools',many);
+ // A feature that is switched off can't show changes: say so instead of leaving dead-looking sliders.
+ if(shown){const sw=[...shown.body.querySelectorAll('input[type=checkbox]')].find(i=>/(^|\.)(on|show)$/.test(i.dataset.control||i.dataset.p||''));let note=shown.body.querySelector('.off-note');
+  const upd=()=>{const off=!!sw&&!sw.checked;shown.body.classList.toggle('feature-off',off);if(off&&!note){note=el('div','off-note','This is switched off, so the preview won’t change. Turn on “'+((sw.closest('label')?.textContent||'Show it').trim())+'” first.');shown.body.querySelector('.tool-title')?.after(note);}if(note)note.hidden=!off;};
+  if(sw&&!sw.dataset.offWatch){sw.dataset.offWatch='1';sw.addEventListener('change',upd);}upd();}try{if(parent!==G)parent.postMessage({type:'studio-wide',on:many},location.origin);}catch(e){}
  memory[activeKey]=name;if(persist){saveNav();G.dispatchEvent(new CustomEvent('workspace-feature',{detail:{page:currentPage,feature:activeKey.split(':').at(-1),topic:name||''}}));}
 }
 async function saveNavigation(nav){
