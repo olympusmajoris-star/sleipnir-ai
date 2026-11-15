@@ -6,6 +6,25 @@ function construction(ctx,w,h,t,input,image=null){const d=C.clean(input),c=d.con
  for(const b of C.pieces(p,d)){if(!b.reveal)continue;const x=-aw/2+b.x*aw,y=-ah/2+b.y*ah;const a=project(x,y,0),q=project(x+b.width*aw,y,0),r=project(x,y+b.height*ah*b.reveal,0);ctx.save();ctx.transform((q.x-a.x)/(b.width*aw),(q.y-a.y)/(b.width*aw),(r.x-a.x)/(b.height*ah*b.reveal),(r.y-a.y)/(b.height*ah*b.reveal),a.x,a.y);ctx.globalAlpha=1;const iw=image?.videoWidth||image?.naturalWidth||image?.width,ih=image?.videoHeight||image?.naturalHeight||image?.height;if(iw&&ih)ctx.drawImage(image,b.x*iw,b.y*ih,b.width*iw,b.height*ih*b.reveal,0,0,b.width*aw,b.height*ah*b.reveal);else{ctx.fillStyle='#172d38';ctx.fillRect(0,0,b.width*aw,b.height*ah*b.reveal);}ctx.restore();}
  ctx.globalAlpha=1;return p;
 }
-function clouds(ctx,w,h,t,input,images=[],seed=137,text='Your message takes shape',background=null){const d=C.clean(input);ctx.fillStyle='#172b38';ctx.fillRect(0,0,w,h);if(background?.naturalWidth){ctx.globalAlpha=.55;const r=Math.max(w/background.naturalWidth,h/background.naturalHeight),bw=background.naturalWidth*r,bh=background.naturalHeight*r;ctx.drawImage(background,(w-bw)/2,(h-bh)/2,bw,bh);ctx.globalAlpha=1;}const scale=w/390;ctx.save();ctx.scale(scale,scale);const draw=(im,x,y,width,alpha=1,turn=0)=>{if(!im||!(im.naturalWidth||im.width))return;ctx.save();ctx.translate(x,y);ctx.rotate(turn);ctx.globalAlpha=alpha;const height=width*.68;ctx.drawImage(im,-width/2,-height/2,width,height);ctx.restore();};for(let i=0;i<3;i++){draw(images[i%images.length],195,155+i*125,320,.95);ctx.save();ctx.shadowColor='#17313d';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='white';ctx.font='15px system-ui';ctx.textAlign='center';ctx.fillText(i===1?text:'Message cloud '+(i+1),195,158+i*125,230);ctx.restore();}for(const p of C.cloudsAt(t,d,seed)){draw(images[p.id%images.length],p.x,p.y,p.width*(.42+.58*p.growth),p.opacity,p.turn);}ctx.restore();}
+function clouds(ctx,w,h,t,input,images=[],seed=137,text='Your message takes shape',background=null,preview={}){
+ const d=C.clean(input);ctx.fillStyle='#172b38';ctx.fillRect(0,0,w,h);
+ if(background?.naturalWidth){ctx.globalAlpha=.55;const r=Math.max(w/background.naturalWidth,h/background.naturalHeight),bw=background.naturalWidth*r,bh=background.naturalHeight*r;ctx.drawImage(background,(w-bw)/2,(h-bh)/2,bw,bh);ctx.globalAlpha=1;}
+ const scale=w/390;ctx.save();ctx.scale(scale,scale);
+ const draw=(im,x,y,width,alpha=1,turn=0,crop=null)=>{
+  const iw=im?.naturalWidth||im?.width,ih=im?.naturalHeight||im?.height;if(!iw||!ih)return;
+  ctx.save();ctx.translate(x,y);ctx.rotate(turn);ctx.globalAlpha=alpha;const height=width*.68;
+  if(crop)ctx.drawImage(im,crop.x*iw,crop.y*ih,crop.width*iw,crop.height*ih,-width/2,-height/2,width,height);
+  else ctx.drawImage(im,-width/2,-height/2,width,height);ctx.restore();
+ };
+ for(let i=0;i<3;i++)draw(images[i%images.length],195,155+i*125,320,.95);
+ const parts=preview.editing?C.cloudPreviewAt(t,d,seed,preview.stage):C.cloudsAt(t,d,seed);
+ if(preview.manualAt!=null){const e=C.cloudEvents(d,seed,1)[0],p=C.cloudParticle(e,t-preview.manualAt+e.attach*.5,d.clouds,true);if(p)parts.push(p);}
+ const keys=['cloud-mine-billows-v27.webp','cloud-peer-billows-v27.webp','cloud-anvil-258398-v29.webp','cloud-tower-365034-v29.webp','cloud-billows-166852-v29.webp'];
+ for(const p of parts){const index=p.id%images.length;draw(images[index],p.x,p.y,p.width*(.42+.58*p.growth),p.opacity,p.turn,d.cloudAssets[keys[index]]?.crown);}
+ for(let i=0;i<3;i++){ctx.save();ctx.shadowColor='#17313d';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='white';ctx.font='15px system-ui';ctx.textAlign='center';ctx.fillText(i===1?text:'Message cloud '+(i+1),195,158+i*125,230);ctx.restore();}
+ if(preview.editing){ctx.font='12px system-ui';for(const p of parts){if(p.opacity<.08)continue;const label=p.stage,tw=ctx.measureText(label).width,x=Math.max(6,Math.min(384-tw-12,p.x-tw/2-6)),y=Math.max(30,Math.min(480,p.y+Math.min(60,p.width*.25)));ctx.fillStyle='#0d202ddd';ctx.fillRect(x,y-14,tw+12,20);ctx.fillStyle='#8ff3df';ctx.fillText(label,x+6,y);}}
+ ctx.restore();return parts;
+}
+
 const api={construction,clouds};if(typeof module!=='undefined')module.exports=api;G.StudioEffectsRender=api;
 })(typeof window==='undefined'?globalThis:window);
