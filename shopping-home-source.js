@@ -73,7 +73,7 @@ function defaults(old){
  d.bg.color='#ffffff';
  Object.assign(d.norse,{style:'original-strip',opacity:.15,height:300,rows:1,gap:0,y:60/H,media:SOURCE.backgrounds.map(url=>({url}))});
  Object.assign(d.profile,{size:40,x:0,y:60/H});d.profile.box.fill='#4b39ef';d.profile.box.sh=0;
- Object.assign(d.logo,{img:a.logo,size:120/W,y:60/H});
+ Object.assign(d.logo,{img:a.logo,size:120/W,y:60/H,fit:'cover',glow:10,glowColor:'#e9ffff'});
  Object.assign(d.title,{text:'SLEIPNIR',y:197/H});Object.assign(d.title.t,{font:'Cinzel Decorative',size:20,color:'#932524',weight:700,shA:.2});
  Object.assign(d.search,{text:'TextField',y:218/H,h:40,margin:(W-359)/2});Object.assign(d.search.t,{font:'Inter',size:14,color:'#57636c',weight:400});d.search.box.bc='#ffd700';d.search.box.radius=45;
  Object.assign(d.odin,{img:a.Image_glkx26dv,size:55,y:266/H,ratio:78.9/55});d.odin.box.sh=0;d.odin.box.fillA=0;

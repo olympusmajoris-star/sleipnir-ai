@@ -674,7 +674,7 @@ Object.assign(PAGES, {
       ]},
       { id:'top', name:'Top', sub:'Profile, logo, title, search', groups:[
         { name:'Profile button', ctrls: [K('profile.show','Show'), R('profile.size','Size',20,60,1),R('profile.x','Right margin',0,80,1),R('profile.y','Height on screen',0,.3,.002), U('profile.icon','Your icon'), ...boxC('profile.box','Profile button')] },
-        { name:'Logo', ctrls: [U('logo.img','Your logo'), R('logo.size','Size (share of width)',0.1,0.8,.005), R('logo.y','Height',0,0.3,.002)] },
+        { name:'Logo', ctrls: [U('logo.img','Your logo'),Sel('logo.fit','Image fit',[['cover','Fill the original square'],['contain','Show whole image']]),R('logo.glow','Glow softness',0,40,1),C('logo.glowColor','Glow color'), R('logo.size','Size (share of width)',0.1,0.8,.005), R('logo.y','Height',0,0.3,.002)] },
         { name:'Title', ctrls: [K('title.show','Show'), X('title.text','Text'), R('title.y','Height',0,0.4,.002), ...txtC('title.t','Title')] },
         { name:'Search bar', ctrls: [K('search.show','Show'), X('search.text','Placeholder text'), R('search.y','Height on screen',0,0.5,.002), R('search.h','Bar thickness',24,60,1), R('search.margin','Side margin',0,60,1), ...txtC('search.t','Placeholder'), ...boxC('search.box','Search bar')] },
         { name:'Odin', ctrls: [K('odin.show','Show'), U('odin.img','Odin picture'), R('odin.size','Size',30,160,1), R('odin.y','Height',0,0.5,.002), ...boxC('odin.box','Odin frame')] },
@@ -765,7 +765,7 @@ function drawHomeTile(x,tl,T,B,X,y,cw,ch,t,i,second=false){
 function drawSHome(x, t, S){
  bgDraw(x,S.bg);norseLayer(x,t,S.norse);
  const P=S.profile;if(P.show){const X0=W-P.size-(P.x||0),Y0=HH*(P.y??60/HH);box(x,X0,Y0,P.size,P.size,P.box);if(P.icon&&ok(img(P.icon)))contain(x,img(P.icon),X0,Y0,P.size,P.size,4);else{x.fillStyle='#fff';x.beginPath();x.arc(X0+P.size/2,Y0+P.size*.34,P.size*.14,0,7);x.fill();x.beginPath();x.ellipse(X0+P.size/2,Y0+P.size*.73,P.size*.28,P.size*.16,0,Math.PI,0);x.fill();}}
- const Lg=S.logo,lw=W*Lg.size;if(Lg.img)contain(x,img(Lg.img),(W-lw)/2,HH*Lg.y,lw,lw);
+ const Lg=S.logo,lw=W*Lg.size;if(Lg.img){x.save();if(Lg.glow){x.shadowColor=Lg.glowColor||'#e9ffff';x.shadowBlur=Lg.glow;}if(Lg.fit==='cover'){x.beginPath();x.rect((W-lw)/2,HH*Lg.y,lw,lw);x.clip();cover(x,img(Lg.img),(W-lw)/2,HH*Lg.y,lw,lw);}else contain(x,img(Lg.img),(W-lw)/2,HH*Lg.y,lw,lw);x.restore();}
  if(S.title.show)tx(x,S.title.t,S.title.text,W/2,HH*S.title.y,'center',W-20);
  const Se=S.search;if(Se.show){const y=HH*Se.y;box(x,Se.margin,y,W-Se.margin*2,Se.h,Se.box);tx(x,Se.t,Se.text,Se.margin+12,y+Se.h/2+Se.t.size*.36,'left',W-Se.margin*2-24);}
  const O=S.odin;if(O.show&&O.img){const y=HH*O.y,X=(W-O.size)/2,h=O.size*(O.ratio||1.4);box(x,X,y,O.size,h,O.box);x.save();rr(x,X,y,O.size,h,Math.min(O.box.radius,O.size/2));x.clip();cover(x,img(O.img),X,y,O.size,h);x.restore();}
