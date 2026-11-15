@@ -873,7 +873,12 @@ function panel(){
       el.querySelectorAll('input,select,textarea').forEach(i=>i.dataset.control=c.k);d.appendChild(el); });
     pn.appendChild(d); });
   AsgardStudioLayout.arrange(pn,STATE.sec);
+  needsNotes(pn);
 }
+/* Some controls only show once their content exists. Say what to add instead of leaving sliders that seem dead. */
+function needsNotes(pn){const S=STATE.S||{};const add=(prefix,missing,text)=>{if(!missing)return;const bodies=new Set([...pn.querySelectorAll(`[data-control^="${prefix}"]`)].map(i=>i.closest('.tool-page')).filter(Boolean));for(const body of bodies){if(body.querySelector('.needs-note[data-for="'+prefix+'"]'))continue;const n=document.createElement('div');n.className='off-note needs-note';n.dataset.for=prefix;n.textContent=text;(body.querySelector('.tool-title')||body.firstChild)?.after(n);}};
+ add('norse.',S.norse&&!(S.norse.media||[]).length,'No artwork is chosen yet, so these settings have nothing to move. Choose replacement artwork below first.');
+ const act=S.act;if(act){const icons=[1,2,3,4,5,6].some(k=>act['icon'+k]);add('act.',!icons,'No icons added yet, so size, color and spacing have nothing to show. Add your icons in the icon slots first.');}}
 const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000) : v;
 async function openPage(page){
   if(RUNTIME){runtimeAction({type:'navigate',target:page});return;}
