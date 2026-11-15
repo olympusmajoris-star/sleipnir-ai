@@ -37,3 +37,7 @@ Browser preview reload was previously denied by the browser URL policy. This rel
 - Cloud conversion verified on real moving frames with transparent edges. Database cloud claims and cross-user isolation verified with rolled-back test rows. Full native exports parse; FlutterFlow compile/device, Windows and interactive browser verification are still pending.
 
 Current verification: 166 JavaScript checks and 14 Python checks passed. Default/custom-source Effects test exports parsed with the official Dart formatter and retained original embedded asset bytes. Original Earth/cloud asset requests succeeded, and a canvas output check rendered both the construction stages and cloud scene. Browser interaction, MediaRecorder output on Danny’s browser, FlutterFlow/device and Windows environment checks remain unverified.
+
+## Windows cloud processing verified
+
+On November 14 at 8:34 PM America/New_York, Danny's v1.4 Windows connector completed `cloud_prepare` job `bcacfc79-b29a-458a-8642-ee98bac657da` and uploaded its private animated WebP. The original cloud/app stayed unchanged. Current connectivity and cloud processing are proven; native FlutterFlow/device, browser export, PC restart persistence and retail scrape/reconnect checks remain separate. See `native-and-worker-connection.md` for measured output details.

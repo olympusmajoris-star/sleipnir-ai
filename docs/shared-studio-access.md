@@ -17,7 +17,7 @@ The authoritative workshop is https://olympusmajoris-star.github.io/sleipnir-ai/
 | Image sweep | `studio_work_jobs`, kind `image_inspection` | Connected Studio renderer. |
 | Completed output and product tap map | `studio_work_jobs.result.artifacts` and private `studio-job-artifacts` | Owner authorization. Do not publish private signed links on the board. |
 | Construction, cloud motion and clip authoring | `studio-effects.html`; `studio_designs/effects_convo` | Grouped controls, saved looks, locked values and stale-write rejection. |
-| Cloud footage preparation | `studio_work_jobs`, kind `cloud_prepare`; `forge/cloud_prepare_core.py` | Connected v1.3 PC worker with FFmpeg, or authorized assistant preparation with the same core. Reviewed result → frozen asset → separate native test. |
+| Cloud footage preparation | `studio_work_jobs`, kind `cloud_prepare`; `forge/cloud_prepare_core.py` | Connected v1.4 PC worker with FFmpeg, or authorized assistant preparation with the same core. Reviewed result → frozen asset → separate native test. |
 | Native Raven/conversation controls | `native-controls.html` | Original settings; separate Raven test widget first. |
 | Native rendered aisle test | `native-store.html` | Original StoreEntrances source stays local; separate test export. Target remains on GroceryAisle. |
 | App test/release versions | `studio_app_candidates`, `studio_app_releases`, `studio_app_channels` | Test copies and live release changes are distinct operations. |
@@ -27,7 +27,7 @@ The authoritative workshop is https://olympusmajoris-star.github.io/sleipnir-ai/
 
 On November 14, ChatGPT read current shared designs including Raven updated at 20:13 UTC and shopping home at 20:14 UTC. The Asgard Design Studio connector separately returned Raven revision 799 dated November 10. Do not use that older snapshot to overwrite the current Supabase design. Compare destination, row identity and timestamp first.
 
-The work queue currently has zero jobs and no registered workers. Downloading code does not mean a PC or browser renderer is running. Job execution becomes available when its matching worker connects. GenAI photoreal interiors are not a supported job kind yet.
+Danny’s Windows worker connected on November 14 at about 8:32 PM America/New_York. Worker `339f050d-6ffe-4e39-b9ac-7319a02d3a30` advertised `cloud_prepare`, version 1.4.0. Job `bcacfc79-b29a-458a-8642-ee98bac657da` completed at 8:34 PM and reached `review_ready`: a three-second test video derived from an existing public cloud asset produced a 640 × 426 animated WebP, 45 frames, 5.75 seconds and 440,896 bytes. The original source and app settings were retained. Check the current heartbeat before relying on the PC; download alone or an old heartbeat does not mean it is online. Retail scraping and restart/reconnect proof remain pending. GenAI photoreal interiors are not a supported job kind yet.
 
 The browser's recently kept asset (`asgard-workspace-asset`) is local convenience state. Assistants should locate the same output through its shared completed job and product map, or through the saved page layer; do not assume access to another browser's localStorage. Unsaved edits and files that exist only on the PC are not shared until saved/uploaded.
 
