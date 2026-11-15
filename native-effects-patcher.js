@@ -31,17 +31,40 @@ function patch(source,input){const d=C.clean(input),c=d.construction,f=d.clouds;
  replace('p.merging + dt / 4.2','p.merging + dt / (4.2 * '+n(f.merge)+')');
  replace('dt / (p.distant ? 6 : 8)','dt / ((p.distant ? 6 : 8) * '+n(f.fade)+')');
  replace('p.age > 180) p.dead = true;','p.age > math.max(180.0, (p.life + p.attachDuration) * 2)) p.dead = true;');
+ // Message geometry is measured with this same style, so size/line-height
+ // changes preserve the original wrapping and database message boundaries.
+ const text=d.text,ink=text.autoContrast?'#101b28':text.color;
+ const argb=(hex,alpha=1)=>'0x'+Math.round(Math.max(0,Math.min(1,alpha))*255).toString(16).padStart(2,'0').toUpperCase()+hex.slice(1).toUpperCase();
+ const shadows=[];
+ if(text.outlineWidth>0)for(let i=0;i<8;i++){const a=i*Math.PI/4;shadows.push('Shadow(color: Color('+argb(text.outlineColor)+'), offset: Offset('+n(Math.cos(a)*text.outlineWidth)+','+n(Math.sin(a)*text.outlineWidth)+'), blurRadius: 0)');}
+ if(text.shadowOpacity>0)shadows.push('Shadow(color: Color('+argb(text.shadowColor,text.shadowOpacity)+'), offset: Offset(0,'+n(text.shadowDistance)+'), blurRadius:'+n(text.shadowBlur)+')');
+ const style=/const _rvCloudTextStyle = TextStyle\([\s\S]*?\n\);/;
+ const match=source.match(style);if(!match)throw Error('Cloud text style changed. No partial export was made.');
+ replace(match[0],"const _rvCloudTextStyle = TextStyle(\n  inherit: false, textBaseline: TextBaseline.alphabetic, fontFamily: 'Roboto',\n  fontFamilyFallback: ['Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji'],\n  color: Color("+argb(ink,text.opacity)+"), fontSize: "+n(text.size)+", height: "+n(text.lineHeight)+",\n  fontWeight: FontWeight.w"+Math.round(text.weight/100)*100+", letterSpacing: 0, wordSpacing: 0,\n  shadows: ["+shadows.join(',')+"],\n);");
+ replace('1 - _rvCloudEase((age - attachDuration) / 4.5);','1 - _rvCloudEase((age - attachDuration) / (4.5 * '+n(f.connection)+'));');
+ replace('p.age < p.attachDuration + 4.5','p.age < p.attachDuration + 4.5 * '+n(f.connection));
+ const crownStart=source.indexOf('void _rvDrawCloudCrown('),crownEnd=source.indexOf('void _rvDrawCloudFilm(',crownStart);
+ if(crownStart<0||crownEnd<0)throw Error('Cloud edge painter changed.');
+ let crown=source.slice(crownStart,crownEnd),soft=f.edgeSoftness;
+ crown=crown.replace('const [0, .17, .83, 1]','const [0, '+n(soft)+', '+n(1-soft)+', 1]').replace('const [0, .08, .76, 1]','const [0, '+n(soft*.7)+', '+n(1-soft)+', 1]');
+ source=source.slice(0,crownStart)+crown+source.slice(crownEnd);
+ const mistStart=source.indexOf('class _RvMistPainter extends CustomPainter'),mistEnd=source.indexOf('class _RvCloudStamp',mistStart);
+ if(mistStart<0||mistEnd<0)throw Error('Cloud break-off painter changed.');
+ let mist=source.slice(mistStart,mistEnd).replaceAll('_rvDrawCloudFilm(', '_rvDrawNaturalMist(').replace('.045 * math.sin','.045 * '+n(f.deformation)+' * math.sin').replace('.035 * math.cos','.035 * '+n(f.deformation)+' * math.cos');
+ source=source.slice(0,mistStart)+mist+source.slice(mistEnd);
+ source+='\nvoid _rvDrawNaturalMist(Canvas canvas, _RvCloudFilm? film, ui.Image fallback, Rect destination, {int phase = 0, double opacity = 1, bool shadow = false}) {\n  if (shadow) canvas.saveLayer(destination.inflate(2), Paint()..colorFilter = const ColorFilter.mode(Colors.black, BlendMode.srcIn));\n  _rvDrawCloudCrown(canvas, film, fallback, destination, seed: phase, opacity: opacity * '+n(f.density)+');\n  if (shadow) canvas.restore();\n}\n';
  if(Object.keys(d.cloudAssets).length){
   replace('_ticker = vsync.createTicker(_tick);', '_ticker = vsync.createTicker(_tick);\n    playbackSpeed = _rvCustomCloudRates[asset] ?? 1.0;');
   replace(".get(Uri.parse('$_rvArtworkRoot$asset'))",".get(Uri.parse(_rvCustomCloudUrls[asset] ?? '$_rvArtworkRoot$asset'))");
   replace('final bounds = switch (asset) {',"if (_rvCustomCloudUrls.containsKey(asset)) return full;\n  final bounds = switch (asset) {");
   replace('  final choices = switch (film?.asset) {',"  final custom = _rvCustomCloudCrowns[film?.asset];\n  if (custom != null) return custom;\n  final choices = switch (film?.asset) {");
-  replace('film.playbackSpeed = _scene.value.cloudSpeed;',"film.playbackSpeed = _scene.value.cloudSpeed * (_rvCustomCloudRates[film.asset] ?? 1.0);");
+  replace('film.playbackSpeed = _scene.value.cloudSpeed;',"film.playbackSpeed = _scene.value.cloudSpeed * "+n(f.footageSpeed)+" * (_rvCustomCloudRates[film.asset] ?? 1.0);");
   replace("final unsafe = original?.asset == 'cloud-billows-166852-v29.webp';","final unsafe = original?.asset == 'cloud-billows-166852-v29.webp' && !_rvCustomCloudUrls.containsKey(original?.asset);");
   source+='\nconst _rvCustomCloudUrls = <String,String>{'+Object.entries(d.cloudAssets).map(([k,a])=>"'"+k+"':'"+a.url+"'").join(',')+'};\n';
   source+='const _rvCustomCloudRates = <String,double>{'+Object.entries(d.cloudAssets).map(([k,a])=>"'"+k+"':"+n(a.speed)).join(',')+'};\n';
   source+='const _rvCustomCloudCrowns = <String,Rect>{'+Object.entries(d.cloudAssets).map(([k,a])=>"'"+k+"':Rect.fromLTWH("+[a.crown.x*640,a.crown.y*426,a.crown.width*640,a.crown.height*426].map(n).join(',')+')').join(',')+'};\n';
  }
+ if(!Object.keys(d.cloudAssets).length)replace('film.playbackSpeed = _scene.value.cloudSpeed;','film.playbackSpeed = _scene.value.cloudSpeed * '+n(f.footageSpeed)+';');
  source=source.replace(/\bAsgardRavenStudioTest\b/g,'AsgardRavenEffectsTest').replace(/\b_AsgardRavenStudioTestState\b/g,'_AsgardRavenEffectsTestState');
  return '// ASGARD_EFFECTS_TEST_V1 — separate native effects test; original widget retained.\n'+source;
 }

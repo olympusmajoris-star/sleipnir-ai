@@ -43,3 +43,19 @@ test('cloud renderer paints different frames when size, movement or joining dura
  const render=(key,value,stage)=>{const d=C.defaults();d.clouds[key]=value;const cv=createCanvas(390,500);R.clouds(cv.getContext('2d'),390,500,0,d,[source],137,undefined,null,{editing:true,stage});return cv.toBuffer('image/png');};
  for(const [key,stage,lo,hi]of [['size','cycle',.25,2],['speed','drift',0,3],['merge','join',.2,3],['fade','dissolve',.2,3],['attach','grow',.2,3]])a.notDeepEqual(render(key,lo,stage),render(key,hi,stage),key);
 });
+test('automatic lettering chooses dark ink over white clouds and white over dark clouds',()=>{
+ a.equal(R.readableInk(new Uint8ClampedArray([255,255,255,255,255,255,255,255])),'#101b28');
+ a.equal(R.readableInk(new Uint8ClampedArray([12,20,30,255,12,20,30,255])),'#ffffff');
+ const {createCanvas}=require('@napi-rs/canvas'),cv=createCanvas(390,500),ctx=cv.getContext('2d'),d=C.defaults();ctx.fillStyle='white';ctx.fillRect(0,0,390,500);
+ a.equal(R.cloudText(ctx,'Readable',195,155,1,d.text),'#101b28');d.text.autoContrast=false;d.text.color='#a01040';a.equal(R.cloudText(ctx,'Manual',195,280,1,d.text),'#a01040');
+});
+test('break-off texture excludes the baked writing plate and has feathered crop edges',()=>{
+ const {createCanvas}=require('@napi-rs/canvas'),source=createCanvas(640,426),sx=source.getContext('2d'),cv=createCanvas(390,500),d=C.defaults();
+ sx.fillStyle='#ff0000';sx.fillRect(0,80,640,100);sx.fillStyle='white';sx.fillRect(0,180,640,240);
+ const patch=R.cloudFragment(cv.getContext('2d'),source,R.cloudCrown(0,-1),d.clouds,0),pixels=patch.getContext('2d').getImageData(0,0,256,160).data;
+ a.equal(pixels[3],0);let visible=0,white=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+3]>100){visible++;if(pixels[i+1]>200&&pixels[i+2]>200)white++;}a.ok(visible>500);a.equal(white,0);
+});
+test('text and fragment appearance survive cleaning, with safe export ranges',()=>{
+ const d=C.clean({text:{size:50,weight:651,autoContrast:false,color:'#e81794',outlineWidth:2,shadowOpacity:.7},clouds:{edgeSoftness:.9,connection:2,density:.4}});
+ a.equal(d.text.size,36);a.equal(d.text.weight,700);a.equal(d.text.color,'#e81794');a.equal(d.clouds.edgeSoftness,.45);a.equal(d.clouds.connection,2);a.equal(d.clouds.density,.4);
+});
