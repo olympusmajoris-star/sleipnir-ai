@@ -10,6 +10,16 @@ function button(label,fn,cls='btn'){const b=el('button',cls,label);b.type='butto
 function mount(config){
  hooks=config;currentPage=config.page||'raven';document.body.classList.add('studio-shell');
  const top=$('.top'),main=$('main'),right=$('.right'),left=$('.left');
+ const center=$('.center'),title=$('.ctitle');
+ if(center&&title){
+  const sizes=el('label','phone-size-control','Phone size '),select=el('select');select.setAttribute('aria-label','Phone canvas size');
+  for(const [value,label]of [['original','Original size'],['large','125%'],['largest','150%'],['fit','Fit on screen']]){const o=el('option','',label);o.value=value;select.append(o);}
+  sizes.append(select);title.append(sizes);
+  let size='original';try{size=localStorage.getItem('asgard-phone-size-v1')||size;}catch{}
+  const apply=()=>{const value=select.value;document.body.dataset.phoneSize=value;document.documentElement.style.setProperty('--studio-phone-height',({original:820,large:1025,largest:1230,fit:820})[value]+'px');try{localStorage.setItem('asgard-phone-size-v1',value);}catch{}};
+  select.value=['original','large','largest','fit'].includes(size)?size:'original';select.onchange=apply;apply();
+ }
+
  const areas=el('nav','app-tabs');areas.setAttribute('aria-label','Main app areas');
  const groups=G.StudioWorkspaceCore.GROUPS,activeGroup=groups.find(g=>g.pages.some(p=>p[0]===currentPage))?.id||'sky';
  for(const {id,name} of groups){

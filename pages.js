@@ -160,7 +160,7 @@ const PAGES = {
 /* ======================= SHARED STYLE TOOLS (boxes, text, backgrounds, image slots) ======================= */
 const X = (k, label) => ({ t:'x', k, label });
 const FONTS = [['system-ui','Clean (system)'],['Inter','Inter'],['Oswald','Oswald'],['Bebas Neue','Bebas Neue'],['Playfair Display','Playfair'],['Cinzel','Cinzel (Norse serif)'],['Cinzel Decorative','Cinzel Decorative'],['MedievalSharp','MedievalSharp'],['Uncial Antiqua','Uncial Antiqua']];
-(() => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Oswald:wght@300;400;600;700&family=Bebas+Neue&family=Playfair+Display:wght@400;600;800;900&family=Cinzel:wght@400;600;800;900&family=Cinzel+Decorative:wght@400;700;900&family=MedievalSharp&family=Uncial+Antiqua&display=swap'; document.head.appendChild(l); })();
+(() => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&family=Inter+Tight:wght@400;600;700&family=Oswald:wght@300;400;600;700&family=Bebas+Neue&family=Playfair+Display:wght@400;600;800;900&family=Cinzel:wght@400;600;800;900&family=Cinzel+Decorative:wght@400;700;900&family=MedievalSharp&family=Uncial+Antiqua&display=swap'; document.head.appendChild(l); })();
 const BOX = (o) => Object.assign({ fill:'#15120d', fillA:0.92, tex:'', texA:1, radius:16, bw:1, bc:'#c9a46a', sh:0.5, shBlur:18, shY:8, glow:0, glowC:'#f0c070' }, o || {});
 const boxC = (p, n) => [C(p+'.fill', n+': fill color'), R(p+'.fillA', n+': fill see-through', 0, 1, .01), U(p+'.tex', n+': your texture / image'), R(p+'.texA', n+': texture strength', 0, 1, .01), R(p+'.radius', n+': corner rounding', 0, 60, 1), R(p+'.bw', n+': border thickness', 0, 12, .5), C(p+'.bc', n+': border color'), R(p+'.sh', n+': shadow darkness', 0, 1, .01), R(p+'.shBlur', n+': shadow softness', 0, 60, 1), R(p+'.shY', n+': shadow drop', 0, 40, 1), R(p+'.glow', n+': glow', 0, 1.5, .01), C(p+'.glowC', n+': glow color')];
 const TXT = (size, color, o) => Object.assign({ font:'system-ui', size, weight:600, color, shA:0, caps:false, spacing:0, italic:false, underline:false, align:'auto' }, o || {});
@@ -673,21 +673,21 @@ Object.assign(PAGES, {
         { name:'Scrolling Norse art', ctrls: [K('norse.on','Show it'), R('norse.speed','Scroll speed',0,60,.5), R('norse.opacity','Strength',0,1,.01)] },
       ]},
       { id:'top', name:'Top', sub:'Profile, logo, title, search', groups:[
-        { name:'Profile button', ctrls: [K('profile.show','Show'), R('profile.size','Size',20,60,1), U('profile.icon','Your icon'), ...boxC('profile.box','Profile button')] },
+        { name:'Profile button', ctrls: [K('profile.show','Show'), R('profile.size','Size',20,60,1),R('profile.x','Right margin',0,80,1),R('profile.y','Height on screen',0,.3,.002), U('profile.icon','Your icon'), ...boxC('profile.box','Profile button')] },
         { name:'Logo', ctrls: [U('logo.img','Your logo'), R('logo.size','Size (share of width)',0.1,0.8,.005), R('logo.y','Height',0,0.3,.002)] },
         { name:'Title', ctrls: [K('title.show','Show'), X('title.text','Text'), R('title.y','Height',0,0.4,.002), ...txtC('title.t','Title')] },
         { name:'Search bar', ctrls: [K('search.show','Show'), X('search.text','Placeholder text'), R('search.y','Height on screen',0,0.5,.002), R('search.h','Bar thickness',24,60,1), R('search.margin','Side margin',0,60,1), ...txtC('search.t','Placeholder'), ...boxC('search.box','Search bar')] },
         { name:'Odin', ctrls: [K('odin.show','Show'), U('odin.img','Odin picture'), R('odin.size','Size',30,160,1), R('odin.y','Height',0,0.5,.002), ...boxC('odin.box','Odin frame')] },
       ]},
       { id:'tiles', name:'Category buttons', sub:'Grocery, Fast Food, Restaurant…', groups:[
-        { name:'Layout', ctrls: [R('tiles.cols','Per row',2,5,1), R('tiles.y','Where they start',0.2,0.8,.002), R('tiles.icon','Icon size',24,100,1), R('tiles.gap','Space side to side',0,40,1), R('tiles.rowGap','Space between rows',0,60,1), R('tiles.margin','Side margin',0,40,1)] },
+        { name:'Layout', ctrls: [Sel('tiles.layout','Layout',[['original','Original app layout'],['grid','Even grid']]),R('tiles.firstHeight','First group height',60,300,1),R('tiles.secondHeight','Second group height',60,300,1),R('tiles.cols','Per row',2,5,1), R('tiles.y','Where they start',0.2,0.8,.002), R('tiles.icon','Icon size',24,100,1), R('tiles.gap','Space side to side',0,40,1), R('tiles.rowGap','Space between rows',0,60,1), R('tiles.margin','Side margin',0,40,1)] },
         { name:'Label text', ctrls: txtC('tiles.t','Label') },
         { name:'Button backing', ctrls: [shapes('tiles.box'),...boxC('tiles.box','Backing')] },
         {name:'Floating category buttons',ctrls:motionC('tiles.motion')},
-        ...[1,2,3,4,5,6,7,8].map(i => ({ name:'Button ' + i, ctrls:[K('tiles.t'+i+'.show','Show'), X('tiles.t'+i+'.label','Label'), U('tiles.t'+i+'.icon','Icon image'),...routeC('tiles.t'+i)] })),
+        ...[1,2,3,4,5,6,7,8,9,10,11,12].map(i => ({ name:'Button ' + i, ctrls:[K('tiles.t'+i+'.show','Show'), X('tiles.t'+i+'.label','Label'), U('tiles.t'+i+'.icon','Icon image'),...(i===6||i===7?[X('tiles.t'+i+'.buttonText','Text inside button')]:[]),...routeC('tiles.t'+i)] })),
       ]},
       { id:'btns', name:'Bottom buttons', sub:'Valkyrie, account, Asgard, admin', groups:[
-        { name:'Layout', ctrls: [R('btns.y','Where they start',0.4,0.95,.002), R('btns.w','Width',0.2,0.9,.005), R('btns.h','Height',20,60,1), R('btns.gap','Space between',0,30,1)] },
+        { name:'Layout', ctrls: [K('btns.fitText','Fit each button to its text'),R('btns.y','Where they start',0.4,0.95,.002), R('btns.w','Width',0.2,0.9,.005), R('btns.h','Height',20,60,1), R('btns.gap','Space between',0,30,1)] },
         { name:'Text', ctrls: txtC('btns.t','Button text') }, { name:'Look', ctrls: [shapes('btns.box'),...boxC('btns.box','Button')] },
         {name:'Floating bottom buttons',ctrls:motionC('btns.motion')},
         ...[1,2,3,4].map(i => ({ name:'Button ' + i, ctrls:[K('btns.b'+i+'.show','Show'), X('btns.b'+i+'.text','Text'),U('btns.b'+i+'.img','Button image'),...routeC('btns.b'+i)] })),
@@ -729,26 +729,61 @@ Object.assign(PAGES, {
 const IMG2 = {};
 function logoImg(src){ src=runtimeAsset(src); if(!IMG2[src]){ const i = new Image(); i.src = src; IMG2[src] = i; } return IMG2[src]; }
 function norseLayer(x, t, N){ if(!N.on) return;
+ if(N.style==='original-strip')return originalNorseLayer(x,t,N);
  if(N.media?.length){const h=N.height||100,gap=N.gap??16,step=h+gap,rows=N.rows||3,dir=N.direction==='right'?1:-1,travel=t*N.speed*dir,phase=Math.floor(travel/step),off=((travel%step)+step)%step;x.save();x.globalAlpha=N.opacity;
   for(let row=0;row<rows;row++)for(let col=-1;col<Math.ceil(W/step)+1;col++){const a=N.media[((col+row-phase)%N.media.length+N.media.length)%N.media.length],im=img(a.url||a);if(ok(im))contain(x,im,col*step+off,HH*(N.y??.05)+row*step,h,h);}x.restore();return;
  }
  x.save(); x.globalAlpha = N.opacity; x.fillStyle = '#5a4a32'; x.font = '22px serif';
   for(let r = 0; r < 14; r++){ const y = 40 + r * 62, off = ((t * N.speed * (r % 2 ? 1 : -0.7)) % 300 + 300) % 300; for(let X0 = -300 + off; X0 < W + 30; X0 += 30) x.fillText(RUNES[Math.abs(Math.floor(X0 / 30) * 7 + r * 3) % RUNES.length], X0, y); }
   x.restore(); }
+// Flutter's horizontal ListView stretches each 300px image to the cross-axis
+// height. Preserve that full-height moving strip instead of a grid of fake runes.
+const homeNorseOrder={key:'',media:[]};
+function originalNorseLayer(x,t,N){
+ if(!N.media?.length)return;
+ const key=JSON.stringify(N.media.map(a=>a.url||a));
+ if(homeNorseOrder.key!==key){homeNorseOrder.key=key;homeNorseOrder.media=[...N.media];for(let i=homeNorseOrder.media.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[homeNorseOrder.media[i],homeNorseOrder.media[j]]=[homeNorseOrder.media[j],homeNorseOrder.media[i]];}}
+ const media=homeNorseOrder.media,w=N.height||300,gap=N.gap||0,step=w+gap,y=HH*(N.y||0),bottom=STATE.S?.safeArea?.bottom??28,h=HH-y-bottom;
+ const travel=t*N.speed*(N.direction==='right'?1:-1),phase=Math.floor(travel/step),off=((travel%step)+step)%step;
+ x.save();x.globalAlpha=N.opacity;x.beginPath();x.rect(0,y,W,h);x.clip();
+ for(let col=-1;col<Math.ceil(W/step)+1;col++){const a=media[((col-phase)%media.length+media.length)%media.length],im=img(a.url||a);if(ok(im))cover(x,im,col*step+off,y,w,h);}
+ x.restore();
+}
+function drawHomeTile(x,tl,T,B,X,y,cw,ch,t,i,second=false){
+ if(!tl?.show)return;
+ const [dx,dy]=motionOffset(T.motion,t,i);X+=dx;y+=dy;
+ const scale=T.icon/55,iw=(tl.width||55)*scale,ih=(tl.height||55)*scale;
+ const textHeight=T.t.size*1.25,pad=tl.pad||0,button=tl.kind==='button';
+ const label=!(second&&i===1),h=button?B.h:ih;
+ const block=h+(label?textHeight+pad:0)+(i===3&&!second?10:0),top=y+(ch-block)/2;
+ box(x,X,y,cw,ch,T.box);
+ if(button){const text=tl.buttonText||tl.label,bw=Math.min(cw,tw(x,B.t,text)+32);box(x,X+(cw-bw)/2,top,bw,B.h,B.box);tx(x,B.t,text,X+cw/2,top+B.h/2+B.t.size*.36,'center',bw-12);}
+ else if(tl.icon){x.save();rr(x,X+(cw-iw)/2,top,iw,ih,Math.min(8,iw/2));x.clip();cover(x,img(tl.icon),X+(cw-iw)/2,top,iw,ih);x.restore();}
+ if(label)tx(x,T.t,tl.label,X+cw/2,top+h+pad+T.t.size,'center',cw);
+ if(tl.target)hit(X,y,cw,ch,{type:'navigate',target:tl.target,pageType:tl.pageType});
+}
 function drawSHome(x, t, S){
-  bgDraw(x, S.bg); norseLayer(x, t, S.norse);
-  const P = S.profile; if(P.show){ const X0 = W - P.size - 10, Y0 = 10; box(x, X0, Y0, P.size, P.size, P.box); if(P.icon && ok(img(P.icon))) contain(x, img(P.icon), X0, Y0, P.size, P.size, 4); else { x.fillStyle = '#fff'; x.beginPath(); x.arc(X0 + P.size / 2, Y0 + P.size * 0.38, P.size * 0.16, 0, 7); x.fill(); x.beginPath(); x.ellipse(X0 + P.size / 2, Y0 + P.size * 0.78, P.size * 0.28, P.size * 0.18, 0, Math.PI, 0); x.fill(); } }
-  const Lg = S.logo, lw = W * Lg.size; if(Lg.img) contain(x, img(Lg.img), (W - lw) / 2, HH * Lg.y, lw, lw); else dashed(x, (W - lw) / 2, HH * Lg.y, lw, lw * 0.8, 'your logo');
-  if(S.title.show) tx(x, S.title.t, S.title.text, W / 2, HH * S.title.y, 'center', W - 20);
-  const Se = S.search; if(Se.show){ const y = HH * Se.y; box(x, Se.margin, y, W - Se.margin * 2, Se.h, Se.box); tx(x, Se.t, Se.text, Se.margin + 16, y + Se.h / 2 + Se.t.size * 0.36, 'left', W - Se.margin * 2 - 30); }
-  const O = S.odin; if(O.show){ const y = HH * O.y, X0 = (W - O.size) / 2, hh = O.size * 1.4; if(O.img){ box(x, X0, y, O.size, hh, O.box); x.save(); rr(x, X0, y, O.size, hh, Math.min(O.box.radius, O.size / 2)); x.clip(); cover(x, img(O.img), X0, y, O.size, hh); x.restore(); } else dashed(x, X0, y, O.size, hh, 'Odin'); }
-  const T = S.tiles, tiles = [1,2,3,4,5,6,7,8].map(i => T['t' + i]).filter(v => v && v.show), cols = Math.round(T.cols), cw = (W - T.margin * 2 - (cols - 1) * T.gap) / cols;
-  tiles.forEach((tl, i) => { const [dx,dy]=motionOffset(T.motion,t,i),c = i % cols, r = Math.floor(i / cols), X0 = T.margin + c * (cw + T.gap)+dx, y = HH * T.y + r * (T.icon + T.t.size + 14 + T.rowGap)+dy;
-    box(x, X0, y - 6, cw, T.icon + T.t.size + 18, T.box);if(tl.target)hit(X0,y-6,cw,T.icon+T.t.size+18,{type:'navigate',target:tl.target,pageType:tl.pageType}); const ix = X0 + (cw - T.icon) / 2;
-    if(tl.icon && ok(img(tl.icon))) contain(x, img(tl.icon), ix, y, T.icon, T.icon); else dashed(x, ix, y, T.icon, T.icon, 'icon');
-    tx(x, T.t, tl.label, X0 + cw / 2, y + T.icon + 6 + T.t.size, 'center', cw); });
-  const B = S.btns, bs = [1,2,3,4].map(i => B['b' + i]).filter(v => v && v.show), bw = W * B.w;
-  bs.forEach((b, i) => { const [dx,dy]=motionOffset(B.motion,t,i),y = HH * B.y + i * (B.h + B.gap)+dy; box(x, (W - bw) / 2+dx, y, bw, B.h, B.box);if(b.target)hit((W-bw)/2+dx,y,bw,B.h,{type:'navigate',target:b.target,pageType:b.pageType});if(b.img)contain(x,img(b.img),(W-bw)/2+dx+5,y+4,B.h-8,B.h-8); tx(x, B.t, b.text, W / 2+dx+(b.img?B.h/3:0), y + B.h / 2 + B.t.size * 0.36, 'center', bw - 10-(b.img?B.h:0)); });
+ bgDraw(x,S.bg);norseLayer(x,t,S.norse);
+ const P=S.profile;if(P.show){const X0=W-P.size-(P.x||0),Y0=HH*(P.y??60/HH);box(x,X0,Y0,P.size,P.size,P.box);if(P.icon&&ok(img(P.icon)))contain(x,img(P.icon),X0,Y0,P.size,P.size,4);else{x.fillStyle='#fff';x.beginPath();x.arc(X0+P.size/2,Y0+P.size*.34,P.size*.14,0,7);x.fill();x.beginPath();x.ellipse(X0+P.size/2,Y0+P.size*.73,P.size*.28,P.size*.16,0,Math.PI,0);x.fill();}}
+ const Lg=S.logo,lw=W*Lg.size;if(Lg.img)contain(x,img(Lg.img),(W-lw)/2,HH*Lg.y,lw,lw);
+ if(S.title.show)tx(x,S.title.t,S.title.text,W/2,HH*S.title.y,'center',W-20);
+ const Se=S.search;if(Se.show){const y=HH*Se.y;box(x,Se.margin,y,W-Se.margin*2,Se.h,Se.box);tx(x,Se.t,Se.text,Se.margin+12,y+Se.h/2+Se.t.size*.36,'left',W-Se.margin*2-24);}
+ const O=S.odin;if(O.show&&O.img){const y=HH*O.y,X=(W-O.size)/2,h=O.size*(O.ratio||1.4);box(x,X,y,O.size,h,O.box);x.save();rr(x,X,y,O.size,h,Math.min(O.box.radius,O.size/2));x.clip();cover(x,img(O.img),X,y,O.size,h);x.restore();}
+ const T=S.tiles,B=S.btns,cols=Math.round(T.cols),cw=(W-T.margin*2-(cols-1)*T.gap)/cols;
+ if(T.layout==='original'){
+  const first=[1,2,3,4,9,10,11,12],second=[5,6,7,8],firstH=T.firstHeight,secondH=T.secondHeight,start=HH*T.y;
+  // Keep each original GridView's clipping/spacing, including its partly visible
+  // second row. These are editable source elements, not a flattened screenshot.
+  for(const [list,y,height,ratio,isSecond]of [[first,start,firstH,.9,false],[second,start+firstH+T.rowGap,secondH,1.1,true]]){
+   const ch=cw/ratio;x.save();x.beginPath();x.rect(0,y,W,height);x.clip();
+   list.forEach((id,i)=>drawHomeTile(x,T['t'+id],T,B,T.margin+(i%cols)*(cw+T.gap),y+Math.floor(i/cols)*(ch+T.rowGap),cw,ch,t,i,isSecond));
+   if(isSecond)tx(x,T.t,T.t6.label,T.margin+cw/2,y+ch+T.rowGap+T.t.size,'center',cw);
+   x.restore();
+  }
+ }else{
+  [1,2,3,4,5,6,7,8].filter(i=>T['t'+i]?.show).forEach((id,i)=>drawHomeTile(x,T['t'+id],T,B,T.margin+i%cols*(cw+T.gap),HH*T.y+Math.floor(i/cols)*(T.icon+T.t.size+14+T.rowGap),cw,T.icon+T.t.size+18,t,i));
+ }
+ [1,2,3,4].map(i=>B['b'+i]).filter(b=>b?.show).forEach((b,i)=>{const [dx,dy]=motionOffset(B.motion,t,i),y=HH*B.y+i*(B.h+B.gap)+dy,bw=B.fitText?Math.min(W-20,(tw(x,B.t,b.text)+32+(b.img?B.h:0))*B.w/.36):W*B.w,X=(W-bw)/2+dx;box(x,X,y,bw,B.h,B.box);if(b.target)hit(X,y,bw,B.h,{type:'navigate',target:b.target,pageType:b.pageType});if(b.img)contain(x,img(b.img),X+5,y+4,B.h-8,B.h-8);tx(x,B.t,b.text,W/2+dx+(b.img?B.h/3:0),y+B.h/2+B.t.size*.36,'center',bw-16-(b.img?B.h:0));});
 }
 function drawBrowse(x, t, S){
   loadBrowse(); bgDraw(x, S.bg); norseLayer(x, t, S.norse);
@@ -770,7 +805,7 @@ function drawBrowse(x, t, S){
     towns.forEach((tn, i) => { const tt = i === 0 ? Ch.onT : Ch.t, w = tw(x, tt, tn) + 22, h = tt.size + 14; if(cx > W) return; box(x, cx, y, w, h, i === 0 ? Ch.on : Ch.box); tx(x, tt, tn, cx + w / 2, y + h / 2 + tt.size * 0.36, 'center'); cx += w + 8; }); }
 }
 
-const norseExtras=()=>[M('norse.media','Norse artwork / replacement images & videos'),R('norse.height','Artwork size',20,300,1),R('norse.rows','Artwork rows',1,12,1),R('norse.gap','Space between artwork',0,100,1),R('norse.y','Artwork starts down screen',0,.95,.01),Sel('norse.direction','Scroll direction',[['left','Right to left'],['right','Left to right']])];
+const norseExtras=()=>[M('norse.media','Norse artwork / replacement images & videos'),R('norse.height','Artwork size',20,300,1),Sel('norse.style','Artwork layout',[['original-strip','Original full-height strip'],['grid','Artwork grid']]),R('norse.rows','Artwork rows (grid)',1,12,1),R('norse.gap','Space between artwork',0,100,1),R('norse.y','Artwork starts down screen',0,.95,.01),Sel('norse.direction','Scroll direction',[['left','Right to left'],['right','Left to right']])];
 for(const P of Object.values(PAGES)){
  const existed=!!P.defaults.norse;
  P.defaults.norse=Object.assign({on:false,speed:10,opacity:.25,media:[],height:100,rows:3,gap:16,y:.05,direction:'left'},P.defaults.norse||{});
@@ -779,6 +814,8 @@ for(const P of Object.values(PAGES)){
  P.defaults._studioLayers=[];
  P.sections.push({id:'design',name:'Add images & buttons',sub:'Shared folders, layers, text, frames & motion',groups:[]});
 }
+const LEGACY_SHOME_DEFAULTS=JSON.parse(JSON.stringify(PAGES.shome.defaults));
+PAGES.shome.defaults=ShoppingHomeSource.defaults(LEGACY_SHOME_DEFAULTS);
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
 const deep = (o) => JSON.parse(JSON.stringify(o));
@@ -799,6 +836,7 @@ async function load(page){
   try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.' + docId(page) + '&select=data', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data; } } catch(e){}
   if(!s){ try { s = JSON.parse(localStorage.getItem('asgard-' + docId(page)) || 'null'); } catch(e){} }
   if(!s && page === 'convo'){ try { const r = await fetch(SB.url + '/rest/v1/raven_scene_settings?select=*&limit=1', { headers: H() }); if(r.ok){ const j = await r.json(); if(j[0]){ s = j[0]; delete s.id; } } } catch(e){} }
+  if(page==='shome')s=ShoppingHomeSource.migrate(s,LEGACY_SHOME_DEFAULTS,PAGES.shome.defaults);
   return merge(PAGES[page].defaults, s || {});
 }
 async function pushToApp(){
@@ -841,6 +879,7 @@ async function openPage(page){
   if(RUNTIME){runtimeAction({type:'navigate',target:page});return;}
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')||AsgardStudioLayout.lastFeature(page)||PAGES[page].sections[0].id;if(!PAGES[page].sections.some(s=>s.id===STATE.sec))STATE.sec=PAGES[page].sections[0].id; STATE.t0 = performance.now();
+  ROCK_NAV.root.hidden=page==='shome';
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
   { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); if(page!=='browse') q.delete('type'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
   const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
@@ -1032,7 +1071,7 @@ function runtimeUpdate(envelope){
  if(envelope.page==='browse'&&envelope.pageType&&!BROWSE_TYPES.includes(envelope.pageType))throw Error('Browse release has no valid store category');
  const oldStore=STORE.id;RUNTIME.envelope=envelope;STATE.page=envelope.page;STATE.S=merge(PAGES[STATE.page].defaults,envelope.settings);STATE.sec=null;STATE.t0=(runtimePaused?runtimePauseAt:performance.now())-runtimePauseOffset;
  STORE.id=envelope.storeId||'';if(STORE.id!==oldStore){STORE.abort?.abort();STORE.revision++;Object.assign(STORE,{row:null,items:[],loading:false,loaded:false,error:'',offset:0,count:0,query:'',scroll:0,scrollMax:0});}
- BROWSE.type=envelope.pageType||'grocery';ROCK_NAV.setRuntimeSettings?.(envelope.navigation);ROCK_NAV.S=AsgardRockNav.merge?AsgardRockNav.merge(AsgardRockNav.defaults(),envelope.navigation||{}):merge(AsgardRockNav.defaults(),envelope.navigation||{});ROCK_NAV.S.motion ||= {};ROCK_NAV.S.motion.paused=runtimePaused||!!envelope.navigation?.motion?.paused;ROCK_NAV.setContext(STATE.page,['home','swap','shoppost','deals','share'].includes(STATE.page));
+ BROWSE.type=envelope.pageType||'grocery';ROCK_NAV.setRuntimeSettings?.(envelope.navigation);ROCK_NAV.S=AsgardRockNav.merge?AsgardRockNav.merge(AsgardRockNav.defaults(),envelope.navigation||{}):merge(AsgardRockNav.defaults(),envelope.navigation||{});ROCK_NAV.S.motion ||= {};ROCK_NAV.S.motion.paused=runtimePaused||!!envelope.navigation?.motion?.paused;ROCK_NAV.root.hidden=STATE.page==='shome';ROCK_NAV.setContext(STATE.page,['home','swap','shoppost','deals','share'].includes(STATE.page));
  mountCatalogControls();updateCatalogControls();PAGE_TOOLS.sync();return runtimeDescriptor();
 }
 function runtimePause(paused){

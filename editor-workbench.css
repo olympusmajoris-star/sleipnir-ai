@@ -5,3 +5,17 @@
 .tool-page>.sw-tool>h2,.tool-page>details[data-studio-group]>summary{display:none}.tool-page>.sw-tool{border:0;padding:0}.wb-setting-tools button{min-height:30px}
 
 .app-tabs{overflow-x:auto}.app-tabs .app-tab{white-space:nowrap;flex:1;min-width:max-content;padding-left:16px;padding-right:16px}
+
+/* Retain the original 820px Studio phone instead of shrinking it to the iframe.
+   The preview scrolls independently; editing controls and navigation stay put. */
+.studio-shell[data-phone-size] main{grid-template-columns:210px 430px minmax(330px,1fr)}
+.studio-shell[data-phone-size] .center{overflow:auto;align-items:center;scrollbar-gutter:stable;padding:12px 10px;min-width:0}
+.studio-shell[data-phone-size] .ctitle{flex:none;align-self:stretch;display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:space-between}
+.phone-size-control{font:12px system-ui;color:#b7d4d4;display:flex;align-items:center;gap:6px;margin:4px 0 8px}
+.phone-size-control select{padding:6px;background:#17232a;color:#e6eef0;border:1px solid #38505c;border-radius:6px}
+.studio-shell[data-phone-size] .phonewrap{flex:none;min-width:100%;width:max-content;height:auto;min-height:0;align-items:flex-start;justify-content:center;padding:8px 0}
+.studio-shell[data-phone-size] .phone:not(.rn-phone-focus):not(.rn-detail-active){flex:none;height:var(--studio-phone-height,820px);width:calc((var(--studio-phone-height,820px) - 26px) * 390 / 844 + 26px);max-width:none;max-height:none;aspect-ratio:auto}
+.studio-shell[data-phone-size] .hint,.studio-shell[data-phone-size] .transport{flex:none}
+.studio-shell[data-phone-size=fit] .phonewrap{flex:1;min-height:200px;width:100%;min-width:0}
+.studio-shell[data-phone-size=fit] .phone:not(.rn-phone-focus):not(.rn-detail-active){height:100%;max-height:820px;max-width:100%;width:auto;aspect-ratio:390/844}
+@media(max-width:780px){.studio-shell[data-phone-size] main{grid-template-columns:130px 430px minmax(310px,1fr)}}

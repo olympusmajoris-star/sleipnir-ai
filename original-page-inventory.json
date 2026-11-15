@@ -1,0 +1,430 @@
+{
+  "source": "SleipnirProject.zip and received native widget files",
+  "checkedAt": "2026-11-15",
+  "pageCount": 43,
+  "pages": [
+    {
+      "name": "DriverDashboard",
+      "node": "Scaffold_wt4wak9c",
+      "customWidgets": [
+        "ValkyrieHome"
+      ],
+      "receivedWidgets": [
+        "ValkyrieHome"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "Auth1",
+      "node": "Scaffold_rcy2xgo9",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "OdinScan",
+      "node": "Scaffold_ekeos7lk",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "Orders2",
+      "node": "Scaffold_09izy1vn",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "LoginPage",
+      "node": "Scaffold_pjnv5gxg",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "CreateOrder",
+      "node": "Scaffold_9003q6ox",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "StoreDetail2",
+      "node": "Scaffold_vw7kt2uz",
+      "customWidgets": [
+        "McDonaldsComboPanel",
+        "CartMiniBar"
+      ],
+      "receivedWidgets": [
+        "McDonaldsComboPanel"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "Cart",
+      "node": "Scaffold_13gkjbp8",
+      "customWidgets": [
+        "SleipnirCart"
+      ],
+      "receivedWidgets": [
+        "SleipnirCart"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "SplashScreen",
+      "node": "Scaffold_6e2x16r4",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "NewStoreBrowes",
+      "node": "Scaffold_qi7tjd5b",
+      "customWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "receivedWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "b2ppage",
+      "node": "Scaffold_av4uwv4b",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "MerchantLogin",
+      "node": "Scaffold_uwjxdhaa",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "MerchantDashboard",
+      "node": "Scaffold_hcaykg3m",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "Valhalla",
+      "node": "Scaffold_fus6rbmy",
+      "customWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "receivedWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "BigBoxBrowse",
+      "node": "Scaffold_hjojz2cj",
+      "customWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "receivedWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "DriveThruBoard",
+      "node": "Scaffold_mmm5qntt",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "StoreDetail2_Backup_PreComboRebuild",
+      "node": "Scaffold_ig63pk4w",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "RestaurantMenu",
+      "node": "Scaffold_2h6pv16c",
+      "customWidgets": [
+        "SitDownRestaurantMenu"
+      ],
+      "receivedWidgets": [
+        "SitDownRestaurantMenu"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "FastCasualTest",
+      "node": "Scaffold_ioeuf0sj",
+      "customWidgets": [
+        "FastCasualMenuBoard"
+      ],
+      "receivedWidgets": [
+        "FastCasualMenuBoard"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "FastCasualMenu",
+      "node": "Scaffold_d7w9e4n1",
+      "customWidgets": [
+        "FastCasualMenuBoard"
+      ],
+      "receivedWidgets": [
+        "FastCasualMenuBoard"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "GroceryAisle",
+      "node": "Scaffold_96m48f3z",
+      "customWidgets": [
+        "GroceryStoreNavigator"
+      ],
+      "receivedWidgets": [
+        "GroceryStoreNavigator"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "FastFoodMapPage",
+      "node": "Scaffold_qpdtyc20",
+      "customWidgets": [
+        "StoreGrid"
+      ],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "GroceryAislePage",
+      "node": "Scaffold_s4ae9lgo",
+      "customWidgets": [
+        "GroceryAisle"
+      ],
+      "receivedWidgets": [
+        "GroceryAisle"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "ShopMeal",
+      "node": "Scaffold_c0ku4ksl",
+      "customWidgets": [],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "ProduceWallPage",
+      "node": "Scaffold_8mhvorv1",
+      "customWidgets": [
+        "ProduceWall"
+      ],
+      "receivedWidgets": [
+        "ProduceWall"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "StationPage",
+      "node": "Scaffold_peykk3ra",
+      "customWidgets": [
+        "StationWall"
+      ],
+      "receivedWidgets": [
+        "StationWall"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "LoadBoardPage",
+      "node": "Scaffold_6qbv63fa",
+      "customWidgets": [
+        "FreightBoard"
+      ],
+      "receivedWidgets": [
+        "FreightBoard"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "StoreEntrancePage",
+      "node": "Scaffold_kpxab9r5",
+      "customWidgets": [
+        "StoreEntrances"
+      ],
+      "receivedWidgets": [
+        "StoreEntrances"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "ValhallaV2",
+      "node": "Scaffold_lalpo41q",
+      "customWidgets": [
+        "ValhallaStreet"
+      ],
+      "receivedWidgets": [
+        "ValhallaStreet"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "Checkout",
+      "node": "Scaffold_odezg02j",
+      "customWidgets": [
+        "SleipnirCheckout"
+      ],
+      "receivedWidgets": [
+        "SleipnirCheckout"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "BecomeValkyrie",
+      "node": "Scaffold_qx9tmxlj",
+      "customWidgets": [
+        "ValkyrieSignup"
+      ],
+      "receivedWidgets": [
+        "ValkyrieSignup"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "OrderTracking",
+      "node": "Scaffold_z7rndlzf",
+      "customWidgets": [
+        "SleipnirTracking"
+      ],
+      "receivedWidgets": [
+        "SleipnirTracking"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "ValkyrieRun",
+      "node": "Scaffold_9pq7dchm",
+      "customWidgets": [
+        "ValkyrieRun"
+      ],
+      "receivedWidgets": [
+        "ValkyrieRun"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "CustomerHub",
+      "node": "Scaffold_t5q8ueei",
+      "customWidgets": [
+        "CustomerHub"
+      ],
+      "receivedWidgets": [
+        "CustomerHub"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "RetailStorePage",
+      "node": "Scaffold_bj3ufj1d",
+      "customWidgets": [
+        "RetailStore"
+      ],
+      "receivedWidgets": [
+        "RetailStore"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "OdinScan1",
+      "node": "Scaffold_0vikoder",
+      "customWidgets": [
+        "OdinScan"
+      ],
+      "receivedWidgets": [
+        "OdinScan"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "OdinFavorites1",
+      "node": "Scaffold_qcs8jbq7",
+      "customWidgets": [
+        "OdinFavorites"
+      ],
+      "receivedWidgets": [],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "ValkyrieHub",
+      "node": "Scaffold_l6vbknue",
+      "customWidgets": [
+        "ValkyrieHub"
+      ],
+      "receivedWidgets": [
+        "ValkyrieHub"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "AdminValkyries",
+      "node": "Scaffold_2znyvuaa",
+      "customWidgets": [
+        "AdminValkyries"
+      ],
+      "receivedWidgets": [
+        "AdminValkyries"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "Asgard",
+      "node": "Scaffold_gehd6fba",
+      "customWidgets": [
+        "Asgard"
+      ],
+      "receivedWidgets": [
+        "Asgard"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "HomePage",
+      "node": "Scaffold_tkcdpypo",
+      "customWidgets": [
+        "ScrollingNorseBackground",
+        "GlowingLogo"
+      ],
+      "receivedWidgets": [
+        "ScrollingNorseBackground"
+      ],
+      "previewStatus": "restored-awaiting-visual-check"
+    },
+    {
+      "name": "StreamLab",
+      "node": "Scaffold_7apb2u9d",
+      "customWidgets": [
+        "StreamLab"
+      ],
+      "receivedWidgets": [
+        "StreamLab"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    },
+    {
+      "name": "LiveRoom",
+      "node": "Scaffold_lv9r0om1",
+      "customWidgets": [
+        "LiveRoom"
+      ],
+      "receivedWidgets": [
+        "LiveRoom"
+      ],
+      "previewStatus": "not-yet-matched-to-original"
+    }
+  ]
+}
