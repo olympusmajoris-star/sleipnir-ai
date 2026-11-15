@@ -35,6 +35,17 @@ function cloudText(ctx,text,x,y,scale,settings){
  const hex=t.shadowColor,alpha=Math.round(t.shadowOpacity*255).toString(16).padStart(2,'0');ctx.shadowColor=hex+alpha;ctx.shadowBlur=t.shadowBlur;ctx.shadowOffsetY=t.shadowDistance;
  const lineHeight=t.size*t.lineHeight;lines.slice(0,4).forEach((line,i)=>{const yy=y+(i-(Math.min(4,lines.length)-1)/2)*lineHeight;if(t.outlineWidth>0){ctx.lineJoin='round';ctx.lineWidth=t.outlineWidth*2;ctx.strokeStyle=t.outlineColor;ctx.strokeText(line,x,yy,234);}ctx.fillText(line,x,yy,234);});ctx.restore();return color;
 }
+function fragmentPosition(p,anchorX,anchorY,settings,contained){
+ const distance=Math.max(0,p.age-p.attach)*7*settings.speed;
+ // Travel begins at the sampled crown. Constraining the old full-cloud
+ // coordinates before translating to this crown trapped fragments inside it.
+ const drift=contained?90*(1-Math.exp(-distance/90)):distance;
+ let x=anchorX+p.side*(p.width*.12*p.growth+drift)+Math.sin(p.age*.13+p.phase)*settings.wander*8;
+ let y=anchorY-drift*.7+Math.cos(p.age*.11+p.phase)*settings.wander*4;
+ if(contained){const half=Math.min(185,p.width/2);x=Math.max(half+5,Math.min(385-half,x));y=Math.max(25,Math.min(475,y));}
+ if(p.fate==='absorb'&&p.finish>0){x+=(195-x)*p.finish;y+=(155+((p.source+1)%3)*125-y)*p.finish;}
+ return{x,y};
+}
 function clouds(ctx,w,h,t,input,images=[],seed=137,text='Your message takes shape',background=null,preview={}){
  const d=C.clean(input);ctx.fillStyle='#172b38';ctx.fillRect(0,0,w,h);
  if(background?.naturalWidth){ctx.globalAlpha=.55;const r=Math.max(w/background.naturalWidth,h/background.naturalHeight),bw=background.naturalWidth*r,bh=background.naturalHeight*r;ctx.drawImage(background,(w-bw)/2,(h-bh)/2,bw,bh);ctx.globalAlpha=1;}
@@ -48,8 +59,7 @@ function clouds(ctx,w,h,t,input,images=[],seed=137,text='Your message takes shap
   const index=sourceFor(p.source)%images.length,custom=index===preview.draftSource?{x:.2,y:.08,width:.55,height:.42}:d.cloudAssets[cloudKeys[index]]?.crown;
   const crop=cloudCrown(index,p.side,custom),patch=cloudFragment(ctx,images[index],crop,d.clouds,p.age,p.fate==='dissolve'?p.finish:0);if(!patch)continue;
   const parentY=155+p.source*125,anchorX=35+(crop.x+crop.width/2)*320,anchorY=parentY-108.8+(crop.y+crop.height/2)*217.6;
-  let px=p.x+anchorX-p.sourceX,py=p.y+anchorY-p.sourceY;
-  if(p.fate==='absorb'&&p.finish>0){px+=(195-px)*p.finish;py+=(155+((p.source+1)%3)*125-py)*p.finish;}
+  const {x:px,y:py}=fragmentPosition(p,anchorX,anchorY,d.clouds,preview.editing);
   const stretch=1+d.clouds.deformation*.12*Math.sin(p.age*.23+p.phase),width=p.width*(.42+.58*p.growth)*stretch,height=width*Math.min(.9,crop.height*426/(crop.width*640))/stretch;
   const opacity=p.opacity*d.clouds.density;
   // A narrowing trail of the same moving cloud texture maintains continuity
@@ -70,5 +80,5 @@ function cloudClip(ctx,w,h,source,input){
  if(d.preparation.removeBackground){const pixels=ctx.getImageData(0,0,w,h);C.keyPixels(pixels.data,d);ctx.putImageData(pixels,0,0);}
 }
 
-const api={construction,clouds,cloudClip,cloudCrown,cloudFragment,readableInk,cloudText};if(typeof module!=='undefined')module.exports=api;G.StudioEffectsRender=api;
+const api={construction,clouds,cloudClip,cloudCrown,cloudFragment,fragmentPosition,readableInk,cloudText};if(typeof module!=='undefined')module.exports=api;G.StudioEffectsRender=api;
 })(typeof window==='undefined'?globalThis:window);

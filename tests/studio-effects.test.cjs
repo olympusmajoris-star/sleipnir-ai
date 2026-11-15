@@ -59,3 +59,13 @@ test('text and fragment appearance survive cleaning, with safe export ranges',()
  const d=C.clean({text:{size:50,weight:651,autoContrast:false,color:'#e81794',outlineWidth:2,shadowOpacity:.7},clouds:{edgeSoftness:.9,connection:2,density:.4}});
  a.equal(d.text.size,36);a.equal(d.text.weight,700);a.equal(d.text.color,'#e81794');a.equal(d.clouds.edgeSoftness,.45);a.equal(d.clouds.connection,2);a.equal(d.clouds.density,.4);
 });
+test('detached crown travels clear of its source and joins the destination without a coordinate jump',()=>{
+ const d=C.defaults();d.clouds.wander=0;
+ const event={...C.cloudEvents(d,137,1)[0],side:-1,source:0,fate:'absorb',width:90,life:30};
+ const attached=C.cloudParticle(event,event.attach,d.clouds,true),drifting=C.cloudParticle(event,event.attach+20,d.clouds,true);
+ const a0=R.fragmentPosition(attached,130,100,d.clouds,true),a1=R.fragmentPosition(drifting,130,100,d.clouds,true);
+ a.ok(a1.x<a0.x-40);a.ok(a1.y<a0.y-40);a.ok(a1.x>=50);a.ok(a1.y>=25);
+ const stopped=R.fragmentPosition(drifting,130,100,{...d.clouds,speed:0},true);a.equal(stopped.x,a0.x);a.equal(stopped.y,a0.y);
+ const joined=C.cloudParticle(event,event.attach+event.life+4.2,d.clouds,true);
+ a.deepEqual(R.fragmentPosition(joined,130,100,d.clouds,true),{x:195,y:280});
+});

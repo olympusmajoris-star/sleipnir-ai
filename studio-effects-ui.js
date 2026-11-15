@@ -28,7 +28,7 @@ function refreshCloudImages(){
 function updateCloudSourceNote(){
  const i=cloudKeys.indexOf($('#cloudSlot').value),state=cloudPlayers[i],where=['top message cloud','middle message cloud','bottom message cloud','middle message cloud','middle message cloud'][i];
  $('#useClipCloud').disabled=!asset;$('#editSelectedClip').disabled=!asset;$('#clearCloudDraft').hidden=!draftCloudSlot;
- $('#cloudSourceNote').textContent=draftCloudSlot?$('#assetName').textContent+' is playing in the '+(['top','middle','bottom','middle','middle'][cloudKeys.indexOf(draftCloudSlot)])+' cloud. Crop and background-removal edits apply live.':'Selected source appears in the '+where+'.';
+ $('#cloudSourceNote').textContent=draftCloudSlot?$('#assetName').textContent+' is previewed in the '+(['top','middle','bottom','middle','middle'][cloudKeys.indexOf(draftCloudSlot)])+' cloud. Crop and background-removal edits apply live.':'Selected source appears in the '+where+'.';
  $('#cloudPlaybackState').textContent=draftCloudSlot===cloudKeys[i]?((asset?.duration?'Video motion · '+asset.duration.toFixed(1)+' seconds · ':'Video loading · ')+data.media.speed+'× speed'):state?.error?'Motion unavailable: '+state.error:state?.player?state.player.animation.frames.length+' motion frames · '+(data.cloudAssets[cloudKeys[i]]?.speed||1)+'× speed':'Loading cloud motion…';
 }
 function selectMedia(value){
