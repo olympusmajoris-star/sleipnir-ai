@@ -905,14 +905,18 @@ function feedOffset(t,speed,total,visible){const span=Math.max(0,total-(visible|
 const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
 const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,readOnly:!!RUNTIME,onAction:runtimeAction,arrange:RUNTIME?(()=>{}):AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
 const STORE_WORKBENCH=!RUNTIME?StudioStoreWorkbench.mount({url:SB.url,headers:H,getStore:()=>STORE,getDocument:()=>STATE.S,save:savePageNow,media:SHARED_MEDIA,arrange:AsgardStudioLayout.arrange,addLayers:assets=>PAGE_TOOLS.add('image',assets)}):null;
+/* While Danny edits a part that only shows for a moment, hold the preview on that moment (not while he's tuning speed or motion). */
+const HOLDS={shoppost:{card:S=>S.card&&S.card.auto?S.card.every*(S.card.open/2):null},ads:{take:S=>S.take?S.take.inSec+Math.max(0,S.take.every-2*S.take.inSec)/2:null},swap:{swipe:S=>S.swipe&&S.swipe.auto?S.swipe.every*(1-S.swipe.speed*0.75):null}};
+function previewHold(){if(RUNTIME||PREVIEW_MOTION)return null;const f=HOLDS[STATE.page]?.[STATE.sec];if(!f||!STATE.S)return null;const opt=String(window.__studioOption||'');if(/speed|motion|timing/i.test(opt))return null;try{const v=f(STATE.S);return Number.isFinite(v)?v:null;}catch(e){return null;}}
 function frame(now){
   if(runtimeStopped)return;
   if(RUNTIME)now=(runtimePaused?runtimePauseAt:now)-runtimePauseOffset;
+  const held=previewHold();if(held!=null){STATE.holdBase??=now;now=STATE.holdBase;}else STATE.holdBase=null;const heldT=held;
   runtimeHits.length=0;
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   if(r.width > 0 && (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr))){ cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
   if(STATE.S && r.width > 0){ const sc = cv.width / W; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(sc, 0, 0, sc, 0, 0);
-    try { if(RUNTIME&&!RUNTIME_PREVIEW&&runtimeNeedsBinding())drawRuntimeUnconnected(ctx,STATE.S);else PAGES[STATE.page].draw(ctx, now / 1000, STATE.S, (now - STATE.t0) / 1000);if(!['shome','browse'].includes(STATE.page))norseLayer(ctx,now/1000,STATE.S.norse); } catch(e){ console.error(e); } }
+    try { if(RUNTIME&&!RUNTIME_PREVIEW&&runtimeNeedsBinding())drawRuntimeUnconnected(ctx,STATE.S);else PAGES[STATE.page].draw(ctx, heldT!=null?heldT:now / 1000, STATE.S, heldT!=null?heldT+30:(now - STATE.t0) / 1000);if(!['shome','browse'].includes(STATE.page))norseLayer(ctx,now/1000,STATE.S.norse); } catch(e){ console.error(e); } }
   PAGE_TOOLS.sync();
   runtimeFrame=requestAnimationFrame(frame);
 }

@@ -123,6 +123,7 @@ function select(name,persist=true){
  $('#editorCrumb').textContent=name||'Choose an option';
  const back=$('.editor-back');if(back)back.disabled=!name;
  if(currentHost){currentHost.scrollTop=0;G.StudioWorkbench?.enhance(currentHost,name||activeKey.split(':').at(-1));}
+ G.__studioOption=name||'';
  const emptyNote=$('#workEmpty');if(emptyNote)emptyNote.hidden=!!name||!items.length;
  // Lots of controls: give them the room (the page list folds away until Back).
  const shown=items.find(i=>i.name===name),many=!!shown&&shown.body.querySelectorAll('.c,.pg-row,.pg-chk,.rn-control').length>12;
