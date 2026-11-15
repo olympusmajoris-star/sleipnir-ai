@@ -13,7 +13,7 @@ function runtimeAsset(src){if(!src)return src;if(!runtimeDataAssets.has(src))run
 const BROWSE_TYPES = ['grocery','fast_food','restaurant','retail','valhalla'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const runtimeEmit = (type,payload={}) => { if(RUNTIME) RUNTIME.emit(type,payload); };
-function hit(x,y,w,h,action){if(RUNTIME)runtimeHits.push({x,y,w,h,action});}
+function hit(x,y,w,h,action){runtimeHits.push({x,y,w,h,action});}
 function runtimeAction(action){
  if(!RUNTIME || !action || typeof action !== 'object') return;
  if(action.type==='navigate' && ['raven','home','shome','store','browse','convo','share','heimdall','track','swap','ads','shoppost','deals'].includes(action.target)){
@@ -1115,7 +1115,10 @@ if(RUNTIME){
   cv.addEventListener('pointerdown',e=>{pan={y:e.clientY};moved=0;});
   cv.addEventListener('pointermove',e=>{if(!pan)return;const dy=(pan.y-e.clientY)*W/cv.getBoundingClientRect().width;pan.y=e.clientY;moved+=Math.abs(dy);if(canPan())by(dy);});
   cv.addEventListener('pointerup',()=>{pan=null;});cv.addEventListener('pointercancel',()=>{pan=null;});
-  cv.addEventListener('click',e=>{if(moved>6)return;const P=PAGES[STATE.page];if(!P)return;const items=(P.sections||[]).map(sec=>({id:sec.id,name:sec.name,sub:sec.sub}));
+  cv.addEventListener('click',e=>{if(moved>6)return;const P=PAGES[STATE.page];if(!P)return;
+   {const r0=cv.getBoundingClientRect(),px=(e.clientX-r0.left)*W/r0.width,py=(e.clientY-r0.top)*W/r0.width;const h=[...runtimeHits].reverse().find(z=>px>=z.x&&px<=z.x+z.w&&py>=z.y&&py<=z.y+z.h);const a=h?.action;
+    if(a&&a.type==='navigate'&&parent!==window){parent.postMessage({type:'studio-open',target:a.target,storeId:a.storeId||'',pageType:a.pageType||''},location.origin);return;}
+    if(a&&a.type==='navigate'&&a.target==='store'&&a.storeId){location.href='pages.html?page=store&store='+encodeURIComponent(a.storeId);return;}}const items=(P.sections||[]).map(sec=>({id:sec.id,name:sec.name,sub:sec.sub}));
    document.querySelector('.canvas-pick')?.remove();const m=document.createElement('div');m.className='canvas-pick';m.style.left=Math.max(4,Math.min(e.clientX,innerWidth-260))+'px';m.style.top=Math.max(4,Math.min(e.clientY,innerHeight-50-items.length*46))+'px';const h=document.createElement('div');h.className='canvas-pick-title';h.textContent='Edit what is here';m.append(h);
    for(const it of items){const b=document.createElement('button');b.type='button';const bb=document.createElement('b');bb.textContent=it.name;const sm=document.createElement('small');sm.textContent=it.sub||'';b.append(bb,sm);b.onclick=()=>{m.remove();STATE.sec=it.id;nav();panel();};m.append(b);}
    document.body.append(m);setTimeout(()=>document.addEventListener('pointerdown',function off(ev){if(!m.contains(ev.target)){m.remove();document.removeEventListener('pointerdown',off,true);}},true),0);});
