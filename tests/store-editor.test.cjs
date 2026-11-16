@@ -6,3 +6,12 @@ test('store families stay isolated',()=>{assert.ok(W.storeTypeMatches('grocery',
 test('store controls contain no sky or social topic',()=>{for(const topics of Object.values(C.options))for(const topic of topics)assert.doesNotMatch(topic,/sky|black hole|stream|raven|cloud/i);});
 test('original images start unmodified and each lighting property reaches CSS',()=>{const s=C.style(C.defaults);assert.equal(s.width,'100%');assert.equal(s.objectFit,'contain');assert.equal(s.opacity,1);for(const [k,v]of [['brightness',70],['contrast',80],['saturation',30],['opacity',25],['x',20],['width',150],['shadow',20],['cropX',20],['zoom',2]])assert.notDeepEqual(C.style({...C.defaults,[k]:v}),s,k);});
 test('identities separate shelves and source tables',()=>{const a={table:'aisle_renders',row:{aisle:'Snacks',render_no:1},url:'x'};assert.notEqual(C.identity(a),C.identity({...a,row:{...a.row,render_no:2}}));assert.notEqual(C.identity(a),C.identity({...a,table:'store_entrances'}));});
+
+test('added shelf products obey removal, overrides and ordering without duplicate originals',()=>{
+ const original=[{id:'a',name:'A',price:2},{id:'b',name:'B',price:3}];
+ const edit={products:[{id:'a',name:'Duplicate'},{id:'c',name:'C',price:4,url:'c.png'}],removedProducts:['b'],productOverrides:{c:{price:5}},productOrder:['c','a']};
+ assert.deepEqual(C.effectiveProducts(original,edit),[{id:'c',name:'C',price:5,url:'c.png',image_url:'c.png'},{id:'a',name:'A',price:2}]);
+ assert.equal(original[1].name,'B');
+ assert.deepEqual(C.effectiveProducts(original,{products:[{id:'c'}],removedProducts:['c']}),original);
+});
+test('original product order survives when only some items are manually ordered',()=>{assert.deepEqual(C.effectiveProducts([{id:'a'},{id:'b'},{id:'c'}],{productOrder:['c']}).map(p=>p.id),['c','a','b']);});
