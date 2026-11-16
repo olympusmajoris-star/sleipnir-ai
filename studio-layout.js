@@ -15,7 +15,7 @@ function mount(config){
   const sizes=el('label','phone-size-control','Phone size '),select=el('select');select.setAttribute('aria-label','Phone canvas size');
   for(const [value,label]of [['original','Original size'],['large','125%'],['largest','150%'],['fit','Fit on screen']]){const o=el('option','',label);o.value=value;select.append(o);}
   sizes.append(select);title.append(sizes);
-  let size='original';try{size=localStorage.getItem('asgard-phone-size-v1')||size;}catch{}
+  let size='fit';
   const apply=()=>{const value=select.value;document.body.dataset.phoneSize=value;document.documentElement.style.setProperty('--studio-phone-height',({original:820,large:1025,largest:1230,fit:820})[value]+'px');try{localStorage.setItem('asgard-phone-size-v1',value);}catch{}};
   select.value=['original','large','largest','fit'].includes(size)?size:'original';select.onchange=apply;apply();
  }
@@ -111,7 +111,7 @@ function arrange(host,key){
  for(const item of items){const b=button(item.name,()=>select(item.name),'option-button');b.dataset.option=item.name;menu.append(b);buttons.push(b);}
  if(key==='holes'){menu.append(button('Images & videos',()=>document.getElementById('openLib')?.click(),'option-button'));}
  if(!items.length)unit('Options').append(el('p','note','Choose a page feature above.'));
- select(memory[activeKey]||null,false);
+ select(null,false);
  G.StudioWorkbench?.enhance(host,items.find(i=>!i.body.hidden)?.name||key);
  G.dispatchEvent(new CustomEvent('workspace-feature',{detail:{page:currentPage,feature:key,topic:memory[activeKey]||''}}));
 }
@@ -126,7 +126,7 @@ function select(name,persist=true){
  G.__studioOption=name||'';
  const emptyNote=$('#workEmpty');if(emptyNote)emptyNote.hidden=!!name||!items.length;
  // Lots of controls: give them the room (the page list folds away until Back).
- const shown=items.find(i=>i.name===name),many=!!shown&&shown.body.querySelectorAll('.c,.pg-row,.pg-chk,.rn-control').length>12;
+ const shown=items.find(i=>i.name===name),many=false;
  document.body.classList.toggle('wide-tools',many);
  // A feature that is switched off can't show changes: say so instead of leaving dead-looking sliders.
  if(shown){const sw=[...shown.body.querySelectorAll('input[type=checkbox]')].find(i=>/(^|\.)(on|show)$/.test(i.dataset.control||i.dataset.p||''));let note=shown.body.querySelector('.off-note');

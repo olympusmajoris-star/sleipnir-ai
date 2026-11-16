@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 test('functional navigation resolves every page and keeps independent store identity',()=>{
  for(const g of C.GROUPS)for(const p of g.pages)assert.equal(C.normalizeLocation({group:g.id,page:p[0]}).page,p[0]);
  assert.equal(C.normalizeLocation({group:'shopping',page:'stores',store:'abc'}).store,'abc');
- assert.equal(C.normalizeLocation({group:'removed',page:'removed'}).page,'raven');
+ assert.equal(C.normalizeLocation({group:'removed',page:'removed'}).page,'shome');
 });
 test('back then new selection truncates forward history without mutating prior locations',()=>{
  let h={items:[C.normalizeLocation({group:'sky',page:'raven'})],at:0};
