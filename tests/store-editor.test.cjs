@@ -15,3 +15,5 @@ test('added shelf products obey removal, overrides and ordering without duplicat
  assert.deepEqual(C.effectiveProducts(original,{products:[{id:'c'}],removedProducts:['c']}),original);
 });
 test('original product order survives when only some items are manually ordered',()=>{assert.deepEqual(C.effectiveProducts([{id:'a'},{id:'b'},{id:'c'}],{productOrder:['c']}).map(p=>p.id),['c','a','b']);});
+
+test('shelf gallery includes only stocked categories supported by that original store',()=>{const rows=[{category:'Snacks',product_count:8},{category:'Beverages',product_count:0},{category:'Produce',product_count:2}];assert.deepEqual(C.shelfCategories(rows,['Snacks','Beverages','Household']),['Snacks']);assert.deepEqual(C.shelfCategories(rows,['Snacks','Bread & Rolls'],{breadRolls:true}),['Snacks','Bread & Rolls']);assert.deepEqual(C.shelfCategories(rows,[],{dynamic:true}),['Snacks','Produce']);});
