@@ -20,3 +20,8 @@ Dart transfer remains separate: new per-element reference overrides and artwork 
 - Flattened artwork has an explicit **Edit individual parts** tool. Drawing a rectangle separates those original pixels into a reversible layer; moving/shrinking it exposes a configurable fill. This is rectangular separation, not automatic object segmentation or background reconstruction. It does not automatically discover every burger/sign in a flattened photo.
 - Layer edits are retained in the shared design JSON; unsupported Dart conversion is still blocked rather than silently discarded.
 - Tests cover isolated live resizing, persistence, individual shelf selection, source crop preservation, and drag-direction geometry.
+
+## Drive-through source layers
+- Original board slots now place product names, combo names and prices over the source board using saved coordinates. The board's own image stays in place.
+- For saved menu-board slots, image regions are derived beside item/combination text and beneath section text. These rectangular source regions become directly selectable without drawing a box first. They are not transparent object masks; resizing a region can expose the underlying fill.
+- Source board panels share their element settings with the store-page preview.
