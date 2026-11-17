@@ -36,6 +36,7 @@ const FAVS = [['02','Freya'],['03','Loki'],['04','Sif'],['05','Tyr'],['06','Bald
 const SPINS = { '02':1, '05':1, '06':1 };
 const NAMES = ['Freya','Loki','Baldr','Hel','Tyr','Sif','Gerd','Forseti','Skadi','Eir'];
 const EARTH_VIDEOS = ['v34/earth-changing-landscapes-continuous-v34.mp4','v34/earth-close-farmland-continuous-v34.mp4','v34/earth-farmland-continuous-v34.mp4','v34/earth-forest-river-continuous-v34.mp4','v34/earth-green-rivers-continuous-v34.mp4','v34/earth-ice-fjords-continuous-v34.mp4','v34/earth-japan-continuous-v34.mp4','v34/earth-river-plains-continuous-v34.mp4','v34/earth-terrain-continuous-v34.mp4','v34/earth-woodlands-continuous-v34.mp4','v32/earth-egypt-rigid-v32.mp4','v32/earth-florida-rigid-v32.mp4','v32/earth-green-valleys-rigid-v32.mp4','v32/earth-san-francisco-rigid-v32.mp4','v29/earth-changing-landscapes-v29.mp4','v29/earth-close-farmland-v29.mp4','v29/earth-egypt-v29.mp4','v29/earth-farmland-v29.mp4','v29/earth-florida-v29.mp4','v29/earth-forest-river-v29.mp4','v29/earth-green-rivers-v29.mp4','v29/earth-green-valleys-v29.mp4','v29/earth-ice-fjords-v29.mp4','v29/earth-japan-v29.mp4','v29/earth-river-plains-v29.mp4','v29/earth-san-francisco-v29.mp4','v29/earth-terrain-v29.mp4','v29/earth-woodlands-v29.mp4'];
+const RAVEN_CLIPS = [['San Francisco','v32/earth-san-francisco-rigid-v32.mp4',.2],['Egypt','v32/earth-egypt-rigid-v32.mp4',.2],['Japan','v34/earth-japan-continuous-v34.mp4',.2],['Coast and green valleys','v32/earth-green-valleys-rigid-v32.mp4',.2],['Florida coast','v32/earth-florida-rigid-v32.mp4',.2],['Terrain','v34/earth-terrain-continuous-v34.mp4',.4],['River plains','v34/earth-river-plains-continuous-v34.mp4',.4],['Woodlands','v34/earth-woodlands-continuous-v34.mp4',.4],['Forest river','v34/earth-forest-river-continuous-v34.mp4',.4],['Changing landscapes','v34/earth-changing-landscapes-continuous-v34.mp4',.4],['Green rivers','v34/earth-green-rivers-continuous-v34.mp4',.4],['Farmland','v34/earth-farmland-continuous-v34.mp4',.4],['Close farmland','v34/earth-close-farmland-continuous-v34.mp4',.4],['Ice and fjords','v34/earth-ice-fjords-continuous-v34.mp4',.4]];
 const CLOUD_ART = ['cloud-mine-billows-v27','cloud-peer-billows-v27','message-cloud','cloud-billows-166852-v29','cloud-anvil-258398-v29','cloud-tower-365034-v29','cloud-mine-video-v24','cloud-mine-video-v26','cloud-peer-video-v24','cloud-peer-video-v26'].map(n => SB.url + '/storage/v1/object/public/asgard_ui/raven_cloud_v20/' + n + '.webp');
 const G = (k, label, items) => ({ t:'g', k, label, items });
 const earthNow = (E, t) => { const L = (Array.isArray(E.list) ? E.list : []).filter(Boolean); if(!L.length) return E.pick; if(E.order === 'one') return L[0]; const k = Math.floor(Math.max(0, t) / Math.max(1, +E.each || 20)); let seq = L.slice(); if(E.order === 'reverse') seq.reverse(); if(E.order === 'shuffle'){ let s = (Math.floor(k / seq.length) + 1) * 9301; seq = seq.map(p => [p, (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648]).sort((a, b) => a[1] - b[1]).map(a => a[0]); } return seq[k % seq.length]; };
@@ -114,26 +115,29 @@ const PAGES = {
     draw: drawShare,
   },
   convo: {
-    title: 'Conversation (clouds + earth)',
+    title: 'Messages (your real Raven conversation screen)',
     defaults: {
-      // these first fields are the same ones the app already reads live (table raven_scene_settings)
+      // the 15 values the app reads live from raven_scene_settings, same defaults and limits as AsgardRaven
       day_speed: 8, night_speed: 24, cloud_speed: 1, cloud_padding: 18, cloud_growth_ms: 250, ground_brightness: 1, cloud_shadow: 0.3, message_spacing: 14, cloud_variety: 0.85, ambient_count: 3, ambient_speed: 1, ambient_scale: 1, ambient_opacity: 0.55, water_shimmer: 0.5, earth_mode: 0,
-      earth: { pick: 'farmland', list: [], order: 'list', each: 20, dir: 'forward', horizon: 0.42, tilt: 0.7, haze: 0.35, skyTop: '#6f8fb3', skyLow: '#cfdbe6', night: false, city: 'london' },
-      msg: { size: 1, text: 15, textColor: '#26313d', mineX: 0.62, peerX: 0.36, sway: 1, opacity: 0.96, newEvery: 3.2 },
-      head: { show: true, size: 1, y: 0.06, nameSize: 18, nameColor: '#ffffff' },
+      // the app's map playlist (_rvEarthClips): same 14 maps, same order, same per-map speed
+      earth: { clips: RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })), night: false },
+      preview: { name: 'Freya', messages: 6 },
+      msg: {}, head: {},
     },
     sections: [
-      { id:'earth', name:'Earth below', sub:'The ground under the clouds', groups:[
-        { name:'Ground', ctrls:[Sel('earth.pick','Which land',EARTHS.map(e=>[e,e.replace(/-/g,' ')])), Sel('earth.order','Play order',[['list','In the order you set'],['reverse','Reverse order'],['shuffle','Shuffle'],['one','Only the first one']]), R('earth.each','Seconds each map plays',3,180,1), Sel('earth.dir','Direction the land moves',[['forward','As filmed'],['back','Opposite way'],['left','Sideways to the left'],['right','Sideways to the right']]), K('earth.night','Night (city lights)'), Sel('earth.city','City at night',[['london','London'],['new-york','New York']]), R('day_speed','Map speed',0,40,.5), R('night_speed','Night ground speed',0,60,.5), R('ground_brightness','Ground brightness',0.2,1.8,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
-        { name:'View', ctrls:[R('earth.horizon','Horizon height (0 = map fills the whole screen)',0,0.75,.005), R('earth.tilt','How flat the ground lies',0,1,.01), R('earth.haze','Haze',0,1,.01), C('earth.skyTop','Sky color (top)'), C('earth.skyLow','Sky color (horizon)')]},
+      { id:'earth', name:'Earth (whole screen)', sub:'The map playlist behind everything', groups:[
+        { name:'Maps & play order', ctrls:[{ t:'pl', k:'earth.clips', label:'Maps' }]},
+        { name:'Speed & look', ctrls:[R('day_speed','Map speed (all maps)',0.0625,32,.0625), R('ground_brightness','Map brightness',0.3,1.5,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
+        { name:'Night', ctrls:[K('earth.night','Night (city lights)'), R('night_speed','Night speed',0.0625,64,.0625)]},
       ]},
       { id:'msg', name:'Message clouds', sub:'Each message is a cloud', groups:[
-        { name:'Clouds', ctrls:[G('msg.mineClouds','Your message clouds',CLOUD_ART), G('msg.peerClouds','Their message clouds',CLOUD_ART), R('msg.size','Cloud size',0.5,2,.01), R('cloud_padding','Room around the words',4,40,1), R('message_spacing','Space between messages',0,60,1), R('cloud_growth_ms','How fast a new cloud puffs up (ms)',50,2000,10), R('cloud_variety','Cloud shape variety',0,1,.01), R('cloud_speed','Cloud billow speed',0,3,.01), R('msg.sway','Sway',0,3,.01), R('msg.opacity','See-through',0.3,1,.01), R('cloud_shadow','Shadows on the ground',0,1,.01)]},
-        { name:'Words', ctrls:[R('msg.text','Text size',10,24,.5), C('msg.textColor','Text color'), R('msg.mineX','Your clouds sit at',0.4,0.85,.005), R('msg.peerX','Their clouds sit at',0.15,0.6,.005), R('msg.newEvery','Preview: a new message every (s)',1,10,.1)]},
-        { name:'Background clouds', ctrls:[G('ambient_clouds','Background cloud pictures',CLOUD_ART), R('ambient_count','How many',0,10,1), R('ambient_speed','Speed',0,4,.01), R('ambient_scale','Size',0.3,2.5,.01), R('ambient_opacity','See-through',0,1,.01)]},
+        { name:'Cloud shape', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('cloud_variety','Cloud shape variety',0,1,.01), R('cloud_shadow','Shadows on the ground',0,0.7,.01)]},
+        { name:'Cloud motion', ctrls:[R('cloud_speed','Cloud billow speed',0.125,4,.005), R('cloud_growth_ms','How fast a new cloud forms (ms)',80,1500,10)]},
+        { name:'Spacing', ctrls:[R('message_spacing','Space between messages',4,64,1)]},
+        { name:'Preview only', ctrls:[R('preview.messages','Messages shown in the preview',0,6,1)]},
       ]},
-      { id:'head', name:'Person on top', sub:'Their 3D bust & name', groups:[
-        { name:'Header', ctrls:[K('head.show','Show'), R('head.size','Bust size',0.4,1.8,.01), R('head.y','Height',0,0.2,.002), R('head.nameSize','Name size',10,30,.5), C('head.nameColor','Name color')]},
+      { id:'ambient', name:'Background clouds', sub:'Clouds drifting over the map', groups:[
+        { name:'Background clouds', ctrls:[R('ambient_count','How many',0,8,1), R('ambient_speed','Speed',0.1,3,.01), R('ambient_scale','Size',0.4,2.5,.01), R('ambient_opacity','See-through',0,1,.01)]},
       ]},
     ],
     push: true,
@@ -871,6 +875,20 @@ function panel(){
         const inp = el.querySelector('input'), em = el.querySelector('em'); inp.oninput = () => { const nv = parseFloat(inp.value); set(STATE.S, c.k, nv); em.textContent = fmt(nv); save(); }; }
       else if(c.t === 'k'){ el = document.createElement('label'); el.className = 'pg-chk'; el.innerHTML = `<input type="checkbox" ${v ? 'checked' : ''}> ${c.label}`; el.querySelector('input').onchange = (e) => { set(STATE.S, c.k, e.target.checked); save(); }; }
       else if(c.t === 'c'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="color" value="${/^#/.test(v) ? v : '#ffffff'}">`; el.querySelector('input').oninput = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
+      else if(c.t === 'pl'){ el = document.createElement('div'); el.className = 'pg-row map-playlist'; el.style.display = 'block'; const list = Array.isArray(v) ? v.map(o => Object.assign({}, o)) : []; const hid = document.createElement('input'); hid.type = 'hidden';
+        const commit = () => { set(STATE.S, c.k, list); save(); panel(); }, thumb = p => { const vd = document.createElement('video'); vd.src = SB.url + '/storage/v1/object/public/raven_earth/' + p + '#t=1'; vd.muted = true; vd.loop = true; vd.playsInline = true; vd.preload = 'metadata'; vd.style.cssText = 'width:150px;height:84px;object-fit:cover;border-radius:6px;flex:none;background:#000'; vd.onmouseenter = () => vd.play().catch(()=>{}); vd.onmouseleave = () => vd.pause(); return vd; };
+        const h1 = document.createElement('b'); h1.textContent = 'Play order (' + list.length + ' maps) — each map plays to its end, then the next'; el.append(hid, h1);
+        list.forEach((m, i) => { const r = document.createElement('div'); r.style.cssText = 'display:flex;align-items:center;gap:10px;margin:6px 0;padding:6px;border:1px solid #2a3a42;border-radius:8px';
+          const num = document.createElement('b'); num.textContent = i + 1; num.style.cssText = 'width:22px;text-align:center;color:#ffb347'; const nm = document.createElement('div'); nm.style.flex = '1'; nm.innerHTML = '<div style="font-size:13px"></div><small style="color:#8fa3ab"></small>'; nm.firstChild.textContent = m.name || m.p; nm.lastChild.textContent = m.p.split('/')[0];
+          const sp = document.createElement('label'); sp.style.cssText = 'font-size:12px;color:#8fa3ab'; sp.textContent = 'Speed '; const si = document.createElement('input'); si.type = 'number'; si.step = '0.05'; si.min = '0.05'; si.max = '4'; si.value = m.speed; si.style.width = '64px'; si.onchange = () => { const n = parseFloat(si.value); if(isFinite(n) && n > 0){ list[i].speed = n; commit(); } }; sp.append(si);
+          const mk = (txt, tip, fn, dis) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'ghost'; x.textContent = txt; x.title = tip; x.disabled = !!dis; x.onclick = () => { fn(); commit(); }; return x; };
+          r.append(num, thumb(m.p), nm, sp, mk('↑', 'Play earlier', () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; }, i === 0), mk('↓', 'Play later', () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; }, i === list.length - 1), mk('✕', 'Take out of the playlist', () => { list.splice(i, 1); }, list.length <= 1)); el.append(r); });
+        const h2 = document.createElement('b'); h2.textContent = 'All your map videos — click one to add it to the end'; h2.style.cssText = 'display:block;margin-top:14px'; const grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:6px';
+        for(const p of EARTH_VIDEOS){ const inList = list.some(m => m.p === p); const b = document.createElement('button'); b.type = 'button'; b.title = p; b.style.cssText = 'padding:0;border:3px solid ' + (inList ? '#ffb347' : '#2a3a42') + ';border-radius:8px;background:#000;cursor:pointer;text-align:left;overflow:hidden'; const vv = thumb(p); vv.style.width = '100%'; vv.style.borderRadius = '0'; vv.style.pointerEvents = 'none'; b.onmouseenter = () => vv.play().catch(()=>{}); b.onmouseleave = () => vv.pause();
+          const cap = document.createElement('small'); cap.style.cssText = 'display:block;padding:4px 6px;color:#d8eef0;font-size:11px'; cap.textContent = p.replace(/^v\d+\/earth-/, '').replace(/-(continuous|rigid)?-?v\d+\.mp4$/, '').replace(/-/g, ' ') + ' · ' + p.split('/')[0] + (inList ? ' · in playlist' : ''); b.append(vv, cap);
+          b.onclick = () => { const known = RAVEN_CLIPS.find(cc => cc[1] === p); list.push({ p, name: known ? known[0] : cap.textContent.split(' · ')[0], speed: known ? known[2] : .4 }); commit(); }; grid.append(b); }
+        const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'ghost'; reset.textContent = 'Back to the app\'s original 14 maps and order'; reset.style.marginTop = '10px'; reset.onclick = () => { set(STATE.S, c.k, RAVEN_CLIPS.map(cc => ({ p: cc[1], name: cc[0], speed: cc[2] }))); save(); panel(); };
+        el.append(h2, grid, reset); }
       else if(c.t === 'g'){ el = document.createElement('div'); el.className = 'pg-row cloud-pick'; el.style.display = 'block'; const list = Array.isArray(v) ? v.slice() : []; const lab = document.createElement('label'); lab.textContent = c.label + ' — click to use, click again to take out' + (list.length ? ' (' + list.length + ' in use, they take turns)' : ' (none picked: the original clouds are used)'); const hid = document.createElement('input'); hid.type = 'hidden';
         const grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;width:100%;margin:6px 0 12px';
         for(const u of c.items){ const at = list.indexOf(u); const b = document.createElement('button'); b.type = 'button'; b.title = u.split('/').pop(); b.style.cssText = 'position:relative;padding:4px;border:3px solid ' + (at >= 0 ? '#ffb347' : '#2a3a42') + ';border-radius:8px;background:linear-gradient(#6f8fb3,#cfdbe6);cursor:pointer;height:96px';
@@ -912,7 +930,7 @@ async function openPage(page){
   STORE.scroll=0;STORE.scrollMax=0;
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')||AsgardStudioLayout.lastFeature(page)||PAGES[page].sections[0].id;if(!PAGES[page].sections.some(s=>s.id===STATE.sec))STATE.sec=PAGES[page].sections[0].id; STATE.t0 = performance.now();
-  ROCK_NAV.root.hidden=page==='shome';
+  ROCK_NAV.root.hidden=page==='shome'||page==='convo';
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
   { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); if(page!=='browse') q.delete('type'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
   const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
@@ -1029,41 +1047,46 @@ function drawShare(x, t, S, since){
 
 const MSGS = [ ['peer', 'Hey, you still coming tonight?'], ['mine', 'Yeah! Leaving in 20'], ['peer', 'Bring the speaker'], ['mine', 'Already in the car'], ['peer', 'Perfect, see you soon'], ['mine', 'On my way'] ];
 const CLOUDS = ['cloud-mine-billows-v27', 'cloud-peer-billows-v27', 'message-cloud', 'cloud-billows-166852-v29', 'cloud-anvil-258398-v29', 'cloud-tower-365034-v29'];
+// Your real Raven conversation screen (AsgardRaven _RvConversation), drawn piece for piece.
+const RV = { idx: 0, vids: {}, key: '' };
+function rvVideo(p){ const src = runtimeAsset(SB.url + '/storage/v1/object/public/raven_earth/' + p); let v = RV.vids[src]; if(!v){ v = document.createElement('video'); v.crossOrigin = 'anonymous'; v.muted = true; v.loop = false; v.playsInline = true; v.preload = 'auto'; v.src = src; v.addEventListener('ended', () => { RV.idx++; }); RV.vids[src] = v; } return v; }
+function rvShadowText(x, str, X, Y, font, color, align){ x.save(); x.font = font; x.fillStyle = color; x.textAlign = align || 'left'; x.textBaseline = 'middle'; x.shadowColor = 'rgba(0,0,0,.87)'; x.shadowBlur = 8; x.fillText(str, X, Y); x.restore(); }
 function drawConvo(x, t, S){
-  const E = S.earth, M = S.msg, Hd = S.head, hz = HH * E.horizon;
-  // sky
-  const g = x.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, E.night ? '#05070d' : E.skyTop); g.addColorStop(1, E.night ? '#1a2333' : E.skyLow); x.fillStyle = g; x.fillRect(0, 0, W, hz + 2);
-  // ground laid nearly flat: draw the earth video in horizontal strips that shrink toward the horizon
-  const src = E.night ? null : vid(earthSrc(earthNow(E, t))); if(drawConvo.last && drawConvo.last !== src) drawConvo.last.pause(); drawConvo.last = src;
-  if(src){ src.playbackRate = clamp(S.day_speed / 8, 0.1, 4); if(src.paused&&!runtimePaused) src.play().catch(()=>{}); }
-  const cityIm = E.night ? img(UI + 'raven_cloud_v20/' + E.city + '.webp') : null;
-  let sw = src ? src.videoWidth : (cityIm && ok(cityIm) ? cityIm.naturalWidth : 0), sh = src ? src.videoHeight : (cityIm && ok(cityIm) ? cityIm.naturalHeight : 0);
-  let srcEl = src && src.readyState >= 2 ? src : (cityIm && ok(cityIm) ? cityIm : null);
-  if(srcEl && srcEl === src && sw && E.dir && E.dir !== 'forward'){ const c = drawConvo.rc || (drawConvo.rc = document.createElement('canvas')), side = E.dir === 'left' || E.dir === 'right'; c.width = side ? sh : sw; c.height = side ? sw : sh; const q = c.getContext('2d'); q.save(); q.translate(c.width / 2, c.height / 2); q.rotate({ back: Math.PI, left: -Math.PI / 2, right: Math.PI / 2 }[E.dir] || 0); q.drawImage(src, -sw / 2, -sh / 2); q.restore(); srcEl = c; sw = c.width; sh = c.height; }
-  if(srcEl && sw){ const rows = 70, gh = HH - hz, nightPan = E.night ? (t * S.night_speed * 0.6) % (sh * 0.5) : 0; x.save(); x.filter = `brightness(${S.ground_brightness})`;
-    for(let k = 0; k < rows; k++){ const a = k / rows, b = (k + 1) / rows; const da = Math.pow(a, 1 + E.tilt * 2.2), db = Math.pow(b, 1 + E.tilt * 2.2);
-      const y0 = hz + gh * da, y1 = hz + gh * db, widen = 1 + (1 - a) * E.tilt * 2.4, dw = W * widen; const sy0 = sh * 0.05 + (sh * 0.9) * a * 0.999 + nightPan * 0, sh0 = (sh * 0.9) / rows;
-      x.drawImage(srcEl, 0, (sy0 + nightPan) % (sh - sh0), sw, sh0, (W - dw) / 2, y0, dw, Math.max(1, y1 - y0 + 0.6)); }
-    x.restore(); }
-  // haze at the horizon
-  if(E.haze > 0){ const hg = x.createLinearGradient(0, hz - 30, 0, hz + 140); hg.addColorStop(0, 'rgba(0,0,0,0)'); hg.addColorStop(0.25, E.night ? `rgba(30,40,60,${E.haze})` : `rgba(220,232,242,${E.haze})`); hg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = hg; x.fillRect(0, hz - 30, W, 170); }
-  // background clouds
-  for(let i = 0; i < S.ambient_count; i++){ const AL = Array.isArray(S.ambient_clouds) ? S.ambient_clouds : []; const ci = img(AL.length ? AL[i % AL.length] : UI + 'raven_cloud_v20/' + CLOUDS[3 + (i % 3)] + '.webp'); if(!ok(ci)) continue; const cw = 170 * S.ambient_scale * (0.7 + 0.2 * (i % 3)), ch = cw * ci.naturalHeight / ci.naturalWidth, span = W + cw * 2;
-    const cx2 = ((t * 9 * S.ambient_speed * (0.6 + i * 0.13) + i * span / Math.max(1, S.ambient_count)) % span) - cw, cy2 = hz - 40 - (i * 53) % (hz * 0.6);
-    x.save(); x.globalAlpha = S.ambient_opacity; x.globalCompositeOperation = 'screen'; x.drawImage(ci, cx2, cy2, cw, ch); x.restore(); }
-  // message clouds, newest at the bottom, each puffing up as it arrives
-  const per = Math.max(0.5, M.newEvery), n = Math.floor(t / per), shown = Math.min(MSGS.length, 3 + (n % (MSGS.length - 2)));
-  let yy = HH - 120; x.font = `600 ${M.text}px system-ui`; x.textAlign = 'center'; x.textBaseline = 'middle';
-  for(let k = shown - 1; k >= 0; k--){ const [who, txt] = MSGS[k], isNew = k === shown - 1, age = isNew ? (t % per) * 1000 : 99999, grow = clamp(age / S.cloud_growth_ms, 0, 1), gs = 0.3 + 0.7 * (1 - Math.pow(1 - grow, 3));
-    const tw = x.measureText(txt).width, cw = (tw + S.cloud_padding * 4) * M.size, CL = Array.isArray(who === 'mine' ? M.mineClouds : M.peerClouds) ? (who === 'mine' ? M.mineClouds : M.peerClouds) : [], cl = img(CL.length ? CL[k % CL.length] : UI + 'raven_cloud_v20/' + (S.cloud_variety > 0.5 && k % 3 === 2 ? CLOUDS[2] : (who === 'mine' ? CLOUDS[0] : CLOUDS[1])) + '.webp');
-    if(!ok(cl)) continue; const ch = cw * cl.naturalHeight / cl.naturalWidth * 0.75, cx3 = W * (who === 'mine' ? M.mineX : M.peerX) + Math.sin(t * 0.6 * M.sway + k) * 6 * M.sway, cy3 = yy - ch / 2 + Math.sin(t * S.cloud_speed + k * 1.7) * 2;
-    if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = 'blur(8px)'; x.beginPath(); x.ellipse(cx3 + 30, Math.min(HH - 10, cy3 + ch * 0.9 + 40), cw * 0.35 * gs, ch * 0.12 * gs, 0, 0, 7); x.fill(); x.restore(); }
-    x.save(); x.translate(cx3, cy3); x.scale(gs * (1 + Math.sin(t * S.cloud_speed * 1.3 + k) * 0.015), gs); x.globalAlpha = M.opacity; x.drawImage(cl, -cw / 2, -ch / 2, cw, ch); x.globalAlpha = 1; x.fillStyle = M.textColor; if(grow > 0.6) x.fillText(txt, 0, 2); x.restore();
-    yy -= ch + S.message_spacing; if(yy < HH * 0.2) break; }
+  const E = S.earth || {}, clips = (Array.isArray(E.clips) && E.clips.length ? E.clips : RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })));
+  x.fillStyle = '#F0DFC0'; x.fillRect(0, 0, W, HH);
+  // 1. the map: whole screen, BoxFit.cover, plays each map to its end, then the next one in your order
+  const key = clips.map(c => c.p).join('|'); if(key !== RV.key){ RV.key = key; RV.idx = 0; }
+  const cur = clips[RV.idx % clips.length];
+  for(const v of Object.values(RV.vids)) if(v !== RV.cur && !v.paused) v.pause();
+  if(E.night){ const city = img(UI + 'raven_cloud_v20/london.webp'); if(ok(city)){ x.save(); x.filter = `brightness(${S.ground_brightness})`; const pan = (t * S.night_speed * 0.6) % 200; cover(x, city, 0, -pan * 0, W, HH, 0.5, ((t * S.night_speed) / 400) % 1); x.restore(); } }
+  else if(cur){ const v = rvVideo(cur.p); RV.cur = v; v.playbackRate = clamp((+cur.speed || .4) * S.day_speed / 8, .0625, 4); if(v.paused && !runtimePaused && !v.ended) v.play().catch(()=>{}); if(v.ended){ v.currentTime = 0; }
+    if(v.readyState >= 2){ x.save(); x.filter = `brightness(${S.ground_brightness})`; cover(x, v, 0, 0, W, HH); x.restore(); } }
+  // water shimmer: the app lights the water using each map's water mask; here a light sweep stands in for it
+  if(S.water_shimmer > 0 && !E.night){ x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = S.water_shimmer * .25; const g = x.createLinearGradient(0, 0, W, HH); const ph = (t * .15) % 1; g.addColorStop(Math.max(0, ph - .1), 'rgba(255,255,255,0)'); g.addColorStop(ph, 'rgba(255,255,255,1)'); g.addColorStop(Math.min(1, ph + .1), 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, HH); x.restore(); }
+  // 2. background clouds drifting over the map
+  const AMB = ['cloud-billows-166852-v29', 'cloud-anvil-258398-v29', 'cloud-tower-365034-v29'];
+  for(let i = 0; i < Math.round(S.ambient_count); i++){ const ci = img(UI + 'raven_cloud_v20/' + AMB[i % 3] + '.webp'); if(!ok(ci)) continue; const cw = 170 * S.ambient_scale * (0.75 + 0.2 * (i % 3)), ch = cw * ci.naturalHeight / ci.naturalWidth, span = W + cw * 2;
+    const cx = ((t * 8 * S.ambient_speed * (0.7 + 0.15 * i) + i * span / 3) % span) - cw, cy = HH * (0.18 + 0.22 * i % 0.6); x.save(); x.globalAlpha = S.ambient_opacity; x.drawImage(ci, cx, cy, cw, ch); x.restore(); }
+  // 3. dark fade top and bottom (0x90071823 → clear at 18%, clear to 76% → 0xB0071823)
+  const fg = x.createLinearGradient(0, 0, 0, HH); fg.addColorStop(0, 'rgba(7,24,35,.565)'); fg.addColorStop(.18, 'rgba(7,24,35,0)'); fg.addColorStop(.76, 'rgba(7,24,35,0)'); fg.addColorStop(1, 'rgba(7,24,35,.69)'); x.fillStyle = fg; x.fillRect(0, 0, W, HH);
+  // 4. message clouds, newest at the bottom, stacked upward
+  const composerTop = HH - 10 - 52 - 6, P = S.preview || {}, n = Math.max(0, Math.min(MSGS.length, Math.round(P.messages ?? 6)));
+  let yy = composerTop - 16; x.font = '600 15px system-ui'; x.textBaseline = 'middle'; x.textAlign = 'center';
+  for(let k = n - 1; k >= 0; k--){ const [who, txt] = MSGS[k], tw = x.measureText(txt).width, cw = Math.min(W - 40, tw + S.cloud_padding * 4), cl = img(UI + 'raven_cloud_v20/' + (S.cloud_variety > 0.5 && k % 3 === 2 ? 'message-cloud' : who === 'mine' ? 'cloud-mine-billows-v27' : 'cloud-peer-billows-v27') + '.webp');
+    if(!ok(cl)) continue; const ch = Math.max(56, cw * cl.naturalHeight / cl.naturalWidth * 0.75), cx = who === 'mine' ? W - 10 - cw / 2 : 10 + cw / 2, cy = yy - ch / 2 + Math.sin(t * S.cloud_speed + k * 1.7) * 2; if(yy - ch < 96) break;
+    if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = 'blur(8px)'; x.beginPath(); x.ellipse(cx + 24, cy + ch * 0.62, cw * 0.36, ch * 0.12, 0, 0, 7); x.fill(); x.restore(); }
+    x.save(); x.translate(cx, cy); x.scale(1 + Math.sin(t * S.cloud_speed * 1.3 + k) * 0.012, 1); x.drawImage(cl, -cw / 2, -ch / 2, cw, ch); x.restore();
+    rvShadowText(x, txt, cx, cy + 2, '600 15px system-ui', '#ffffff', 'center');
+    yy -= ch + S.message_spacing; if(yy < 110) break; }
+  if(!n) rvShadowText(x, 'Write a message.', W / 2, HH * .45, '16px system-ui', '#fff', 'center'), rvShadowText(x, 'Watch your cloud form.', W / 2, HH * .45 + 26, '16px system-ui', '#fff', 'center');
   x.textAlign = 'left'; x.textBaseline = 'alphabetic';
-  // the person on top
-  if(Hd.show){ const bu = img('busts/Freya.webp'); if(ok(bu)){ const fw = bu.naturalWidth / 11, bw = 110 * Hd.size, bh = bw * bu.naturalHeight / fw; x.drawImage(bu, 5 * fw, 0, fw, bu.naturalHeight, W / 2 - bw / 2, HH * Hd.y, bw, bh);
-    x.fillStyle = Hd.nameColor; x.font = `700 ${Hd.nameSize}px system-ui`; x.textAlign = 'center'; x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 6; x.fillText('Freya', W / 2, HH * Hd.y + bh + Hd.nameSize + 4); x.shadowBlur = 0; x.textAlign = 'left'; } }
+  // 5. header: back arrow, name, save contact, scene controls (only you), refresh
+  const hy = 44 + 4 + 24; rvShadowText(x, '←', 18, hy, '600 24px system-ui', '#fff'); rvShadowText(x, String(P.name || 'Freya'), 58, hy, '600 17px system-ui', '#fff');
+  rvShadowText(x, '👤+', W - 132, hy, '17px system-ui', '#fff'); rvShadowText(x, '⚙', W - 84, hy, '20px system-ui', '#8CE8ED'); rvShadowText(x, '⟳', W - 40, hy, '600 22px system-ui', '#fff');
+  // 6. message box: "Write into the clouds…" and the round send button
+  const bx = 14, by = composerTop, bw = W - 28, bh = 52; x.save(); rr(x, bx, by, bw, bh, 24); x.fillStyle = 'rgba(255,255,255,.98)'; x.fill(); x.lineWidth = 1; x.strokeStyle = 'rgba(201,220,226,.7)'; x.stroke(); x.restore();
+  x.save(); x.font = '18px system-ui'; x.fillStyle = '#566776'; x.textBaseline = 'middle'; x.fillText('Write into the clouds…', bx + 18, by + bh / 2); x.restore();
+  x.save(); x.beginPath(); x.arc(bx + bw - 26, by + bh / 2, 19, 0, 7); x.fillStyle = '#175E70'; x.fill(); x.restore(); rvShadowText(x, '↑', bx + bw - 26, by + bh / 2 + 1, '700 20px system-ui', '#fff', 'center');
 }
 
 function drawHeimdall(x, t, S, since){
