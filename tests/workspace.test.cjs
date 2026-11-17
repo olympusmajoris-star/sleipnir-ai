@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 test('functional navigation resolves every page and keeps independent store identity',()=>{
  for(const g of C.GROUPS)for(const p of g.pages)assert.equal(C.normalizeLocation({group:g.id,page:p[0]}).page,p[0]);
  assert.equal(C.normalizeLocation({group:'shopping',page:'stores',store:'abc'}).store,'abc');
- assert.equal(C.normalizeLocation({group:'removed',page:'removed'}).page,'raven');
+ assert.equal(C.normalizeLocation({group:'removed',page:'removed'}).page,'shome');
 });
 test('back then new selection truncates forward history without mutating prior locations',()=>{
  let h={items:[C.normalizeLocation({group:'sky',page:'raven'})],at:0};
@@ -64,3 +64,5 @@ test('app presentation exports exclude draft catalog prices, saved looks and sou
  assert.equal(exported._catalogDraft,undefined);assert.equal(exported._studioEditor,undefined);assert.equal(exported._studioLayers[0].sourceRecord,undefined);
  assert.equal(exported._studioLayers[0].panels[0].url,'https://assets.example/panel.png');assert.ok(source._catalogDraft);
 });
+
+test('restoring a shelf waits for its feature and exact asset before its controls',async()=>{const calls=[],location=C.normalizeLocation({group:'shopping',page:'grocery',store:'store-a',feature:'shelves',asset:'native-shelf:Snacks',topic:'Pricing'});await C.restoreEditor({feature:async v=>{calls.push(v);await Promise.resolve();calls.push('feature-ready');},asset:async v=>{calls.push(v);await Promise.resolve();calls.push('asset-ready');},topic:async v=>calls.push(v)},location);assert.deepEqual(calls,['shelves','feature-ready','native-shelf:Snacks','asset-ready','Pricing']);assert.equal(location.store,'store-a');});
