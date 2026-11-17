@@ -36,6 +36,7 @@ const FAVS = [['02','Freya'],['03','Loki'],['04','Sif'],['05','Tyr'],['06','Bald
 const SPINS = { '02':1, '05':1, '06':1 };
 const NAMES = ['Freya','Loki','Baldr','Hel','Tyr','Sif','Gerd','Forseti','Skadi','Eir'];
 const EARTH_VIDEOS = ['v34/earth-changing-landscapes-continuous-v34.mp4','v34/earth-close-farmland-continuous-v34.mp4','v34/earth-farmland-continuous-v34.mp4','v34/earth-forest-river-continuous-v34.mp4','v34/earth-green-rivers-continuous-v34.mp4','v34/earth-ice-fjords-continuous-v34.mp4','v34/earth-japan-continuous-v34.mp4','v34/earth-river-plains-continuous-v34.mp4','v34/earth-terrain-continuous-v34.mp4','v34/earth-woodlands-continuous-v34.mp4','v32/earth-egypt-rigid-v32.mp4','v32/earth-florida-rigid-v32.mp4','v32/earth-green-valleys-rigid-v32.mp4','v32/earth-san-francisco-rigid-v32.mp4','v29/earth-changing-landscapes-v29.mp4','v29/earth-close-farmland-v29.mp4','v29/earth-egypt-v29.mp4','v29/earth-farmland-v29.mp4','v29/earth-florida-v29.mp4','v29/earth-forest-river-v29.mp4','v29/earth-green-rivers-v29.mp4','v29/earth-green-valleys-v29.mp4','v29/earth-ice-fjords-v29.mp4','v29/earth-japan-v29.mp4','v29/earth-river-plains-v29.mp4','v29/earth-san-francisco-v29.mp4','v29/earth-terrain-v29.mp4','v29/earth-woodlands-v29.mp4'];
+const CLOUD_FILMS = ['cloud-mine-billows-v27','cloud-peer-billows-v27','message-cloud','cloud-mine-video-v26','cloud-peer-video-v26','cloud-mine-video-v24','cloud-peer-video-v24','cloud-billows-166852-v29','cloud-anvil-258398-v29','cloud-tower-365034-v29'];
 const RAVEN_CLIPS = [['San Francisco','v32/earth-san-francisco-rigid-v32.mp4',.2],['Egypt','v32/earth-egypt-rigid-v32.mp4',.2],['Japan','v34/earth-japan-continuous-v34.mp4',.2],['Coast and green valleys','v32/earth-green-valleys-rigid-v32.mp4',.2],['Florida coast','v32/earth-florida-rigid-v32.mp4',.2],['Terrain','v34/earth-terrain-continuous-v34.mp4',.4],['River plains','v34/earth-river-plains-continuous-v34.mp4',.4],['Woodlands','v34/earth-woodlands-continuous-v34.mp4',.4],['Forest river','v34/earth-forest-river-continuous-v34.mp4',.4],['Changing landscapes','v34/earth-changing-landscapes-continuous-v34.mp4',.4],['Green rivers','v34/earth-green-rivers-continuous-v34.mp4',.4],['Farmland','v34/earth-farmland-continuous-v34.mp4',.4],['Close farmland','v34/earth-close-farmland-continuous-v34.mp4',.4],['Ice and fjords','v34/earth-ice-fjords-continuous-v34.mp4',.4]];
 const CLOUD_ART = ['cloud-mine-billows-v27','cloud-peer-billows-v27','message-cloud','cloud-billows-166852-v29','cloud-anvil-258398-v29','cloud-tower-365034-v29','cloud-mine-video-v24','cloud-mine-video-v26','cloud-peer-video-v24','cloud-peer-video-v26'].map(n => SB.url + '/storage/v1/object/public/asgard_ui/raven_cloud_v20/' + n + '.webp');
 const G = (k, label, items) => ({ t:'g', k, label, items });
@@ -121,7 +122,11 @@ const PAGES = {
       day_speed: 8, night_speed: 24, cloud_speed: 1, cloud_padding: 18, cloud_growth_ms: 250, ground_brightness: 1, cloud_shadow: 0.3, message_spacing: 14, cloud_variety: 0.85, ambient_count: 3, ambient_speed: 1, ambient_scale: 1, ambient_opacity: 0.55, water_shimmer: 0.5, earth_mode: 0,
       // the app's map playlist (_rvEarthClips): same 14 maps, same order, same per-map speed
       earth: { clips: RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })), night: false },
-      preview: { name: 'Freya', messages: 6 },
+      preview: { name: 'Freya', messages: 6, draft: 'Bring the big speaker and the cooler, we are staying at the beach until the fireworks start tonight' },
+      fx: { mineFilm: 'cloud-mine-billows-v27', peerFilm: 'cloud-peer-billows-v27', blend: 1, maxWidth: 440, minWidth: 150, height: 0.75, opacity: 1, textSize: 15, textColor: '#ffffff', textShadow: 8, textWeight: 600, bob: 2, bobSpeed: 1, breathe: 1.2, sway: 0, margin: 10, shadowBlur: 8, shadowX: 24, shadowY: 0.62,
+        every: 30, mixSmall: 62, mixMedium: 29, smallMin: 76, smallMax: 110, mediumMin: 116, mediumMax: 162, largeMin: 170, largeMax: 212, attachMin: 5.5, attachMax: 8.5, driftMin: 6, driftMax: 9, largeDrift: 5, wander: 1.3, turn: 0.65,
+        lifeSmallMin: 15, lifeSmallMax: 30, lifeMin: 44, lifeMax: 72, dissolveSmall: 72, absorbMedium: 58, absorbTime: 4.2, absorbReach: 0.3, fadeTime: 2, pieceOpacity: 0.85,
+        farMax: 3, farMin: 25, farMaxW: 52, farLifeMin: 27, farLifeMax: 52, farEvery: 14, farGroundX: -5, farGroundY: 3 },
       msg: {}, head: {},
     },
     sections: [
@@ -130,15 +135,25 @@ const PAGES = {
         { name:'Speed & look', ctrls:[R('day_speed','Map speed (all maps)',0.0625,32,.0625), R('ground_brightness','Map brightness',0.3,1.5,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
         { name:'Night', ctrls:[K('earth.night','Night (city lights)'), R('night_speed','Night speed',0.0625,64,.0625)]},
       ]},
-      { id:'msg', name:'Message clouds', sub:'Each message is a cloud', groups:[
-        { name:'Cloud shape', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('cloud_variety','Cloud shape variety',0,1,.01), R('cloud_shadow','Shadows on the ground',0,0.7,.01)]},
-        { name:'Cloud motion', ctrls:[R('cloud_speed','Cloud billow speed',0.125,4,.005), R('cloud_growth_ms','How fast a new cloud forms (ms)',80,1500,10)]},
-        { name:'Spacing', ctrls:[R('message_spacing','Space between messages',4,64,1)]},
-        { name:'Preview only', ctrls:[R('preview.messages','Messages shown in the preview',0,6,1)]},
+      { id:'msg', name:'Message clouds', sub:'The rolling clouds the messages are written on', groups:[
+        { name:'Rolling (time-lapse)', ctrls:[R('cloud_speed','Rolling speed (time-lapse)',0.125,4,.005), R('fx.blend','Frame blending (smoothness)',0,1,.01)]},
+        { name:'Cloud footage', ctrls:[Sel('fx.mineFilm','Your clouds use',CLOUD_FILMS.map(n=>[n,n.replace(/-v\d+$/,'').replace(/-/g,' ')])), Sel('fx.peerFilm','Their clouds use',CLOUD_FILMS.map(n=>[n,n.replace(/-v\d+$/,'').replace(/-/g,' ')])), R('cloud_variety','Cloud shape variety',0,1,.01)]},
+        { name:'Size & shape', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('fx.maxWidth','Widest a cloud gets',150,440,1), R('fx.minWidth','Narrowest a cloud gets',80,300,1), R('fx.height','Cloud height',0.4,1.4,.01), R('fx.opacity','Cloud see-through',0.2,1,.01)]},
+        { name:'Words on the cloud', ctrls:[R('fx.textSize','Text size',10,30,.5), C('fx.textColor','Text color'), R('fx.textWeight','Text thickness',300,900,100), R('fx.textShadow','Text shadow',0,20,.5)]},
+        { name:'Float & breathe', ctrls:[R('fx.bob','Bob up and down',0,12,.1), R('fx.bobSpeed','Bob speed',0,4,.01), R('fx.breathe','Breathing (swell %)',0,6,.1), R('fx.sway','Side to side sway',0,12,.1), R('fx.margin','Distance from screen edge',0,60,1)]},
+        { name:'Shadow on the ground', ctrls:[R('cloud_shadow','Shadow darkness',0,0.7,.01), R('fx.shadowBlur','Shadow softness',0,30,.5), R('fx.shadowX','Shadow offset sideways',-60,60,1), R('fx.shadowY','Shadow drop',0.2,1.2,.01)]},
+        { name:'Spacing & forming', ctrls:[R('message_spacing','Space between messages',4,64,1), R('cloud_growth_ms','How fast a new cloud forms (ms)',80,1500,10), R('preview.messages','Messages shown in the preview',0,6,1), { t:'x', k:'preview.draft', label:'Type a message here and watch your cloud grow' }]},
       ]},
-      { id:'ambient', name:'Background clouds', sub:'Clouds drifting over the map', groups:[
-        { name:'Background clouds', ctrls:[R('ambient_count','How many',0,8,1), R('ambient_speed','Speed',0.1,3,.01), R('ambient_scale','Size',0.4,2.5,.01), R('ambient_opacity','See-through',0,1,.01)]},
+      { id:'pieces', name:'Cloud pieces', sub:'Break off, drift, dissolve or get absorbed', groups:[
+        { name:'How many & how often', ctrls:[R('ambient_count','Most pieces at once',0,8,1), R('fx.every','Seconds between break-offs',18,90,1)]},
+        { name:'Piece sizes', ctrls:[R('fx.mixSmall','Small pieces %',0,100,1), R('fx.mixMedium','Medium pieces %',0,100,1), R('fx.smallMin','Small: narrowest',20,200,1), R('fx.smallMax','Small: widest',20,240,1), R('fx.mediumMin','Medium: narrowest',40,260,1), R('fx.mediumMax','Medium: widest',40,300,1), R('fx.largeMin','Large: narrowest',80,360,1), R('fx.largeMax','Large: widest',80,420,1), R('ambient_scale','All pieces size',0.4,2.5,.01)]},
+        { name:'Breaking off', ctrls:[R('fx.attachMin','Hangs on at least (s)',0,20,.1), R('fx.attachMax','Hangs on at most (s)',0,30,.1)]},
+        { name:'Drifting', ctrls:[R('ambient_speed','Overall drift speed',0.1,3,.01), R('fx.driftMin','Small/medium drift slowest',0,40,.1), R('fx.driftMax','Small/medium drift fastest',0,40,.1), R('fx.largeDrift','Large drift speed',0,40,.1), R('fx.wander','Wander',0,10,.1), R('fx.turn','Spin while drifting',0,3,.01)]},
+        { name:'What happens to them', ctrls:[R('fx.dissolveSmall','Small: % that dissolve (rest drift off)',0,100,1), R('fx.absorbMedium','Medium: % absorbed by another cloud',0,100,1), R('fx.absorbTime','Absorbing takes (s)',0.5,15,.1), R('fx.absorbReach','How close before absorbed',0,1,.01), R('fx.fadeTime','Dissolving takes (s)',0.2,10,.1), R('fx.lifeSmallMin','Small: life shortest (s)',3,90,1), R('fx.lifeSmallMax','Small: life longest (s)',3,120,1), R('fx.lifeMin','Medium/large: life shortest (s)',5,180,1), R('fx.lifeMax','Medium/large: life longest (s)',5,240,1)]},
+        { name:'Far-away clouds', ctrls:[R('fx.farMax','How many far away',0,8,1), R('fx.farMin','Far: narrowest',5,120,1), R('fx.farMaxW','Far: widest',5,160,1), R('fx.farEvery','New far cloud every (s)',3,60,1), R('fx.farLifeMin','Far: life shortest (s)',5,120,1), R('fx.farLifeMax','Far: life longest (s)',5,180,1), R('fx.farGroundX','Move with the map sideways',-40,40,.5), R('fx.farGroundY','Move with the map up/down',-40,40,.5)]},
+        { name:'Look', ctrls:[R('ambient_opacity','See-through',0,1,.01), R('fx.pieceOpacity','Piece strength',0,1,.01)]},
       ]},
+      { id:'cloudvid', name:'Cloud videos', sub:'Trim, crop, key out, loop and prepare the cloud footage', groups:[] },
     ],
     push: true,
     draw: drawConvo,
@@ -867,6 +882,7 @@ function panel(){
   if(!STATE.S)return;
   if(STATE.sec==='catalog'&&STATE.page==='store'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');STORE_WORKBENCH.panel($('#panel'));return;}
   if(STATE.sec==='design'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');PAGE_TOOLS.panel($('#panel'));return;}
+  if(STATE.sec==='cloudvid'){ROCK_NAV.hideEditor();const pn=$('#panel');pn.classList.remove('rn-editor');pn.innerHTML='';const f=document.createElement('iframe');f.src='studio-effects.html?embed=1';f.title='Cloud footage editor';f.style.cssText='width:100%;height:calc(100vh - 230px);min-height:600px;border:0;border-radius:8px;background:#0e1316';pn.append(f);return;}
   if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
   const P = PAGES[STATE.page], sec = P.sections.find(s => s.id === STATE.sec) || P.sections[0], pn = $('#panel'); pn.innerHTML = '';
   sec.groups.forEach(g => { const d = document.createElement('details'); d.className = 'pg-grp'; d.dataset.studioGroup = g.name; d.open = true; d.innerHTML = `<summary>${g.name}</summary>`;
@@ -1047,6 +1063,46 @@ function drawShare(x, t, S, since){
 
 const MSGS = [ ['peer', 'Hey, you still coming tonight?'], ['mine', 'Yeah! Leaving in 20'], ['peer', 'Bring the speaker'], ['mine', 'Already in the car'], ['peer', 'Perfect, see you soon'], ['mine', 'On my way'] ];
 const CLOUDS = ['cloud-mine-billows-v27', 'cloud-peer-billows-v27', 'message-cloud', 'cloud-billows-166852-v29', 'cloud-anvil-258398-v29', 'cloud-tower-365034-v29'];
+// The cloud grows with the message: words wrap inside the widest-cloud limit and the cloud gets taller line by line
+function rvWrap(x, txt, maxW){ const out = []; for(const para of String(txt).split('\n')){ let line = ''; for(const w of para.split(/\s+/)){ const tryL = line ? line + ' ' + w : w; if(x.measureText(tryL).width <= maxW || !line) line = tryL; else { out.push(line); line = w; } } out.push(line); } return out; }
+// Cloud art has empty space around it; like the app (contentBounds) only the visible cloud is stretched around the words
+const RV_BOUNDS = new WeakMap();
+function rvBounds(im){ let b = RV_BOUNDS.get(im); if(b) return b; const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height; b = { sx: 0, sy: 0, sw: w, sh: h };
+  try{ const c = document.createElement('canvas'), k = Math.min(1, 256 / Math.max(w, h)); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k)); const q = c.getContext('2d'); q.drawImage(im, 0, 0, c.width, c.height); const d = q.getImageData(0, 0, c.width, c.height).data; let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+    for(let y = 0; y < c.height; y++) for(let x = 0; x < c.width; x++) if(d[(y * c.width + x) * 4 + 3] > 24){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+    if(x1 > x0 && y1 > y0) b = { sx: x0 / k, sy: y0 / k, sw: (x1 - x0 + 1) / k, sh: (y1 - y0 + 1) / k }; }catch(e){}
+  RV_BOUNDS.set(im, b); return b; }
+// Rolling time-lapse cloud footage: every frame of the animated cloud picture, played at your speed
+const RV_FILMS = {};
+function rvFilm(name){ const url = UI + 'raven_cloud_v20/' + name + '.webp'; let f = RV_FILMS[url]; if(f) return f; f = RV_FILMS[url] = { frames: [], dur: [], total: 0, still: img(url) };
+  if('ImageDecoder' in window) fetch(runtimeAsset(url)).then(r => r.arrayBuffer()).then(async buf => { const d = new ImageDecoder({ data: buf, type: 'image/webp' }); await d.tracks.ready; const c = d.tracks.selectedTrack.frameCount; for(let i = 0; i < c; i++){ const r = await d.decode({ frameIndex: i }); const bm = await createImageBitmap(r.image); const du = (r.image.duration || 66000) / 1e6; r.image.close(); f.frames.push(bm); f.dur.push(du); f.total += du; } }).catch(() => {});
+  return f; }
+function rvFrame(f, t, speed, blend){ if(f.frames.length < 2) return ok(f.still) ? { a: f.still } : (f.frames[0] ? { a: f.frames[0] } : null); let tt = (t * speed) % f.total; for(let i = 0; i < f.frames.length; i++){ if(tt < f.dur[i]) return { a: f.frames[i], b: f.frames[(i + 1) % f.frames.length], mix: blend * tt / f.dur[i] }; tt -= f.dur[i]; } return { a: f.frames[0] }; }
+// Cloud pieces: same rules as the app (_RvMistScene), with every number adjustable
+const RV_MIST = { list: [], last: null, next: 0, nextFar: 3, id: 0 };
+function rvRand(a, b){ return a + Math.random() * Math.max(0, b - a); }
+function rvMist(x, t, S, F, rects){ const M = RV_MIST, dt = M.last == null ? 0 : clamp(t - M.last, 0, .1); M.last = t; const budget = Math.round(clamp(S.ambient_count, 0, 8));
+  if(!budget){ M.list = []; return; }
+  M.next -= dt; if(M.next <= 0 && rects.length && M.list.filter(p => !p.far).length < budget){ const r = rects[Math.floor(Math.random() * rects.length)], roll = Math.random() * 100, kind = roll < F.mixSmall ? 's' : roll < F.mixSmall + F.mixMedium ? 'm' : 'l';
+    const w = (kind === 's' ? rvRand(F.smallMin, F.smallMax) : kind === 'm' ? rvRand(F.mediumMin, F.mediumMax) : rvRand(F.largeMin, F.largeMax)) * S.ambient_scale, sideways = Math.random() < .7, nx = sideways ? (Math.random() < .5 ? -1 : 1) : (Math.random() - .5) * .5, ny = sideways ? .23 : (Math.random() < .5 ? -1 : 1);
+    const ax = nx < -0.3 ? 0 : nx > .3 ? 1 : rvRand(.2, .8), ay = sideways ? rvRand(.2, .8) : (ny < 0 ? 0 : 1);
+    const fate = kind === 'l' ? 'drift' : kind === 's' ? (Math.random() * 100 < F.dissolveSmall ? 'dissolve' : 'drift') : (Math.random() * 100 < F.absorbMedium ? 'absorb' : 'drift');
+    M.list.push({ id: M.id++, src: r.key, ax, ay, nx, ny, w, kind, fate, age: 0, fade: 0, merge: 0, attach: rvRand(F.attachMin, F.attachMax), life: kind === 's' ? rvRand(F.lifeSmallMin, F.lifeSmallMax) : rvRand(F.lifeMin, F.lifeMax), v: kind === 'l' ? F.largeDrift : rvRand(F.driftMin, F.driftMax), turn: (Math.random() - .5) * F.turn, skin: Math.floor(Math.random() * 5), x: 0, y: 0 });
+    M.next = F.every * rvRand(.74, 1.26); } else if(M.next <= 0) M.next = F.every * rvRand(.74, 1.26);
+  M.nextFar -= dt; if(M.nextFar <= 0){ if(M.list.filter(p => p.far).length < Math.min(F.farMax, budget)) M.list.push({ id: M.id++, far: true, x: rvRand(25, W - 25), y: rvRand(110, HH - 110), w: rvRand(F.farMin, F.farMaxW) * S.ambient_scale, fate: 'dissolve', age: 0, fade: 0, merge: 0, life: rvRand(F.farLifeMin, F.farLifeMax), turn: (Math.random() - .5) * .7, skin: Math.floor(Math.random() * 5) }); M.nextFar = F.farEvery * rvRand(1, 1.7); }
+  const SK = ['cloud-billows-166852-v29', 'cloud-anvil-258398-v29', 'cloud-tower-365034-v29', F.mineFilm, F.peerFilm], byKey = Object.fromEntries(rects.map(r => [r.key, r]));
+  for(const p of M.list){ p.age += dt; const src = byKey[p.src];
+    if(p.far){ p.x += F.farGroundX * dt; p.y += F.farGroundY * dt; }
+    else if(p.age < p.attach){ if(src){ const ox = src.x0 + p.ax * (src.x1 - src.x0) - p.nx * 22, oy = src.y0 + p.ay * (src.y1 - src.y0) - p.ny * 22, g = Math.min(1, p.age / p.attach); p.x = ox + p.nx * p.w * .4 * g; p.y = oy + p.ny * p.w * .4 * g; } else p.fade = Math.min(1, p.fade + dt / F.fadeTime); }
+    else if(p.target != null){ const r = byKey[p.target]; if(!r){ p.target = null; p.fade = Math.max(p.fade, .1); } else { p.merge = Math.min(1, p.merge + dt / F.absorbTime); const e = p.merge * p.merge * (3 - 2 * p.merge), ex = clamp(p.mx, r.x0 + 10, r.x1 - 10), ey = clamp(p.my, r.y0 + 10, r.y1 - 10); p.x = p.mx + (ex - p.mx) * e; p.y = p.my + (ey - p.my) * e; if(p.merge >= 1) p.dead = true; } }
+    else { p.x += (p.nx * p.v + Math.sin(t * .13 + p.id * 2.1) * F.wander) * dt * S.ambient_speed; p.y += (p.ny * p.v + Math.cos(t * .11 + p.id * .9) * F.wander * .65) * dt * S.ambient_speed;
+      if(p.fate === 'absorb' && !p.fade && p.age > p.attach + 4) for(const r of rects){ const pad = p.w * F.absorbReach; if(r.key !== p.src && p.x > r.x0 - pad && p.x < r.x1 + pad && p.y > r.y0 - pad && p.y < r.y1 + pad){ p.target = r.key; p.mx = p.x; p.my = p.y; break; } } }
+    if(p.fate !== 'drift' && p.age > p.life && p.target == null) p.fade = Math.min(1, p.fade + dt / F.fadeTime); if(p.fade >= 1) p.dead = true;
+    if(p.x < -p.w * 1.5 || p.x > W + p.w * 1.5 || p.y < -p.w || p.y > HH + p.w) p.dead = true; }
+  M.list = M.list.filter(p => !p.dead);
+  for(const p of M.list){ const ci = img(UI + 'raven_cloud_v20/' + SK[p.skin] + '.webp'); if(!ok(ci)) continue; const g = p.far || p.age >= p.attach ? 1 : Math.min(1, p.age / p.attach), w = p.w * Math.max(.15, g) * (1 - .6 * p.merge), h = w * ci.naturalHeight / ci.naturalWidth * .68;
+    x.save(); x.globalAlpha = S.ambient_opacity * F.pieceOpacity * (1 - p.fade) * (1 - .7 * p.merge) * Math.min(1, p.age / .8); x.translate(p.x, p.y); x.rotate(p.turn * p.age * .05); x.drawImage(ci, -w / 2, -h / 2, w, h); x.restore(); }
+}
 // Your real Raven conversation screen (AsgardRaven _RvConversation), drawn piece for piece.
 const RV = { idx: 0, vids: {}, key: '' };
 function rvVideo(p){ const src = runtimeAsset(SB.url + '/storage/v1/object/public/raven_earth/' + p); let v = RV.vids[src]; if(!v){ v = document.createElement('video'); v.crossOrigin = 'anonymous'; v.muted = true; v.loop = false; v.playsInline = true; v.preload = 'auto'; v.src = src; v.addEventListener('ended', () => { RV.idx++; }); RV.vids[src] = v; } return v; }
@@ -1063,21 +1119,24 @@ function drawConvo(x, t, S){
     if(v.readyState >= 2){ x.save(); x.filter = `brightness(${S.ground_brightness})`; cover(x, v, 0, 0, W, HH); x.restore(); } }
   // water shimmer: the app lights the water using each map's water mask; here a light sweep stands in for it
   if(S.water_shimmer > 0 && !E.night){ x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = S.water_shimmer * .25; const g = x.createLinearGradient(0, 0, W, HH); const ph = (t * .15) % 1; g.addColorStop(Math.max(0, ph - .1), 'rgba(255,255,255,0)'); g.addColorStop(ph, 'rgba(255,255,255,1)'); g.addColorStop(Math.min(1, ph + .1), 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, HH); x.restore(); }
-  // 2. background clouds drifting over the map
-  const AMB = ['cloud-billows-166852-v29', 'cloud-anvil-258398-v29', 'cloud-tower-365034-v29'];
-  for(let i = 0; i < Math.round(S.ambient_count); i++){ const ci = img(UI + 'raven_cloud_v20/' + AMB[i % 3] + '.webp'); if(!ok(ci)) continue; const cw = 170 * S.ambient_scale * (0.75 + 0.2 * (i % 3)), ch = cw * ci.naturalHeight / ci.naturalWidth, span = W + cw * 2;
-    const cx = ((t * 8 * S.ambient_speed * (0.7 + 0.15 * i) + i * span / 3) % span) - cw, cy = HH * (0.18 + 0.22 * i % 0.6); x.save(); x.globalAlpha = S.ambient_opacity; x.drawImage(ci, cx, cy, cw, ch); x.restore(); }
-  // 3. dark fade top and bottom (0x90071823 → clear at 18%, clear to 76% → 0xB0071823)
+  // 2. dark fade top and bottom (0x90071823 → clear at 18%, clear to 76% → 0xB0071823)
   const fg = x.createLinearGradient(0, 0, 0, HH); fg.addColorStop(0, 'rgba(7,24,35,.565)'); fg.addColorStop(.18, 'rgba(7,24,35,0)'); fg.addColorStop(.76, 'rgba(7,24,35,0)'); fg.addColorStop(1, 'rgba(7,24,35,.69)'); x.fillStyle = fg; x.fillRect(0, 0, W, HH);
-  // 4. message clouds, newest at the bottom, stacked upward
-  const composerTop = HH - 10 - 52 - 6, P = S.preview || {}, n = Math.max(0, Math.min(MSGS.length, Math.round(P.messages ?? 6)));
-  let yy = composerTop - 16; x.font = '600 15px system-ui'; x.textBaseline = 'middle'; x.textAlign = 'center';
-  for(let k = n - 1; k >= 0; k--){ const [who, txt] = MSGS[k], tw = x.measureText(txt).width, cw = Math.min(W - 40, tw + S.cloud_padding * 4), cl = img(UI + 'raven_cloud_v20/' + (S.cloud_variety > 0.5 && k % 3 === 2 ? 'message-cloud' : who === 'mine' ? 'cloud-mine-billows-v27' : 'cloud-peer-billows-v27') + '.webp');
-    if(!ok(cl)) continue; const ch = Math.max(56, cw * cl.naturalHeight / cl.naturalWidth * 0.75), cx = who === 'mine' ? W - 10 - cw / 2 : 10 + cw / 2, cy = yy - ch / 2 + Math.sin(t * S.cloud_speed + k * 1.7) * 2; if(yy - ch < 96) break;
-    if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = 'blur(8px)'; x.beginPath(); x.ellipse(cx + 24, cy + ch * 0.62, cw * 0.36, ch * 0.12, 0, 0, 7); x.fill(); x.restore(); }
-    x.save(); x.translate(cx, cy); x.scale(1 + Math.sin(t * S.cloud_speed * 1.3 + k) * 0.012, 1); x.drawImage(cl, -cw / 2, -ch / 2, cw, ch); x.restore();
-    rvShadowText(x, txt, cx, cy + 2, '600 15px system-ui', '#ffffff', 'center');
-    yy -= ch + S.message_spacing; if(yy < 110) break; }
+  // 3. message clouds: rolling time-lapse cloud footage with the words written on it
+  const F = Object.assign({}, PAGES.convo.defaults.fx, S.fx || {}), P = S.preview || {}, n = Math.max(0, Math.min(MSGS.length, Math.round(P.messages ?? 6)));
+  const composerTop = HH - 10 - 52 - 6, rects = []; let yy = composerTop - 16; const tfont = `${F.textWeight} ${F.textSize}px system-ui`; x.font = tfont;
+  const layout = [];
+  const rows = MSGS.slice(0, n).map(m => m.slice()); if(String(P.draft || '').trim()) rows.push(['mine', String(P.draft), true]);
+  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], maxW = Math.min(F.maxWidth, W - 2 * F.margin), inset = Math.min(20 + S.cloud_padding, (maxW - 24) / 2), lines = rvWrap(x, txt, Math.max(24, maxW - 2 * inset)), lineH = F.textSize * 1.3, tw = Math.max(...lines.map(l => x.measureText(l).width)), cw = clamp(tw + 2 * inset, F.minWidth, maxW);
+    const name = S.cloud_variety > 0.5 && k % 3 === 2 ? 'message-cloud' : who === 'mine' ? F.mineFilm : F.peerFilm, fl = rvFilm(name), fr = rvFrame(fl, t, S.cloud_speed, F.blend); if(!fr) continue;
+    const ch = Math.max(56, (lines.length * lineH + 2 * inset) * F.height / 0.75);
+    if(yy - ch < 96) break; const cx = (who === 'mine' ? W - F.margin - cw / 2 : F.margin + cw / 2) + Math.sin(t * .5 * F.bobSpeed + k) * F.sway, cy = yy - ch / 2 + Math.sin(t * F.bobSpeed + k * 1.7) * F.bob;
+    layout.push({ k, txt, lines, lineH, cw, ch, cx, cy, fr }); rects.push({ key: k, x0: cx - cw / 2, y0: cy - ch / 2, x1: cx + cw / 2, y1: cy + ch / 2 }); yy -= ch + S.message_spacing; }
+  // 4. cloud pieces: break off a message cloud, hang on, then drift off, dissolve or get absorbed by another cloud
+  rvMist(x, t, S, F, rects);
+  for(const L of layout){ const { cw, ch, cx, cy, fr, lines, lineH, k } = L;
+    if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = `blur(${F.shadowBlur}px)`; x.beginPath(); x.ellipse(cx + F.shadowX, cy + ch * F.shadowY, cw * 0.36, ch * 0.12, 0, 0, 7); x.fill(); x.restore(); }
+    const sw = 1 + Math.sin(t * S.cloud_speed * 1.3 + k) * F.breathe / 100; x.save(); x.translate(cx, cy); x.scale(sw, sw); x.globalAlpha = F.opacity; const ba = rvBounds(fr.a), ew = cw * 1.18, eh = ch * 1.3; x.drawImage(fr.a, ba.sx, ba.sy, ba.sw, ba.sh, -ew / 2, -eh / 2, ew, eh); if(fr.b && fr.mix > 0){ const bb = rvBounds(fr.b); x.globalAlpha = F.opacity * fr.mix; x.drawImage(fr.b, bb.sx, bb.sy, bb.sw, bb.sh, -ew / 2, -eh / 2, ew, eh); } x.restore();
+    x.save(); x.font = tfont; x.fillStyle = F.textColor; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = 'rgba(0,0,0,.87)'; x.shadowBlur = F.textShadow; lines.forEach((l, i) => x.fillText(l, cx, cy + 2 + (i - (lines.length - 1) / 2) * lineH)); x.restore(); }
   if(!n) rvShadowText(x, 'Write a message.', W / 2, HH * .45, '16px system-ui', '#fff', 'center'), rvShadowText(x, 'Watch your cloud form.', W / 2, HH * .45 + 26, '16px system-ui', '#fff', 'center');
   x.textAlign = 'left'; x.textBaseline = 'alphabetic';
   // 5. header: back arrow, name, save contact, scene controls (only you), refresh
