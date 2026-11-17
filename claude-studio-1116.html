@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sleipnir Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&family=Oswald:wght@400;600;700&family=Bebas+Neue&family=Cinzel:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&family=Oswald:wght@400;600;700&family=Bebas+Neue&family=Cinzel:wght@500;700;900&family=Inter:wght@400;600;800&family=Caveat:wght@500;600;700&family=Permanent+Marker&family=Patrick+Hand&family=Rock+Salt&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="studio-media.css?v=shared1">
 <style>
 :root{--bg:#0d1215;--panel:#131a1e;--panel2:#182126;--line:#28353d;--text:#e8eff1;--dim:#8ea2aa;--acc:#7fe3e0;--blue:#39a7ff;--orange:#ff8a3d;--gold:#e9c46a}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -111,7 +112,7 @@ body.clean #handle{display:none}
 <header>
   <div class="brand"><i>ᛋ</i>STUDIO</div>
   <nav id="areas" aria-label="Main areas"></nav>
-  <div class="hdr-right"><a href="workshop.html" title="ChatGPT's workshop, unchanged">Workshop</a></div>
+  <div class="hdr-right"><button class="tb" id="bImages" title="Browse every image and video you have: shelves, freezers, fixtures, logos, art">All images</button><a href="workshop.html" title="ChatGPT's workshop, unchanged">Workshop</a></div>
 </header>
 <main>
   <nav id="left" aria-label="Pages"></nav>
@@ -144,6 +145,7 @@ body.clean #handle{display:none}
 </main>
 <div id="toast" hidden></div>
 <script src="studio-transfer-config.js"></script>
+<script src="studio-media.js?v=workbench4"></script>
 <script>
 'use strict';
 /* ============ shared access ============ */
@@ -264,6 +266,11 @@ async function drawLeft(){
     const panels = DATA.boards[sid] || [];
     for(const p of panels){ const id = 'board:' + sid + ':' + p.daypart + ':' + p.panel_no;
       L.append(pgBtn('Menu board ' + p.panel_no, (p.daypart === 'allday' ? 'All day' : p.daypart) + ' · ' + p.mode, NAV.page === id, () => { if(!leaveOk()) return; NAV.page = id; openBoard(s, p); drawLeft(); })); }
+    if(['grocery', 'retail'].includes(storeType(s))){
+      let cats = []; try{ cats = await rest('store_categories?store_id=eq.' + sid + '&select=category,sort_order&order=sort_order'); }catch(e){}
+      for(const c of cats){ const id = 'aisle:' + sid + ':' + c.category;
+        L.append(pgBtn('Aisle entrance — ' + c.category, 'Blackboards and their writing', NAV.page === id, () => { if(!leaveOk()) return; NAV.page = id; openAisle(s, c.category); drawLeft(); })); }
+    }
     L.append(pgBtn('Store page & catalog', 'Products, names, prices, images', NAV.page === 'sp:' + sid, () => { if(!leaveOk()) return; NAV.page = 'sp:' + sid; openFrame({ name: s.name, url: 'pages.html?page=store&store=' + sid }); drawLeft(); }));
   }
 }
@@ -295,11 +302,12 @@ $('#frame').addEventListener('load', dressFrame);
 /* ============ element editor state ============ */
 const ED = { page: null, store: null, panel: null, src: null, design: null, saved: '', updatedAt: null,
   els: [], byId: {}, kind: 'all', sel: null, group: null, scope: 'one', hist: [], redo: [], zoom: 'fit', cutting: false };
-const KINDS = [['all','Everything'],['art','Board artwork'],['slot','Boxes'],['num','Numbers'],['name','Names'],['price','Prices'],['label','Size labels'],['title','Titles'],['letters','Variant letters'],['added','Added pieces']];
+const KINDS = [['all','Everything'],['art','Artwork'],['board','Blackboards'],['line','Blackboard writing'],['slot','Boxes'],['num','Numbers'],['name','Names'],['price','Prices'],['label','Size labels'],['title','Titles'],['letters','Variant letters'],['added','Added pieces']];
 const KNAME = Object.fromEntries(KINDS);
-const TEXT_KINDS = ['num','name','price','label','title','letters'];
+const TEXT_KINDS = ['num','name','price','label','title','letters','line'];
 const isText = k => TEXT_KINDS.includes(k);
-const pn = () => ED.panel.daypart + ':' + ED.panel.panel_no;
+const pn = () => ED.type === 'aisle' ? 'aisle:' + ED.aisle : ED.panel.daypart + ':' + ED.panel.panel_no;
+const designId = () => (ED.type === 'aisle' ? 'el_aisle_' : 'el_board_') + ED.store.id;
 function emptyDesign(){ return { v: 1, kinds: {}, panels: {} }; }
 function panelDoc(make){ const d = ED.design; if(!d.panels[pn()] && make) d.panels[pn()] = { kinds: {}, items: {}, added: [] }; return d.panels[pn()] || { kinds: {}, items: {}, added: [] }; }
 // value of one property: base ← store-wide kind ← this-board kind ← this one piece
@@ -341,8 +349,8 @@ async function openBoard(store, pmeta){
   $('#pageName').textContent = store.name + ' · board ' + pmeta.panel_no; $('#stage').textContent = ''; $('#controls').textContent = ''; $('#features').textContent = ''; $('#options').textContent = '';
   $('#targetText').textContent = 'Loading the real board…';
   try{
-    if(!ED.src || ED.src.storeId !== store.id){
-      const sid = 'store_id=eq.' + store.id;
+    if(!ED.src || ED.src.storeId !== store.id || ED.src.type !== 'board'){
+      ED.type = 'board'; const sid = 'store_id=eq.' + store.id;
       const [panels, rows, items, sizes, des] = await Promise.all([
         rest('store_board_panels?' + sid + '&order=daypart,panel_no'),
         rest('store_drive_thru_board?' + sid + '&select=daypart,display_name,item_number,variant_letter,family_name,variant_name,sandwich_price,small_price,medium_price,large_price'),
@@ -360,19 +368,65 @@ async function openBoard(store, pmeta){
       for(const d of Object.keys(fam)) families[d] = Object.keys(fam[d]).map(Number).sort((a, b) => a - b).map(n => { const rs = fam[d][n].sort((a, b) => String(a.variant_letter || '').localeCompare(String(b.variant_letter || '')));
         const main = rs.find(r => !r.variant_letter) || rs.find(r => r.variant_letter === 'a') || rs[0];
         return { n, name: main.family_name || main.display_name, main, letters: rs.filter(r => r !== main && r.variant_letter) }; });
-      ED.src = { storeId: store.id, panels, byName, byCat, families };
+      ED.src = { type: 'board', storeId: store.id, panels, byName, byCat, families };
       ED.design = des[0] && des[0].data && des[0].data.v ? des[0].data : emptyDesign();
       ED.updatedAt = des[0] ? des[0].updated_at : null; ED.saved = JSON.stringify(ED.design); ED.hist = []; ED.redo = [];
     }
-    ED.store = store; ED.panel = ED.src.panels.find(p => p.panel_no === pmeta.panel_no && p.daypart === pmeta.daypart);
+    ED.type = 'board'; ED.store = store; ED.panel = ED.src.panels.find(p => p.panel_no === pmeta.panel_no && p.daypart === pmeta.daypart);
     if(!ED.panel) throw new Error('That board panel is no longer there');
     ED.page = 'board'; ED.sel = null; ED.kind = 'all'; ED.group = null; ED.scope = 'board';
     render(false); $('#scroll').scrollTop = 0; fitPhone(); drawFeatures(); drawEdit(); marks();
   }catch(e){ $('#targetText').textContent = 'Could not open this board: ' + e.message; }
 }
 
+/* ============ the real grocery aisle entrance: artwork + the two blackboards and their chalk writing ============ */
+const CRAYON = ['#ffe45e', '#5ee0ff', '#ff7bc5', '#b6ff6e', '#ffb347', '#c79bff'];
+const AISLE_ART = SB + '/storage/v1/object/public/menu-images/grocery%20stations/grocery-aisle-entrance-phone-v3.png';
+async function openAisle(store, aisle){
+  $('#empty').hidden = true; $('#frameWrap').hidden = true; $('#editor').hidden = false; $('#frame').src = 'about:blank';
+  $('#stage').textContent = ''; $('#controls').textContent = ''; $('#features').textContent = ''; $('#options').textContent = ''; $('#targetText').textContent = 'Loading the real aisle…';
+  try{
+    if(!ED.src || ED.src.storeId !== store.id || ED.src.type !== 'aisle'){
+      ED.type = 'aisle';
+      const [rows, des] = await Promise.all([
+        restAll('products?store_id=eq.' + store.id + '&shelf_group=not.is.null&select=category,shelf_group,shelf_rank&order=shelf_rank'),
+        rest('studio_designs?id=eq.el_aisle_' + store.id + '&select=data,updated_at')]);
+      const groups = {}; for(const r of rows){ const g = String(r.shelf_group || '').trim(); if(!g) continue; const a = groups[r.category] = groups[r.category] || []; if(!a.includes(g)) a.push(g); }
+      ED.src = { type: 'aisle', storeId: store.id, groups };
+      ED.design = des[0] && des[0].data && des[0].data.v ? des[0].data : emptyDesign(); ED.updatedAt = des[0] ? des[0].updated_at : null; ED.saved = JSON.stringify(ED.design); ED.hist = []; ED.redo = [];
+    }
+    ED.type = 'aisle'; ED.store = store; ED.aisle = aisle; ED.page = 'aisle'; ED.sel = null; ED.kind = 'all'; ED.group = null; ED.scope = 'board';
+    render(false); $('#scroll').scrollTop = 0; fitPhone(); drawFeatures(); drawEdit(); marks();
+  }catch(e){ $('#targetText').textContent = 'Could not open this aisle: ' + e.message; }
+}
+function buildAisle(){
+  const W = 390, H = 844, ratio = 943 / 1595, dispW = W, dispH = W / ratio, offX = 0, offY = (H - dispH) / 2;
+  const els = [], add = e => { els.push(e); return e; };
+  add({ id: 'art', kind: 'art', label: 'Aisle artwork', type: 'image', base: { x: offX, y: offY, w: dispW, h: dispH, src: AISLE_ART, opacity: 1, brightness: 1, contrast: 1, saturate: 1, hidden: false } });
+  const groups = ED.src.groups[ED.aisle] || [], half = Math.ceil(groups.length / 2), sides = [groups.slice(0, half), groups.slice(half)];
+  const words = ED.aisle.split(' ').filter(x => x.trim()); const pd = panelDoc();
+  [0.045, 0.775].forEach((fx, side) => {
+    const id = 'b' + side, b = add({ id, kind: 'board', label: (side ? 'Right' : 'Left') + ' blackboard', type: 'chalk', lines: [], base: { x: offX + fx * dispW, y: offY + 0.175 * dispH, w: 0.185 * dispW, h: 0.70 * dispH, hidden: false, text: '' } });
+    let ci = side; const mine = String((pd.items[id] || {}).text || '').split('\n').map(x => x.trim()).filter(Boolean);
+    const L = (lid, label, text, size, bold) => { const e = add({ id: lid, kind: 'line', label, type: 'text', text, base: { size, color: CRAYON[(ci++) % CRAYON.length], weight: bold ? 700 : 600, font: 'Caveat', italic: false, spacing: 0, caps: false, dx: 0, dy: 0, opacity: 1, hidden: false, shadow: true } }); b.lines.push({ el: e, title: bold }); };
+    if(mine.length) mine.forEach((t, i) => L(id + '.w' + i, 'Your line ' + (i + 1) + ' — ' + t, t, i ? 22 : 34, !i));
+    else { words.forEach((w, i) => L(id + '.t' + i, 'Aisle name — ' + w, w, 34, true)); sides[side].forEach((g, i) => L(id + '.g' + i, g, g, 22, false)); }
+  });
+  (pd.added || []).forEach(a => add({ id: a.id, kind: 'added', label: a.label || 'Added piece', type: a.type, added: a, base: a }));
+  return { els, height: H };
+}
+function drawChalk(b){
+  const w = P(b, 'w'), hh = P(b, 'h'), box = h('div', { className: 'el' }); box.dataset.el = b.id;
+  Object.assign(box.style, { left: P(b, 'x') + 'px', top: P(b, 'y') + 'px', width: w + 'px', height: hh + 'px', overflow: 'hidden', padding: (hh * 0.03) + 'px ' + (w * 0.07) + 'px', display: 'flex', flexDirection: 'column', alignItems: 'center' });
+  if(P(b, 'hidden')) box.style.visibility = 'hidden'; const innerW = w * 0.86; let gap = false;
+  for(const ln of b.lines){ if(!ln.title && !gap){ gap = true; const g = h('div'); g.style.height = (hh * 0.02) + 'px'; g.style.flex = 'none'; box.append(g); }
+    const t = tnode(ln.el, true); t.style.lineHeight = '1'; t.style.textAlign = 'center'; const f = fitBox(innerW, null, t, 'center'); f.style.margin = '3px 0'; f.style.flex = 'none'; box.append(f); }
+  return box;
+}
+
 // builds the list of pieces exactly the way the app lays the board out (buildImageBoard in the board widget)
 function buildPieces(){
+  if(ED.type === 'aisle') return buildAisle();
   const p = ED.panel, W = 390, crop = p.crop || [0, 0, p.image_w, p.image_h];
   const cx0 = crop[0], cy0 = crop[1], cw = crop[2] - crop[0], ch = crop[3] - crop[1], s = W / cw, TOP = 52;
   const els = [], add = e => { els.push(e); return e; };
@@ -414,6 +468,7 @@ function tnode(el, one){
   const n = h('span', { className: 't' + (one ? ' one' : '') }); n.dataset.el = el.id; n.textContent = P(el, 'caps') ? String(el.text).toUpperCase() : el.text;
   const st = n.style; st.fontSize = P(el, 'size') + 'px'; st.color = P(el, 'color'); st.fontWeight = P(el, 'weight'); st.fontFamily = '"' + P(el, 'font') + '",Roboto,system-ui,sans-serif';
   st.fontStyle = P(el, 'italic') ? 'italic' : 'normal'; st.letterSpacing = P(el, 'spacing') + 'px'; st.opacity = P(el, 'opacity');
+  if(el.base.shadow) st.textShadow = '1px 1px 2px rgba(0,0,0,.4)';
   const dx = P(el, 'dx'), dy = P(el, 'dy'); if(dx || dy) st.transform = 'translate(' + dx + 'px,' + dy + 'px)'; if(P(el, 'hidden')) st.visibility = 'hidden';
   return n;
 }
@@ -470,6 +525,8 @@ function drawImage(el){
   if(el.type === 'crop'){ // a piece cut out of the artwork: same picture, only that region showing
     const a = el.added, kx = P(el, 'w') / a.sw, ky = P(el, 'h') / a.sh; d.style.overflow = 'hidden';
     const im = h('img', { src: a.src, alt: '' }); Object.assign(im.style, { position: 'absolute', width: a.iw * kx + 'px', height: a.ih * ky + 'px', left: -a.sx * kx + 'px', top: -a.sy * ky + 'px' }); d.append(im);
+  } else if(el.type === 'atext'){ d.style.height = 'auto'; d.style.whiteSpace = 'pre-wrap'; d.style.textAlign = P(el, 'align') || 'center'; d.style.lineHeight = '1.05'; d.textContent = P(el, 'caps') ? String(P(el, 'text')).toUpperCase() : P(el, 'text');
+    Object.assign(d.style, { fontSize: P(el, 'size') + 'px', color: P(el, 'color'), fontWeight: P(el, 'weight'), fontFamily: '"' + P(el, 'font') + '",Roboto,sans-serif', fontStyle: P(el, 'italic') ? 'italic' : 'normal', letterSpacing: P(el, 'spacing') + 'px', transform: 'rotate(' + (P(el, 'rot') || 0) + 'deg)' }); d.style.filter = '';
   } else if(el.type === 'fill'){ d.style.background = P(el, 'color'); d.style.borderRadius = (P(el, 'radius') || 0) + 'px'; }
   else { const im = h('img', { src: P(el, 'src') || '', alt: '' }); im.style.objectFit = el.kind === 'art' ? 'fill' : (P(el, 'fit') || 'contain'); d.append(im); }
   return d;
@@ -479,7 +536,7 @@ function render(keepScroll){
   const built = buildPieces(); ED.els = built.els; ED.byId = Object.fromEntries(built.els.map(e => [e.id, e]));
   if(ED.sel) ED.sel = ED.byId[ED.sel.id] || null;
   st.textContent = ''; st.style.height = Math.max(844, built.height) + 'px';
-  for(const el of ED.els){ if(el.type === 'slot') st.append(drawSlot(el)); else if(el.type !== 'text') st.append(drawImage(el)); }
+  for(const el of ED.els){ if(el.type === 'slot') st.append(drawSlot(el)); else if(el.type === 'chalk') st.append(drawChalk(el)); else if(el.type !== 'text') st.append(drawImage(el)); }
   applyFits(st); if(keepScroll) sc.scrollTop = top; paintSel();
 }
 function paintSel(){
@@ -518,7 +575,7 @@ function startResize(ev){
   const o = { x: ev.clientX, y: ev.clientY, w: tx ? 0 : P(el, 'w'), h: tx ? 0 : P(el, 'h'), size: tx ? P(el, 'size') : 0 }; let moved = false;
   const mv = e => { const dx = (e.clientX - o.x) / k, dy = (e.clientY - o.y) / k; moved = true; beginChange(); const bag = targetBag(true);
     if(tx) bag.size = Math.max(4, Math.round((o.size + (dx + dy) / 4) * 2) / 2);
-    else if(el.type === 'slot' || e.shiftKey){ bag.w = Math.max(6, Math.round(o.w + dx)); bag.h = Math.max(6, Math.round(o.h + dy)); }
+    else if(el.type === 'slot' || el.type === 'chalk' || el.type === 'atext' || e.shiftKey){ bag.w = Math.max(6, Math.round(o.w + dx)); bag.h = Math.max(6, Math.round(o.h + dy)); }
     else { const r = Math.max(.05, (o.w + dx) / o.w); bag.w = Math.round(o.w * r * 10) / 10; bag.h = Math.round(o.h * r * 10) / 10; }
     render(true); syncControls(); };
   const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); if(moved) endChange(); };
@@ -561,26 +618,29 @@ const GROUPS = {
   text: [['size','Size'],['move','Position'],['color','Color'],['font','Font'],['look','See-through'],['show','Show / hide']],
   image: [['size','Size'],['move','Position'],['look','Brightness & look'],['show','Show / hide']],
   slot: [['size','Size'],['move','Position'],['show','Show / hide']],
+  chalk: [['write','Writing'],['size','Size'],['move','Position'],['show','Show / hide']],
+  atext: [['write','Writing'],['tsize','Text size'],['size','Box width'],['move','Position'],['color','Color'],['font','Font'],['look','See-through'],['show','Show / hide'],['remove','Remove this piece']],
   added: [['size','Size'],['move','Position'],['look','Brightness & look'],['picture','Picture'],['show','Show / hide'],['remove','Remove this piece']],
   fill: [['size','Size'],['move','Position'],['color','Color'],['look','See-through'],['show','Show / hide'],['remove','Remove this piece']]
 };
-function groupSet(){ const k = ED.sel ? ED.sel.kind : ED.kind; if(k === 'all') return null; if(k === 'added'){ if(!ED.sel) return null; return ED.sel.type === 'fill' ? GROUPS.fill : GROUPS.added; } return isText(k) ? GROUPS.text : k === 'slot' ? GROUPS.slot : GROUPS.image; }
+function groupSet(){ const k = ED.sel ? ED.sel.kind : ED.kind; if(k === 'all') return null; if(k === 'added'){ if(!ED.sel) return null; return ED.sel.type === 'fill' ? GROUPS.fill : ED.sel.type === 'atext' ? GROUPS.atext : GROUPS.added; } return isText(k) ? GROUPS.text : k === 'slot' ? GROUPS.slot : k === 'board' ? GROUPS.chalk : GROUPS.image; }
 function drawEdit(){
   const tt = $('#targetText'), sc = $('#scope'), opt = $('#options'), c = $('#controls'); tt.textContent = ''; sc.textContent = ''; opt.textContent = ''; c.textContent = '';
   const kind = ED.sel ? ED.sel.kind : ED.kind;
   if(ED.sel){ tt.append('Editing ', h('b', { textContent: ED.sel.label }), ' (' + KNAME[kind] + ')'); } else tt.append('Editing ', h('b', { textContent: KNAME[kind] }));
   const scopes = []; if(ED.sel) scopes.push(['one', 'Only this one']);
-  if(kind !== 'all' && kind !== 'added' && kind !== 'art'){ scopes.push(['board', 'All ' + KNAME[kind].toLowerCase() + ' on this board']); scopes.push(['store', 'All ' + KNAME[kind].toLowerCase() + ' on every board of this store']); }
+  if(kind !== 'all' && kind !== 'added' && kind !== 'art'){ scopes.push(['board', 'All ' + KNAME[kind].toLowerCase() + ' on this page']); scopes.push(['store', 'All ' + KNAME[kind].toLowerCase() + ' on every page like this in this store']); }
   if(kind === 'art' && !ED.sel){ scopes.push(['board', 'This board']); }
   if(!scopes.find(s => s[0] === ED.scope)) ED.scope = scopes.length ? scopes[0][0] : 'board';
   for(const [v, t] of scopes) sc.append(h('option', { value: v, textContent: t, selected: v === ED.scope })); sc.hidden = scopes.length < 2;
   $('#bBack').disabled = !(ED.group || ED.sel || ED.kind !== 'all');
   const set = groupSet();
   if(kind === 'all' || (kind === 'added' && !ED.sel)){
-    opt.hidden = true; c.append(h('h3', { textContent: kind === 'added' ? 'Added pieces' : ED.store.name + ' — board ' + ED.panel.panel_no }));
+    opt.hidden = true; c.append(h('h3', { textContent: kind === 'added' ? 'Added pieces' : ED.store.name + ' — ' + (ED.type === 'aisle' ? ED.aisle + ' aisle' : 'board ' + ED.panel.panel_no) }));
     if(kind === 'all') c.append(h('div', { className: 'hint', textContent: 'Click anything on the phone to edit that one piece, or pick a tab above to change every piece of that kind at once. Drag a piece to move it; drag the orange corner to resize it.' }));
     const row = h('div', { className: 'btnrow' });
-    row.append(h('button', { className: 'tb', textContent: '+ Add a picture', onclick: () => { const u = prompt('Paste the picture link (URL):'); if(u && /^https?:\/\//.test(u.trim())) addPiece({ type: 'image', label: 'Added picture', src: u.trim(), fit: 'contain', x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 160 }); } }));
+    row.append(h('button', { className: 'tb', textContent: '+ Add a picture from your images', onclick: () => browseImages(a => addPiece({ type: 'image', label: a.name || 'Added picture', src: a.url, fit: 'contain', x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 160 })) }));
+    row.append(h('button', { className: 'tb', textContent: '+ Add writing', onclick: () => addPiece({ type: 'atext', label: 'Your writing', text: 'Your text', size: 28, color: '#ffffff', weight: 700, font: 'Caveat', italic: false, spacing: 0, caps: false, align: 'center', rot: 0, x: 95, y: 200 + $('#scroll').scrollTop, w: 200, h: 40 }) }));
     row.append(h('button', { className: 'tb', textContent: '✂ Cut a piece out of the artwork', onclick: () => { ED.cutting = true; toast('Drag a box on the phone around the part you want as its own piece', 5000); } }));
     row.append(h('button', { className: 'tb', textContent: '+ Add a color box', onclick: () => addPiece({ type: 'fill', label: 'Color box', color: '#000000', radius: 0, x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 80 }) }));
     c.append(row);
@@ -607,8 +667,8 @@ $('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
 $('#bSave').onclick = async () => {
   if(!ED.page) return; const b = $('#bSave'); b.disabled = true; b.textContent = 'Saving…';
   try{
-    const id = 'el_board_' + ED.store.id, now = new Date().toISOString();
-    await rest('studio_designs?on_conflict=id', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, HEAD), body: JSON.stringify({ id, page: 'board_elements', data: ED.design, updated_at: now, updated_by: 'claude-studio' }) });
+    const id = designId(), now = new Date().toISOString();
+    await rest('studio_designs?on_conflict=id', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, HEAD), body: JSON.stringify({ id, page: ED.type === 'aisle' ? 'aisle_elements' : 'board_elements', data: ED.design, updated_at: now, updated_by: 'claude-studio' }) });
     const back = await rest('studio_designs?id=eq.' + id + '&select=data,updated_at');
     if(!back[0] || JSON.stringify(back[0].data) !== JSON.stringify(ED.design)) throw new Error('the saved copy did not match');
     ED.saved = JSON.stringify(ED.design); ED.updatedAt = back[0].updated_at; toast('Saved');
@@ -645,8 +705,23 @@ function choice(box, label, key, list){
   rs.onclick = () => { setProp(key, undefined); endChange(); show(); };
   row.append(h('label', { textContent: label }), s, rs); box.append(row); live.push(show); show();
 }
+function textArea(box, key, hint){
+  const t = h('textarea'); Object.assign(t.style, { width: '100%', minHeight: '150px', background: '#0f1519', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: '6px', padding: '8px', font: '15px/1.4 system-ui' });
+  t.value = String(current(key) || ''); t.placeholder = hint; t.oninput = () => setProp(key, t.value); t.onchange = endChange; box.append(t);
+}
+function browseImages(pick){
+  if(!window.SharedStudioMedia){ toast('The image browser did not load', 5000); return; }
+  if(!browseImages.m) browseImages.m = SharedStudioMedia.create({ url: SB, headers: x => Object.assign({}, HEAD, x || {}) });
+  browseImages.m.open({ accept: 'image/*,video/*', onSelect: a => { const one = Array.isArray(a) ? a[0] : a; if(one && one.url && pick) pick(one); } });
+}
+$('#bImages').onclick = () => browseImages(a => { if(ED.page) addPiece({ type: 'image', label: a.name || 'Added picture', src: a.url, fit: 'contain', x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 160 }); else { navigator.clipboard && navigator.clipboard.writeText(a.url); toast('Open a page first to place it. Link copied.', 5000); } });
 function buildControls(root, group, kind){
-  live.length = 0; const tx = isText(kind), el = ED.sel;
+  live.length = 0; const el = ED.sel, tx = isText(kind) && !(el && el.type === 'atext');
+  if(group === 'write'){
+    if(el && el.type === 'chalk'){ ED.scope = 'one'; const b = cbox(root, 'What this blackboard says', 'Type one line per row. The first row is the big heading. Leave it empty to show what the app writes by itself: the aisle name and what is down that aisle.'); b.style.width = '460px'; textArea(b, 'text', 'Empty = the app writes the aisle name and its sections'); b.append(h('div', { className: 'hint', textContent: 'Click any line on the board to change its size, color, font or position by itself.' })); }
+    else if(el){ const b = cbox(root, 'What it says'); b.style.width = '460px'; textArea(b, 'text', 'Type here'); choice(b, 'Line up', 'align', [['left', 'Left'], ['center', 'Center'], ['right', 'Right']]); slider(b, 'Tilt', 'rot', -180, 180, 1, 0); }
+  }
+  if(group === 'tsize'){ const b = cbox(root, 'Text size'); slider(b, 'Size', 'size', 4, 160, 0.5, 28); }
   if(group === 'size'){
     if(tx){ const b = cbox(root, 'Text size', 'How big the letters are. The app still shrinks text that does not fit its box, the same way the real page does.'); slider(b, 'Size', 'size', 4, 80, 0.5, 14); }
     else { const b = cbox(root, 'Size', 'Width and height on the phone, in phone pixels (the phone is 390 wide).'); slider(b, 'Width', 'w', 4, 1600, 1, 100); slider(b, 'Height', 'h', 4, 3400, 1, 100);
@@ -662,7 +737,7 @@ function buildControls(root, group, kind){
   if(group === 'color'){ const b = cbox(root, 'Color'); color(b, 'Color', 'color'); if(kind === 'added') slider(b, 'Round corners', 'radius', 0, 200, 1, 0); }
   if(group === 'font'){
     const b = cbox(root, 'Lettering');
-    choice(b, 'Font', 'font', [['Roboto', 'Roboto (the app\'s font)'], ['Inter', 'Inter'], ['Oswald', 'Oswald'], ['Bebas Neue', 'Bebas Neue'], ['Cinzel', 'Cinzel (Norse serif)']]);
+    choice(b, 'Font', 'font', [['Caveat', 'Caveat (chalk handwriting)'], ['Patrick Hand', 'Patrick Hand (neat handwriting)'], ['Permanent Marker', 'Permanent Marker'], ['Rock Salt', 'Rock Salt (rough chalk)'], ['Roboto', 'Roboto (the app\'s font)'], ['Inter', 'Inter'], ['Oswald', 'Oswald'], ['Bebas Neue', 'Bebas Neue'], ['Cinzel', 'Cinzel (Norse serif)']]);
     choice(b, 'Thickness', 'weight', [[400, 'Regular'], [500, 'Medium'], [600, 'Semi-bold'], [700, 'Bold'], [800, 'Extra bold'], [900, 'Black']]);
     choice(b, 'Slant', 'italic', [[false, 'Upright'], [true, 'Italic']]);
     choice(b, 'Capitals', 'caps', [[false, 'As written'], [true, 'ALL CAPITALS']]);
@@ -670,7 +745,7 @@ function buildControls(root, group, kind){
   }
   if(group === 'look'){
     const b = cbox(root, tx || (el && el.type === 'fill') ? 'See-through' : 'Brightness & look'); slider(b, 'See-through', 'opacity', 0, 1, 0.01, 1);
-    if(!tx && !(el && el.type === 'fill')){ slider(b, 'Brightness', 'brightness', 0, 2.5, 0.01, 1); slider(b, 'Contrast', 'contrast', 0, 2.5, 0.01, 1); slider(b, 'Color strength', 'saturate', 0, 2.5, 0.01, 1); }
+    if(!tx && !(el && (el.type === 'fill' || el.type === 'atext'))){ slider(b, 'Brightness', 'brightness', 0, 2.5, 0.01, 1); slider(b, 'Contrast', 'contrast', 0, 2.5, 0.01, 1); slider(b, 'Color strength', 'saturate', 0, 2.5, 0.01, 1); }
   }
   if(group === 'picture' && el){
     const b = cbox(root, 'Picture', 'Swap the picture this piece shows.');
