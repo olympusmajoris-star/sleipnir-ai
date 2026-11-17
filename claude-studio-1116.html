@@ -46,7 +46,7 @@ main{height:calc(100% - 50px);display:grid;grid-template-columns:210px minmax(0,
 #phoneBar button{background:#0f1519;border:1px solid var(--line);border-radius:5px;padding:3px 8px;font-size:11px;color:var(--text)}
 #phoneBar button.on{background:var(--acc);color:#05201f;border-color:var(--acc)}
 #phoneBar .sp{flex:1}
-#phoneHold{flex:1;min-height:0;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:14px}
+#phoneHold{flex:1;min-height:0;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:6px}
 #phoneScale{transform-origin:top center}
 #phone{width:390px;height:844px;border-radius:34px;border:3px solid #2b363c;background:#000;overflow:hidden;position:relative;box-shadow:0 20px 60px #000a}
 #scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
@@ -117,10 +117,10 @@ body.clean #handle{display:none}
   <nav id="left" aria-label="Pages"></nav>
   <section id="work">
     <div id="empty"><div><b>Pick a page on the left</b>The page opens here exactly as it looks in the app, with every piece ready to edit.</div></div>
-    <div id="frameWrap" hidden><div id="frameBar"><span id="frameTitle"></span></div><iframe id="frame" title="Page editor"></iframe></div>
+    <div id="frameWrap" hidden><iframe id="frame" title="Page editor"></iframe></div>
     <div id="editor" hidden>
       <div id="phoneCol">
-        <div id="phoneBar"><span id="pageName"></span><span class="sp"></span><button data-zoom="fit" class="on">Fit</button><button data-zoom="1">100%</button><button data-zoom="1.5">150%</button></div>
+        <div id="phoneBar" hidden><span id="pageName"></span></div>
         <div id="phoneHold"><div id="phoneScale"><div id="phone"><div id="scroll"><div id="stage"></div></div></div></div></div>
       </div>
       <div id="right">
@@ -270,9 +270,27 @@ async function drawLeft(){
 function closeWork(){ $('#frameWrap').hidden = true; $('#editor').hidden = true; $('#empty').hidden = false; $('#frame').src = 'about:blank'; ED.page = null; }
 function openFrame(p){
   $('#empty').hidden = true; $('#editor').hidden = true; $('#frameWrap').hidden = false; ED.page = null;
-  $('#frameTitle').textContent = p.name + ' — existing editor';
   $('#frame').src = p.url + (p.url.includes('?') ? '&' : '?') + 'embed=1';
 }
+
+// the page opens with only its own phone and its own tools: no other area's pages, no second top bar
+const FRAME_CSS = `header.top,nav.app-tabs,nav.left,nav.studio-page-navigation,.ctitle,#hint,.workspace-crumbs,#pagePick{display:none!important}
+html,body{height:100%!important;overflow:hidden!important}
+main{position:fixed!important;inset:0!important;height:100vh!important;display:grid!important;grid-template-columns:minmax(300px,440px) minmax(0,1fr)!important}
+main>section.center{grid-column:1!important;height:100vh!important;min-height:0!important;padding:8px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+main>section.center .phonewrap{flex:1 1 auto!important;min-height:0!important;height:100%!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;overflow:auto!important}
+main>aside.right{grid-column:2!important;height:100vh!important;min-height:0!important}`;
+function dressFrame(){
+  const f = $('#frame'); let d; try{ d = f.contentDocument; }catch(e){ return; }
+  if(!d || !d.body || d.getElementById('claudeShell')) return;
+  const st = d.createElement('style'); st.id = 'claudeShell'; st.textContent = FRAME_CSS; d.head.append(st);
+  const fit = () => { const ph = d.querySelector('.phone'), wrap = d.querySelector('.phonewrap'); if(!ph || !wrap) return;
+    ph.style.zoom = ''; ph.style.transform = 'none'; const r = ph.getBoundingClientRect(), k = Math.min((wrap.clientHeight - 6) / r.height, (wrap.clientWidth - 6) / r.width);
+    if(isFinite(k) && k > 0){ ph.style.transformOrigin = 'top center'; ph.style.transform = 'scale(' + k + ')'; ph.style.flex = 'none'; } };
+  const sel = d.querySelector('.phone-size-control select'); if(sel){ const o = [...sel.options].find(x => /original|100/i.test(x.textContent)); if(o){ sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); } }
+  setTimeout(fit, 60); setTimeout(fit, 600); setTimeout(fit, 2000); f.contentWindow.addEventListener('resize', () => setTimeout(fit, 50));
+}
+$('#frame').addEventListener('load', dressFrame);
 
 /* ============ element editor state ============ */
 const ED = { page: null, store: null, panel: null, src: null, design: null, saved: '', updatedAt: null,
@@ -471,7 +489,7 @@ function paintSel(){
     const hd = h('div', { id: 'handle', title: 'Drag to resize' }); hd.style.left = ((r.right - s.left) / k - 8) + 'px'; hd.style.top = ((r.bottom - s.top) / k - 8) + 'px'; $('#stage').append(hd); hd.addEventListener('pointerdown', startResize); } }
 }
 function zoomK(){ return ED.zoomK || 1; }
-function fitPhone(){ const hold = $('#phoneHold'); let k = ED.zoom === 'fit' ? Math.min(1.6, (hold.clientHeight - 28) / 850, (hold.clientWidth - 28) / 396) : Number(ED.zoom); k = Math.max(.3, k); ED.zoomK = k; const s = $('#phoneScale'); s.style.transform = 'scale(' + k + ')'; s.style.height = 850 * k + 'px'; s.style.width = 396 * k + 'px'; s.style.transformOrigin = 'top left'; paintSel(); }
+function fitPhone(){ const hold = $('#phoneHold'); let k = ED.zoom === 'fit' ? Math.min(1.6, (hold.clientHeight - 12) / 850, (hold.clientWidth - 12) / 396) : Number(ED.zoom); k = Math.max(.3, k); ED.zoomK = k; const s = $('#phoneScale'); s.style.transform = 'scale(' + k + ')'; s.style.height = 850 * k + 'px'; s.style.width = 396 * k + 'px'; s.style.transformOrigin = 'top left'; paintSel(); }
 $$('#phoneBar [data-zoom]').forEach(b => b.onclick = () => { ED.zoom = b.dataset.zoom; $$('#phoneBar [data-zoom]').forEach(x => x.classList.toggle('on', x === b)); fitPhone(); });
 window.addEventListener('resize', () => { if(ED.page) fitPhone(); });
 
