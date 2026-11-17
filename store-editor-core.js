@@ -7,11 +7,11 @@ const options={
  storepage:['Choose page','Colors','Size and position','Lighting and shadows','Text size'],
  basket:['Choose basket','Size and position','Lighting and shadows','Text size'],
  shelves:['Choose shelf','Shelf layout','Size and position','Shelf appearance','Products on shelf','Product sizing','Product spacing','Product alignment','Pricing','Signs and headers','Lighting and shadows','Images and renders','Movement and browsing','Tap actions'],
- entrances:['Choose entrance','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
+ entrances:['Choose entrance','Edit individual parts','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
  aisles:['Choose aisle','Size and position','Lighting and shadows','Images and renders','Movement and browsing'],
- boards:['Choose menu board','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
- stations:['Choose department display','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
- produce:['Choose produce display','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
+ boards:['Choose menu board','Edit individual parts','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
+ stations:['Choose department display','Edit individual parts','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
+ produce:['Choose produce display','Edit individual parts','Size and position','Lighting and shadows','Images and renders','Signs and headers'],
  products:['Choose product','Product sizing','Pricing'],
 };
 const defaults={x:0,y:0,width:100,height:100,angle:0,brightness:100,contrast:100,saturation:100,opacity:100,shadow:0,shadowX:0,shadowY:0,shadowColor:'#000000',tint:'#ffffff',tintOpacity:0,fit:'contain',cropX:50,cropY:50,zoom:1,scroll:0,scrollSpeed:1,products:[],signs:[]};

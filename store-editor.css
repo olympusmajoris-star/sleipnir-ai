@@ -4,3 +4,5 @@
 dialog.store-export,dialog.wb-help{color:#e6eef0;background:#131c22;border:1px solid #548580;border-radius:12px;max-width:min(620px,90vw);padding:24px;line-height:1.6}dialog::backdrop{background:#000b}.store-export button{margin:12px 12px 0 0}
 
 .reference-shelf-pager{position:absolute;bottom:5px;left:10px;display:flex;align-items:center;gap:8px;background:#000c;padding:4px;color:#fff;font-size:11px}.reference-shelf-pager button{padding:2px 12px}.original-grocery .grocery-product:focus-visible{outline:2px solid #7fe3e0!important}
+
+.artwork-part:hover,.artwork-part:focus-visible{outline:2px solid #70ffff;outline-offset:-2px}
