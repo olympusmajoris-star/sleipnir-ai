@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sleipnir Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&family=Oswald:wght@400;600;700&family=Bebas+Neue&family=Cinzel:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1215;--panel:#131a1e;--panel2:#182126;--line:#28353d;--text:#e8eff1;--dim:#8ea2aa;--acc:#7fe3e0;--blue:#39a7ff;--orange:#ff8a3d;--gold:#e9c46a}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.35 system-ui,Segoe UI,Roboto,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+/* 1 — main areas */
+header{height:50px;display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:#10161a}
+.brand{width:210px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;font-weight:800;letter-spacing:.12em;font-size:12px;border-right:1px solid var(--line)}
+.brand i{font-style:normal;display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--acc);color:#05201f;font-size:15px}
+#areas{display:flex;flex:1}
+#areas button{background:none;border:0;border-right:1px solid var(--line);color:var(--dim);padding:0 34px;font-size:16px;font-weight:700}
+#areas button:hover{color:var(--text);background:#151d22}
+#areas button.on{color:#05201f;background:var(--acc)}
+.hdr-right{display:flex;align-items:center;gap:8px;padding:0 12px}
+.hdr-right a{color:var(--dim);text-decoration:none;font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:6px}
+main{height:calc(100% - 50px);display:grid;grid-template-columns:210px minmax(0,1fr)}
+/* 2 — pages column */
+#left{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:8px 8px 40px}
+.crumb{display:flex;flex-wrap:wrap;gap:4px;padding:4px 2px 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.crumb button{background:#0f1519;border:1px solid var(--line);border-radius:5px;color:var(--acc);font-size:11px;padding:4px 7px}
+.cap{font-size:10px;letter-spacing:.14em;color:var(--dim);padding:6px 6px 6px;text-transform:uppercase}
+.pg{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:7px;padding:9px 9px;font-size:13.5px;margin-bottom:2px}
+.pg small{display:block;color:var(--dim);font-size:11px;margin-top:1px}
+.pg:hover{background:#1a242b}.pg.on{background:#1d2b31;border-color:#2e6b6a}
+.pg .n{float:right;color:var(--dim);font-size:11px}
+#find{width:100%;background:#0f1519;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin-bottom:6px;font-size:13px}
+/* work area */
+#work{min-width:0;min-height:0;position:relative}
+#frameWrap{position:absolute;inset:0;display:flex;flex-direction:column}
+#frameBar{height:30px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;font-size:12px;color:var(--dim);border-bottom:1px solid var(--line);background:#10161a}
+#frame{flex:1;border:0;width:100%;background:var(--bg)}
+#empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);text-align:center;padding:40px}
+#empty b{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+#editor{position:absolute;inset:0;display:grid;grid-template-columns:minmax(300px,440px) minmax(0,1fr)}
+/* phone */
+#phoneCol{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#0a0e10}
+#phoneBar{height:34px;flex:none;display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--dim)}
+#phoneBar button{background:#0f1519;border:1px solid var(--line);border-radius:5px;padding:3px 8px;font-size:11px;color:var(--text)}
+#phoneBar button.on{background:var(--acc);color:#05201f;border-color:var(--acc)}
+#phoneBar .sp{flex:1}
+#phoneHold{flex:1;min-height:0;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:14px}
+#phoneScale{transform-origin:top center}
+#phone{width:390px;height:844px;border-radius:34px;border:3px solid #2b363c;background:#000;overflow:hidden;position:relative;box-shadow:0 20px 60px #000a}
+#scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+#scroll::-webkit-scrollbar{display:none}
+#stage{position:relative;width:390px;font-family:Roboto,system-ui,sans-serif;color:#fff;user-select:none}
+.el{position:absolute}
+.el img{display:block;width:100%;height:100%;pointer-events:none;-webkit-user-drag:none}
+.fit{position:relative}
+.fit>.fin{position:absolute;left:0;top:0;transform-origin:0 0}
+.t{position:relative;display:block;white-space:pre-wrap}
+.t.one{white-space:nowrap}
+.row{display:flex;align-items:center}
+body:not(.clean) [data-el]{cursor:pointer}
+body:not(.clean) [data-el].kindOn{outline:1px dashed rgba(127,227,224,.55);outline-offset:1px}
+body:not(.clean) [data-el]:hover{outline:1px solid rgba(255,255,255,.6);outline-offset:1px}
+body:not(.clean) [data-el].sel{outline:2px solid var(--orange)!important;outline-offset:1px}
+#handle{position:absolute;width:16px;height:16px;border-radius:4px;background:var(--orange);border:2px solid #fff;z-index:50;cursor:nwse-resize;touch-action:none}
+body.clean #handle{display:none}
+#cutBox{position:absolute;border:2px dashed var(--orange);background:rgba(255,138,61,.15);z-index:60;pointer-events:none}
+/* 3 — features */
+#right{display:flex;flex-direction:column;min-width:0;min-height:0}
+#features{flex:none;display:flex;gap:0;overflow-x:auto;border-bottom:1px solid var(--line);background:#10161a;min-height:40px}
+#features button{background:none;border:0;border-right:1px solid var(--line);color:var(--dim);padding:0 14px;height:40px;white-space:nowrap;font-size:13px;font-weight:600}
+#features button:hover{color:var(--text)}
+#features button.on{color:#05201f;background:var(--gold)}
+/* 5 — orange area */
+#edit{flex:1;min-height:0;margin:10px;border:2px solid var(--orange);border-radius:10px;display:flex;flex-direction:column;background:var(--panel)}
+#target{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+#target b{color:var(--orange)}
+#target select{background:#0f1519;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12px}
+#target .sp{flex:1}
+.tb{background:#0f1519;border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12px}
+.tb:hover{border-color:var(--acc)}.tb:disabled{opacity:.4;cursor:default}
+.tb.save{background:var(--acc);color:#05201f;border-color:var(--acc);font-weight:700}
+.tb.save.dirty{background:var(--orange);border-color:var(--orange);color:#201000}
+#body{flex:1;min-height:0;display:flex}
+/* 4 — options column */
+#options{width:150px;flex:none;border:2px solid var(--blue);border-radius:8px;margin:8px;overflow:auto;padding:4px}
+#options button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:11px 9px;font-size:13.5px}
+#options button:last-child{border-bottom:0}
+#options button:hover{background:#1a242b;color:var(--acc)}
+#controls{flex:1;min-width:0;overflow:auto;padding:10px 12px 30px}
+#controls h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px}
+.hint{color:var(--dim);font-size:12.5px;padding:18px 10px;line-height:1.6}
+.boxes{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.cbox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:300px;max-width:100%}
+.cbox h4{margin:0 0 7px;font-size:11px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.info{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--dim);color:var(--dim);font-size:10px;cursor:help;text-transform:none;letter-spacing:0}
+.ctl{display:grid;grid-template-columns:78px 1fr 62px 22px;gap:6px;align-items:center;margin:5px 0;font-size:12.5px}
+.ctl input[type=range]{width:100%;accent-color:var(--orange)}
+.ctl input[type=number],.ctl input[type=text],.ctl select{width:100%;background:#0f1519;color:var(--text);border:1px solid var(--line);border-radius:5px;padding:4px 5px;font-size:12px}
+.ctl input[type=color]{width:100%;height:26px;background:none;border:1px solid var(--line);border-radius:5px;padding:0}
+.ctl .wide{grid-column:2 / span 2}
+.ctl .rs{background:none;border:0;color:var(--dim);font-size:13px;padding:0}
+.ctl .rs:hover{color:var(--orange)}
+.ctl label{color:var(--dim)}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0f1519;border:1px solid var(--acc);color:var(--text);padding:9px 16px;border-radius:8px;font-size:13px;z-index:99}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><i>ᛋ</i>STUDIO</div>
+  <nav id="areas" aria-label="Main areas"></nav>
+  <div class="hdr-right"><a href="workshop.html" title="ChatGPT's workshop, unchanged">Workshop</a></div>
+</header>
+<main>
+  <nav id="left" aria-label="Pages"></nav>
+  <section id="work">
+    <div id="empty"><div><b>Pick a page on the left</b>The page opens here exactly as it looks in the app, with every piece ready to edit.</div></div>
+    <div id="frameWrap" hidden><div id="frameBar"><span id="frameTitle"></span></div><iframe id="frame" title="Page editor"></iframe></div>
+    <div id="editor" hidden>
+      <div id="phoneCol">
+        <div id="phoneBar"><span id="pageName"></span><span class="sp"></span><button data-zoom="fit" class="on">Fit</button><button data-zoom="1">100%</button><button data-zoom="1.5">150%</button></div>
+        <div id="phoneHold"><div id="phoneScale"><div id="phone"><div id="scroll"><div id="stage"></div></div></div></div></div>
+      </div>
+      <div id="right">
+        <div id="features" aria-label="Features of this page"></div>
+        <div id="edit">
+          <div id="target">
+            <button class="tb" id="bBack" title="Go back one step">← Back</button>
+            <span id="targetText"></span>
+            <select id="scope" title="What this change applies to"></select>
+            <span class="sp"></span>
+            <button class="tb" id="bUndo" title="Undo the last change">Undo</button>
+            <button class="tb" id="bRedo" title="Redo">Redo</button>
+            <button class="tb" id="bPreview" title="Hide outlines and see the page clean">Preview</button>
+            <button class="tb save" id="bSave" title="Save to the shared studio">Save</button>
+          </div>
+          <div id="body"><div id="options" aria-label="What to adjust"></div><div id="controls"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="toast" hidden></div>
+<script src="studio-transfer-config.js"></script>
+<script>
+'use strict';
+/* ============ shared access ============ */
+const CFG = window.StudioTransferConfig || {};
+const SB = CFG.url, KEY = CFG.key;
+const HEAD = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+async function rest(path, opt){
+  const r = await fetch(SB + '/rest/v1/' + path, Object.assign({ headers: HEAD }, opt || {}));
+  if(!r.ok) throw new Error(path.split('?')[0] + ' ' + r.status + ' ' + (await r.text()).slice(0, 160));
+  const body = await r.text(); return body ? JSON.parse(body) : null;
+}
+async function restAll(path){ // paged read
+  let out = [], from = 0; const step = 1000;
+  for(;;){
+    const r = await fetch(SB + '/rest/v1/' + path, { headers: Object.assign({ Range: from + '-' + (from + step - 1), 'Range-Unit': 'items' }, HEAD) });
+    if(!r.ok) throw new Error(path.split('?')[0] + ' ' + r.status);
+    const rows = await r.json(); out = out.concat(rows);
+    if(rows.length < step) return out; from += step;
+  }
+}
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
+const h = (tag, props, kids) => { const e = document.createElement(tag); Object.assign(e, props || {}); for(const k of [].concat(kids || [])) e.append(k); return e; };
+const deep = o => JSON.parse(JSON.stringify(o));
+function toast(msg, ms){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, ms || 2600); }
+
+/* ============ 1 + 2: areas and pages ============ */
+const AREAS = {
+  Sleipnir: [
+    { id:'shome', name:'Shopping home', sub:'Home page for delivery stores', url:'pages.html?page=shome' },
+    { id:'stores', name:'Stores', sub:'Town → type → store → its pages', drill:'stores' },
+    { id:'b_grocery', name:'Grocery list page', sub:'Store browsing', url:'pages.html?page=browse&type=grocery' },
+    { id:'b_retail', name:'Retail list page', sub:'Store browsing', url:'pages.html?page=browse&type=retail' },
+    { id:'b_ff', name:'Fast food list page', sub:'Store browsing', url:'pages.html?page=browse&type=fast_food' },
+    { id:'b_rest', name:'Restaurant list page', sub:'Store browsing', url:'pages.html?page=browse&type=restaurant' },
+    { id:'b_val', name:'Valhalla', sub:'Streets and storefronts', url:'pages.html?page=browse&type=valhalla' },
+    { id:'deals', name:'Deals', sub:'Offers', url:'pages.html?page=deals' },
+    { id:'track', name:'Order tracking', sub:'Tracking screen', url:'pages.html?page=track' }
+  ],
+  Asgard: [
+    { id:'raven', name:'Raven', sub:'Black holes, sphere, favorites', url:'index.html' },
+    { id:'rocks', name:'Floating navigation', sub:'Carved rocks', url:'index.html?section=rocks' },
+    { id:'home', name:'Home & posts', sub:'Feed', url:'pages.html?page=home' },
+    { id:'convo', name:'Messages', sub:'Clouds, Earth, words', url:'pages.html?page=convo' },
+    { id:'effects', name:'Cloud motion', sub:'Construction & clouds', url:'studio-effects.html' },
+    { id:'share', name:'Share', sub:'Water, figures', url:'pages.html?page=share' },
+    { id:'swap', name:'Swap & sell', sub:'Marketplace', url:'pages.html?page=swap' },
+    { id:'shoppost', name:'Shop the post', sub:'Product tags', url:'pages.html?page=shoppost' },
+    { id:'ads', name:'Ads', sub:'Ad cards', url:'pages.html?page=ads' },
+    { id:'heimdall', name:'Notifications', sub:'Heimdall', url:'pages.html?page=heimdall' }
+  ]
+};
+const TYPES = [['fast_food','Fast food'],['fast_casual','Fast casual'],['sit_down','Sit-down restaurants'],['grocery','Grocery'],['retail','Retail'],['valhalla','Valhalla (local)']];
+const NAV = { area: 'Sleipnir', path: [], page: null, find: '' };   // path = drill steps inside Stores
+const DATA = { stores: null, boards: null };
+
+function storeType(s){
+  if(s.is_valhalla) return 'valhalla';
+  if(/grocer|supermarket/i.test(s.category || '')) return 'grocery';
+  return s.menu_type || 'retail';
+}
+function storeTown(s){ const m = /,\s*([A-Za-z .']+),\s*FL/.exec(s.address || ''); return m ? m[1].trim() : 'No town listed'; }
+async function loadStores(){
+  if(DATA.stores) return;
+  const [stores, panels] = await Promise.all([
+    restAll('stores?select=id,name,address,category,menu_type,is_valhalla&order=name'),
+    restAll('store_board_panels?select=store_id,panel_no,daypart,mode&order=daypart,panel_no')
+  ]);
+  DATA.stores = stores; DATA.boards = {};
+  for(const p of panels) (DATA.boards[p.store_id] = DATA.boards[p.store_id] || []).push(p);
+}
+
+function drawAreas(){
+  const n = $('#areas'); n.textContent = '';
+  for(const a of Object.keys(AREAS)) n.append(h('button', { textContent: a, className: a === NAV.area ? 'on' : '', onclick: () => { if(!leaveOk()) return; NAV.area = a; NAV.path = []; NAV.page = null; NAV.find = ''; closeWork(); drawAreas(); drawLeft(); } }));
+}
+function pgBtn(name, sub, on, click, count){
+  const b = h('button', { className: 'pg' + (on ? ' on' : ''), onclick: click });
+  if(count != null) b.append(h('span', { className: 'n', textContent: count }));
+  b.append(name); if(sub) b.append(h('small', { textContent: sub })); return b;
+}
+async function drawLeft(){
+  const L = $('#left'); L.textContent = '';
+  if(!NAV.path.length){
+    L.append(h('div', { className: 'cap', textContent: NAV.area + ' pages' }));
+    for(const p of AREAS[NAV.area]) L.append(pgBtn(p.name, p.sub, NAV.page === p.id, () => { if(!leaveOk()) return; if(p.drill){ NAV.path = [{ k:'stores', label:'Stores' }]; NAV.page = null; closeWork(); drawLeft(); } else { NAV.page = p.id; openFrame(p); drawLeft(); } }));
+    return;
+  }
+  // Stores drill-down
+  const crumb = h('div', { className: 'crumb' });
+  crumb.append(h('button', { textContent: '← ' + NAV.area, onclick: () => { if(!leaveOk()) return; NAV.path = []; NAV.page = null; closeWork(); drawLeft(); } }));
+  NAV.path.forEach((st, i) => { if(i < NAV.path.length - 1) crumb.append(h('button', { textContent: st.label, onclick: () => { if(!leaveOk()) return; NAV.path = NAV.path.slice(0, i + 1); NAV.page = null; NAV.find = ''; closeWork(); drawLeft(); } })); });
+  L.append(crumb);
+  L.append(h('div', { className: 'cap', textContent: 'Loading…' }));
+  try{ await loadStores(); }catch(e){ L.lastChild.textContent = 'Could not load stores: ' + e.message; return; }
+  L.lastChild.remove();
+  const town = (NAV.path[1] || {}).v, type = (NAV.path[2] || {}).v, sid = (NAV.path[3] || {}).v;
+  const step = (k, label, v) => { if(!leaveOk()) return; NAV.path.push({ k, label, v }); NAV.find = ''; NAV.page = null; closeWork(); drawLeft(); };
+  if(NAV.path.length === 1){
+    L.append(h('div', { className: 'cap', textContent: 'Which town' }));
+    const towns = {}; for(const s of DATA.stores) towns[storeTown(s)] = (towns[storeTown(s)] || 0) + 1;
+    for(const t of Object.keys(towns).sort((a, b) => towns[b] - towns[a])) L.append(pgBtn(t, '', false, () => step('town', t, t), towns[t]));
+  } else if(NAV.path.length === 2){
+    L.append(h('div', { className: 'cap', textContent: town + ' — which type' }));
+    for(const [id, name] of TYPES){ const n = DATA.stores.filter(s => storeTown(s) === town && storeType(s) === id).length; L.append(pgBtn(name, '', false, () => step('type', name, id), n)); }
+  } else if(NAV.path.length === 3){
+    L.append(h('div', { className: 'cap', textContent: 'Which store' }));
+    const f = h('input', { id: 'find', placeholder: 'Find a store…', value: NAV.find, oninput: () => { NAV.find = f.value; list(); } }); L.append(f);
+    const box = h('div'); L.append(box);
+    const list = () => { box.textContent = ''; const q = NAV.find.toLowerCase();
+      const rows = DATA.stores.filter(s => storeTown(s) === town && storeType(s) === type && (!q || s.name.toLowerCase().includes(q)));
+      if(!rows.length) box.append(h('div', { className: 'cap', textContent: 'No stores here' }));
+      for(const s of rows){ const nb = (DATA.boards[s.id] || []).length; box.append(pgBtn(s.name, nb ? nb + ' board panels ready' : (s.address || '').split(',')[0], false, () => step('store', s.name, s.id))); } };
+    list();
+  } else {
+    const s = DATA.stores.find(x => x.id === sid) || { name: 'Store' };
+    L.append(h('div', { className: 'cap', textContent: s.name + ' — its pages' }));
+    const panels = DATA.boards[sid] || [];
+    for(const p of panels){ const id = 'board:' + sid + ':' + p.daypart + ':' + p.panel_no;
+      L.append(pgBtn('Menu board ' + p.panel_no, (p.daypart === 'allday' ? 'All day' : p.daypart) + ' · ' + p.mode, NAV.page === id, () => { if(!leaveOk()) return; NAV.page = id; openBoard(s, p); drawLeft(); })); }
+    L.append(pgBtn('Store page & catalog', 'Products, names, prices, images', NAV.page === 'sp:' + sid, () => { if(!leaveOk()) return; NAV.page = 'sp:' + sid; openFrame({ name: s.name, url: 'pages.html?page=store&store=' + sid }); drawLeft(); }));
+  }
+}
+function closeWork(){ $('#frameWrap').hidden = true; $('#editor').hidden = true; $('#empty').hidden = false; $('#frame').src = 'about:blank'; ED.page = null; }
+function openFrame(p){
+  $('#empty').hidden = true; $('#editor').hidden = true; $('#frameWrap').hidden = false; ED.page = null;
+  $('#frameTitle').textContent = p.name + ' — existing editor';
+  $('#frame').src = p.url + (p.url.includes('?') ? '&' : '?') + 'embed=1';
+}
+
+/* ============ element editor state ============ */
+const ED = { page: null, store: null, panel: null, src: null, design: null, saved: '', updatedAt: null,
+  els: [], byId: {}, kind: 'all', sel: null, group: null, scope: 'one', hist: [], redo: [], zoom: 'fit', cutting: false };
+const KINDS = [['all','Everything'],['art','Board artwork'],['slot','Boxes'],['num','Numbers'],['name','Names'],['price','Prices'],['label','Size labels'],['title','Titles'],['letters','Variant letters'],['added','Added pieces']];
+const KNAME = Object.fromEntries(KINDS);
+const TEXT_KINDS = ['num','name','price','label','title','letters'];
+const isText = k => TEXT_KINDS.includes(k);
+const pn = () => ED.panel.daypart + ':' + ED.panel.panel_no;
+function emptyDesign(){ return { v: 1, kinds: {}, panels: {} }; }
+function panelDoc(make){ const d = ED.design; if(!d.panels[pn()] && make) d.panels[pn()] = { kinds: {}, items: {}, added: [] }; return d.panels[pn()] || { kinds: {}, items: {}, added: [] }; }
+// value of one property: base ← store-wide kind ← this-board kind ← this one piece
+function P(el, key){
+  const pd = panelDoc(), a = (pd.items[el.id] || {})[key], b = (pd.kinds[el.kind] || {})[key], c = (ED.design.kinds[el.kind] || {})[key];
+  return a !== undefined ? a : b !== undefined ? b : c !== undefined ? c : el.base[key];
+}
+function targetBag(make){ // where an edit is written, by scope
+  if(ED.sel && ED.scope === 'one'){ const pd = panelDoc(make); if(ED.sel.added) return ED.sel.added; if(!pd.items[ED.sel.id] && make) pd.items[ED.sel.id] = {}; return pd.items[ED.sel.id] || {}; }
+  const kind = ED.sel ? ED.sel.kind : ED.kind;
+  if(ED.scope === 'store'){ if(!ED.design.kinds[kind] && make) ED.design.kinds[kind] = {}; return ED.design.kinds[kind] || {}; }
+  const pd = panelDoc(make); if(!pd.kinds[kind] && make) pd.kinds[kind] = {}; return pd.kinds[kind] || {};
+}
+function current(key){ // value shown in a control
+  if(ED.sel) { if(ED.scope === 'one') return P(ED.sel, key); }
+  const bag = targetBag(false); if(bag[key] !== undefined) return bag[key];
+  const kind = ED.sel ? ED.sel.kind : ED.kind; const first = ED.sel || ED.els.find(e => e.kind === kind);
+  return first ? P(first, key) : undefined;
+}
+let gesture = false;
+function beginChange(){ if(gesture) return; gesture = true; ED.hist.push(JSON.stringify(ED.design)); if(ED.hist.length > 200) ED.hist.shift(); ED.redo = []; }
+function endChange(){ gesture = false; marks(); }
+function setProp(key, val){
+  beginChange(); const bag = targetBag(true);
+  if(val === undefined) delete bag[key]; else bag[key] = val;
+  // a wider-scope change must not be hidden by narrower leftovers the user is not looking at
+  render(true);
+}
+function dirty(){ return JSON.stringify(ED.design) !== ED.saved; }
+function marks(){ const b = $('#bSave'); b.classList.toggle('dirty', dirty()); b.textContent = dirty() ? 'Save changes' : 'Saved'; $('#bUndo').disabled = !ED.hist.length; $('#bRedo').disabled = !ED.redo.length; }
+function leaveOk(){ if(ED.page && dirty()) return confirm('You have changes that are not saved. Leave without saving?'); return true; }
+window.addEventListener('beforeunload', e => { if(ED.page && dirty()){ e.preventDefault(); e.returnValue = ''; } });
+
+/* ============ the real drive-thru board, piece by piece ============ */
+const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+const money = v => v == null ? '--' : Number(v).toFixed(2);
+async function openBoard(store, pmeta){
+  $('#empty').hidden = true; $('#frameWrap').hidden = true; $('#editor').hidden = false; $('#frame').src = 'about:blank';
+  $('#pageName').textContent = store.name + ' · board ' + pmeta.panel_no; $('#stage').textContent = ''; $('#controls').textContent = ''; $('#features').textContent = ''; $('#options').textContent = '';
+  $('#targetText').textContent = 'Loading the real board…';
+  try{
+    if(!ED.src || ED.src.storeId !== store.id){
+      const sid = 'store_id=eq.' + store.id;
+      const [panels, rows, items, sizes, des] = await Promise.all([
+        rest('store_board_panels?' + sid + '&order=daypart,panel_no'),
+        rest('store_drive_thru_board?' + sid + '&select=daypart,display_name,item_number,variant_letter,family_name,variant_name,sandwich_price,small_price,medium_price,large_price'),
+        restAll('products?' + sid + '&select=id,name,category,price,sort_order&order=sort_order,name'),
+        restAll('product_size_prices?' + sid + '&select=product_id,small_price,medium_price,large_price'),
+        rest('studio_designs?id=eq.el_board_' + store.id + '&select=data,updated_at')
+      ]);
+      const sz = {}; for(const s of sizes) sz[s.product_id] = s;
+      const byName = {}, byCat = {};
+      for(const it of items){ const z = sz[it.id] || {}; const m = { name: it.name, price: it.price, sm: z.small_price, md: z.medium_price, lg: z.large_price };
+        m.hasSizes = m.sm != null || m.md != null || m.lg != null; if(!(norm(it.name) in byName)) byName[norm(it.name)] = m; (byCat[it.category] = byCat[it.category] || []).push(m); }
+      const fam = {};
+      for(const r of rows){ const d = r.daypart || 'allday'; fam[d] = fam[d] || {}; (fam[d][r.item_number] = fam[d][r.item_number] || []).push(r); }
+      const families = {};
+      for(const d of Object.keys(fam)) families[d] = Object.keys(fam[d]).map(Number).sort((a, b) => a - b).map(n => { const rs = fam[d][n].sort((a, b) => String(a.variant_letter || '').localeCompare(String(b.variant_letter || '')));
+        const main = rs.find(r => !r.variant_letter) || rs.find(r => r.variant_letter === 'a') || rs[0];
+        return { n, name: main.family_name || main.display_name, main, letters: rs.filter(r => r !== main && r.variant_letter) }; });
+      ED.src = { storeId: store.id, panels, byName, byCat, families };
+      ED.design = des[0] && des[0].data && des[0].data.v ? des[0].data : emptyDesign();
+      ED.updatedAt = des[0] ? des[0].updated_at : null; ED.saved = JSON.stringify(ED.design); ED.hist = []; ED.redo = [];
+    }
+    ED.store = store; ED.panel = ED.src.panels.find(p => p.panel_no === pmeta.panel_no && p.daypart === pmeta.daypart);
+    if(!ED.panel) throw new Error('That board panel is no longer there');
+    ED.page = 'board'; ED.sel = null; ED.kind = 'all'; ED.group = null; ED.scope = 'board';
+    render(false); $('#scroll').scrollTop = 0; fitPhone(); drawFeatures(); drawEdit(); marks();
+  }catch(e){ $('#targetText').textContent = 'Could not open this board: ' + e.message; }
+}
+
+// builds the list of pieces exactly the way the app lays the board out (buildImageBoard in the board widget)
+function buildPieces(){
+  const p = ED.panel, W = 390, crop = p.crop || [0, 0, p.image_w, p.image_h];
+  const cx0 = crop[0], cy0 = crop[1], cw = crop[2] - crop[0], ch = crop[3] - crop[1], s = W / cw, TOP = 52;
+  const els = [], add = e => { els.push(e); return e; };
+  add({ id: 'art', kind: 'art', label: 'Board artwork', type: 'image', base: { x: -cx0 * s, y: TOP - cy0 * s, w: p.image_w * s, h: p.image_h * s, src: p.image_url, opacity: 1, brightness: 1, contrast: 1, saturate: 1, hidden: false } });
+  const slots = p.slots || [], fams = ED.src.families[p.combo_daypart || p.daypart || 'allday'] || ED.src.families.allday || [];
+  const T = (id, kind, label, text, size, color, weight, extra) => add(Object.assign({ id, kind, label, type: 'text', text, base: Object.assign({ size, color, weight, font: 'Roboto', italic: false, spacing: 0, caps: false, dx: 0, dy: 0, opacity: 1, hidden: false }, extra || {}) }));
+  slots.forEach((sl, i) => {
+    const w = (sl.x1 - sl.x0) * s, hh = (sl.y1 - sl.y0) * s; if(w <= 0 || hh <= 0) return;
+    const slot = { id: 's' + i, kind: 'slot', label: 'Box ' + (i + 1), type: 'slot', base: { x: (sl.x0 - cx0) * s, y: TOP + (sl.y0 - cy0) * s, w, h: hh, hidden: false }, mode: p.mode, kids: {} };
+    if(p.mode === 'combos'){
+      const f = fams[(p.combo_offset || 0) + i]; if(!f) return; slot.label = 'Box ' + f.n + ' — ' + f.name; slot.fam = f; add(slot);
+      T(slot.id + '.num', 'num', 'Number ' + f.n, String(f.n), 34, '#ffffff', 800);
+      T(slot.id + '.name', 'name', f.name, f.name, 19, '#ffffff', 800);
+      if(f.letters.length) T(slot.id + '.let', 'letters', 'Variant letters', f.letters.map(r => f.n + r.variant_letter).join('    '), 14, '#ffffff', 700);
+      ['Sand', 'Sm', 'Med', 'Lg'].forEach((t, j) => T(slot.id + '.h' + j, 'label', t + ' label', t, 10, '#9a9a9a', 600));
+      [f.main.sandwich_price, f.main.small_price, f.main.medium_price, f.main.large_price].forEach((v, j) => T(slot.id + '.p' + j, 'price', f.name + ' ' + ['sandwich', 'small', 'medium', 'large'][j] + ' price', money(v), 17, '#ffc72c', 800));
+    } else {
+      let items = [];
+      if(p.mode === 'items'){ const it = ED.src.byName[norm(sl.name)]; if(!it) return; items = [it]; slot.single = true; }
+      else if((sl.names || []).length){ for(const n of sl.names){ const it = ED.src.byName[norm(n)]; if(it) items.push(it); } }
+      else if(sl.category) items = ED.src.byCat[sl.category] || [];
+      slot.label = 'Box — ' + (sl.title || sl.name || sl.category || (i + 1)); slot.items = items; add(slot);
+      if(!slot.single) T(slot.id + '.title', 'title', sl.title || '', sl.title || '', 17, '#ffc72c', 800);
+      const ns = slot.single ? 21 : 15;
+      items.forEach((it, k) => { const b = slot.id + '.i' + k;
+        T(b + '.name', 'name', it.name, it.name, ns, '#ffffff', 800);
+        if(it.hasSizes){ [['Sm', it.sm], ['Med', it.md], ['Lg', it.lg]].filter(c => c[1] != null).forEach((c, j) => { T(b + '.h' + j, 'label', c[0] + ' label', c[0], 9, '#9a9a9a', 600); T(b + '.p' + j, 'price', it.name + ' ' + c[0] + ' price', money(c[1]), 14, '#ffc72c', 800); }); }
+        else T(b + '.p0', 'price', it.name + ' price', money(it.price), ns, '#ffc72c', 800);
+      });
+    }
+  });
+  const pd = panelDoc();
+  (pd.added || []).forEach(a => add({ id: a.id, kind: 'added', label: a.label || 'Added piece', type: a.type, added: a, base: a }));
+  return { els, height: TOP + ch * s + 90 };
+}
+
+/* ============ drawing the phone ============ */
+function tnode(el, one){
+  const n = h('span', { className: 't' + (one ? ' one' : '') }); n.dataset.el = el.id; n.textContent = P(el, 'caps') ? String(el.text).toUpperCase() : el.text;
+  const st = n.style; st.fontSize = P(el, 'size') + 'px'; st.color = P(el, 'color'); st.fontWeight = P(el, 'weight'); st.fontFamily = '"' + P(el, 'font') + '",Roboto,system-ui,sans-serif';
+  st.fontStyle = P(el, 'italic') ? 'italic' : 'normal'; st.letterSpacing = P(el, 'spacing') + 'px'; st.opacity = P(el, 'opacity');
+  const dx = P(el, 'dx'), dy = P(el, 'dy'); if(dx || dy) st.transform = 'translate(' + dx + 'px,' + dy + 'px)'; if(P(el, 'hidden')) st.visibility = 'hidden';
+  return n;
+}
+// Flutter's FittedBox(scaleDown): lay the child out at its natural size, shrink only if it does not fit
+function fitBox(w, hgt, child, align){ const o = h('div', { className: 'fit' }); o.style.width = w + 'px'; if(hgt != null) o.style.height = hgt + 'px'; o.dataset.fit = align || 'left'; if(hgt != null) o.dataset.h = hgt; const i = h('div', { className: 'fin' }); i.append(child); o.append(i); return o; }
+function applyFits(root){
+  const all = $$('[data-fit]', root).reverse(); // innermost first
+  for(const o of all){ const i = o.firstChild; i.style.transform = 'none'; const w = parseFloat(o.style.width), fixedH = o.dataset.h != null ? parseFloat(o.dataset.h) : null;
+    const iw = i.offsetWidth, ih = i.offsetHeight; let k = Math.min(1, w / Math.max(1, iw)); if(fixedH != null) k = Math.min(k, fixedH / Math.max(1, ih));
+    const sw = iw * k, sh = ih * k; if(fixedH == null) o.style.height = sh + 'px';
+    const ox = o.dataset.fit === 'center' ? (w - sw) / 2 : 0, oy = fixedH != null ? (fixedH - sh) / 2 : 0;
+    i.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + k + ')'; }
+}
+// Flutter maxLines: 2 — anything past the second line is simply not drawn
+function twoLines(node, el, lh){ node.style.lineHeight = lh; node.style.overflow = 'hidden'; node.style.maxHeight = (P(el, 'size') * lh * 2 + 0.5) + 'px'; }
+function cellNode(el, colW){ const c = h('div'); c.style.width = colW + 'px'; c.style.padding = '0 3px'; const t = tnode(el, true); t.style.lineHeight = '1.1'; c.append(fitBox(colW - 6, null, t, 'center')); return c; }
+function col(w){ const c = h('div'); c.style.width = w + 'px'; return c; }
+function drawSlot(slot){
+  const E = id => ED.byId[slot.id + id], w = P(slot, 'w'), hh = P(slot, 'h');
+  const box = h('div', { className: 'el' }); box.dataset.el = slot.id;
+  Object.assign(box.style, { left: P(slot, 'x') + 'px', top: P(slot, 'y') + 'px', width: w + 'px', height: hh + 'px' }); if(P(slot, 'hidden')) box.style.visibility = 'hidden';
+  if(slot.mode === 'combos'){
+    const numW = w * 0.15, nameW = w - numW - 4, inner = col(w);
+    const row = h('div', { className: 'row' });
+    const num = tnode(E('.num'), true); num.style.lineHeight = '1'; const nb = fitBox(numW, null, num, 'center'); row.append(nb);
+    const gap = h('div'); gap.style.width = '4px'; gap.style.flex = 'none'; row.append(gap);
+    const nc = col(nameW); const nm = tnode(E('.name')); twoLines(nm, E('.name'), 1.05); nc.append(nm);
+    if(E('.let')){ const lt = tnode(E('.let'), true); lt.style.lineHeight = '1'; lt.style.marginTop = '4px'; nc.append(lt); }
+    row.append(nc); inner.append(row);
+    const sp = h('div'); sp.style.height = '6px'; inner.append(sp);
+    const r1 = h('div', { className: 'row' }), r2 = h('div', { className: 'row' }); r2.style.marginTop = '2px';
+    for(let j = 0; j < 4; j++){ r1.append(cellNode(E('.h' + j), w / 4)); r2.append(cellNode(E('.p' + j), w / 4)); }
+    inner.append(r1, r2); box.append(fitBox(w, hh, inner, 'left'));
+  } else {
+    box.style.overflow = 'hidden';
+    const titleH = slot.single ? 0 : 28, n = slot.items.length, itemH = n ? ((hh - titleH) / n) - 0.01 : 0;
+    if(!slot.single){ const t = tnode(E('.title'), true); t.style.lineHeight = '1'; box.append(fitBox(w, titleH, t, 'left')); }
+    slot.items.forEach((it, k) => { const b = '.i' + k, cellBox = h('div'); cellBox.style.width = w + 'px'; cellBox.style.height = itemH + 'px';
+      if(!slot.single && k !== n - 1) cellBox.style.borderBottom = '0.7px solid rgba(255,255,255,.18)';
+      const inner = col(w); const nm = tnode(E(b + '.name')); twoLines(nm, E(b + '.name'), 1.06); inner.append(nm);
+      const sp = h('div'); sp.style.height = '2px'; inner.append(sp);
+      if(it.hasSizes){ const cols = [0, 1, 2].filter(j => E(b + '.h' + j)), cw = w / Math.max(1, cols.length), r1 = h('div', { className: 'row' }), r2 = h('div', { className: 'row' }); r2.style.marginTop = '1px';
+        for(const j of cols){ r1.append(cellNode(E(b + '.h' + j), cw)); r2.append(cellNode(E(b + '.p' + j), cw)); } inner.append(r1, r2); }
+      else { const pr = tnode(E(b + '.p0'), true); pr.style.lineHeight = '1'; inner.append(pr); }
+      cellBox.append(fitBox(w, itemH, inner, 'left')); box.append(cellBox); });
+  }
+  return box;
+}
+function drawImage(el){
+  const d = h('div', { className: 'el' }); d.dataset.el = el.id;
+  Object.assign(d.style, { left: P(el, 'x') + 'px', top: P(el, 'y') + 'px', width: P(el, 'w') + 'px', height: P(el, 'h') + 'px', opacity: P(el, 'opacity') });
+  if(P(el, 'hidden')) d.style.visibility = 'hidden';
+  d.style.filter = 'brightness(' + P(el, 'brightness') + ') contrast(' + P(el, 'contrast') + ') saturate(' + P(el, 'saturate') + ')';
+  if(el.type === 'crop'){ // a piece cut out of the artwork: same picture, only that region showing
+    const a = el.added, kx = P(el, 'w') / a.sw, ky = P(el, 'h') / a.sh; d.style.overflow = 'hidden';
+    const im = h('img', { src: a.src, alt: '' }); Object.assign(im.style, { position: 'absolute', width: a.iw * kx + 'px', height: a.ih * ky + 'px', left: -a.sx * kx + 'px', top: -a.sy * ky + 'px' }); d.append(im);
+  } else if(el.type === 'fill'){ d.style.background = P(el, 'color'); d.style.borderRadius = (P(el, 'radius') || 0) + 'px'; }
+  else { const im = h('img', { src: P(el, 'src') || '', alt: '' }); im.style.objectFit = el.kind === 'art' ? 'fill' : (P(el, 'fit') || 'contain'); d.append(im); }
+  return d;
+}
+function render(keepScroll){
+  const st = $('#stage'), sc = $('#scroll'), top = sc.scrollTop;
+  const built = buildPieces(); ED.els = built.els; ED.byId = Object.fromEntries(built.els.map(e => [e.id, e]));
+  if(ED.sel) ED.sel = ED.byId[ED.sel.id] || null;
+  st.textContent = ''; st.style.height = Math.max(844, built.height) + 'px';
+  for(const el of ED.els){ if(el.type === 'slot') st.append(drawSlot(el)); else if(el.type !== 'text') st.append(drawImage(el)); }
+  applyFits(st); if(keepScroll) sc.scrollTop = top; paintSel();
+}
+function paintSel(){
+  $$('[data-el]', $('#stage')).forEach(n => { const e = ED.byId[n.dataset.el]; n.classList.toggle('sel', !!ED.sel && n.dataset.el === ED.sel.id); n.classList.toggle('kindOn', !ED.sel && ED.kind !== 'all' && !!e && e.kind === ED.kind); });
+  const old = $('#handle'); if(old) old.remove();
+  if(ED.sel && ED.scope === 'one'){ const n = $('[data-el="' + CSS.escape(ED.sel.id) + '"]', $('#stage')); if(n){ const r = n.getBoundingClientRect(), s = $('#stage').getBoundingClientRect(), k = zoomK();
+    const hd = h('div', { id: 'handle', title: 'Drag to resize' }); hd.style.left = ((r.right - s.left) / k - 8) + 'px'; hd.style.top = ((r.bottom - s.top) / k - 8) + 'px'; $('#stage').append(hd); hd.addEventListener('pointerdown', startResize); } }
+}
+function zoomK(){ return ED.zoomK || 1; }
+function fitPhone(){ const hold = $('#phoneHold'); let k = ED.zoom === 'fit' ? Math.min(1.6, (hold.clientHeight - 28) / 850, (hold.clientWidth - 28) / 396) : Number(ED.zoom); k = Math.max(.3, k); ED.zoomK = k; const s = $('#phoneScale'); s.style.transform = 'scale(' + k + ')'; s.style.height = 850 * k + 'px'; s.style.width = 396 * k + 'px'; s.style.transformOrigin = 'top left'; paintSel(); }
+$$('#phoneBar [data-zoom]').forEach(b => b.onclick = () => { ED.zoom = b.dataset.zoom; $$('#phoneBar [data-zoom]').forEach(x => x.classList.toggle('on', x === b)); fitPhone(); });
+window.addEventListener('resize', () => { if(ED.page) fitPhone(); });
+
+/* ============ click, drag, resize in the phone ============ */
+function select(el){ ED.sel = el; if(el){ ED.kind = el.kind; ED.scope = 'one'; } ED.group = null; drawFeatures(); drawEdit(); paintSel(); }
+let drag = null;
+$('#stage').addEventListener('pointerdown', ev => {
+  if(document.body.classList.contains('clean')) return;
+  if(ED.cutting){ startCut(ev); return; }
+  if(ev.target.id === 'handle') return;
+  const n = ev.target.closest('[data-el]'); if(!n){ select(null); return; }
+  const el = ED.byId[n.dataset.el]; if(!el) return;
+  if(!ED.sel || ED.sel.id !== el.id || ED.scope !== 'one'){ select(el); }
+  const tx = isText(el.kind); drag = { el, x: ev.clientX, y: ev.clientY, ox: P(el, tx ? 'dx' : 'x'), oy: P(el, tx ? 'dy' : 'y'), tx, moved: false };
+  $('#stage').setPointerCapture(ev.pointerId); ev.preventDefault();
+});
+$('#stage').addEventListener('pointermove', ev => {
+  if(cut){ moveCut(ev); return; }
+  if(!drag) return; const k = zoomK(), dx = (ev.clientX - drag.x) / k, dy = (ev.clientY - drag.y) / k;
+  if(!drag.moved && Math.hypot(dx, dy) < 3) return; drag.moved = true; beginChange(); const bag = targetBag(true);
+  bag[drag.tx ? 'dx' : 'x'] = Math.round((drag.ox + dx) * 10) / 10; bag[drag.tx ? 'dy' : 'y'] = Math.round((drag.oy + dy) * 10) / 10; render(true); syncControls();
+});
+$('#stage').addEventListener('pointerup', ev => { if(cut){ endCut(ev); return; } if(drag && drag.moved) endChange(); drag = null; });
+function startResize(ev){
+  ev.stopPropagation(); ev.preventDefault(); const el = ED.sel, tx = isText(el.kind), k = zoomK();
+  const o = { x: ev.clientX, y: ev.clientY, w: tx ? 0 : P(el, 'w'), h: tx ? 0 : P(el, 'h'), size: tx ? P(el, 'size') : 0 }; let moved = false;
+  const mv = e => { const dx = (e.clientX - o.x) / k, dy = (e.clientY - o.y) / k; moved = true; beginChange(); const bag = targetBag(true);
+    if(tx) bag.size = Math.max(4, Math.round((o.size + (dx + dy) / 4) * 2) / 2);
+    else if(el.type === 'slot' || e.shiftKey){ bag.w = Math.max(6, Math.round(o.w + dx)); bag.h = Math.max(6, Math.round(o.h + dy)); }
+    else { const r = Math.max(.05, (o.w + dx) / o.w); bag.w = Math.round(o.w * r * 10) / 10; bag.h = Math.round(o.h * r * 10) / 10; }
+    render(true); syncControls(); };
+  const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); if(moved) endChange(); };
+  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+}
+window.addEventListener('keydown', ev => {
+  if(!ED.page || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z'){ ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
+  if(!ED.sel || ED.scope !== 'one') return; const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key]; if(!d) return;
+  ev.preventDefault(); const tx = isText(ED.sel.kind), m = ev.shiftKey ? 10 : 1; beginChange(); const bag = targetBag(true);
+  bag[tx ? 'dx' : 'x'] = P(ED.sel, tx ? 'dx' : 'x') + d[0] * m; bag[tx ? 'dy' : 'y'] = P(ED.sel, tx ? 'dy' : 'y') + d[1] * m; render(true); syncControls(); endChange();
+});
+// cut a piece out of the artwork
+let cut = null;
+function stagePt(ev){ const s = $('#stage').getBoundingClientRect(), k = zoomK(); return { x: (ev.clientX - s.left) / k, y: (ev.clientY - s.top) / k }; }
+function startCut(ev){ const p = stagePt(ev); cut = { x0: p.x, y0: p.y, x1: p.x, y1: p.y }; const b = h('div', { id: 'cutBox' }); $('#stage').append(b); $('#stage').setPointerCapture(ev.pointerId); ev.preventDefault(); }
+function moveCut(ev){ const p = stagePt(ev); cut.x1 = p.x; cut.y1 = p.y; const b = $('#cutBox'); Object.assign(b.style, { left: Math.min(cut.x0, cut.x1) + 'px', top: Math.min(cut.y0, cut.y1) + 'px', width: Math.abs(cut.x1 - cut.x0) + 'px', height: Math.abs(cut.y1 - cut.y0) + 'px' }); }
+function endCut(){
+  const c = cut; cut = null; ED.cutting = false; const b = $('#cutBox'); if(b) b.remove();
+  const x = Math.min(c.x0, c.x1), y = Math.min(c.y0, c.y1), w = Math.abs(c.x1 - c.x0), hh = Math.abs(c.y1 - c.y0); if(w < 6 || hh < 6){ drawEdit(); return; }
+  const art = ED.byId.art, ax = P(art, 'x'), ay = P(art, 'y'), aw = P(art, 'w'), ah = P(art, 'h');
+  addPiece({ type: 'crop', label: 'Cut piece', src: P(art, 'src'), iw: aw, ih: ah, sx: x - ax, sy: y - ay, sw: w, sh: hh, x, y, w, h: hh });
+}
+function addPiece(a){
+  beginChange(); const pd = panelDoc(true); pd.added = pd.added || [];
+  a.id = 'a' + Date.now().toString(36); Object.assign(a, { opacity: 1, brightness: 1, contrast: 1, saturate: 1, hidden: false }, a);
+  pd.added.push(a); render(true); endChange(); select(ED.byId[a.id]);
+}
+
+/* ============ 3: feature tabs ============ */
+function drawFeatures(){
+  const f = $('#features'); f.textContent = '';
+  const have = new Set(ED.els.map(e => e.kind)); have.add('all'); have.add('added');
+  for(const [id, name] of KINDS){ if(!have.has(id)) continue;
+    f.append(h('button', { textContent: name, className: ED.kind === id ? 'on' : '', onclick: () => { ED.kind = id; ED.sel = null; ED.group = null; ED.scope = 'board'; drawFeatures(); drawEdit(); paintSel(); } })); }
+}
+
+/* ============ 4 + 5: options, then only that control set ============ */
+const GROUPS = {
+  text: [['size','Size'],['move','Position'],['color','Color'],['font','Font'],['look','See-through'],['show','Show / hide']],
+  image: [['size','Size'],['move','Position'],['look','Brightness & look'],['show','Show / hide']],
+  slot: [['size','Size'],['move','Position'],['show','Show / hide']],
+  added: [['size','Size'],['move','Position'],['look','Brightness & look'],['picture','Picture'],['show','Show / hide'],['remove','Remove this piece']],
+  fill: [['size','Size'],['move','Position'],['color','Color'],['look','See-through'],['show','Show / hide'],['remove','Remove this piece']]
+};
+function groupSet(){ const k = ED.sel ? ED.sel.kind : ED.kind; if(k === 'all') return null; if(k === 'added'){ if(!ED.sel) return null; return ED.sel.type === 'fill' ? GROUPS.fill : GROUPS.added; } return isText(k) ? GROUPS.text : k === 'slot' ? GROUPS.slot : GROUPS.image; }
+function drawEdit(){
+  const tt = $('#targetText'), sc = $('#scope'), opt = $('#options'), c = $('#controls'); tt.textContent = ''; sc.textContent = ''; opt.textContent = ''; c.textContent = '';
+  const kind = ED.sel ? ED.sel.kind : ED.kind;
+  if(ED.sel){ tt.append('Editing ', h('b', { textContent: ED.sel.label }), ' (' + KNAME[kind] + ')'); } else tt.append('Editing ', h('b', { textContent: KNAME[kind] }));
+  const scopes = []; if(ED.sel) scopes.push(['one', 'Only this one']);
+  if(kind !== 'all' && kind !== 'added' && kind !== 'art'){ scopes.push(['board', 'All ' + KNAME[kind].toLowerCase() + ' on this board']); scopes.push(['store', 'All ' + KNAME[kind].toLowerCase() + ' on every board of this store']); }
+  if(kind === 'art' && !ED.sel){ scopes.push(['board', 'This board']); }
+  if(!scopes.find(s => s[0] === ED.scope)) ED.scope = scopes.length ? scopes[0][0] : 'board';
+  for(const [v, t] of scopes) sc.append(h('option', { value: v, textContent: t, selected: v === ED.scope })); sc.hidden = scopes.length < 2;
+  $('#bBack').disabled = !(ED.group || ED.sel || ED.kind !== 'all');
+  const set = groupSet();
+  if(kind === 'all' || (kind === 'added' && !ED.sel)){
+    opt.hidden = true; c.append(h('h3', { textContent: kind === 'added' ? 'Added pieces' : ED.store.name + ' — board ' + ED.panel.panel_no }));
+    if(kind === 'all') c.append(h('div', { className: 'hint', textContent: 'Click anything on the phone to edit that one piece, or pick a tab above to change every piece of that kind at once. Drag a piece to move it; drag the orange corner to resize it.' }));
+    const row = h('div', { className: 'btnrow' });
+    row.append(h('button', { className: 'tb', textContent: '+ Add a picture', onclick: () => { const u = prompt('Paste the picture link (URL):'); if(u && /^https?:\/\//.test(u.trim())) addPiece({ type: 'image', label: 'Added picture', src: u.trim(), fit: 'contain', x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 160 }); } }));
+    row.append(h('button', { className: 'tb', textContent: '✂ Cut a piece out of the artwork', onclick: () => { ED.cutting = true; toast('Drag a box on the phone around the part you want as its own piece', 5000); } }));
+    row.append(h('button', { className: 'tb', textContent: '+ Add a color box', onclick: () => addPiece({ type: 'fill', label: 'Color box', color: '#000000', radius: 0, x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 80 }) }));
+    c.append(row);
+    const pd = panelDoc();
+    if((pd.added || []).length){ const box = h('div', { className: 'cbox' }); box.style.marginTop = '12px'; box.append(h('h4', { textContent: 'Pieces you added to this board' }));
+      for(const a of pd.added) box.append(h('button', { className: 'pg', textContent: a.label, onclick: () => select(ED.byId[a.id]) })); c.append(box); }
+    return;
+  }
+  if(!ED.group){
+    opt.hidden = false; for(const [id, name] of set) opt.append(h('button', { textContent: name, onclick: () => { ED.group = id; drawEdit(); } }));
+    c.append(h('div', { className: 'hint', textContent: 'Choose what to adjust.' })); return;
+  }
+  opt.hidden = true;
+  const name = (set.find(g => g[0] === ED.group) || [0, ''])[1];
+  c.append(h('h3', {}, [name]));
+  const boxes = h('div', { className: 'boxes' }); c.append(boxes); buildControls(boxes, ED.group, kind);
+}
+$('#scope').onchange = e => { ED.scope = e.target.value; drawEdit(); paintSel(); };
+$('#bBack').onclick = () => { if(ED.group) ED.group = null; else if(ED.sel){ ED.sel = null; ED.scope = 'board'; } else ED.kind = 'all'; drawFeatures(); drawEdit(); paintSel(); };
+$('#bPreview').onclick = () => { const on = document.body.classList.toggle('clean'); $('#bPreview').textContent = on ? 'Back to editing' : 'Preview'; };
+function undo(){ if(!ED.hist.length) return; ED.redo.push(JSON.stringify(ED.design)); ED.design = JSON.parse(ED.hist.pop()); render(true); drawEdit(); marks(); }
+function redo(){ if(!ED.redo.length) return; ED.hist.push(JSON.stringify(ED.design)); ED.design = JSON.parse(ED.redo.pop()); render(true); drawEdit(); marks(); }
+$('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
+$('#bSave').onclick = async () => {
+  if(!ED.page) return; const b = $('#bSave'); b.disabled = true; b.textContent = 'Saving…';
+  try{
+    const id = 'el_board_' + ED.store.id, now = new Date().toISOString();
+    await rest('studio_designs?on_conflict=id', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, HEAD), body: JSON.stringify({ id, page: 'board_elements', data: ED.design, updated_at: now, updated_by: 'claude-studio' }) });
+    const back = await rest('studio_designs?id=eq.' + id + '&select=data,updated_at');
+    if(!back[0] || JSON.stringify(back[0].data) !== JSON.stringify(ED.design)) throw new Error('the saved copy did not match');
+    ED.saved = JSON.stringify(ED.design); ED.updatedAt = back[0].updated_at; toast('Saved');
+  }catch(e){ toast('Save failed: ' + e.message, 6000); }
+  b.disabled = false; marks();
+};
+
+/* ============ controls ============ */
+const live = [];
+function syncControls(){ for(const f of live) f(); }
+function cbox(parent, title, info){ const b = h('div', { className: 'cbox' }); const t = h('h4', { textContent: title }); if(info) t.append(h('span', { className: 'info', textContent: 'i', title: info })); b.append(t); parent.append(b); return b; }
+function slider(box, label, key, min, max, step, fallback){
+  const row = h('div', { className: 'ctl' }), r = h('input', { type: 'range', min, max, step }), n = h('input', { type: 'number', min, max, step }), rs = h('button', { className: 'rs', textContent: '↺', title: 'Back to the original' });
+  const get = () => { const v = current(key); return v === undefined ? fallback : v; };
+  const show = () => { const v = get(); if(document.activeElement !== r) r.value = v; if(document.activeElement !== n) n.value = Math.round(v * 100) / 100; };
+  const put = v => { if(!isFinite(v)) return; setProp(key, v); if(document.activeElement !== r) r.value = v; if(document.activeElement !== n) n.value = Math.round(v * 100) / 100; };
+  r.oninput = () => put(Number(r.value)); r.onchange = endChange; n.oninput = () => put(Number(n.value)); n.onchange = endChange;
+  rs.onclick = () => { setProp(key, undefined); endChange(); show(); };
+  row.append(h('label', { textContent: label }), r, n, rs); box.append(row); live.push(show); show();
+}
+function color(box, label, key){
+  const row = h('div', { className: 'ctl' }), c = h('input', { type: 'color' }), t = h('input', { type: 'text' }), rs = h('button', { className: 'rs', textContent: '↺', title: 'Back to the original' });
+  const show = () => { const v = String(current(key) || '#ffffff'); c.value = /^#[0-9a-f]{6}$/i.test(v) ? v : '#ffffff'; if(document.activeElement !== t) t.value = v; };
+  c.oninput = () => { setProp(key, c.value); t.value = c.value; }; c.onchange = endChange;
+  t.onchange = () => { if(/^#[0-9a-f]{6}$/i.test(t.value.trim())){ setProp(key, t.value.trim()); endChange(); show(); } };
+  rs.onclick = () => { setProp(key, undefined); endChange(); show(); };
+  row.append(h('label', { textContent: label }), c, t, rs); box.append(row); live.push(show); show();
+}
+function choice(box, label, key, list){
+  const row = h('div', { className: 'ctl' }), s = h('select', { className: 'wide' }), rs = h('button', { className: 'rs', textContent: '↺', title: 'Back to the original' });
+  for(const [v, t] of list) s.append(h('option', { value: v, textContent: t }));
+  const show = () => { s.value = String(current(key)); };
+  s.onchange = () => { const raw = s.value, v = raw === 'true' ? true : raw === 'false' ? false : isNaN(raw) || raw === '' ? raw : Number(raw); setProp(key, v); endChange(); };
+  rs.onclick = () => { setProp(key, undefined); endChange(); show(); };
+  row.append(h('label', { textContent: label }), s, rs); box.append(row); live.push(show); show();
+}
+function buildControls(root, group, kind){
+  live.length = 0; const tx = isText(kind), el = ED.sel;
+  if(group === 'size'){
+    if(tx){ const b = cbox(root, 'Text size', 'How big the letters are. The app still shrinks text that does not fit its box, the same way the real page does.'); slider(b, 'Size', 'size', 4, 80, 0.5, 14); }
+    else { const b = cbox(root, 'Size', 'Width and height on the phone, in phone pixels (the phone is 390 wide).'); slider(b, 'Width', 'w', 4, 1600, 1, 100); slider(b, 'Height', 'h', 4, 3400, 1, 100);
+      if(el && ED.scope === 'one' && el.type !== 'slot'){ const b2 = cbox(root, 'Grow or shrink evenly', 'Changes width and height together so the picture is not stretched.'); const row = h('div', { className: 'btnrow' });
+        for(const [t, k] of [['− 10%', .9], ['− 2%', .98], ['+ 2%', 1.02], ['+ 10%', 1.1]]) row.append(h('button', { className: 'tb', textContent: t, onclick: () => { beginChange(); const bag = targetBag(true), w = P(el, 'w'), hh = P(el, 'h'), x = P(el, 'x'), y = P(el, 'y'); bag.w = Math.round(w * k * 10) / 10; bag.h = Math.round(hh * k * 10) / 10; bag.x = Math.round((x - (bag.w - w) / 2) * 10) / 10; bag.y = Math.round((y - (bag.h - hh) / 2) * 10) / 10; render(true); endChange(); syncControls(); } }));
+        b2.append(row); } }
+  }
+  if(group === 'move'){
+    const b = cbox(root, 'Position', tx ? 'Nudges the text away from where the app normally puts it.' : 'Where the piece sits on the phone. You can also drag it, or use the arrow keys.');
+    if(tx){ slider(b, 'Left / right', 'dx', -200, 200, 0.5, 0); slider(b, 'Up / down', 'dy', -200, 200, 0.5, 0); }
+    else { slider(b, 'Left / right', 'x', -1600, 800, 0.5, 0); slider(b, 'Up / down', 'y', -3400, 3400, 0.5, 0); }
+  }
+  if(group === 'color'){ const b = cbox(root, 'Color'); color(b, 'Color', 'color'); if(kind === 'added') slider(b, 'Round corners', 'radius', 0, 200, 1, 0); }
+  if(group === 'font'){
+    const b = cbox(root, 'Lettering');
+    choice(b, 'Font', 'font', [['Roboto', 'Roboto (the app\'s font)'], ['Inter', 'Inter'], ['Oswald', 'Oswald'], ['Bebas Neue', 'Bebas Neue'], ['Cinzel', 'Cinzel (Norse serif)']]);
+    choice(b, 'Thickness', 'weight', [[400, 'Regular'], [500, 'Medium'], [600, 'Semi-bold'], [700, 'Bold'], [800, 'Extra bold'], [900, 'Black']]);
+    choice(b, 'Slant', 'italic', [[false, 'Upright'], [true, 'Italic']]);
+    choice(b, 'Capitals', 'caps', [[false, 'As written'], [true, 'ALL CAPITALS']]);
+    slider(b, 'Letter gap', 'spacing', -2, 12, 0.1, 0);
+  }
+  if(group === 'look'){
+    const b = cbox(root, tx || (el && el.type === 'fill') ? 'See-through' : 'Brightness & look'); slider(b, 'See-through', 'opacity', 0, 1, 0.01, 1);
+    if(!tx && !(el && el.type === 'fill')){ slider(b, 'Brightness', 'brightness', 0, 2.5, 0.01, 1); slider(b, 'Contrast', 'contrast', 0, 2.5, 0.01, 1); slider(b, 'Color strength', 'saturate', 0, 2.5, 0.01, 1); }
+  }
+  if(group === 'picture' && el){
+    const b = cbox(root, 'Picture', 'Swap the picture this piece shows.');
+    if(el.type === 'crop') b.append(h('div', { className: 'hint', textContent: 'This piece is cut from the board artwork.' }));
+    else { b.append(h('button', { className: 'tb', textContent: 'Change the picture link', onclick: () => { const u = prompt('Paste the new picture link (URL):', P(el, 'src')); if(u && /^https?:\/\//.test(u.trim())){ setProp('src', u.trim()); endChange(); } } })); choice(b, 'Fit', 'fit', [['contain', 'Whole picture shows'], ['cover', 'Fill the box (crops)'], ['fill', 'Stretch to the box']]); }
+  }
+  if(group === 'show'){ const b = cbox(root, 'Show / hide', 'Hidden pieces stay in the page and can be shown again here.'); choice(b, 'Visible', 'hidden', [[false, 'Showing'], [true, 'Hidden']]); }
+  if(group === 'remove' && el){ const b = cbox(root, 'Remove'); b.append(h('button', { className: 'tb', textContent: 'Remove this piece', onclick: () => { beginChange(); const pd = panelDoc(true); pd.added = (pd.added || []).filter(a => a.id !== el.id); ED.sel = null; ED.kind = 'added'; ED.group = null; render(true); endChange(); drawFeatures(); drawEdit(); } })); }
+}
+
+/* ============ start ============ */
+drawAreas(); drawLeft();
+</script>
+</body>
+</html>
