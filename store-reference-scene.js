@@ -6,7 +6,7 @@ function img(url,name){const n=E('img');n.alt=name||'';if(url)n.src=url;n.dragga
 function numeric(cfg,key,fallback){const n=Number(cfg[key]);return cfg[key]!=null&&Number.isFinite(n)?n:fallback;}
 function groups(rows){const map=new Map();for(const row of rows){const name=row.category||'Items';if(!map.has(name))map.set(name,[]);map.get(name).push(row);}return [...map].map(([name,items])=>({name,items}));}
 function applyElement(node,detail,state={}){const key=detail.kind+':'+(detail.product?.id||detail.label||''),o=state.referenceElements?.[key]||{};if(o.text!=null)node.textContent=o.text;for(const [k,v]of Object.entries(o)){if(['color','background'].includes(k))node.style[k]=v;if(['fontSize','padding','height'].includes(k))node.style[k]=v+'px';if(k==='rounding')node.style.borderRadius=v+'px';if(k==='width')node.style.width=v+'%';if(k==='opacity')node.style.opacity=v/100;if(k==='shadow')node.style.boxShadow='0 0 '+v+'px '+(o.color||'#7fe3e0');}const base=node.style.transform||'';if(o.x||o.y||o.rotation||o.scale!=null||o.stretchX!=null||o.stretchY!=null)node.style.transform=base+' translate('+(o.x||0)+'px,'+(o.y||0)+'px) rotate('+(o.rotation||0)+'deg) scale('+((o.scale??100)/100*(o.stretchX??100)/100)+','+((o.scale??100)/100*(o.stretchY??100)/100)+')';if(o.brightness!=null)node.style.filter='brightness('+(o.brightness/100)+')';node.dataset.referenceKey=key;return node;}
-function render(host,{asset,store,assets,rows=[],categories=[],boardRows=[],state={},base,onSelect=()=>{},onSetting=()=>{}}){
+function render(host,{asset,store,assets,rows=[],categories=[],boardRows=[],state={},base,onSelect=()=>{},onSetting=()=>{},selectingArtworkPart=false,onCreatePart=()=>{}}){
  host.replaceChildren();host.className='reference-scene';const cfg=state.grocery||{},page=asset.page,root=E('div',null,'reference-page reference-'+page);host.append(root);
  for(const [k,v]of Object.entries(cfg))if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))root.style.setProperty('--'+k,v);
  const scale=numeric(cfg,'textScale',100)/100;root.style.setProperty('--text-scale',scale);root.dataset.referencePage=page;
@@ -40,7 +40,7 @@ function render(host,{asset,store,assets,rows=[],categories=[],boardRows=[],stat
     if(pw>15&&ph>15)parts.push({id:panel.id+':image:'+i,name:(list[0]?.name||slot.title||slot.name||'Menu')+' image',x:x/w*100,y:y/h*100,w:pw/w*100,h:ph/h*100,fill:'#18212d'});
    });
   }
-  ArtworkParts.render(box,{url:a.url,parts,state,onSelect});for(const cell of textLayers)box.append(cell);
+  parts.push(...(state.artworkParts||[]).filter(p=>p.sourceURL===a.url));ArtworkParts.render(box,{url:a.url,parts,state,onSelect,selecting:selectingArtworkPart,onCreate:r=>onCreatePart(r,a.url)});for(const cell of textLayers){if(selectingArtworkPart)cell.style.pointerEvents='none';box.append(cell);}
  }
  function pager(count,remote=false){const controls=E('div',null,'reference-pager');const back=E('button','‹'),next=E('button','›');back.disabled=remote?numeric(cfg,'referenceOffset',0)===0:pageIndex===0;next.disabled=remote?rows.length<24:pageIndex>=count-1;const move=delta=>onSetting(remote?{referenceOffset:Math.max(0,numeric(cfg,'referenceOffset',0)+delta*24)}:{page:Math.max(0,Math.min(count-1,pageIndex+delta))});back.onclick=()=>move(-1);next.onclick=()=>move(1);controls.append(back,E('span',remote?'Reference products':(pageIndex+1)+' / '+Math.max(1,count)),next);root.append(controls);}
  if(page==='navigator'||page==='entrances'){
