@@ -123,7 +123,7 @@ const PAGES = {
       // the app's map playlist (_rvEarthClips): same 14 maps, same order, same per-map speed
       earth: { clips: RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })), night: false },
       preview: { name: 'Freya', messages: 6, draft: 'Bring the big speaker and the cooler, we are staying at the beach until the fireworks start tonight' },
-      fx: { mineFilm: 'cloud-mine-billows-v27', peerFilm: 'cloud-peer-billows-v27', blend: 1, maxWidth: 440, minWidth: 150, height: 0.75, opacity: 1, textSize: 15, textColor: '#ffffff', textShadow: 8, textWeight: 600, bob: 2, bobSpeed: 1, breathe: 1.2, sway: 0, margin: 10, shadowBlur: 8, shadowX: 24, shadowY: 0.62,
+      fx: { mineFilm: 'cloud-mine-billows-v27', peerFilm: 'cloud-peer-billows-v27', blend: 1, maxWidth: 440, minWidth: 150, height: 0.75, opacity: 1, inkSize: 19, ink: '#101B28', inkShadow: 0, inkWeight: 600, bob: 2, bobSpeed: 1, breathe: 1.2, sway: 0, margin: 10, shadowBlur: 8, shadowX: 24, shadowY: 0.62,
         every: 30, mixSmall: 62, mixMedium: 29, smallMin: 76, smallMax: 110, mediumMin: 116, mediumMax: 162, largeMin: 170, largeMax: 212, attachMin: 5.5, attachMax: 8.5, driftMin: 6, driftMax: 9, largeDrift: 5, wander: 1.3, turn: 0.65,
         lifeSmallMin: 15, lifeSmallMax: 30, lifeMin: 44, lifeMax: 72, dissolveSmall: 72, absorbMedium: 58, absorbTime: 4.2, absorbReach: 0.3, fadeTime: 2, pieceOpacity: 0.85,
         farMax: 3, farMin: 25, farMaxW: 52, farLifeMin: 27, farLifeMax: 52, farEvery: 14, farGroundX: -5, farGroundY: 3 },
@@ -139,7 +139,7 @@ const PAGES = {
         { name:'Rolling (time-lapse)', ctrls:[R('cloud_speed','Rolling speed (time-lapse)',0.125,4,.005), R('fx.blend','Frame blending (smoothness)',0,1,.01)]},
         { name:'Cloud footage', ctrls:[Sel('fx.mineFilm','Your clouds use',CLOUD_FILMS.map(n=>[n,n.replace(/-v\d+$/,'').replace(/-/g,' ')])), Sel('fx.peerFilm','Their clouds use',CLOUD_FILMS.map(n=>[n,n.replace(/-v\d+$/,'').replace(/-/g,' ')])), R('cloud_variety','Cloud shape variety',0,1,.01)]},
         { name:'Size & shape', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('fx.maxWidth','Widest a cloud gets',150,440,1), R('fx.minWidth','Narrowest a cloud gets',80,300,1), R('fx.height','Cloud height',0.4,1.4,.01), R('fx.opacity','Cloud see-through',0.2,1,.01)]},
-        { name:'Words on the cloud', ctrls:[R('fx.textSize','Text size',10,30,.5), C('fx.textColor','Text color'), R('fx.textWeight','Text thickness',300,900,100), R('fx.textShadow','Text shadow',0,20,.5)]},
+        { name:'Words on the cloud', ctrls:[R('fx.inkSize','Text size',10,30,.5), C('fx.ink','Text color'), R('fx.inkWeight','Text thickness',300,900,100), R('fx.inkShadow','Text shadow',0,20,.5)]},
         { name:'Float & breathe', ctrls:[R('fx.bob','Bob up and down',0,12,.1), R('fx.bobSpeed','Bob speed',0,4,.01), R('fx.breathe','Breathing (swell %)',0,6,.1), R('fx.sway','Side to side sway',0,12,.1), R('fx.margin','Distance from screen edge',0,60,1)]},
         { name:'Shadow on the ground', ctrls:[R('cloud_shadow','Shadow darkness',0,0.7,.01), R('fx.shadowBlur','Shadow softness',0,30,.5), R('fx.shadowX','Shadow offset sideways',-60,60,1), R('fx.shadowY','Shadow drop',0.2,1.2,.01)]},
         { name:'Spacing & forming', ctrls:[R('message_spacing','Space between messages',4,64,1), R('cloud_growth_ms','How fast a new cloud forms (ms)',80,1500,10), R('preview.messages','Messages shown in the preview',0,6,1), { t:'x', k:'preview.draft', label:'Type a message here and watch your cloud grow' }]},
@@ -1123,12 +1123,12 @@ function drawConvo(x, t, S){
   const fg = x.createLinearGradient(0, 0, 0, HH); fg.addColorStop(0, 'rgba(7,24,35,.565)'); fg.addColorStop(.18, 'rgba(7,24,35,0)'); fg.addColorStop(.76, 'rgba(7,24,35,0)'); fg.addColorStop(1, 'rgba(7,24,35,.69)'); x.fillStyle = fg; x.fillRect(0, 0, W, HH);
   // 3. message clouds: rolling time-lapse cloud footage with the words written on it
   const F = Object.assign({}, PAGES.convo.defaults.fx, S.fx || {}), P = S.preview || {}, n = Math.max(0, Math.min(MSGS.length, Math.round(P.messages ?? 6)));
-  const composerTop = HH - 10 - 52 - 6, rects = []; let yy = composerTop - 16; const tfont = `${F.textWeight} ${F.textSize}px system-ui`; x.font = tfont;
+  const composerTop = HH - 10 - 52 - 6, rects = []; let yy = composerTop - 16; const tfont = `${F.inkWeight} ${F.inkSize}px Roboto, system-ui`; x.font = tfont;
   const layout = [];
   const rows = MSGS.slice(0, n).map(m => m.slice()); if(String(P.draft || '').trim()) rows.push(['mine', String(P.draft), true]);
-  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], maxW = Math.min(F.maxWidth, W - 2 * F.margin), inset = Math.min(20 + S.cloud_padding, (maxW - 24) / 2), lines = rvWrap(x, txt, Math.max(24, maxW - 2 * inset)), lineH = F.textSize * 1.3, tw = Math.max(...lines.map(l => x.measureText(l).width)), cw = clamp(tw + 2 * inset, F.minWidth, maxW);
-    const name = S.cloud_variety > 0.5 && k % 3 === 2 ? 'message-cloud' : who === 'mine' ? F.mineFilm : F.peerFilm, fl = rvFilm(name), fr = rvFrame(fl, t, S.cloud_speed, F.blend); if(!fr) continue;
-    const ch = Math.max(56, (lines.length * lineH + 2 * inset) * F.height / 0.75);
+  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], maxW = Math.min(F.maxWidth, W - 2 * F.margin), inset = Math.min(62 + S.cloud_padding, (maxW - 24) / 2), lines = rvWrap(x, txt, Math.max(24, maxW - 2 * inset)), lineH = F.inkSize * 1.35, tw = Math.max(...lines.map(l => x.measureText(l).width)), cw = clamp(tw + 2 * inset, F.minWidth, maxW);
+    const name = who === 'mine' ? F.mineFilm : F.peerFilm, fl = rvFilm(name), fr = rvFrame(fl, t, S.cloud_speed, F.blend); if(!fr) continue;
+    const ch = Math.max(56, (lines.length * lineH + 2 * Math.min(inset, 46)) * F.height / 0.75);
     if(yy - ch < 96) break; const cx = (who === 'mine' ? W - F.margin - cw / 2 : F.margin + cw / 2) + Math.sin(t * .5 * F.bobSpeed + k) * F.sway, cy = yy - ch / 2 + Math.sin(t * F.bobSpeed + k * 1.7) * F.bob;
     layout.push({ k, txt, lines, lineH, cw, ch, cx, cy, fr }); rects.push({ key: k, x0: cx - cw / 2, y0: cy - ch / 2, x1: cx + cw / 2, y1: cy + ch / 2 }); yy -= ch + S.message_spacing; }
   // 4. cloud pieces: break off a message cloud, hang on, then drift off, dissolve or get absorbed by another cloud
@@ -1136,7 +1136,7 @@ function drawConvo(x, t, S){
   for(const L of layout){ const { cw, ch, cx, cy, fr, lines, lineH, k } = L;
     if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = `blur(${F.shadowBlur}px)`; x.beginPath(); x.ellipse(cx + F.shadowX, cy + ch * F.shadowY, cw * 0.36, ch * 0.12, 0, 0, 7); x.fill(); x.restore(); }
     const sw = 1 + Math.sin(t * S.cloud_speed * 1.3 + k) * F.breathe / 100; x.save(); x.translate(cx, cy); x.scale(sw, sw); x.globalAlpha = F.opacity; const ba = rvBounds(fr.a), ew = cw * 1.18, eh = ch * 1.3; x.drawImage(fr.a, ba.sx, ba.sy, ba.sw, ba.sh, -ew / 2, -eh / 2, ew, eh); if(fr.b && fr.mix > 0){ const bb = rvBounds(fr.b); x.globalAlpha = F.opacity * fr.mix; x.drawImage(fr.b, bb.sx, bb.sy, bb.sw, bb.sh, -ew / 2, -eh / 2, ew, eh); } x.restore();
-    x.save(); x.font = tfont; x.fillStyle = F.textColor; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = 'rgba(0,0,0,.87)'; x.shadowBlur = F.textShadow; lines.forEach((l, i) => x.fillText(l, cx, cy + 2 + (i - (lines.length - 1) / 2) * lineH)); x.restore(); }
+    x.save(); x.font = tfont; x.fillStyle = F.ink; x.textAlign = 'center'; x.textBaseline = 'middle'; if(F.inkShadow > 0){ x.shadowColor = 'rgba(255,255,255,.9)'; x.shadowBlur = F.inkShadow; } lines.forEach((l, i) => x.fillText(l, cx, cy + 2 + (i - (lines.length - 1) / 2) * lineH)); x.restore(); }
   if(!n) rvShadowText(x, 'Write a message.', W / 2, HH * .45, '16px system-ui', '#fff', 'center'), rvShadowText(x, 'Watch your cloud form.', W / 2, HH * .45 + 26, '16px system-ui', '#fff', 'center');
   x.textAlign = 'left'; x.textBaseline = 'alphabetic';
   // 5. header: back arrow, name, save contact, scene controls (only you), refresh
