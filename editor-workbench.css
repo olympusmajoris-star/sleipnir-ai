@@ -17,5 +17,8 @@
 .studio-shell[data-phone-size] .phone:not(.rn-phone-focus):not(.rn-detail-active){flex:none;height:var(--studio-phone-height,820px);width:calc((var(--studio-phone-height,820px) - 26px) * 390 / 844 + 26px);max-width:none;max-height:none;aspect-ratio:auto}
 .studio-shell[data-phone-size] .hint,.studio-shell[data-phone-size] .transport{flex:none}
 .studio-shell[data-phone-size=fit] .phonewrap{flex:1;min-height:200px;width:100%;min-width:0}
-.studio-shell[data-phone-size=fit] .phone:not(.rn-phone-focus):not(.rn-detail-active){height:100%;max-height:820px;max-width:100%;width:auto;aspect-ratio:390/844}
+.studio-shell[data-phone-size=fit] .phone:not(.rn-phone-focus):not(.rn-detail-active){height:100%;max-height:none;max-width:100%;width:auto;aspect-ratio:390/844}
 @media(max-width:780px){.studio-shell[data-phone-size] main{grid-template-columns:130px 430px minmax(310px,1fr)}}
+
+/* phone gets the whole column: no title lines above it, no note under it */
+.studio-shell .ctitle h1,.studio-shell .ctitle>div>small,.studio-shell #hint{display:none!important}.studio-shell .ctitle{margin:0 0 4px!important;min-height:0!important}.studio-shell .center{padding-top:6px!important}

@@ -35,6 +35,11 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const FAVS = [['02','Freya'],['03','Loki'],['04','Sif'],['05','Tyr'],['06','Baldr'],['07','Hel']];
 const SPINS = { '02':1, '05':1, '06':1 };
 const NAMES = ['Freya','Loki','Baldr','Hel','Tyr','Sif','Gerd','Forseti','Skadi','Eir'];
+const EARTH_VIDEOS = ['v34/earth-changing-landscapes-continuous-v34.mp4','v34/earth-close-farmland-continuous-v34.mp4','v34/earth-farmland-continuous-v34.mp4','v34/earth-forest-river-continuous-v34.mp4','v34/earth-green-rivers-continuous-v34.mp4','v34/earth-ice-fjords-continuous-v34.mp4','v34/earth-japan-continuous-v34.mp4','v34/earth-river-plains-continuous-v34.mp4','v34/earth-terrain-continuous-v34.mp4','v34/earth-woodlands-continuous-v34.mp4','v32/earth-egypt-rigid-v32.mp4','v32/earth-florida-rigid-v32.mp4','v32/earth-green-valleys-rigid-v32.mp4','v32/earth-san-francisco-rigid-v32.mp4','v29/earth-changing-landscapes-v29.mp4','v29/earth-close-farmland-v29.mp4','v29/earth-egypt-v29.mp4','v29/earth-farmland-v29.mp4','v29/earth-florida-v29.mp4','v29/earth-forest-river-v29.mp4','v29/earth-green-rivers-v29.mp4','v29/earth-green-valleys-v29.mp4','v29/earth-ice-fjords-v29.mp4','v29/earth-japan-v29.mp4','v29/earth-river-plains-v29.mp4','v29/earth-san-francisco-v29.mp4','v29/earth-terrain-v29.mp4','v29/earth-woodlands-v29.mp4'];
+const CLOUD_ART = ['cloud-mine-billows-v27','cloud-peer-billows-v27','message-cloud','cloud-billows-166852-v29','cloud-anvil-258398-v29','cloud-tower-365034-v29','cloud-mine-video-v24','cloud-mine-video-v26','cloud-peer-video-v24','cloud-peer-video-v26'].map(n => SB.url + '/storage/v1/object/public/asgard_ui/raven_cloud_v20/' + n + '.webp');
+const G = (k, label, items) => ({ t:'g', k, label, items });
+const earthNow = (E, t) => { const L = (Array.isArray(E.list) ? E.list : []).filter(Boolean); if(!L.length) return E.pick; if(E.order === 'one') return L[0]; const k = Math.floor(Math.max(0, t) / Math.max(1, +E.each || 20)); let seq = L.slice(); if(E.order === 'reverse') seq.reverse(); if(E.order === 'shuffle'){ let s = (Math.floor(k / seq.length) + 1) * 9301; seq = seq.map(p => [p, (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648]).sort((a, b) => a[1] - b[1]).map(a => a[0]); } return seq[k % seq.length]; };
+const earthSrc = p => String(p||'').includes('/') ? SB.url + '/storage/v1/object/public/raven_earth/' + p : EARTH + 'earth-' + p + '-continuous-v34.mp4';
 const EARTHS = ['changing-landscapes','close-farmland','farmland','forest-river','green-rivers','ice-fjords','japan','river-plains','terrain','woodlands'];
 
 /* ---------- images / video cache ---------- */
@@ -113,19 +118,19 @@ const PAGES = {
     defaults: {
       // these first fields are the same ones the app already reads live (table raven_scene_settings)
       day_speed: 8, night_speed: 24, cloud_speed: 1, cloud_padding: 18, cloud_growth_ms: 250, ground_brightness: 1, cloud_shadow: 0.3, message_spacing: 14, cloud_variety: 0.85, ambient_count: 3, ambient_speed: 1, ambient_scale: 1, ambient_opacity: 0.55, water_shimmer: 0.5, earth_mode: 0,
-      earth: { pick: 'farmland', horizon: 0.42, tilt: 0.7, haze: 0.35, skyTop: '#6f8fb3', skyLow: '#cfdbe6', night: false, city: 'london' },
+      earth: { pick: 'farmland', list: [], order: 'list', each: 20, dir: 'forward', horizon: 0.42, tilt: 0.7, haze: 0.35, skyTop: '#6f8fb3', skyLow: '#cfdbe6', night: false, city: 'london' },
       msg: { size: 1, text: 15, textColor: '#26313d', mineX: 0.62, peerX: 0.36, sway: 1, opacity: 0.96, newEvery: 3.2 },
       head: { show: true, size: 1, y: 0.06, nameSize: 18, nameColor: '#ffffff' },
     },
     sections: [
       { id:'earth', name:'Earth below', sub:'The ground under the clouds', groups:[
-        { name:'Ground', ctrls:[Sel('earth.pick','Which land',EARTHS.map(e=>[e,e.replace(/-/g,' ')])), K('earth.night','Night (city lights)'), Sel('earth.city','City at night',[['london','London'],['new-york','New York']]), R('day_speed','Day ground speed',0,40,.5), R('night_speed','Night ground speed',0,60,.5), R('ground_brightness','Ground brightness',0.2,1.8,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
-        { name:'View', ctrls:[R('earth.horizon','Horizon height',0.15,0.75,.005), R('earth.tilt','How flat the ground lies',0,1,.01), R('earth.haze','Haze',0,1,.01), C('earth.skyTop','Sky color (top)'), C('earth.skyLow','Sky color (horizon)')]},
+        { name:'Ground', ctrls:[Sel('earth.pick','Which land',EARTHS.map(e=>[e,e.replace(/-/g,' ')])), Sel('earth.order','Play order',[['list','In the order you set'],['reverse','Reverse order'],['shuffle','Shuffle'],['one','Only the first one']]), R('earth.each','Seconds each map plays',3,180,1), Sel('earth.dir','Direction the land moves',[['forward','As filmed'],['back','Opposite way'],['left','Sideways to the left'],['right','Sideways to the right']]), K('earth.night','Night (city lights)'), Sel('earth.city','City at night',[['london','London'],['new-york','New York']]), R('day_speed','Map speed',0,40,.5), R('night_speed','Night ground speed',0,60,.5), R('ground_brightness','Ground brightness',0.2,1.8,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
+        { name:'View', ctrls:[R('earth.horizon','Horizon height (0 = map fills the whole screen)',0,0.75,.005), R('earth.tilt','How flat the ground lies',0,1,.01), R('earth.haze','Haze',0,1,.01), C('earth.skyTop','Sky color (top)'), C('earth.skyLow','Sky color (horizon)')]},
       ]},
       { id:'msg', name:'Message clouds', sub:'Each message is a cloud', groups:[
-        { name:'Clouds', ctrls:[R('msg.size','Cloud size',0.5,2,.01), R('cloud_padding','Room around the words',4,40,1), R('message_spacing','Space between messages',0,60,1), R('cloud_growth_ms','How fast a new cloud puffs up (ms)',50,2000,10), R('cloud_variety','Cloud shape variety',0,1,.01), R('cloud_speed','Cloud billow speed',0,3,.01), R('msg.sway','Sway',0,3,.01), R('msg.opacity','See-through',0.3,1,.01), R('cloud_shadow','Shadows on the ground',0,1,.01)]},
+        { name:'Clouds', ctrls:[G('msg.mineClouds','Your message clouds',CLOUD_ART), G('msg.peerClouds','Their message clouds',CLOUD_ART), R('msg.size','Cloud size',0.5,2,.01), R('cloud_padding','Room around the words',4,40,1), R('message_spacing','Space between messages',0,60,1), R('cloud_growth_ms','How fast a new cloud puffs up (ms)',50,2000,10), R('cloud_variety','Cloud shape variety',0,1,.01), R('cloud_speed','Cloud billow speed',0,3,.01), R('msg.sway','Sway',0,3,.01), R('msg.opacity','See-through',0.3,1,.01), R('cloud_shadow','Shadows on the ground',0,1,.01)]},
         { name:'Words', ctrls:[R('msg.text','Text size',10,24,.5), C('msg.textColor','Text color'), R('msg.mineX','Your clouds sit at',0.4,0.85,.005), R('msg.peerX','Their clouds sit at',0.15,0.6,.005), R('msg.newEvery','Preview: a new message every (s)',1,10,.1)]},
-        { name:'Background clouds', ctrls:[R('ambient_count','How many',0,10,1), R('ambient_speed','Speed',0,4,.01), R('ambient_scale','Size',0.3,2.5,.01), R('ambient_opacity','See-through',0,1,.01)]},
+        { name:'Background clouds', ctrls:[G('ambient_clouds','Background cloud pictures',CLOUD_ART), R('ambient_count','How many',0,10,1), R('ambient_speed','Speed',0,4,.01), R('ambient_scale','Size',0.3,2.5,.01), R('ambient_opacity','See-through',0,1,.01)]},
       ]},
       { id:'head', name:'Person on top', sub:'Their 3D bust & name', groups:[
         { name:'Header', ctrls:[K('head.show','Show'), R('head.size','Bust size',0.4,1.8,.01), R('head.y','Height',0,0.2,.002), R('head.nameSize','Name size',10,30,.5), C('head.nameColor','Name color')]},
@@ -509,7 +514,7 @@ function drawDeals(x, t, S){
 
 /* Shared asteroid navigation is independent of page and Raven settings. */
 PAGES.track = { title:'Track', defaults:{ bg:'#020408' }, sections:[{id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]}], draw:(x)=>{x.fillStyle='#020408';x.fillRect(0,0,W,HH);x.fillStyle='#c7dce5';x.font='600 24px system-ui';x.textAlign='center';x.fillText('Track',W/2,74);x.textAlign='left';} };
-for(const P of Object.values(PAGES)){P.sections=P.sections.filter(s=>s.id!=='dock');if(!P.sections.some(s=>s.id==='rocks'))P.sections.push({id:'rocks',name:'Rock navigation',sub:'Carvings, motion, debris & stars',groups:[]});}
+for(const P of Object.values(PAGES)){P.sections=P.sections.filter(s=>s.id!=='dock');}
 const ROCK_NAV = new AsgardRockNav.Navigation({stage:$('#stage'),url:SB.url,key:SB.key,assetBase:STUDIO+'navigation/rocks-v1/',page:'home',shareAvailable:true,onNavigate:openPage,readOnly:!!RUNTIME,settings:RUNTIME?.envelope?.navigation,resolveAsset:RUNTIME?.resolveAsset});
 window.asgardRockNavigation = ROCK_NAV;
 /* ======================= STORE PAGE (one design per store) ======================= */
@@ -810,7 +815,7 @@ for(const P of Object.values(PAGES)){
  const existed=!!P.defaults.norse;
  P.defaults.norse=Object.assign({on:false,speed:10,opacity:.25,media:[],height:100,rows:3,gap:16,y:.05,direction:'left'},P.defaults.norse||{});
  if(existed){for(const sec of P.sections)for(const g of sec.groups)if(g.name==='Scrolling Norse art')g.ctrls.push(...norseExtras());}
- else P.sections.push({id:'norse',name:'Scrolling Norse art',sub:'Reuse artwork, images or video',groups:[{name:'Scrolling Norse art',ctrls:[K('norse.on','Show it'),R('norse.speed','Scroll speed',0,60,.5),R('norse.opacity','Strength / opacity',0,1,.01),...norseExtras()]}]});
+ else if(false)P.sections.push({id:'norse',name:'Scrolling Norse art',sub:'Reuse artwork, images or video',groups:[{name:'Scrolling Norse art',ctrls:[K('norse.on','Show it'),R('norse.speed','Scroll speed',0,60,.5),R('norse.opacity','Strength / opacity',0,1,.01),...norseExtras()]}]});
  P.defaults._studioLayers=[];
  P.sections.push({id:'design',name:'Add images & buttons',sub:'Shared folders, layers, text, frames & motion',groups:[]});
 }
@@ -860,12 +865,34 @@ function panel(){
   if(STATE.sec==='design'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');PAGE_TOOLS.panel($('#panel'));return;}
   if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
   const P = PAGES[STATE.page], sec = P.sections.find(s => s.id === STATE.sec) || P.sections[0], pn = $('#panel'); pn.innerHTML = '';
-  sec.groups.forEach(g => { const d = document.createElement('details'); d.className = 'pg-grp'; d.open = true; d.innerHTML = `<summary>${g.name}</summary>`;
+  sec.groups.forEach(g => { const d = document.createElement('details'); d.className = 'pg-grp'; d.dataset.studioGroup = g.name; d.open = true; d.innerHTML = `<summary>${g.name}</summary>`;
     g.ctrls.forEach(c => { const v = get(STATE.S, c.k); let el;
       if(c.t === 'r'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}<em>${fmt(v)}</em></label><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${v}">`;
         const inp = el.querySelector('input'), em = el.querySelector('em'); inp.oninput = () => { const nv = parseFloat(inp.value); set(STATE.S, c.k, nv); em.textContent = fmt(nv); save(); }; }
       else if(c.t === 'k'){ el = document.createElement('label'); el.className = 'pg-chk'; el.innerHTML = `<input type="checkbox" ${v ? 'checked' : ''}> ${c.label}`; el.querySelector('input').onchange = (e) => { set(STATE.S, c.k, e.target.checked); save(); }; }
       else if(c.t === 'c'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="color" value="${/^#/.test(v) ? v : '#ffffff'}">`; el.querySelector('input').oninput = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
+      else if(c.t === 'g'){ el = document.createElement('div'); el.className = 'pg-row cloud-pick'; el.style.display = 'block'; const list = Array.isArray(v) ? v.slice() : []; const lab = document.createElement('label'); lab.textContent = c.label + ' — click to use, click again to take out' + (list.length ? ' (' + list.length + ' in use, they take turns)' : ' (none picked: the original clouds are used)'); const hid = document.createElement('input'); hid.type = 'hidden';
+        const grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;width:100%;margin:6px 0 12px';
+        for(const u of c.items){ const at = list.indexOf(u); const b = document.createElement('button'); b.type = 'button'; b.title = u.split('/').pop(); b.style.cssText = 'position:relative;padding:4px;border:3px solid ' + (at >= 0 ? '#ffb347' : '#2a3a42') + ';border-radius:8px;background:linear-gradient(#6f8fb3,#cfdbe6);cursor:pointer;height:96px';
+          const im = document.createElement('img'); im.src = u; im.alt = ''; im.style.cssText = 'width:100%;height:100%;object-fit:contain;pointer-events:none'; b.append(im);
+          if(at >= 0){ const n = document.createElement('b'); n.textContent = at + 1; n.style.cssText = 'position:absolute;left:4px;top:4px;background:#ffb347;color:#201000;border-radius:10px;min-width:20px;height:20px;display:grid;place-items:center;font-size:12px'; b.append(n); }
+          b.onclick = () => { const i = list.indexOf(u); if(i >= 0) list.splice(i, 1); else list.push(u); set(STATE.S, c.k, list); save(); panel(); }; grid.append(b); }
+        el.append(lab, hid, grid); }
+      else if(c.t === 's' && c.k === 'earth.pick'){ el = document.createElement('div'); el.className = 'pg-row earth-pick'; el.style.display = 'block'; const E = STATE.S.earth; E.list = Array.isArray(E.list) ? E.list : [];
+        const nameOf = p => String(p).replace(/^v\d+\/earth-/, '').replace(/-(continuous|rigid)?-?v\d+\.mp4$/, '').replace(/-/g, ' ') + ' · ' + String(p).split('/')[0];
+        const lab = document.createElement('label'); lab.textContent = 'Maps (' + EARTH_VIDEOS.length + ') — click to add to the play order, click again to take it out. Hover to play.'; const hid = document.createElement('input'); hid.type = 'hidden';
+        const grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;width:100%;margin:8px 0 14px';
+        for(const p of EARTH_VIDEOS){ const at = E.list.indexOf(p), showing = earthSrc(earthNow(E, 0)) === earthSrc(p) && !E.list.length || earthSrc(E.pick) === earthSrc(p); const b = document.createElement('button'); b.type = 'button'; b.title = p; b.style.cssText = 'position:relative;padding:0;border:3px solid ' + (at >= 0 ? '#ffb347' : showing ? '#7fe3e0' : '#2a3a42') + ';border-radius:8px;background:#000;overflow:hidden;cursor:pointer;text-align:left';
+          const vd = document.createElement('video'); vd.src = earthSrc(p) + '#t=1'; vd.muted = true; vd.loop = true; vd.playsInline = true; vd.preload = 'metadata'; vd.style.cssText = 'width:100%;height:110px;object-fit:cover;display:block;pointer-events:none';
+          b.onmouseenter = () => vd.play().catch(()=>{}); b.onmouseleave = () => vd.pause();
+          const cap = document.createElement('small'); cap.textContent = nameOf(p); cap.style.cssText = 'display:block;padding:5px 7px;color:#d8eef0;font-size:12px'; b.append(vd, cap);
+          if(at >= 0){ const n = document.createElement('b'); n.textContent = at + 1; n.style.cssText = 'position:absolute;left:6px;top:6px;background:#ffb347;color:#201000;border-radius:12px;min-width:24px;height:24px;display:grid;place-items:center;font-size:13px'; b.append(n); }
+          b.onclick = () => { const i = E.list.indexOf(p); if(i >= 0) E.list.splice(i, 1); else E.list.push(p); E.pick = p; save(); panel(); }; grid.append(b); }
+        const ord = document.createElement('div'); ord.style.cssText = 'border:1px solid #2a3a42;border-radius:8px;padding:8px'; const oh = document.createElement('b'); oh.textContent = E.list.length ? 'Play order' : 'Play order — empty: only the map with the blue border plays'; ord.append(oh);
+        E.list.forEach((p, i) => { const r = document.createElement('div'); r.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px'; const s = document.createElement('span'); s.textContent = (i + 1) + '. ' + nameOf(p); s.style.flex = '1';
+          const mk = (txt, tip, fn, dis) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'ghost'; x.textContent = txt; x.title = tip; x.disabled = !!dis; x.onclick = () => { fn(); save(); panel(); }; return x; };
+          r.append(s, mk('↑', 'Play earlier', () => { [E.list[i - 1], E.list[i]] = [E.list[i], E.list[i - 1]]; }, i === 0), mk('↓', 'Play later', () => { [E.list[i + 1], E.list[i]] = [E.list[i], E.list[i + 1]]; }, i === E.list.length - 1), mk('✕', 'Take out', () => { E.list.splice(i, 1); })); ord.append(r); });
+        el.append(lab, hid, grid, ord); }
       else if(c.t === 's'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><select class="pg-sel">${c.opts.map(([val, lab]) => `<option value="${val}" ${val === v ? 'selected' : ''}>${lab}</option>`).join('')}</select>`; el.querySelector('select').onchange = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
       else if(c.t === 'x'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="text" class="pg-sel">`; const ti = el.querySelector('input'); ti.value = v == null ? '' : v; ti.oninput = () => { set(STATE.S, c.k, ti.value); save(); }; }
       else if(c.t==='m'){el=document.createElement('div');el.className='pg-row';const label=document.createElement('label');label.textContent=c.label;const holder=document.createElement('input');holder.type='text';holder.readOnly=true;holder.value=(v||[]).length+' selected';holder.setAttribute('aria-label',c.label);const choose=document.createElement('button');choose.className='ghost';choose.textContent='Choose replacement artwork';const clear=document.createElement('button');clear.className='ghost';clear.textContent=STATE.page==='shome'?'Return to original artwork':'Return to original runes';clear.onclick=()=>{set(STATE.S,c.k,deep(get(PAGES[STATE.page].defaults,c.k)||[]));save();panel();};const state=STATE.S;choose.onclick=()=>SHARED_MEDIA.open({multiple:true,onSelect:assets=>{if(STATE.S!==state)return;set(state,c.k,assets.map(a=>({url:a.url,kind:a.kind,name:a.name})));save();panel();}});el.append(label,holder,choose,clear);}
@@ -1007,11 +1034,12 @@ function drawConvo(x, t, S){
   // sky
   const g = x.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, E.night ? '#05070d' : E.skyTop); g.addColorStop(1, E.night ? '#1a2333' : E.skyLow); x.fillStyle = g; x.fillRect(0, 0, W, hz + 2);
   // ground laid nearly flat: draw the earth video in horizontal strips that shrink toward the horizon
-  const src = E.night ? null : vid(EARTH + 'earth-' + E.pick + '-continuous-v34.mp4');
+  const src = E.night ? null : vid(earthSrc(earthNow(E, t))); if(drawConvo.last && drawConvo.last !== src) drawConvo.last.pause(); drawConvo.last = src;
   if(src){ src.playbackRate = clamp(S.day_speed / 8, 0.1, 4); if(src.paused&&!runtimePaused) src.play().catch(()=>{}); }
   const cityIm = E.night ? img(UI + 'raven_cloud_v20/' + E.city + '.webp') : null;
-  const sw = src ? src.videoWidth : (cityIm && ok(cityIm) ? cityIm.naturalWidth : 0), sh = src ? src.videoHeight : (cityIm && ok(cityIm) ? cityIm.naturalHeight : 0);
-  const srcEl = src && src.readyState >= 2 ? src : (cityIm && ok(cityIm) ? cityIm : null);
+  let sw = src ? src.videoWidth : (cityIm && ok(cityIm) ? cityIm.naturalWidth : 0), sh = src ? src.videoHeight : (cityIm && ok(cityIm) ? cityIm.naturalHeight : 0);
+  let srcEl = src && src.readyState >= 2 ? src : (cityIm && ok(cityIm) ? cityIm : null);
+  if(srcEl && srcEl === src && sw && E.dir && E.dir !== 'forward'){ const c = drawConvo.rc || (drawConvo.rc = document.createElement('canvas')), side = E.dir === 'left' || E.dir === 'right'; c.width = side ? sh : sw; c.height = side ? sw : sh; const q = c.getContext('2d'); q.save(); q.translate(c.width / 2, c.height / 2); q.rotate({ back: Math.PI, left: -Math.PI / 2, right: Math.PI / 2 }[E.dir] || 0); q.drawImage(src, -sw / 2, -sh / 2); q.restore(); srcEl = c; sw = c.width; sh = c.height; }
   if(srcEl && sw){ const rows = 70, gh = HH - hz, nightPan = E.night ? (t * S.night_speed * 0.6) % (sh * 0.5) : 0; x.save(); x.filter = `brightness(${S.ground_brightness})`;
     for(let k = 0; k < rows; k++){ const a = k / rows, b = (k + 1) / rows; const da = Math.pow(a, 1 + E.tilt * 2.2), db = Math.pow(b, 1 + E.tilt * 2.2);
       const y0 = hz + gh * da, y1 = hz + gh * db, widen = 1 + (1 - a) * E.tilt * 2.4, dw = W * widen; const sy0 = sh * 0.05 + (sh * 0.9) * a * 0.999 + nightPan * 0, sh0 = (sh * 0.9) / rows;
@@ -1020,14 +1048,14 @@ function drawConvo(x, t, S){
   // haze at the horizon
   if(E.haze > 0){ const hg = x.createLinearGradient(0, hz - 30, 0, hz + 140); hg.addColorStop(0, 'rgba(0,0,0,0)'); hg.addColorStop(0.25, E.night ? `rgba(30,40,60,${E.haze})` : `rgba(220,232,242,${E.haze})`); hg.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = hg; x.fillRect(0, hz - 30, W, 170); }
   // background clouds
-  for(let i = 0; i < S.ambient_count; i++){ const ci = img(UI + 'raven_cloud_v20/' + CLOUDS[3 + (i % 3)] + '.webp'); if(!ok(ci)) continue; const cw = 170 * S.ambient_scale * (0.7 + 0.2 * (i % 3)), ch = cw * ci.naturalHeight / ci.naturalWidth, span = W + cw * 2;
+  for(let i = 0; i < S.ambient_count; i++){ const AL = Array.isArray(S.ambient_clouds) ? S.ambient_clouds : []; const ci = img(AL.length ? AL[i % AL.length] : UI + 'raven_cloud_v20/' + CLOUDS[3 + (i % 3)] + '.webp'); if(!ok(ci)) continue; const cw = 170 * S.ambient_scale * (0.7 + 0.2 * (i % 3)), ch = cw * ci.naturalHeight / ci.naturalWidth, span = W + cw * 2;
     const cx2 = ((t * 9 * S.ambient_speed * (0.6 + i * 0.13) + i * span / Math.max(1, S.ambient_count)) % span) - cw, cy2 = hz - 40 - (i * 53) % (hz * 0.6);
     x.save(); x.globalAlpha = S.ambient_opacity; x.globalCompositeOperation = 'screen'; x.drawImage(ci, cx2, cy2, cw, ch); x.restore(); }
   // message clouds, newest at the bottom, each puffing up as it arrives
   const per = Math.max(0.5, M.newEvery), n = Math.floor(t / per), shown = Math.min(MSGS.length, 3 + (n % (MSGS.length - 2)));
   let yy = HH - 120; x.font = `600 ${M.text}px system-ui`; x.textAlign = 'center'; x.textBaseline = 'middle';
   for(let k = shown - 1; k >= 0; k--){ const [who, txt] = MSGS[k], isNew = k === shown - 1, age = isNew ? (t % per) * 1000 : 99999, grow = clamp(age / S.cloud_growth_ms, 0, 1), gs = 0.3 + 0.7 * (1 - Math.pow(1 - grow, 3));
-    const tw = x.measureText(txt).width, cw = (tw + S.cloud_padding * 4) * M.size, cl = img(UI + 'raven_cloud_v20/' + (S.cloud_variety > 0.5 && k % 3 === 2 ? CLOUDS[2] : (who === 'mine' ? CLOUDS[0] : CLOUDS[1])) + '.webp');
+    const tw = x.measureText(txt).width, cw = (tw + S.cloud_padding * 4) * M.size, CL = Array.isArray(who === 'mine' ? M.mineClouds : M.peerClouds) ? (who === 'mine' ? M.mineClouds : M.peerClouds) : [], cl = img(CL.length ? CL[k % CL.length] : UI + 'raven_cloud_v20/' + (S.cloud_variety > 0.5 && k % 3 === 2 ? CLOUDS[2] : (who === 'mine' ? CLOUDS[0] : CLOUDS[1])) + '.webp');
     if(!ok(cl)) continue; const ch = cw * cl.naturalHeight / cl.naturalWidth * 0.75, cx3 = W * (who === 'mine' ? M.mineX : M.peerX) + Math.sin(t * 0.6 * M.sway + k) * 6 * M.sway, cy3 = yy - ch / 2 + Math.sin(t * S.cloud_speed + k * 1.7) * 2;
     if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = 'blur(8px)'; x.beginPath(); x.ellipse(cx3 + 30, Math.min(HH - 10, cy3 + ch * 0.9 + 40), cw * 0.35 * gs, ch * 0.12 * gs, 0, 0, 7); x.fill(); x.restore(); }
     x.save(); x.translate(cx3, cy3); x.scale(gs * (1 + Math.sin(t * S.cloud_speed * 1.3 + k) * 0.015), gs); x.globalAlpha = M.opacity; x.drawImage(cl, -cw / 2, -ch / 2, cw, ch); x.globalAlpha = 1; x.fillStyle = M.textColor; if(grow > 0.6) x.fillText(txt, 0, 2); x.restore();

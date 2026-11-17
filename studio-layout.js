@@ -16,8 +16,8 @@ function mount(config){
   for(const [value,label]of [['original','Original size'],['large','125%'],['largest','150%'],['fit','Fit on screen']]){const o=el('option','',label);o.value=value;select.append(o);}
   sizes.append(select);title.append(sizes);
   let size='fit';
-  const apply=()=>{const value=select.value;document.body.dataset.phoneSize=value;document.documentElement.style.setProperty('--studio-phone-height',({original:820,large:1025,largest:1230,fit:820})[value]+'px');try{localStorage.setItem('asgard-phone-size-v1',value);}catch{}};
-  select.value=['original','large','largest','fit'].includes(size)?size:'original';select.onchange=apply;apply();
+  const apply=()=>{const value=select.value;document.body.dataset.phoneSize=value;document.documentElement.style.setProperty('--studio-phone-height',(value==='fit'?Math.max(560,Math.floor(innerHeight-((document.querySelector('.phonewrap')||{getBoundingClientRect:()=>({top:120})}).getBoundingClientRect().top)-12)):{original:820,large:1025,largest:1230}[value])+'px');try{localStorage.setItem('asgard-phone-size-v1',value);}catch{}};
+  select.value=['original','large','largest','fit'].includes(size)?size:'original';select.onchange=apply;apply();addEventListener('resize',()=>{if(select.value==='fit')apply();});setTimeout(apply,400);
  }
 
  const areas=el('nav','app-tabs');areas.setAttribute('aria-label','Main app areas');
