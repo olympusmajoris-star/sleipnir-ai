@@ -269,7 +269,9 @@ async function drawLeft(){
     if(['grocery', 'retail'].includes(storeType(s))){
       let cats = []; try{ cats = await rest('store_categories?store_id=eq.' + sid + '&select=category,sort_order&order=sort_order'); }catch(e){}
       for(const c of cats){ const id = 'aisle:' + sid + ':' + c.category;
-        L.append(pgBtn('Aisle entrance — ' + c.category, 'Blackboards and their writing', NAV.page === id, () => { if(!leaveOk()) return; NAV.page = id; openAisle(s, c.category); drawLeft(); })); }
+        L.append(pgBtn('Aisle entrance — ' + c.category, 'Blackboards and their writing', NAV.page === id, () => { if(!leaveOk()) return; NAV.page = id; openAisle(s, c.category); drawLeft(); }));
+        const id2 = 'shelf:' + sid + ':' + c.category;
+        L.append(pgBtn('Shelves — ' + c.category, 'Products, price tags, backgrounds', NAV.page === id2, () => { if(!leaveOk()) return; NAV.page = id2; openShelf(s, c.category); drawLeft(); })); }
     }
     L.append(pgBtn('Store page & catalog', 'Products, names, prices, images', NAV.page === 'sp:' + sid, () => { if(!leaveOk()) return; NAV.page = 'sp:' + sid; openFrame({ name: s.name, url: 'pages.html?page=store&store=' + sid }); drawLeft(); }));
   }
@@ -302,12 +304,12 @@ $('#frame').addEventListener('load', dressFrame);
 /* ============ element editor state ============ */
 const ED = { page: null, store: null, panel: null, src: null, design: null, saved: '', updatedAt: null,
   els: [], byId: {}, kind: 'all', sel: null, group: null, scope: 'one', hist: [], redo: [], zoom: 'fit', cutting: false };
-const KINDS = [['all','Everything'],['art','Artwork'],['board','Blackboards'],['line','Blackboard writing'],['slot','Boxes'],['num','Numbers'],['name','Names'],['price','Prices'],['label','Size labels'],['title','Titles'],['letters','Variant letters'],['added','Added pieces']];
+const KINDS = [['all','Everything'],['product','Products'],['tag','Price tags'],['rail','Shelf rails'],['art','Artwork'],['board','Blackboards'],['line','Blackboard writing'],['slot','Boxes'],['num','Numbers'],['name','Names'],['price','Prices'],['label','Size labels'],['title','Titles'],['letters','Variant letters'],['added','Added pieces']];
 const KNAME = Object.fromEntries(KINDS);
 const TEXT_KINDS = ['num','name','price','label','title','letters','line'];
 const isText = k => TEXT_KINDS.includes(k);
-const pn = () => ED.type === 'aisle' ? 'aisle:' + ED.aisle : ED.panel.daypart + ':' + ED.panel.panel_no;
-const designId = () => (ED.type === 'aisle' ? 'el_aisle_' : 'el_board_') + ED.store.id;
+const pn = () => ED.type === 'shelf' ? 'shelf:' + ED.aisle : ED.type === 'aisle' ? 'aisle:' + ED.aisle : ED.panel.daypart + ':' + ED.panel.panel_no;
+const designId = () => (ED.type === 'shelf' ? 'el_shelf_' : ED.type === 'aisle' ? 'el_aisle_' : 'el_board_') + ED.store.id;
 function emptyDesign(){ return { v: 1, kinds: {}, panels: {} }; }
 function panelDoc(make){ const d = ED.design; if(!d.panels[pn()] && make) d.panels[pn()] = { kinds: {}, items: {}, added: [] }; return d.panels[pn()] || { kinds: {}, items: {}, added: [] }; }
 // value of one property: base ← store-wide kind ← this-board kind ← this one piece
@@ -379,6 +381,70 @@ async function openBoard(store, pmeta){
   }catch(e){ $('#targetText').textContent = 'Could not open this board: ' + e.message; }
 }
 
+/* ============ the real shelves: back wall, rails, every product and price tag ============ */
+const NOBG = id => SB + '/storage/v1/object/public/menu-images/products-nobg/' + id + '.png';
+const SHELF_COLS = { 'Dry Goods & Pasta': 3 };
+async function openShelf(store, cat){
+  $('#empty').hidden = true; $('#frameWrap').hidden = true; $('#editor').hidden = false; $('#frame').src = 'about:blank';
+  $('#stage').textContent = ''; $('#controls').textContent = ''; $('#features').textContent = ''; $('#options').textContent = ''; $('#targetText').textContent = 'Loading the real shelves…';
+  try{
+    if(!ED.src || ED.src.storeId !== store.id || ED.src.type !== 'shelf' || ED.src.cat !== cat){
+      const fresh = !ED.src || ED.src.storeId !== store.id || ED.src.type !== 'shelf'; ED.type = 'shelf';
+      const [items, des] = await Promise.all([
+        restAll('products?store_id=eq.' + store.id + '&category=eq.' + encodeURIComponent(cat) + '&select=id,name,price,image_url,shelf_rank&order=shelf_rank,name,id'),
+        fresh ? rest('studio_designs?id=eq.el_shelf_' + store.id + '&select=data,updated_at') : null]);
+      ED.src = { type: 'shelf', storeId: store.id, cat, items: items.filter(i => i.image_url), bust: {} };
+      if(fresh){ ED.design = des[0] && des[0].data && des[0].data.v ? des[0].data : emptyDesign(); ED.updatedAt = des[0] ? des[0].updated_at : null; ED.saved = JSON.stringify(ED.design); ED.hist = []; ED.redo = []; }
+      ED.shelfPage = 0;
+    }
+    ED.type = 'shelf'; ED.store = store; ED.aisle = cat; ED.page = 'shelf'; ED.sel = null; ED.kind = 'all'; ED.group = null; ED.scope = 'board';
+    render(false); $('#scroll').scrollTop = 0; fitPhone(); drawFeatures(); drawEdit(); marks();
+  }catch(e){ $('#targetText').textContent = 'Could not open these shelves: ' + e.message; }
+}
+function shelfPages(){ const cols = SHELF_COLS[ED.aisle] || 2; return Math.max(1, Math.ceil(ED.src.items.length / (cols * 3))); }
+function buildShelf(){
+  const W = 390, TOP = 96, H = 844 - TOP, cols = SHELF_COLS[ED.aisle] || 2, rows = 3, shelves = [0, 1, 2].map(i => 0.925 - (rows - 1 - i) * 0.305), cellW = 1 / cols;
+  const els = [], add = e => { els.push(e); return e; };
+  add({ id: 'back', kind: 'art', label: 'Shelf back wall', type: 'fill', base: { x: 0, y: TOP, w: W, h: H, color: '#0f0f0f', radius: 0, opacity: 1, hidden: false } });
+  shelves.forEach((f, i) => add({ id: 'r' + i, kind: 'rail', label: 'Shelf rail ' + (i + 1), type: 'fill', base: { x: 0, y: TOP + f * H, w: W, h: H * 0.046, color: '#d8d2c2', radius: 0, opacity: 1, hidden: false } }));
+  const first = ED.shelfPage * cols * rows, tagH = H * 0.038, tagW = Math.min(tagH * 2.25, cellW * W * 0.84);
+  for(let slot = 0; slot < cols * rows; slot++){ const it = ED.src.items[first + slot]; if(!it) break; const col = slot % cols, row = Math.floor(slot / cols), left = col * cellW, sh = shelves[row];
+    add({ id: 'p_' + it.id, kind: 'product', label: it.name, type: 'image', item: it, base: { x: (left + cellW * 0.045) * W, y: TOP + (sh - 0.236 - 0.011) * H, w: cellW * 0.91 * W, h: 0.236 * H, src: NOBG(it.id) + (ED.src.bust[it.id] ? '?v=' + ED.src.bust[it.id] : ''), fallback: it.image_url, fit: 'contain', pos: 'bottom center', opacity: 1, brightness: 1, contrast: 1, saturate: 1, hidden: false } });
+    add({ id: 't_' + it.id, kind: 'tag', label: 'Price tag — ' + it.name, type: 'tagbox', priceId: 't_' + it.id + '.price', base: { x: (left + cellW / 2) * W - tagW / 2, y: TOP + (sh + 0.003) * H, w: tagW, h: tagH, color: '#ffd84a', radius: 3, opacity: 1, hidden: false } });
+    add({ id: 't_' + it.id + '.price', kind: 'price', label: it.name + ' price', type: 'text', text: '$' + money(it.price), base: { size: 17, color: '#111111', weight: 800, font: 'Roboto', italic: false, spacing: 0, caps: false, dx: 0, dy: 0, opacity: 1, hidden: false } });
+  }
+  const pd = panelDoc(); (pd.added || []).forEach(a => add({ id: a.id, kind: 'added', label: a.label || 'Added piece', type: a.type, added: a, base: a }));
+  return { els, height: 844 };
+}
+function drawTag(el){
+  const d = h('div', { className: 'el' }); d.dataset.el = el.id; const w = P(el, 'w'), hh = P(el, 'h');
+  Object.assign(d.style, { left: P(el, 'x') + 'px', top: P(el, 'y') + 'px', width: w + 'px', height: hh + 'px', background: P(el, 'color'), borderRadius: P(el, 'radius') + 'px', opacity: P(el, 'opacity'), boxShadow: '0 1px 2px rgba(0,0,0,.5)', border: '1px solid rgba(0,0,0,.35)' });
+  if(P(el, 'hidden')) d.style.visibility = 'hidden'; const t = tnode(ED.byId[el.priceId], true); t.style.lineHeight = '1'; d.append(fitBox(w - 6, hh, t, 'center')); d.firstChild.style.marginLeft = '2px'; return d;
+}
+// remove the white background: only white that touches the picture's edge is cleared, so white packaging survives
+async function cutBackground(it, keepOriginal){
+  const blob = await (await fetch(it.image_url, { mode: 'cors' })).blob(), url = URL.createObjectURL(blob);
+  const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('picture would not load')); i.src = url; });
+  const k = Math.min(1, 1000 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), hh = Math.max(1, Math.round(im.naturalHeight * k));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = hh; const x = cv.getContext('2d'); x.drawImage(im, 0, 0, w, hh); URL.revokeObjectURL(url);
+  if(!keepOriginal){ const d = x.getImageData(0, 0, w, hh), px = d.data, seen = new Uint8Array(w * hh), st = []; const white = i => px[i * 4 + 3] < 8 || (px[i * 4] > 212 && px[i * 4 + 1] > 212 && px[i * 4 + 2] > 212);
+    const push = i => { if(!seen[i] && white(i)){ seen[i] = 1; st.push(i); } };
+    for(let a = 0; a < w; a++){ push(a); push((hh - 1) * w + a); } for(let b = 0; b < hh; b++){ push(b * w); push(b * w + w - 1); }
+    while(st.length){ const i = st.pop(), cx = i % w, cy = (i - cx) / w; px[i * 4 + 3] = 0; if(cx > 0) push(i - 1); if(cx < w - 1) push(i + 1); if(cy > 0) push(i - w); if(cy < hh - 1) push(i + w); }
+    x.putImageData(d, 0, 0); }
+  const out = await new Promise(ok => cv.toBlob(ok, 'image/png'));
+  const r = await fetch(SB + '/storage/v1/object/menu-images/products-nobg/' + it.id + '.png', { method: 'POST', headers: Object.assign({ 'Content-Type': 'image/png', 'x-upsert': 'true' }, HEAD), body: out });
+  if(!r.ok) throw new Error('upload ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  ED.src.bust[it.id] = Date.now();
+}
+async function hasCut(it){ try{ const r = await fetch(NOBG(it.id), { method: 'HEAD' }); return r.ok; }catch(e){ return false; } }
+async function cutMany(list, label){
+  let done = 0, skipped = 0, failed = 0;
+  for(const it of list){ toast(label + ': ' + (done + skipped + failed + 1) + ' of ' + list.length, 60000);
+    try{ if(await hasCut(it)){ skipped++; continue; } await cutBackground(it); done++; if(done % 6 === 0) render(true); }catch(e){ failed++; } }
+  render(true); toast(label + ' finished — ' + done + ' cleared, ' + skipped + ' already done, ' + failed + ' failed', 9000);
+}
+
 /* ============ the real grocery aisle entrance: artwork + the two blackboards and their chalk writing ============ */
 const CRAYON = ['#ffe45e', '#5ee0ff', '#ff7bc5', '#b6ff6e', '#ffb347', '#c79bff'];
 const AISLE_ART = SB + '/storage/v1/object/public/menu-images/grocery%20stations/grocery-aisle-entrance-phone-v3.png';
@@ -427,6 +493,7 @@ function drawChalk(b){
 // builds the list of pieces exactly the way the app lays the board out (buildImageBoard in the board widget)
 function buildPieces(){
   if(ED.type === 'aisle') return buildAisle();
+  if(ED.type === 'shelf') return buildShelf();
   const p = ED.panel, W = 390, crop = p.crop || [0, 0, p.image_w, p.image_h];
   const cx0 = crop[0], cy0 = crop[1], cw = crop[2] - crop[0], ch = crop[3] - crop[1], s = W / cw, TOP = 52;
   const els = [], add = e => { els.push(e); return e; };
@@ -528,7 +595,8 @@ function drawImage(el){
   } else if(el.type === 'atext'){ d.style.height = 'auto'; d.style.whiteSpace = 'pre-wrap'; d.style.textAlign = P(el, 'align') || 'center'; d.style.lineHeight = '1.05'; d.textContent = P(el, 'caps') ? String(P(el, 'text')).toUpperCase() : P(el, 'text');
     Object.assign(d.style, { fontSize: P(el, 'size') + 'px', color: P(el, 'color'), fontWeight: P(el, 'weight'), fontFamily: '"' + P(el, 'font') + '",Roboto,sans-serif', fontStyle: P(el, 'italic') ? 'italic' : 'normal', letterSpacing: P(el, 'spacing') + 'px', transform: 'rotate(' + (P(el, 'rot') || 0) + 'deg)' }); d.style.filter = '';
   } else if(el.type === 'fill'){ d.style.background = P(el, 'color'); d.style.borderRadius = (P(el, 'radius') || 0) + 'px'; }
-  else { const im = h('img', { src: P(el, 'src') || '', alt: '' }); im.style.objectFit = el.kind === 'art' ? 'fill' : (P(el, 'fit') || 'contain'); d.append(im); }
+  else { const im = h('img', { src: P(el, 'src') || '', alt: '' }); im.style.objectFit = el.kind === 'art' ? 'fill' : (P(el, 'fit') || 'contain'); if(el.base.pos) im.style.objectPosition = el.base.pos;
+    if(el.base.fallback) im.onerror = () => { im.onerror = null; im.src = el.base.fallback; }; d.append(im); }
   return d;
 }
 function render(keepScroll){
@@ -536,7 +604,7 @@ function render(keepScroll){
   const built = buildPieces(); ED.els = built.els; ED.byId = Object.fromEntries(built.els.map(e => [e.id, e]));
   if(ED.sel) ED.sel = ED.byId[ED.sel.id] || null;
   st.textContent = ''; st.style.height = Math.max(844, built.height) + 'px';
-  for(const el of ED.els){ if(el.type === 'slot') st.append(drawSlot(el)); else if(el.type === 'chalk') st.append(drawChalk(el)); else if(el.type !== 'text') st.append(drawImage(el)); }
+  for(const el of ED.els){ if(el.type === 'slot') st.append(drawSlot(el)); else if(el.type === 'chalk') st.append(drawChalk(el)); else if(el.type === 'tagbox') st.append(drawTag(el)); else if(el.type !== 'text') st.append(drawImage(el)); }
   applyFits(st); if(keepScroll) sc.scrollTop = top; paintSel();
 }
 function paintSel(){
@@ -618,12 +686,14 @@ const GROUPS = {
   text: [['size','Size'],['move','Position'],['color','Color'],['font','Font'],['look','See-through'],['show','Show / hide']],
   image: [['size','Size'],['move','Position'],['look','Brightness & look'],['show','Show / hide']],
   slot: [['size','Size'],['move','Position'],['show','Show / hide']],
+  product: [['bg','Background'],['size','Size'],['move','Position'],['look','Brightness & look'],['show','Show / hide']],
+  box: [['size','Size'],['move','Position'],['color','Color'],['look','See-through'],['show','Show / hide']],
   chalk: [['write','Writing'],['size','Size'],['move','Position'],['show','Show / hide']],
   atext: [['write','Writing'],['tsize','Text size'],['size','Box width'],['move','Position'],['color','Color'],['font','Font'],['look','See-through'],['show','Show / hide'],['remove','Remove this piece']],
   added: [['size','Size'],['move','Position'],['look','Brightness & look'],['picture','Picture'],['show','Show / hide'],['remove','Remove this piece']],
   fill: [['size','Size'],['move','Position'],['color','Color'],['look','See-through'],['show','Show / hide'],['remove','Remove this piece']]
 };
-function groupSet(){ const k = ED.sel ? ED.sel.kind : ED.kind; if(k === 'all') return null; if(k === 'added'){ if(!ED.sel) return null; return ED.sel.type === 'fill' ? GROUPS.fill : ED.sel.type === 'atext' ? GROUPS.atext : GROUPS.added; } return isText(k) ? GROUPS.text : k === 'slot' ? GROUPS.slot : k === 'board' ? GROUPS.chalk : GROUPS.image; }
+function groupSet(){ const k = ED.sel ? ED.sel.kind : ED.kind; if(k === 'all') return null; if(k === 'added'){ if(!ED.sel) return null; return ED.sel.type === 'fill' ? GROUPS.fill : ED.sel.type === 'atext' ? GROUPS.atext : GROUPS.added; } return isText(k) ? GROUPS.text : k === 'slot' ? GROUPS.slot : k === 'board' ? GROUPS.chalk : k === 'product' ? GROUPS.product : (k === 'tag' || k === 'rail' || (k === 'art' && ED.type === 'shelf')) ? GROUPS.box : GROUPS.image; }
 function drawEdit(){
   const tt = $('#targetText'), sc = $('#scope'), opt = $('#options'), c = $('#controls'); tt.textContent = ''; sc.textContent = ''; opt.textContent = ''; c.textContent = '';
   const kind = ED.sel ? ED.sel.kind : ED.kind;
@@ -636,7 +706,10 @@ function drawEdit(){
   $('#bBack').disabled = !(ED.group || ED.sel || ED.kind !== 'all');
   const set = groupSet();
   if(kind === 'all' || (kind === 'added' && !ED.sel)){
-    opt.hidden = true; c.append(h('h3', { textContent: kind === 'added' ? 'Added pieces' : ED.store.name + ' — ' + (ED.type === 'aisle' ? ED.aisle + ' aisle' : 'board ' + ED.panel.panel_no) }));
+    opt.hidden = true; c.append(h('h3', { textContent: kind === 'added' ? 'Added pieces' : ED.store.name + ' — ' + (ED.type === 'shelf' ? ED.aisle + ' shelves' : ED.type === 'aisle' ? ED.aisle + ' aisle' : 'board ' + ED.panel.panel_no) }));
+    if(ED.type === 'shelf'){ const n = shelfPages(), pg = h('div', { className: 'btnrow' }); pg.style.marginBottom = '10px';
+      pg.append(h('button', { className: 'tb', textContent: '‹ Previous shelves', disabled: ED.shelfPage <= 0, onclick: () => { ED.shelfPage--; ED.sel = null; render(false); drawFeatures(); drawEdit(); } }), h('span', { className: 'tb', textContent: 'Shelves ' + (ED.shelfPage + 1) + ' of ' + n }), h('button', { className: 'tb', textContent: 'Next shelves ›', disabled: ED.shelfPage >= n - 1, onclick: () => { ED.shelfPage++; ED.sel = null; render(false); drawFeatures(); drawEdit(); } }));
+      c.append(pg); }
     if(kind === 'all') c.append(h('div', { className: 'hint', textContent: 'Click anything on the phone to edit that one piece, or pick a tab above to change every piece of that kind at once. Drag a piece to move it; drag the orange corner to resize it.' }));
     const row = h('div', { className: 'btnrow' });
     row.append(h('button', { className: 'tb', textContent: '+ Add a picture from your images', onclick: () => browseImages(a => addPiece({ type: 'image', label: a.name || 'Added picture', src: a.url, fit: 'contain', x: 115, y: 120 + $('#scroll').scrollTop, w: 160, h: 160 })) }));
@@ -720,6 +793,16 @@ function buildControls(root, group, kind){
   if(group === 'write'){
     if(el && el.type === 'chalk'){ ED.scope = 'one'; const b = cbox(root, 'What this blackboard says', 'Type one line per row. The first row is the big heading. Leave it empty to show what the app writes by itself: the aisle name and what is down that aisle.'); b.style.width = '460px'; textArea(b, 'text', 'Empty = the app writes the aisle name and its sections'); b.append(h('div', { className: 'hint', textContent: 'Click any line on the board to change its size, color, font or position by itself.' })); }
     else if(el){ const b = cbox(root, 'What it says'); b.style.width = '460px'; textArea(b, 'text', 'Type here'); choice(b, 'Line up', 'align', [['left', 'Left'], ['center', 'Center'], ['right', 'Right']]); slider(b, 'Tilt', 'rot', -180, 180, 1, 0); }
+  }
+  if(group === 'bg'){
+    const b = cbox(root, 'Background', 'Clears the white around the product so it sits on the shelf. Only white touching the edge of the picture is cleared, so white packaging stays. The cleared picture is what the app shows.'); b.style.width = '460px';
+    const run = async (f, msg) => { try{ toast(msg, 60000); await f(); render(true); toast('Done'); }catch(e){ toast('Did not work: ' + e.message, 8000); } };
+    const row = h('div', { className: 'btnrow' }), here = () => ED.els.filter(e => e.kind === 'product').map(e => e.item);
+    if(el && el.item){ row.append(h('button', { className: 'tb save', textContent: 'Remove background', onclick: () => run(() => cutBackground(el.item), 'Removing the background…') }));
+      row.append(h('button', { className: 'tb', textContent: 'Put the original picture back', onclick: () => run(() => cutBackground(el.item, true), 'Putting the original back…') })); }
+    row.append(h('button', { className: 'tb', textContent: 'Remove on these shelves (' + here().length + ')', onclick: () => cutMany(here(), 'These shelves') }));
+    row.append(h('button', { className: 'tb', textContent: 'Remove on the whole aisle (' + ED.src.items.length + ')', onclick: () => { if(confirm('Clear the background on all ' + ED.src.items.length + ' products in ' + ED.aisle + '? Products already cleared are skipped.')) cutMany(ED.src.items, ED.aisle); } }));
+    b.append(row);
   }
   if(group === 'tsize'){ const b = cbox(root, 'Text size'); slider(b, 'Size', 'size', 4, 160, 0.5, 28); }
   if(group === 'size'){
