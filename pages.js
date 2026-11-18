@@ -126,7 +126,11 @@ const PAGES = {
       fx: { mineFilm: 'cloud-mine-billows-v27', peerFilm: 'cloud-peer-billows-v27', blend: 1, maxWidth: 440, minWidth: 150, height: 0.75, opacity: 1, inkSize: 19, ink: '#101B28', inkShadow: 0, inkWeight: 600, bob: 2, bobSpeed: 1, breathe: 1.2, sway: 0, margin: 10, shadowBlur: 8, shadowX: 24, shadowY: 0.62,
         every: 30, mixSmall: 62, mixMedium: 29, smallMin: 76, smallMax: 110, mediumMin: 116, mediumMax: 162, largeMin: 170, largeMax: 212, attachMin: 5.5, attachMax: 8.5, driftMin: 6, driftMax: 9, largeDrift: 5, wander: 1.3, turn: 0.65,
         lifeSmallMin: 15, lifeSmallMax: 30, lifeMin: 44, lifeMax: 72, dissolveSmall: 72, absorbMedium: 58, absorbTime: 4.2, absorbReach: 0.3, fadeTime: 2, pieceOpacity: 0.85,
-        farMax: 3, farMin: 25, farMaxW: 52, farLifeMin: 27, farLifeMax: 52, farEvery: 14, farGroundX: -5, farGroundY: 3 },
+        farMax: 3, farMin: 25, farMaxW: 52, farLifeMin: 27, farLifeMax: 52, farEvery: 14, farGroundX: -5, farGroundY: 3,
+        // message clouds built from Danny's own time-lapse footage
+        useKling: true, useKlingB: true, useC123: true, useC258: true, seed: 0, round: 3.2, lift: 0.55, even: 0.25, feather: 26, fill: '#f6f7f9', billowSize: 64, billowSpread: 0.8, billowOut: 0.35, edgeJit: 25, flipOk: true, gain: 1, contrast: 1, warm: 0, lineGap: 1.35,
+        // pieces tearing off the clouds' own billowing edges
+        piecesOn: true, pEvery: 9, pieceMin: 36, pieceMax: 72, pieceDepth: 0.55, tearTime: 3.5, tearDist: 22, neck: 0.85, regrow: 9, windX: 6, windY: -2, pDrift: 40, pAbsorb: 35, pDissolve: 25, pReach: 16, dissolveAfter: 3 },
       msg: {}, head: {},
     },
     sections: [
@@ -135,23 +139,26 @@ const PAGES = {
         { name:'Speed & look', ctrls:[R('day_speed','Map speed (all maps)',0.0625,32,.0625), R('ground_brightness','Map brightness',0.3,1.5,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
         { name:'Night', ctrls:[K('earth.night','Night (city lights)'), R('night_speed','Night speed',0.0625,64,.0625)]},
       ]},
-      { id:'msg', name:'Message clouds', sub:'The rolling clouds the messages are written on', groups:[
-        { name:'Rolling (time-lapse)', ctrls:[R('cloud_speed','Rolling speed (time-lapse)',0.125,4,.005), R('fx.blend','Frame blending (smoothness)',0,1,.01)]},
-        { name:'Cloud footage', ctrls:[Sel('fx.mineFilm','Your clouds use',CLOUD_FILMS.map(n=>[n,n.replace(/-v\d+$/,'').replace(/-/g,' ')])), Sel('fx.peerFilm','Their clouds use',CLOUD_FILMS.map(n=>[n,n.replace(/-v\d+$/,'').replace(/-/g,' ')])), R('cloud_variety','Cloud shape variety',0,1,.01)]},
-        { name:'Size & shape', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('fx.maxWidth','Widest a cloud gets',150,440,1), R('fx.minWidth','Narrowest a cloud gets',80,300,1), R('fx.height','Cloud height',0.4,1.4,.01), R('fx.opacity','Cloud see-through',0.2,1,.01)]},
-        { name:'Words on the cloud', ctrls:[R('fx.inkSize','Text size',10,30,.5), C('fx.ink','Text color'), R('fx.inkWeight','Text thickness',300,900,100), R('fx.inkShadow','Text shadow',0,20,.5)]},
+      { id:'msg', name:'Message clouds', sub:'Base cloud under the words, wrapped in the billowing edge of your own cloud footage', groups:[
+        { name:'Your cloud footage', ctrls:[K('fx.useKling','Use clip: KlingAI cloud (first half)'), K('fx.useKlingB','Use clip: KlingAI cloud (second half)'), K('fx.useC123','Use clip: 123409 cumulus'), K('fx.useC258','Use clip: 258398 tower'), R('cloud_speed','Rolling speed (time-lapse)',0.125,4,.005), R('fx.blend','Frame blending (smoothness)',0,1,.01)]},
+        { name:'No two alike', ctrls:[R('cloud_variety','How different each cloud is',0,1,.01), K('fx.flipOk','Allow mirrored billows'), R('fx.seed','Reshuffle all clouds',0,50,1)]},
+        { name:'Base cloud (under the words)', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('fx.round','Base shape: round ↔ boxy',2,8,.1), R('fx.lift','Base whiteness',0,1,.01), R('fx.even','Base smoothness',0,1,.01), R('fx.feather','Base blends into the billows',2,40,1), C('fx.fill','Base color')]},
+        { name:'Billowing edge', ctrls:[R('fx.billowSize','Billow size (px)',16,120,1), R('fx.edgeJit','Billow size variety (%)',0,60,1), R('fx.billowSpread','Space between billows',0.5,2,.01), R('fx.billowOut','How far the billows stick out',0.1,0.9,.01)]},
+        { name:'Size & growing', ctrls:[R('fx.maxWidth','Widest a cloud gets',150,440,1), R('fx.minWidth','Narrowest a cloud gets',80,300,1), R('fx.height','Extra height',0.75,1.4,.01), R('cloud_growth_ms','How fast a cloud grows (ms)',80,1500,10)]},
+        { name:'Color & light', ctrls:[R('fx.opacity','Cloud see-through',0.2,1,.01), R('fx.gain','Brightness',0.5,1.5,.01), R('fx.contrast','Contrast',0.5,1.5,.01), R('fx.warm','Cool ↔ warm',-0.3,0.3,.01)]},
+        { name:'Words on the cloud', ctrls:[R('fx.inkSize','Text size',10,30,.5), C('fx.ink','Text color'), R('fx.inkWeight','Text thickness',300,900,100), R('fx.inkShadow','Text glow',0,20,.5), R('fx.lineGap','Line spacing',1,2,.01)]},
         { name:'Float & breathe', ctrls:[R('fx.bob','Bob up and down',0,12,.1), R('fx.bobSpeed','Bob speed',0,4,.01), R('fx.breathe','Breathing (swell %)',0,6,.1), R('fx.sway','Side to side sway',0,12,.1), R('fx.margin','Distance from screen edge',0,60,1)]},
         { name:'Shadow on the ground', ctrls:[R('cloud_shadow','Shadow darkness',0,0.7,.01), R('fx.shadowBlur','Shadow softness',0,30,.5), R('fx.shadowX','Shadow offset sideways',-60,60,1), R('fx.shadowY','Shadow drop',0.2,1.2,.01)]},
-        { name:'Spacing & forming', ctrls:[R('message_spacing','Space between messages',4,64,1), R('cloud_growth_ms','How fast a new cloud forms (ms)',80,1500,10), R('preview.messages','Messages shown in the preview',0,6,1), { t:'x', k:'preview.draft', label:'Type a message here and watch your cloud grow' }]},
+        { name:'Spacing & messages', ctrls:[R('message_spacing','Space between messages',4,64,1), R('preview.messages','Messages shown in the preview',0,6,1), { t:'x', k:'preview.draft', label:'Type a message here and watch your cloud grow' }]},
       ]},
-      { id:'pieces', name:'Cloud pieces', sub:'Break off, drift, dissolve or get absorbed', groups:[
-        { name:'How many & how often', ctrls:[R('ambient_count','Most pieces at once',0,8,1), R('fx.every','Seconds between break-offs',18,90,1)]},
-        { name:'Piece sizes', ctrls:[R('fx.mixSmall','Small pieces %',0,100,1), R('fx.mixMedium','Medium pieces %',0,100,1), R('fx.smallMin','Small: narrowest',20,200,1), R('fx.smallMax','Small: widest',20,240,1), R('fx.mediumMin','Medium: narrowest',40,260,1), R('fx.mediumMax','Medium: widest',40,300,1), R('fx.largeMin','Large: narrowest',80,360,1), R('fx.largeMax','Large: widest',80,420,1), R('ambient_scale','All pieces size',0.4,2.5,.01)]},
-        { name:'Breaking off', ctrls:[R('fx.attachMin','Hangs on at least (s)',0,20,.1), R('fx.attachMax','Hangs on at most (s)',0,30,.1)]},
-        { name:'Drifting', ctrls:[R('ambient_speed','Overall drift speed',0.1,3,.01), R('fx.driftMin','Small/medium drift slowest',0,40,.1), R('fx.driftMax','Small/medium drift fastest',0,40,.1), R('fx.largeDrift','Large drift speed',0,40,.1), R('fx.wander','Wander',0,10,.1), R('fx.turn','Spin while drifting',0,3,.01)]},
-        { name:'What happens to them', ctrls:[R('fx.dissolveSmall','Small: % that dissolve (rest drift off)',0,100,1), R('fx.absorbMedium','Medium: % absorbed by another cloud',0,100,1), R('fx.absorbTime','Absorbing takes (s)',0.5,15,.1), R('fx.absorbReach','How close before absorbed',0,1,.01), R('fx.fadeTime','Dissolving takes (s)',0.2,10,.1), R('fx.lifeSmallMin','Small: life shortest (s)',3,90,1), R('fx.lifeSmallMax','Small: life longest (s)',3,120,1), R('fx.lifeMin','Medium/large: life shortest (s)',5,180,1), R('fx.lifeMax','Medium/large: life longest (s)',5,240,1)]},
-        { name:'Far-away clouds', ctrls:[R('fx.farMax','How many far away',0,8,1), R('fx.farMin','Far: narrowest',5,120,1), R('fx.farMaxW','Far: widest',5,160,1), R('fx.farEvery','New far cloud every (s)',3,60,1), R('fx.farLifeMin','Far: life shortest (s)',5,120,1), R('fx.farLifeMax','Far: life longest (s)',5,180,1), R('fx.farGroundX','Move with the map sideways',-40,40,.5), R('fx.farGroundY','Move with the map up/down',-40,40,.5)]},
-        { name:'Look', ctrls:[R('ambient_opacity','See-through',0,1,.01), R('fx.pieceOpacity','Piece strength',0,1,.01)]},
+      { id:'pieces', name:'Cloud pieces', sub:'Pieces tear off a cloud\'s own billowing edge, then drift off, get absorbed or dissolve', groups:[
+        { name:'On / off & how often', ctrls:[K('fx.piecesOn','Pieces break off'), R('ambient_count','Most pieces at once',0,8,1), R('fx.pEvery','Seconds between break-offs',2,90,1)]},
+        { name:'Piece size', ctrls:[R('fx.pieceMin','Smallest piece (px)',10,120,1), R('fx.pieceMax','Biggest piece (px)',10,160,1), R('fx.pieceDepth','How deep it tears into the billows',0.15,0.9,.01)]},
+        { name:'Tearing off', ctrls:[R('fx.tearTime','Tearing takes (s)',0.5,12,.1), R('fx.tearDist','Stretch before it lets go (px)',4,80,1), R('fx.neck','Stretchy neck',0,1,.01), R('fx.regrow','Cloud heals in (s)',1,30,.5)]},
+        { name:'Drifting', ctrls:[R('ambient_speed','Overall drift speed',0.1,3,.01), R('fx.windX','Wind sideways',-30,30,.5), R('fx.windY','Wind up/down',-30,30,.5), R('fx.wander','Wander',0,10,.1)]},
+        { name:'What happens to them', ctrls:[R('fx.pDrift','Drift off screen (share)',0,100,1), R('fx.pAbsorb','Absorbed by another cloud (share)',0,100,1), R('fx.pDissolve','Dissolve (share)',0,100,1), R('fx.absorbTime','Absorbing takes (s)',0.5,15,.1), R('fx.pReach','How close before absorbed (px)',0,80,1), R('fx.dissolveAfter','Dissolving starts after (s)',0,20,.5), R('fx.fadeTime','Dissolving takes (s)',0.2,10,.1)]},
+        { name:'Far-away clouds', ctrls:[R('fx.farMax','How many far away',0,8,1), R('fx.farMin','Far: narrowest',5,120,1), R('fx.farMaxW','Far: widest',5,160,1), R('fx.farEvery','New far cloud every (s)',3,60,1), R('fx.farLifeMin','Far: life shortest (s)',5,120,1), R('fx.farLifeMax','Far: life longest (s)',5,180,1), R('fx.farGroundX','Move with the map sideways',-40,40,.5), R('fx.farGroundY','Move with the map up/down',-40,40,.5), R('ambient_opacity','Far clouds see-through',0,1,.01)]},
+        { name:'Look', ctrls:[R('fx.pieceOpacity','Piece strength',0,1,.01)]},
       ]},
       { id:'cloudvid', name:'Cloud videos', sub:'Trim, crop, key out, loop and prepare the cloud footage', groups:[] },
     ],
@@ -1124,6 +1131,189 @@ function rvVideo(p){ const src = runtimeAsset(SB.url + '/storage/v1/object/publi
 function rvReport(clips){ if(RV.diag || RUNTIME) return; RV.diag = true; setTimeout(() => { try { const c = RV.cur, k = Object.values(RV.vids).map(v => ({ src: v.src.split('/').pop(), ready: v.readyState, net: v.networkState, err: v.error && v.error.code, paused: v.paused, t: Math.round(v.currentTime), dur: Math.round(v.duration || 0) }));
   fetch(SB.url + '/rest/v1/claude_relay', { method: 'POST', headers: H({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }), body: JSON.stringify({ tag: 'map-diag', payload: JSON.stringify({ at: new Date().toISOString(), ua: navigator.userAgent, h264: document.createElement('video').canPlayType('video/mp4; codecs="avc1.640028"'), clips: clips.length, idx: RV.idx, cur: c && c.src.split('/').pop(), drawn: !!RV.last, vids: k, hidden: document.hidden, inFrame: window !== top }) }) }).catch(()=>{}); } catch(e){} }, 15000); }
 function rvShadowText(x, str, X, Y, font, color, align){ x.save(); x.font = font; x.fillStyle = color; x.textAlign = align || 'left'; x.textBaseline = 'middle'; x.shadowColor = 'rgba(0,0,0,.87)'; x.shadowBlur = 8; x.fillText(str, X, Y); x.restore(); }
+// ===================== Message clouds made from Danny's own time-lapse cloud footage =====================
+// Every message sits on a solid base cloud. Around the whole base sit real filmed clouds (his time-lapse loops,
+// playing), tucked under the base's edge, so the base is always in the middle of a billowing cloud and the two
+// read as one. Each message gets its own clips, sizes, flips, positions and start points, so no two match.
+// Pieces tear off the outer part of one of a cloud's own billows (no spinning, nothing popping in), stretch,
+// let go, and then drift off, get absorbed by another cloud, or dissolve with the thin parts going first.
+const RVC_HOME = new URL('clouds/', (document.currentScript && document.currentScript.src) || location.href).href;
+const RVC_CLIPS = [['kling-0', 'fx.useKling'], ['klingb-0', 'fx.useKlingB'], ['c123-0', 'fx.useC123'], ['c258-0', 'fx.useC258']];
+const RVC = { meta: null, loading: false, srcs: {}, gl: null, prog: null, u: null, cv: null, clouds: {}, pieces: [], far: [], nextPiece: 3, nextFar: 1, last: null, warned: false };
+const RVC_GOLD = 0.6180339887;
+function rvcLoad(){ if(RVC.loading) return; RVC.loading = true;
+  fetch(runtimeAsset(RVC_HOME + 'clouds.json')).then(r => r.json()).then(m => { RVC.meta = m; for(const id of Object.keys(m)) rvcSource(id); }).catch(e => console.warn('[clouds] list', e)); }
+function rvcSource(id){ const m = RVC.meta[id], s = RVC.srcs[id] = { id, m, frames: [], ready: false, tex: null, up: 0 };
+  if(!('ImageDecoder' in window)){ if(!RVC.warned){ RVC.warned = true; console.warn('[clouds] this browser cannot play the cloud footage (needs Chrome or Edge)'); } return; }
+  fetch(runtimeAsset(RVC_HOME + m.file)).then(r => r.arrayBuffer()).then(async buf => { const d = new ImageDecoder({ data: buf, type: 'image/webp', premultiplyAlpha: 'none', colorSpaceConversion: 'none' }); await d.tracks.ready; const n = d.tracks.selectedTrack.frameCount;
+    for(let i = 0; i < n; i++){ const r = await d.decode({ frameIndex: i }); s.frames.push(await createImageBitmap(r.image, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' })); r.image.close(); }
+    s.ready = true; }).catch(e => console.warn('[clouds]', id, e)); }
+function rvcRb(a, b, n, th){ const c = Math.abs(Math.cos(th)), s = Math.abs(Math.sin(th)); return 1 / Math.pow(Math.pow(c / a, n) + Math.pow(s / b, n), 1 / n); }
+// the base's edge walked at even steps, so billows can be spread evenly around it
+function rvcEdge(A, B, n){ const N = 96, pts = [], cum = [0]; let tot = 0;
+  for(let i = 0; i <= N; i++){ const th = i / N * Math.PI * 2, r = rvcRb(A, B, n, th); pts.push([Math.cos(th) * r, Math.sin(th) * r]); if(i){ tot += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(tot); } }
+  return { at(u){ const want = ((u % 1) + 1) % 1 * tot; let j = 0; while(j < N - 1 && cum[j + 1] < want) j++; const f = (want - cum[j]) / Math.max(1e-6, cum[j + 1] - cum[j]), p = [pts[j][0] + (pts[j + 1][0] - pts[j][0]) * f, pts[j][1] + (pts[j + 1][1] - pts[j][1]) * f];
+      const tx = pts[j + 1][0] - pts[j][0], ty = pts[j + 1][1] - pts[j][1], l = Math.hypot(tx, ty) || 1; return { x: p[0], y: p[1], nx: ty / l, ny: -tx / l }; }, perim: tot }; }
+const RVC_VS = `#version 300 es
+in vec2 aP; uniform vec4 uRect; uniform vec2 uView; out vec2 vP;
+void main(){ vec2 p = uRect.xy + aP * uRect.zw; vP = p; vec2 c = p / uView * 2.0 - 1.0; gl_Position = vec4(c.x, -c.y, 0.0, 1.0); }`;
+const RVC_FS = `#version 300 es
+precision highp float; precision highp sampler2DArray;
+in vec2 vP; out vec4 o;
+uniform sampler2DArray uTex; uniform float uLa, uLb, uMix; uniform vec2 uSrcSize, uSrcC;
+uniform vec2 uC; uniform float uScale, uFlip, uOpacity, uGain, uContrast, uWarm; uniform vec3 uFill;
+uniform int uMode;
+uniform float uA, uB, uN, uFeather, uLift, uEven;
+uniform vec2 uDir; uniform float uExt, uCut, uCutW; uniform vec2 uOff; uniform float uNeck, uErode; uniform vec4 uCrop;
+vec4 tex(vec2 sp){ vec2 uv = sp / uSrcSize; if(uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return vec4(0.0); return mix(texture(uTex, vec3(uv, uLa)), texture(uTex, vec3(uv, uLb)), uMix); }
+vec4 sprite(vec2 q){ if(uFlip > 0.5) q.x = -q.x; vec2 sp = uSrcC + q / uScale; vec4 c = tex(sp); if(uCrop.z > 0.0){ vec2 d = min(sp - uCrop.xy, uCrop.xy + uCrop.zw - sp); c.a *= smoothstep(0.0, 14.0, min(d.x, d.y)); } return c; }
+// where q sits along the billow's outward direction: -1 inner side .. 1 outer tip
+float along(vec2 q){ return dot(q, uDir) / max(uExt, 1.0); }
+vec3 grade(vec3 c){ c = (c - 0.5) * uContrast + 0.5; c *= uGain; c += vec3(uWarm, uWarm * 0.4, -uWarm); return clamp(c, 0.0, 1.0); }
+void main(){
+  vec2 p = vP - uC; vec4 c;
+  if(uMode == 0){
+    // the base under the words: cloud body, solid, fading into the billows at its edge
+    float r = length(p), th = atan(p.y, p.x); float Rb = 1.0 / pow(pow(abs(cos(th)) / uA, uN) + pow(abs(sin(th)) / uB, uN), 1.0 / uN);
+    float w = 1.0 - smoothstep(Rb - uFeather, Rb, r);
+    vec4 b = sprite(p); vec3 rgb = mix(uFill, b.rgb, b.a); rgb = mix(rgb, uFill, uEven); rgb += (1.0 - rgb) * uLift;
+    c = vec4(rgb, w);
+  } else if(uMode == 1){
+    // a billow of the cloud: its outer part goes missing while a piece is torn from it, and grows back
+    c = sprite(p); if(uCutW > 0.0) c.a *= 1.0 - uCutW * smoothstep(uCut - 0.15, uCut + 0.15, along(p));
+  } else if(uMode == 2){
+    // the torn piece: the outer part of that billow, pulled away by uOff, with a stretchy neck while it tears
+    vec2 q = p - uOff; vec4 s = sprite(q); float a = s.a * smoothstep(uCut - 0.15, uCut + 0.15, along(q)); vec3 rgb = s.rgb;
+    if(uNeck > 0.001){ vec2 side = vec2(-uDir.y, uDir.x); for(int k = 1; k < 8; k++){ float f = float(k) / 8.0; vec2 qk = p - uOff * f; float pinch = 0.25 + 0.75 * abs(2.0 * f - 1.0); vec2 qs = uDir * dot(qk, uDir) + side * dot(qk, side) / pinch; vec4 sk = sprite(qs); float ak = sk.a * smoothstep(uCut - 0.3, uCut + 0.05, along(qs)) * uNeck; if(ak > a){ a = ak; rgb = sk.rgb; } } }
+    if(uErode > 0.0) a = smoothstep(uErode, min(1.0, uErode + 0.35), a) * (1.0 - uErode * 0.3);
+    c = vec4(rgb, a);
+  } else { c = sprite(p); }
+  vec3 rgb = grade(c.rgb); float a = clamp(c.a * uOpacity, 0.0, 1.0);
+  o = vec4(rgb * a, a);
+}`;
+function rvcGL(pw, ph){ if(RVC.gl === false) return null;
+  if(!RVC.gl){ const cv = document.createElement('canvas'); const gl = cv.getContext('webgl2', { premultipliedAlpha: true, alpha: true, antialias: false, depth: false }); if(!gl){ RVC.gl = false; console.warn('[clouds] WebGL2 not available'); return null; }
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    try { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, RVC_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, RVC_FS)); gl.linkProgram(p); if(!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); RVC.prog = p; }
+    catch(e){ console.warn('[clouds] shader', e); RVC.gl = false; return null; }
+    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.useProgram(RVC.prog); const loc = gl.getAttribLocation(RVC.prog, 'aP'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const U = {}; for(const n of ['uRect', 'uView', 'uTex', 'uLa', 'uLb', 'uMix', 'uSrcSize', 'uSrcC', 'uC', 'uScale', 'uFlip', 'uOpacity', 'uGain', 'uContrast', 'uWarm', 'uFill', 'uMode', 'uA', 'uB', 'uN', 'uFeather', 'uLift', 'uEven', 'uDir', 'uExt', 'uCut', 'uCutW', 'uOff', 'uNeck', 'uErode', 'uCrop']) U[n] = gl.getUniformLocation(RVC.prog, n);
+    RVC.u = U; RVC.cv = cv; RVC.gl = gl; gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1i(U.uTex, 0); }
+  const gl = RVC.gl; if(RVC.cv.width !== pw || RVC.cv.height !== ph){ RVC.cv.width = pw; RVC.cv.height = ph; }
+  gl.viewport(0, 0, pw, ph); return gl; }
+// footage frames go to the graphics card a few at a time, so nothing stutters
+function rvcUpload(gl, s){ if(!s || !s.ready) return false; if(!s.tex){ s.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, s.tex); gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, s.m.w, s.m.h, s.frames.length);
+    for(const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D_ARRAY, k, v); }
+  if(s.up < s.frames.length){ gl.bindTexture(gl.TEXTURE_2D_ARRAY, s.tex); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    for(let k = 0; k < 12 && s.up < s.frames.length; k++, s.up++) gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, s.up, s.m.w, s.m.h, 1, gl.RGBA, gl.UNSIGNED_BYTE, s.frames[s.up]); }
+  return s.up >= s.frames.length; }
+function rvcOk(id){ const s = RVC.srcs[id]; return !!(s && s.tex && s.up >= s.frames.length); }
+function rvcHex(h){ const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '')); const v = m ? parseInt(m[1], 16) : 0xf2f4f6; return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255]; }
+function rvcRand(seed){ let h = 2166136261 >>> 0; for(const ch of String(seed)){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return (h % 1000003) / 1000003; }; }
+// a filmed cloud drawn as one billow: size h (px tall), centred at (x, y)
+function rvcSprite(id, h, pi){ const m = RVC.srcs[id].m, c = pi == null ? [m.bx, m.by, m.bw, m.bh] : m.puffs[pi % m.puffs.length], scale = h / c[3]; return { scale, w: c[2] * scale, h, sc: [c[0] + c[2] / 2, c[1] + c[3] / 2], crop: pi == null ? null : [c[0] - 6, c[1] - 6, c[2] + 12, c[3] + 12] }; }
+function rvcDraw(gl, d, F, S, t){ const U = RVC.u, s = RVC.srcs[d.src]; if(!rvcOk(d.src)) return;
+  const n = s.frames.length, pos = ((t * s.m.fps * S.cloud_speed + d.off) % n + n) % n, la = Math.floor(pos), lb = (la + 1) % n;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D_ARRAY, s.tex);
+  gl.uniform2f(U.uView, W, HH); gl.uniform4f(U.uRect, d.rx, d.ry, d.rw, d.rh);
+  gl.uniform1f(U.uLa, la); gl.uniform1f(U.uLb, lb); gl.uniform1f(U.uMix, (pos - la) * clamp(F.blend, 0, 1));
+  gl.uniform2f(U.uSrcSize, s.m.w, s.m.h); gl.uniform2f(U.uSrcC, d.sc[0], d.sc[1]); gl.uniform2f(U.uC, d.cx, d.cy); gl.uniform1f(U.uScale, d.scale); gl.uniform1f(U.uFlip, d.flip ? 1 : 0);
+  gl.uniform1i(U.uMode, d.mode); gl.uniform1f(U.uOpacity, clamp(d.alpha, 0, 1));
+  gl.uniform1f(U.uGain, F.gain); gl.uniform1f(U.uContrast, F.contrast); gl.uniform1f(U.uWarm, F.warm); gl.uniform3fv(U.uFill, rvcHex(F.fill));
+  gl.uniform1f(U.uA, d.A || 1); gl.uniform1f(U.uB, d.B || 1); gl.uniform1f(U.uN, d.n || 3); gl.uniform1f(U.uFeather, d.feather || 1); gl.uniform1f(U.uLift, F.lift); gl.uniform1f(U.uEven, F.even);
+  gl.uniform2f(U.uDir, d.dir ? d.dir[0] : 0, d.dir ? d.dir[1] : -1); gl.uniform1f(U.uExt, d.ext || 1); gl.uniform1f(U.uCut, d.cut || 0.3); gl.uniform1f(U.uCutW, d.cutW || 0);
+  gl.uniform2f(U.uOff, d.ox || 0, d.oy || 0); gl.uniform1f(U.uNeck, d.neck || 0); gl.uniform1f(U.uErode, d.erode || 0); gl.uniform4fv(U.uCrop, d.crop || [0, 0, 0, 0]);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+// the billows of one message cloud, spread evenly around its base (golden-ratio spacing: a new billow never moves the others)
+function rvcBillows(c, F, S, t, ids){ const st = RVC.clouds[c.key] || (RVC.clouds[c.key] = { list: [], extra: [] }), rnd = rvcRand(c.key + ':b:' + (F.seed || 0)), v = clamp(S.cloud_variety, 0, 1), size = clamp(F.billowSize, 16, 120);
+  const spec = j => { while(st.list.length <= j){ const pool = ids, prev = st.list.length ? st.list[st.list.length - 1].src : null; let src = pool[Math.floor(rnd() * pool.length) % pool.length]; if(src === prev && pool.length > 1) src = pool[(pool.indexOf(src) + 1) % pool.length];
+      st.list.push({ j: st.list.length, src, pi: Math.floor(rnd() * 8), flip: F.flipOk && rnd() < .5, hf: 1 + (rnd() * 2 - 1) * F.edgeJit / 100 * v, out: rnd(), off: rnd() * 1000, cutW: 0 }); } return st.list[j]; };
+  const out = [], per = c.edge.perim; let s = 0, j = 0;
+  while(s < per && j < 80){ const b = spec(j++); if(!RVC.srcs[b.src] || !rvcOk(b.src)) continue; const h = Math.min(size * b.hf, Math.max(c.B * 2.4, size * .6)), sp = rvcSprite(b.src, h, b.pi), e = c.edge.at(c.u0 + s / per), push = h * (F.billowOut - .5 + b.out * .2);
+    const along = Math.abs(e.ny) * sp.w + Math.abs(e.nx) * sp.h, step = along * .5 * F.billowSpread, fade = clamp((per - s) / Math.max(1, step * .6), 0, 1);
+    out.push({ b, src: b.src, flip: b.flip, off: b.off, x: c.cx + e.x + e.nx * push, y: c.cy + e.y + e.ny * push, nx: e.nx, ny: e.ny, sp, alpha: fade }); s += step; }
+  // inside: a few big billows under the base, so the middle is real cloud too
+  const inner = st.inner || (st.inner = Array.from({ length: 9 }, (_, i) => ({ src: ids[Math.floor(rnd() * ids.length) % ids.length], pi: Math.floor(rnd() * 8), flip: rnd() < .5, u: rnd() * 2 - 1, v: rnd() * 2 - 1, hf: .8 + rnd() * .5, off: rnd() * 1000 })));
+  const nIn = clamp(Math.round(c.A * c.B / (size * size * .9)), 1, 9), ins = [];
+  for(let i = 0; i < nIn; i++){ const b = inner[i]; if(!rvcOk(b.src)) continue; const h = Math.min(c.B * 2 * b.hf, Math.max(size * 1.4, c.B * 1.2)), sp = rvcSprite(b.src, h, b.pi); ins.push({ b: { cut: 0, cutW: 0 }, inner: true, src: b.src, flip: b.flip, off: b.off, x: c.cx + b.u * Math.max(0, c.A - sp.w * .45), y: c.cy + b.v * Math.max(0, c.B - h * .45), nx: 0, ny: -1, sp, alpha: 1 }); }
+  out.unshift(...ins);
+  for(const b of st.extra){ if(!rvcOk(b.src)) continue; const h = Math.min(size * b.hf, Math.max(c.B * 2.4, size * .6)), sp = rvcSprite(b.src, h, b.pi), e = c.edge.at(b.u), push = h * (F.billowOut - .4);
+    out.push({ b, src: b.src, flip: b.flip, off: b.off, x: c.cx + e.x + e.nx * push, y: c.cy + e.y + e.ny * push, nx: e.nx, ny: e.ny, sp, alpha: b.alpha }); }
+  return out; }
+// tearing, drifting, absorbing and dissolving pieces of the clouds' own billows
+function rvcPieces(t, dt, S, F, clouds){ const R = Math.random, P = RVC.pieces, byKey = Object.fromEntries(clouds.map(c => [c.key, c]));
+  if(F.piecesOn && clouds.length && t >= RVC.nextPiece){ RVC.nextPiece = t + F.pEvery * (0.6 + 0.8 * R());
+    if(P.length < Math.round(S.ambient_count)){ const c = clouds[Math.floor(R() * clouds.length)], cand = (c.bill || []).filter(x => !x.inner && x.alpha >= 1 && !x.b.extra && !x.b.busy && x.ny < .6);
+      if(cand.length){ const x = cand[Math.floor(R() * cand.length)]; x.b.busy = true;
+        P.push({ key: c.key, b: x.b, src: x.src, flip: x.flip, off: x.off, sp: x.sp, dir: [x.nx, x.ny], born: t, state: 'tear', cx: x.x, cy: x.y, ox: 0, oy: 0, vx: 0, vy: 0, erode: 0, alpha: 1, cut: clamp(1 - 2 * F.pieceDepth, -0.9, 0.9) }); } } }
+  const wind = [F.windX, F.windY], spd = S.ambient_speed;
+  for(const p of P){ const par = byKey[p.key];
+    if(p.state === 'tear'){ const live = par && (par.bill || []).find(x => x.b === p.b); if(live){ p.cx = live.x; p.cy = live.y; p.dir = [live.nx, live.ny]; p.sp = live.sp; }
+      const s = clamp((t - p.born) / Math.max(.2, F.tearTime), 0, 1), e = s * s * (3 - 2 * s); p.ox = p.dir[0] * F.tearDist * e; p.oy = p.dir[1] * F.tearDist * e; p.neck = F.neck * Math.pow(1 - s, 1.2); p.b.cutW = Math.min(1, .2 + s * 1.1); p.b.cut = p.cut;
+      if(s >= 1 || !live){ p.state = 'free'; p.freeAt = t; p.neck = 0; p.b.cutW = 1; p.b.healAt = t; const tot = F.pDrift + F.pAbsorb + F.pDissolve || 1, r = R() * tot; p.fate = r < F.pDrift ? 'drift' : r < F.pDrift + F.pAbsorb ? 'absorb' : 'dissolve';
+        const o2 = 3 + R() * 4; p.vx = p.dir[0] * o2 + wind[0]; p.vy = p.dir[1] * o2 + wind[1];
+        if(p.fate === 'absorb'){ let best = null, bd = 1e9; for(const c of clouds){ if(c.key === p.key) continue; const d = Math.hypot(c.cx - p.cx, c.cy - p.cy); if(d < bd){ bd = d; best = c; } } p.target = best ? best.key : null; if(!best) p.fate = 'drift'; } } }
+    else { const age = t - p.freeAt; p.vx += (wind[0] - p.vx) * Math.min(1, dt * .25) + (R() - .5) * F.wander * dt * 2; p.vy += (wind[1] - p.vy) * Math.min(1, dt * .25) + (R() - .5) * F.wander * dt * 2;
+      const wx = p.cx + p.ox + p.dir[0] * p.sp.h * .3, wy = p.cy + p.oy + p.dir[1] * p.sp.h * .3;
+      if(p.fate === 'absorb'){ const tg = byKey[p.target]; if(!tg){ p.fate = 'drift'; } else { const dx = tg.cx - wx, dy = tg.cy - wy, d = Math.hypot(dx, dy) || 1, ta = Math.atan2(-dy, -dx), reach = rvcRb(tg.A, tg.B, tg.n, ta) + F.billowSize * .5 + F.pReach;
+          const wantv = 10 * spd; p.vx += (dx / d * wantv - p.vx) * Math.min(1, dt * .6); p.vy += (dy / d * wantv - p.vy) * Math.min(1, dt * .6);
+          if(d < reach && p.absorbAt == null){ p.absorbAt = t; const st = RVC.clouds[tg.key]; if(st){ // it becomes one of the target's billows where it touched
+              const ex = tg.edge, best = { u: 0, d: 1e9 }; for(let i = 0; i < 64; i++){ const q = ex.at(i / 64), dd = Math.hypot(tg.cx + q.x - wx, tg.cy + q.y - wy); if(dd < best.d){ best.d = dd; best.u = i / 64; } }
+              p.joined = { extra: true, u: best.u, src: p.src, pi: p.b.pi, flip: p.flip, hf: p.sp.h / Math.max(1, F.billowSize), out: .5, off: p.off, alpha: 0, cutW: 0, j: -1, bornAt: t }; st.extra.push(p.joined); } }
+          if(p.absorbAt != null){ const a = clamp((t - p.absorbAt) / Math.max(.3, F.absorbTime), 0, 1); p.alpha = 1 - a; if(p.joined) p.joined.alpha = a; if(a >= 1){ p.dead = true; if(p.joined) p.joined.healAt = t; } } } }
+      if(p.fate === 'dissolve' && age > F.dissolveAfter){ p.erode = clamp((age - F.dissolveAfter) / Math.max(.3, F.fadeTime), 0, 1); if(p.erode >= 1) p.dead = true; }
+      p.ox += p.vx * dt * spd; p.oy += p.vy * dt * spd;
+      if(wx < -260 || wx > W + 260 || wy < -260 || wy > HH + 260) p.dead = true; } }
+  RVC.pieces = P.filter(p => !p.dead);
+  // torn billows grow back; absorbed pieces melt into their new cloud over time
+  for(const st of Object.values(RVC.clouds)){ for(const b of st.list) if(b.healAt != null){ b.cutW = 1 - clamp((t - b.healAt) / Math.max(.5, F.regrow), 0, 1); if(b.cutW <= 0){ b.cutW = 0; b.healAt = null; b.busy = false; } }
+    st.extra = st.extra.filter(b => { if(b.healAt == null) return true; b.alpha = 1 - clamp((t - b.healAt - F.regrow) / Math.max(.5, F.regrow), 0, 1); return b.alpha > 0; }); } }
+// small whole clouds far below, drifting with the map
+function rvcFar(t, dt, S, F, ids){ const R = Math.random, L = RVC.far;
+  if(ids.length && t >= RVC.nextFar){ RVC.nextFar = t + F.farEvery * (0.6 + 0.8 * R()); if(L.length < Math.round(F.farMax)){ const src = ids[Math.floor(R() * ids.length)], w = F.farMin + R() * Math.max(0, F.farMaxW - F.farMin), m = RVC.srcs[src].m;
+      L.push({ src, w, x: R() * W, y: 110 + R() * (HH * .55), born: t, life: F.farLifeMin + R() * Math.max(0, F.farLifeMax - F.farLifeMin), off: R() * 400, flip: R() < .5, sp: rvcSprite(src, w * m.bh / m.bw) }); } }
+  for(const f of L){ f.x += F.farGroundX * dt * S.ambient_speed; f.y += F.farGroundY * dt * S.ambient_speed; f.age = t - f.born; f.alpha = clamp(Math.min(f.age / 3, (f.life - f.age) / 3), 0, 1); }
+  RVC.far = L.filter(f => f.age < f.life && f.x > -200 && f.x < W + 200 && f.y > -200 && f.y < HH + 200); }
+// lay out, animate and draw all message clouds; returns them so the words can be written on top
+function rvcMessages(x, t, S, F, rows, composerTop){
+  rvcLoad(); const dt = RVC.last == null ? 0 : clamp(t - RVC.last, 0, .1); RVC.last = t;
+  const ids = RVC_CLIPS.filter(([id, k]) => F[k.slice(3)] !== false && RVC.srcs[id]).map(c => c[0]);
+  const sc = x.canvas.width / W, gl = rvcGL(Math.round(W * sc), Math.round(HH * sc));
+  if(gl) for(const id of ids) rvcUpload(gl, RVC.srcs[id]);
+  const ready = ids.filter(rvcOk);
+  const tfont = `${F.inkWeight} ${F.inkSize}px Roboto, system-ui`; x.font = tfont;
+  const lineH = F.inkSize * F.lineGap, n = clamp(F.round, 2, 8), kse = Math.pow(2, 1 / n), P = S.cloud_padding, out = [], size = clamp(F.billowSize, 16, 120);
+  const rim = size * (F.billowOut + .35);   // how far the billows reach past the base
+  let yy = composerTop - 12;
+  const grow = 1 - Math.exp(-dt * 1000 / Math.max(40, S.cloud_growth_ms) * 3);
+  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], key = who + ':' + k, rnd = rvcRand(key + ':' + (F.seed || 0)), maxTot = Math.min(F.maxWidth, W - 2 * F.margin);
+    const twMax = Math.max(40, 2 * ((maxTot / 2 - rim) / kse - P)), lines = rvWrap(x, txt, twMax), tw = Math.max(...lines.map(l => x.measureText(l).width)), th = lines.length * lineH;
+    const A = Math.max((tw / 2 + P) * kse, F.minWidth / 2 - rim), B = (th / 2 + P) * kse * Math.max(1, F.height / 0.75);
+    const st = RVC.clouds[key] || (RVC.clouds[key] = { list: [], extra: [] }); if(!st.z) st.z = { A: A * .25, B: B * .25 }; st.z.A += (A - st.z.A) * grow; st.z.B += (B - st.z.B) * grow;
+    const br = 1 + Math.sin(t * S.cloud_speed * 1.3 + k) * F.breathe / 100, Az = st.z.A * br, Bz = st.z.B * br, hx = Az + rim, hy = Bz + rim;
+    if(yy - 2 * hy < 92) break;
+    const cx = (who === 'mine' ? W - F.margin - hx : F.margin + hx) + Math.sin(t * .5 * F.bobSpeed + k) * F.sway, cy = yy - hy + Math.sin(t * F.bobSpeed + k * 1.7) * F.bob;
+    const c = { key, k, who, txt, lines, lineH, tfont, A: Az, B: Bz, n, cx, cy, hx, hy, u0: rnd(), bodySrc: null, bodyFlip: rnd() < .5, bodyOff: rnd() * 1000, feather: Math.max(2, Math.min(F.feather, P * 1.4)) };
+    c.edge = rvcEdge(Az, Bz, n); if(ready.length){ c.bodySrc = ready[Math.floor(rnd() * ready.length)]; c.bill = rvcBillows(c, F, S, t, ready); }
+    out.push(c); yy -= 2 * hy + S.message_spacing; }
+  // shadows on the ground
+  if(S.cloud_shadow > 0) for(const c of out){ if(!c.bodySrc) continue; x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = `blur(${F.shadowBlur}px)`; x.beginPath(); x.ellipse(c.cx + F.shadowX, c.cy + c.hy * F.shadowY * 1.6, c.hx * .72, c.hy * .26, 0, 0, 7); x.fill(); x.restore(); }
+  if(!gl) return out;
+  rvcPieces(t, dt, S, F, out.filter(c => c.bodySrc)); rvcFar(t, dt, S, F, ready);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(RVC.prog);
+  for(const f of RVC.far) rvcDraw(gl, { mode: 3, src: f.src, off: f.off, flip: f.flip, cx: f.x, cy: f.y, sc: f.sp.sc, scale: f.sp.scale, rx: f.x - f.sp.w / 2 - 2, ry: f.y - f.sp.h / 2 - 2, rw: f.sp.w + 4, rh: f.sp.h + 4, alpha: f.alpha * S.ambient_opacity }, F, S, t);
+  for(const c of out){ if(!c.bodySrc) continue;
+    for(const b of c.bill){ const ext = (Math.abs(b.nx) * b.sp.w + Math.abs(b.ny) * b.sp.h) / 2;
+      rvcDraw(gl, { mode: 1, src: b.src, off: b.off, flip: b.flip, cx: b.x, cy: b.y, sc: b.sp.sc, scale: b.sp.scale, crop: b.sp.crop, rx: b.x - b.sp.w / 2 - 2, ry: b.y - b.sp.h / 2 - 2, rw: b.sp.w + 4, rh: b.sp.h + 4, alpha: b.alpha * F.opacity, dir: [b.nx, b.ny], ext, cut: b.b.cut, cutW: b.b.cutW }, F, S, t); }
+    const m = RVC.srcs[c.bodySrc].m, ki = Math.max(c.A / Math.max(20, m.bw * .16), c.B / Math.max(20, m.bh * .16));
+    rvcDraw(gl, { mode: 0, src: c.bodySrc, off: c.bodyOff, flip: c.bodyFlip, cx: c.cx, cy: c.cy, sc: m.body, scale: ki, A: c.A, B: c.B, n: c.n, feather: c.feather, rx: c.cx - c.A - 2, ry: c.cy - c.B - 2, rw: 2 * c.A + 4, rh: 2 * c.B + 4, alpha: F.opacity }, F, S, t); }
+  for(const p of RVC.pieces){ const ext = (Math.abs(p.dir[0]) * p.sp.w + Math.abs(p.dir[1]) * p.sp.h) / 2, gx = p.cx + p.ox, gy = p.cy + p.oy, hw = p.sp.w / 2 + 4, hh = p.sp.h / 2 + 4;
+    rvcDraw(gl, { mode: 2, src: p.src, off: p.off, flip: p.flip, cx: p.cx, cy: p.cy, sc: p.sp.sc, scale: p.sp.scale, crop: p.sp.crop, dir: p.dir, ext, cut: p.cut, ox: p.ox, oy: p.oy, neck: p.neck || 0, erode: p.erode, alpha: p.alpha * F.pieceOpacity * F.opacity,
+      rx: Math.min(p.cx, gx) - hw, ry: Math.min(p.cy, gy) - hh, rw: Math.abs(gx - p.cx) + 2 * hw, rh: Math.abs(gy - p.cy) + 2 * hh }, F, S, t); }
+  x.drawImage(RVC.cv, 0, 0, W, HH);
+  return out; }
+
 function drawConvo(x, t, S){
   const E = S.earth || {}, clips = (Array.isArray(E.clips) && E.clips.length ? E.clips : RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })));
   x.fillStyle = '#F0DFC0'; x.fillRect(0, 0, W, HH);
@@ -1143,23 +1333,15 @@ function drawConvo(x, t, S){
   if(S.water_shimmer > 0 && !E.night){ x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = S.water_shimmer * .25; const g = x.createLinearGradient(0, 0, W, HH); const ph = (t * .15) % 1; g.addColorStop(Math.max(0, ph - .1), 'rgba(255,255,255,0)'); g.addColorStop(ph, 'rgba(255,255,255,1)'); g.addColorStop(Math.min(1, ph + .1), 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, HH); x.restore(); }
   // 2. dark fade top and bottom (0x90071823 → clear at 18%, clear to 76% → 0xB0071823)
   const fg = x.createLinearGradient(0, 0, 0, HH); fg.addColorStop(0, 'rgba(7,24,35,.565)'); fg.addColorStop(.18, 'rgba(7,24,35,0)'); fg.addColorStop(.76, 'rgba(7,24,35,0)'); fg.addColorStop(1, 'rgba(7,24,35,.69)'); x.fillStyle = fg; x.fillRect(0, 0, W, HH);
-  // 3. message clouds: rolling time-lapse cloud footage with the words written on it
+  // 3. message clouds: a solid base under the words, wrapped in the real billowing edge of Danny's filmed clouds
   const F = Object.assign({}, PAGES.convo.defaults.fx, S.fx || {}), P = S.preview || {}, n = Math.max(0, Math.min(MSGS.length, Math.round(P.messages ?? 6)));
-  const composerTop = HH - 10 - 52 - 6, rects = []; let yy = composerTop - 16; const tfont = `${F.inkWeight} ${F.inkSize}px Roboto, system-ui`; x.font = tfont;
-  const layout = [];
+  const composerTop = HH - 10 - 52 - 6;
   const rows = MSGS.slice(0, n).map(m => m.slice()); if(String(P.draft || '').trim()) rows.push(['mine', String(P.draft), true]);
-  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], maxW = Math.min(F.maxWidth, W - 2 * F.margin), inset = Math.min(62 + S.cloud_padding, (maxW - 24) / 2), lines = rvWrap(x, txt, Math.max(24, maxW - 2 * inset)), lineH = F.inkSize * 1.35, tw = Math.max(...lines.map(l => x.measureText(l).width)), cw = clamp(tw + 2 * inset, F.minWidth, maxW);
-    const name = who === 'mine' ? F.mineFilm : F.peerFilm, fl = rvFilm(name), fr = rvFrame(fl, t, S.cloud_speed, F.blend); if(!fr) continue;
-    const ch = Math.max(56, (lines.length * lineH + 2 * Math.min(inset, 46)) * F.height / 0.75);
-    if(yy - ch < 96) break; const cx = (who === 'mine' ? W - F.margin - cw / 2 : F.margin + cw / 2) + Math.sin(t * .5 * F.bobSpeed + k) * F.sway, cy = yy - ch / 2 + Math.sin(t * F.bobSpeed + k * 1.7) * F.bob;
-    layout.push({ k, txt, lines, lineH, cw, ch, cx, cy, fr }); rects.push({ key: k, x0: cx - cw / 2, y0: cy - ch / 2, x1: cx + cw / 2, y1: cy + ch / 2 }); yy -= ch + S.message_spacing; }
-  // 4. cloud pieces: break off a message cloud, hang on, then drift off, dissolve or get absorbed by another cloud
-  rvMist(x, t, S, F, rects);
-  for(const L of layout){ const { cw, ch, cx, cy, fr, lines, lineH, k } = L;
-    if(S.cloud_shadow > 0){ x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = `blur(${F.shadowBlur}px)`; x.beginPath(); x.ellipse(cx + F.shadowX, cy + ch * F.shadowY, cw * 0.36, ch * 0.12, 0, 0, 7); x.fill(); x.restore(); }
-    const sw = 1 + Math.sin(t * S.cloud_speed * 1.3 + k) * F.breathe / 100; x.save(); x.translate(cx, cy); x.scale(sw, sw); x.globalAlpha = F.opacity; const ba = rvBounds(fr.a), ew = cw * 1.18, eh = ch * 1.3; x.drawImage(fr.a, ba.sx, ba.sy, ba.sw, ba.sh, -ew / 2, -eh / 2, ew, eh); if(fr.b && fr.mix > 0){ const bb = rvBounds(fr.b); x.globalAlpha = F.opacity * fr.mix; x.drawImage(fr.b, bb.sx, bb.sy, bb.sw, bb.sh, -ew / 2, -eh / 2, ew, eh); } x.restore();
-    x.save(); x.font = tfont; x.fillStyle = F.ink; x.textAlign = 'center'; x.textBaseline = 'middle'; if(F.inkShadow > 0){ x.shadowColor = 'rgba(255,255,255,.9)'; x.shadowBlur = F.inkShadow; } lines.forEach((l, i) => x.fillText(l, cx, cy + 2 + (i - (lines.length - 1) / 2) * lineH)); x.restore(); }
-  if(!n) rvShadowText(x, 'Write a message.', W / 2, HH * .45, '16px system-ui', '#fff', 'center'), rvShadowText(x, 'Watch your cloud form.', W / 2, HH * .45 + 26, '16px system-ui', '#fff', 'center');
+  // 4. (inside) pieces tear off the clouds' own edges, then drift off, get absorbed, or dissolve
+  const clouds = rvcMessages(x, t, S, F, rows, composerTop);
+  for(const c of clouds){ if(!c.bodySrc && RVC.gl !== false) continue; x.save(); x.font = c.tfont; x.fillStyle = F.ink; x.textAlign = 'center'; x.textBaseline = 'middle'; if(F.inkShadow > 0){ x.shadowColor = 'rgba(255,255,255,.9)'; x.shadowBlur = F.inkShadow; }
+    c.lines.forEach((l, i) => x.fillText(l, c.cx, c.cy + 1 + (i - (c.lines.length - 1) / 2) * c.lineH)); x.restore(); }
+  if(!n && !String(P.draft || '').trim()) rvShadowText(x, 'Write a message.', W / 2, HH * .45, '16px system-ui', '#fff', 'center'), rvShadowText(x, 'Watch your cloud form.', W / 2, HH * .45 + 26, '16px system-ui', '#fff', 'center');
   x.textAlign = 'left'; x.textBaseline = 'alphabetic';
   // 5. header: back arrow, name, save contact, scene controls (only you), refresh
   const hy = 44 + 4 + 24; rvShadowText(x, '←', 18, hy, '600 24px system-ui', '#fff'); rvShadowText(x, String(P.name || 'Freya'), 58, hy, '600 17px system-ui', '#fff');
