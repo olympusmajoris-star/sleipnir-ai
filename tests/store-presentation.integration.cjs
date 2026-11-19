@@ -1,0 +1,29 @@
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {editor,choose}=require('./reference-editor.integration.cjs');
+const P=require('../store-presentation'),X=require('../store-dart-export');
+test('every new restaurant frame keeps real names, sized prices, image edits and save/restore',async()=>{
+ for(const [id,brand]of Object.entries(P.brands)){
+  const products=[{id:'p1',store_id:id,name:'Chicken Sandwich',full_name:'Chicken Sandwich with Pickles',price:4.99,category:'Sandwiches',image_url:'https://assets.test/chicken.png'},{id:'p2',store_id:id,name:'Fries',price:2.49,category:'Sides',image_url:'https://assets.test/fries.png'}];
+  const sources={products,product_size_prices:[{product_id:'p2',small_price:2.49,medium_price:3.49,large_price:4.49,size_count:3}],store_categories:[{category:'Sandwiches'},{category:'Sides'}]};
+  const e=await editor('fast_food',[],sources,{storeId:id});
+  assert.equal(e.document.querySelector('.drive-photo-frame>img').src,brand.image);
+  assert.match(e.document.querySelector('.drive-items').textContent,/Chicken Sandwich with Pickles/);
+  assert.match(e.document.querySelector('.drive-items').textContent,/From \$2.49/);
+  for(const label of ['Back','Shopping Home','Change Store'])assert.match(e.document.querySelector('.reference-header').textContent,new RegExp(label));
+  await e.ctx.AsgardWorkspaceEditor.topic('Menu items and pictures');
+  const size=e.document.querySelector('[data-control="dtImageSize"]');size.value='104';size.oninput();assert.equal(e.document.querySelector('.drive-item img').style.width,'104px');
+  e.document.querySelector('.drive-item img').onclick({stopPropagation(){}});const scale=e.document.querySelector('[data-control="scale"]');scale.value='135';scale.oninput();assert.match(e.document.querySelector('.drive-item img').style.transform,/scale\(1.35,1.35\)/);assert.ok(!e.document.querySelectorAll('.drive-item img')[1].style.transform);
+  await e.ctx.AsgardWorkspaceEditor.save();const saved=JSON.parse(e.calls.find(c=>c.method==='POST').body);X.validate([saved.data]);
+  const restored=await editor('fast_food',[saved],sources,{storeId:id});assert.match(restored.document.querySelector('.drive-item img').style.transform,/scale\(1.35,1.35\)/);
+  assert.ok(e.calls.every(c=>c.method==='GET'||c.url.includes('/studio_designs')));
+ }
+});
+test('sit-down category navigation has separate actions and its full bound-menu reference remains editable',async()=>{const e=await editor('sit_down');assert.deepEqual([...e.document.querySelectorAll('.reference-header button')].map(n=>n.textContent),['Back','Home','Stores','Search']);assert.equal(e.document.querySelectorAll('.reference-categories button').length,2);assert.ok(e.document.querySelector('.reference-book-photo').src.endsWith('menu-page-right.png.png'));await e.ctx.AsgardWorkspaceEditor.topic('Menu text and prices');const f=e.document.querySelector('[data-control="sdItemNameSize"]');f.value='21';f.oninput();assert.equal(e.document.querySelector('[data-editable="product-name"]').style.fontSize,'21px');});
+test('selling units come from package records, never from a produce photograph or price',()=>{assert.equal(P.sellingUnit('Kiwi','1 container'),'1 container');assert.equal(P.sellingUnit('Russet Potatoes','10 lb bag'),'10 lb bag');assert.equal(P.sellingUnit('Organic Sweet Potatoes','3 lb bag'),'3 lb bag');assert.equal(P.sellingUnit('Red Grapes, per lb','1 ct'),'per lb');assert.equal(P.sellingUnit('Onions',''),'');});
+test('ALDI preview uses only ready, correctly mapped artwork and includes recorded units',async()=>{const id='e5a01340-424a-4a41-b0e6-99cb9e944733',product={id:'kiwi',store_id:id,name:'Kiwi',description:'1 container',price:4.39,category:'Produce',image_url:'https://assets.test/kiwi.jpg'};
+ const source={products:[product],studio_product_categories:[{category:'Produce',product_count:1}],aisle_renders:[{store_id:id,aisle:'Produce',render_no:1,image_path:'aldi-shelf-renders/produce-1.png',width:941,height:1672,layout:'3x3',publish_status:'ready'},{store_id:id,aisle:'Produce',render_no:2,image_path:'aldi-shelf-renders/held.png',width:941,height:1672,layout:'3x3',publish_status:'held'}],aisle_slots:[{store_id:id,aisle:'Produce',render_no:1,slot:1,product_id:'kiwi',tag_x:.05,tag_y:.25,tag_w:.12,tag_h:.03}]};
+ const e=await editor('grocery',[],source,{storeId:id});await choose(e,'shelves','native-shelf:Produce');assert.ok(e.document.querySelector('.rendered-grocery-photo').src.endsWith('produce-1.png'));assert.equal(e.document.querySelector('.rendered-product-name').textContent,'Kiwi');assert.equal(e.document.querySelector('.rendered-product-price').textContent,'$4.39');assert.equal(e.document.querySelector('.rendered-product-unit').textContent,'1 container');
+ await e.ctx.AsgardWorkspaceEditor.topic('Pricing');const f=e.document.querySelector('[data-control="labelNameSize"]');f.value='16';f.oninput();assert.equal(e.document.querySelector('.rendered-product-name').style.fontSize,'16px');
+ const plan=e.ctx.RenderedGroceryScene.plan(source.aisle_renders,[{...source.aisle_slots[0],product_id:'another-store'}],source.products,'https://data.test');assert.equal(plan.panels.length,0);
+});
+test('export preserves mapped image controls but never freezes typed price or selling unit text',()=>{const d={storeId:'s',edits:{'native-page:fast_food':{referenceElements:{'product-image:p1':{scale:140},'price:p1':{text:'$0.01',fontSize:20}}},'native-shelf:Produce':{referenceElements:{'unit:p2':{text:'per lb',color:'#111111'}}}}};X.validate([d]);const clean=X.clean(d);assert.equal(clean.edits['native-page:fast_food'].referenceElements['product-image:p1'].scale,140);assert.equal(clean.edits['native-page:fast_food'].referenceElements['price:p1'].text,undefined);assert.equal(clean.edits['native-shelf:Produce'].referenceElements['unit:p2'].text,undefined);});
