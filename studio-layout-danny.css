@@ -19,23 +19,40 @@
 .work-area:has(>.option-menu[hidden])>.work-empty{display:none}
 
 /* Zone 5: compact boxes — controls grouped, sliders never span the whole panel */
-.tool-page{max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;align-items:start}
-.tool-page>.tool-title{grid-column:1/-1;font-size:18px!important;margin:0 0 4px!important}
+.tool-page{max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,176px),1fr));gap:8px;align-items:start;margin-bottom:22px;scroll-margin-top:14px}
+.tool-page>.tool-title{grid-column:1/-1;font-size:17px!important;margin:0 0 4px!important;padding-top:12px;border-top:1px solid #ffffff14}
 .tool-page>.source-heading{grid-column:1/-1;margin:10px 0 0;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .tool-page>*:not(.c):not(.pg-row):not(.pg-chk):not(.rn-control):not(.tool-title):not(.source-heading){grid-column:1/-1}
-.tool-page .c,.tool-page .pg-row,.tool-page .pg-chk,.tool-page .rn-control{margin:0!important;max-width:none;background:#141c21;border:1px solid #26343c;border-radius:9px;padding:9px 10px 8px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.tool-page .c label,.tool-page .pg-row label{font-size:12.5px;display:flex;justify-content:space-between;gap:8px;color:#d6e4e6}
+.tool-page .c,.tool-page .pg-row,.tool-page .pg-chk,.tool-page .rn-control{margin:0!important;max-width:none;background:#141c21;border:1px solid #26343c;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.tool-page .c label,.tool-page .pg-row label{font-size:14px;line-height:1.3;display:flex;justify-content:space-between;gap:6px;color:#d6e4e6;overflow-wrap:anywhere}
 .tool-page .c label em,.tool-page .pg-row label em{color:#7fe3e0;font-style:normal;font-variant-numeric:tabular-nums}
-.tool-page input[type=range]{width:100%;min-height:20px;margin:0}
+.tool-page input[type=range]{width:100%;min-width:0;min-height:22px;margin:0;accent-color:#7fe3e0}
 .tool-page input[type=color]{width:100%;height:30px;padding:0;border:0;background:none}
-.tool-page .pg-chk,.tool-page .c.chk{flex-direction:row;align-items:center;flex-wrap:wrap;font-size:12.5px}
-.tool-page details .gb,.tool-page details>div{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.tool-page details>summary{margin-bottom:8px}
+.tool-page .pg-chk,.tool-page .c.chk{flex-direction:row;align-items:center;flex-wrap:wrap;font-size:14px}
+.tool-page details[data-studio-group]{display:block;padding:0;border:0}
+.tool-page .control-grid,.tool-page details>.gb{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,176px),1fr));gap:8px;padding:0;border:0}
+.tool-page details[data-studio-group]>summary{display:none}
+.tool-page details>summary{grid-column:1/-1;margin-bottom:8px}
+.tool-page .control-grid>:not(.c):not(.pg-row):not(.pg-chk):not(.rn-control){grid-column:1/-1}
+.tool-page .control-grid>.map-playlist,.tool-page .control-grid>.earth-timeline,.tool-page .sm-field,.tool-page .cloud-pick,.tool-page .earth-pick{grid-column:1/-1}
+.tool-page [hidden],.controls-browser[hidden],.controls-no-results[hidden]{display:none!important}
+.compact-range-line{display:grid;grid-template-columns:minmax(44px,1fr) 66px;align-items:center;gap:7px;width:100%}
+.tool-page .control-number,.tool-page .spt-number{width:66px!important;min-width:0;max-width:78px;box-sizing:border-box;padding:4px 5px;border:1px solid #3d555e;border-radius:5px;background:#10181d;color:#b6f5ed;font-size:14px;font-variant-numeric:tabular-nums}
+.compact-control>label>em{display:none}
+.controls-browser{display:flex;flex-direction:column;gap:9px;padding:0 0 12px;border-bottom:1px solid #26343c}
+.controls-browser-heading{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.controls-browser-heading strong{font-size:14px;color:#b5cccf}
+.controls-search{max-width:270px;min-width:140px;flex:1;padding:8px 10px;border:1px solid #38505a;background:#10181d;color:#e4f0f1;border-radius:7px;font-size:14px}
+.control-jumps{display:flex;gap:5px;flex-wrap:wrap}
+.control-jump{font-size:13px!important;padding:5px 8px!important;min-height:28px!important;border:1px solid #31474e;border-radius:6px;background:#18262b;color:#b7d7d9;cursor:pointer}
+.control-jump:hover,.control-jump:focus-visible{background:#25413f;border-color:#7fe3e0}
+.controls-no-results{font-size:14px;color:#b5cccf;margin:0}
 
 /* (i) and lock sit small in the box corner instead of a full row */
 .tool-page .wb-setting-tools{margin:0;justify-content:flex-end;gap:4px}
-.tool-page .wb-setting-tools button{min-height:0;padding:2px 7px;font-size:11px;border-radius:5px}
+.tool-page .wb-setting-tools button{min-height:24px;padding:2px 5px;font-size:12px;border-radius:5px}
 .tool-page .wb-setting-tools .wb-info{font-size:13px;line-height:16px}
+.tool-page .wb-reset{background:#15242c;border:1px solid #35515c;color:#b6e4e9}
 
 /* Lots of controls: page list folds away so the boxes get the room */
 body.wide-tools.studio-shell main{grid-template-columns:430px minmax(0,1fr)!important}
@@ -54,3 +71,4 @@ body.wide-tools .app-tabs{padding-left:0}
 .work-area:has(>#panel>.editor-context:not([hidden]))>.work-empty{top:118px}
 .off-note{grid-column:1/-1;background:#3a3424;border:1px solid #6b5a2e;color:#f1dfae;border-radius:8px;padding:8px 12px;font-size:13px}
 .tool-page.feature-off .c:not(:has(input[type=checkbox])),.tool-page.feature-off .pg-row{opacity:.55}
+@media(max-width:700px){.work-area>.option-menu{padding:8px 5px}.work-area>#panel{padding:10px 8px 30px!important}.controls-search{max-width:none}.tool-page,.tool-page .control-grid,.tool-page details>.gb{grid-template-columns:repeat(auto-fill,minmax(min(100%,160px),1fr))}}

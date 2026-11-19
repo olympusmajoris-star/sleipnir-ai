@@ -71,14 +71,18 @@ function clouds(ctx,w,h,t,input,images=[],seed=137,text='Your message takes shap
  ctx.restore();return parts;
 }
 
-function cloudClip(ctx,w,h,source,input){
- const d=C.clean(input),iw=source?.videoWidth||source?.naturalWidth||source?.width,ih=source?.videoHeight||source?.naturalHeight||source?.height;
+function mediaFrame(ctx,w,h,source,input,contain=false){
+ const d=C.clean(input),m=d.media,iw=source?.videoWidth||source?.naturalWidth||source?.width,ih=source?.videoHeight||source?.naturalHeight||source?.height;
  ctx.clearRect(0,0,w,h);if(!iw||!ih)return;
- const b=d.media.crop,scale=Math.min(w/(iw*b.width),h/(ih*b.height)),dw=iw*b.width*scale,dh=ih*b.height*scale;
- ctx.save();ctx.filter=`brightness(${d.media.brightness}) contrast(${d.media.contrast}) saturate(${d.media.saturation})`;
- ctx.drawImage(source,b.x*iw,b.y*ih,b.width*iw,b.height*ih,(w-dw)/2,(h-dh)/2,dw,dh);ctx.restore();
+ const b=m.crop,scale=Math.min(w/(iw*b.width),h/(ih*b.height)),dw=contain?iw*b.width*scale:w,dh=contain?ih*b.height*scale:h;
+ ctx.save();ctx.translate(w*(.5+m.x/100),h*(.5+m.y/100));ctx.rotate(m.rotate*Math.PI/180);ctx.scale(m.zoom*(m.flipX?-1:1),m.zoom*(m.flipY?-1:1));ctx.globalAlpha=m.opacity;
+ ctx.filter=`brightness(${m.brightness}) contrast(${m.contrast}) saturate(${m.saturation}) hue-rotate(${m.hue}deg) grayscale(${m.grayscale}) sepia(${m.sepia}) blur(${m.blur}px)`;
+ ctx.drawImage(source,b.x*iw,b.y*ih,b.width*iw,b.height*ih,-dw/2,-dh/2,dw,dh);ctx.restore();
+}
+function cloudClip(ctx,w,h,source,input){
+ const d=C.clean(input);mediaFrame(ctx,w,h,source,d,true);
  if(d.preparation.removeBackground){const pixels=ctx.getImageData(0,0,w,h);C.keyPixels(pixels.data,d);ctx.putImageData(pixels,0,0);}
 }
 
-const api={construction,clouds,cloudClip,cloudCrown,cloudFragment,fragmentPosition,readableInk,cloudText};if(typeof module!=='undefined')module.exports=api;G.StudioEffectsRender=api;
+const api={construction,clouds,cloudClip,mediaFrame,cloudCrown,cloudFragment,fragmentPosition,readableInk,cloudText};if(typeof module!=='undefined')module.exports=api;G.StudioEffectsRender=api;
 })(typeof window==='undefined'?globalThis:window);

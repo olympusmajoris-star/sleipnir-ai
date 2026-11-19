@@ -121,7 +121,7 @@ const PAGES = {
       // the 15 values the app reads live from raven_scene_settings, same defaults and limits as AsgardRaven
       day_speed: 8, night_speed: 24, cloud_speed: 1, cloud_padding: 18, cloud_growth_ms: 250, ground_brightness: 1, cloud_shadow: 0.3, message_spacing: 14, cloud_variety: 0.85, ambient_count: 3, ambient_speed: 1, ambient_scale: 1, ambient_opacity: 0.55, water_shimmer: 0.5, earth_mode: 0,
       // the app's map playlist (_rvEarthClips): same 14 maps, same order, same per-map speed
-      earth: { clips: RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })), night: false },
+      earth: { clips: RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })), night: false, paused:false, pauseDrift:false, playback:'forward', driftAngle:135, driftSpeed:0, driftDistance:80, driftMode:'bounce', x:0, y:0, zoom:1, rotate:0, flipX:false, flipY:false, contrast:1, saturation:1, hue:0, blur:0, joinBlend:.4, dragToPan:false },
       preview: { name: 'Freya', messages: 6, draft: 'Bring the big speaker and the cooler, we are staying at the beach until the fireworks start tonight' },
       fx: { mineFilm: 'cloud-mine-billows-v27', peerFilm: 'cloud-peer-billows-v27', blend: 1, maxWidth: 440, minWidth: 150, height: 0.75, opacity: 1, inkSize: 19, ink: '#101B28', inkShadow: 0, inkWeight: 600, bob: 2, bobSpeed: 1, breathe: 1.2, sway: 0, margin: 10, shadowBlur: 8, shadowX: 24, shadowY: 0.62,
         every: 30, mixSmall: 62, mixMedium: 29, smallMin: 76, smallMax: 110, mediumMin: 116, mediumMax: 162, largeMin: 170, largeMax: 212, attachMin: 5.5, attachMax: 8.5, driftMin: 6, driftMax: 9, largeDrift: 5, wander: 1.3, turn: 0.65,
@@ -130,35 +130,49 @@ const PAGES = {
         // message clouds built from Danny's own time-lapse footage
         useKling: true, useKlingB: true, useC123: true, useC258: true, seed: 0, round: 3.2, lift: 0.55, even: 0.25, feather: 26, fill: '#f6f7f9', billowSize: 64, billowSpread: 0.8, billowOut: 0.35, edgeJit: 25, flipOk: true, gain: 1, contrast: 1, warm: 0, lineGap: 1.35,
         // pieces tearing off the clouds' own billowing edges
-        piecesOn: true, pEvery: 9, pieceMin: 36, pieceMax: 72, pieceDepth: 0.55, tearTime: 3.5, tearDist: 22, neck: 0.85, regrow: 9, windX: 6, windY: -2, pDrift: 40, pAbsorb: 35, pDissolve: 25, pReach: 16, dissolveAfter: 3 },
+        piecesOn: false, pEvery: 9, pieceMin: 36, pieceMax: 72, pieceDepth: 0.55, tearTime: 3.5, tearDist: 22, neck: 0.85, regrow: 9, windX: 6, windY: -2, pDrift: 40, pAbsorb: 35, pDissolve: 25, pReach: 16, dissolveAfter: 3,
+        pJitter: .4, pChance: 1, pBurst: 1, pCooldown: 8, pSizeBias: 1, pAspect: 1, pRound: 2, pSoft: .28, pDensity: 1, pWisps: .25,
+        pTop: 1, pRight: 1, pBottom: .25, pLeft: 1, pClearance: 10, pSwell: .12, pSwellTime: 1.2, pPinch: 1.2, pNeckWidth: .3, pHealDelay: 0,
+        pSpeedMin: 3, pSpeedMax: 7, pAcceleration: .6, pDrag: .25, pRise: 0, pTurbulenceRate: .4, pFollow: .6, pStretch: .12,
+        pAttract: 300, pApproach: 10, pMatch: .6, pMergeSoft: 1, pErode: .65, pDensityLoss: .3, pLastWisp: .25, pLife: 90,
+        pInherit: true, pBright: 1, pContrast: 1, pShadow: .15, pShadowBlur: 8, pShadowX: 24, pShadowY: 24,
+        edgeSoft: .24, edgeRound: 2, textureDetail: 1, motionVariety: .18, outlineVariety: .045, outlineSpeed: .15, textInsetX: 0, textInsetY: 0,
+        inkAlign: 'center', inkFont: 'Roboto', inkSpacing: 0, inkOffsetX: 0, inkOffsetY: 0, inkShadowColor: '#ffffff', bobPhase: 1.7, swaySpeed: .5, breatheSpeed: 1.3,
+        farBlur: 0, farHeight: .65, farRate: 1, farShadow: 0 },
       msg: {}, head: {},
     },
     sections: [
       { id:'earth', name:'Earth (whole screen)', sub:'The map playlist behind everything', groups:[
-        { name:'Maps & play order', ctrls:[{ t:'pl', k:'earth.clips', label:'Maps' }]},
-        { name:'Speed & look', ctrls:[R('day_speed','Map speed (all maps)',0.0625,32,.0625), R('ground_brightness','Map brightness',0.3,1.5,.01), R('water_shimmer','Water shimmer',0,1,.01)]},
+        { name:'Maps, cuts & play order', ctrls:[{ t:'pl', k:'earth.clips', label:'Maps' }]},
+        { name:'Direction & movement', ctrls:[{t:'direction',k:'earth.driftAngle',label:'Map drift direction'}, R('earth.driftSpeed','Added map drift (px per second)',0,80,.5), R('earth.driftDistance','Drift travel distance (px)',0,300,1), Sel('earth.driftMode','At the edge of the travel',[['bounce','Ease back smoothly'],['loop','Restart the same direction']]), K('earth.pauseDrift','Pause map drift')]},
+        { name:'Video playback', ctrls:[K('earth.paused','Pause map video'), R('day_speed','Map speed (all maps)',0.0625,32,.0625), Sel('earth.playback','Video plays',[['forward','Forward'],['reverse','Reverse']]), R('earth.joinBlend','Blend between kept sections (s)',0,3,.05)]},
+        { name:'Framing & angle', ctrls:[K('earth.dragToPan','Drag the map in the phone preview'), R('earth.x','Move map sideways (px)',-390,390,1), R('earth.y','Move map up / down (px)',-844,844,1), R('earth.zoom','Map zoom',1,6,.01), R('earth.rotate','Map rotation (degrees)',-180,180,1), K('earth.flipX','Mirror map left / right'), K('earth.flipY','Mirror map up / down')]},
+        { name:'Map color & detail', ctrls:[R('ground_brightness','Map brightness',0.3,1.5,.01), R('earth.contrast','Map contrast',0,3,.01), R('earth.saturation','Map color strength',0,3,.01), R('earth.hue','Shift map colors',-180,180,1), R('earth.blur','Map softness (px)',0,12,.1), R('water_shimmer','Water shimmer',0,1,.01)]},
         { name:'Night', ctrls:[K('earth.night','Night (city lights)'), R('night_speed','Night speed',0.0625,64,.0625)]},
       ]},
       { id:'msg', name:'Message clouds', sub:'Base cloud under the words, wrapped in the billowing edge of your own cloud footage', groups:[
         { name:'Your cloud footage', ctrls:[K('fx.useKling','Use clip: KlingAI cloud (first half)'), K('fx.useKlingB','Use clip: KlingAI cloud (second half)'), K('fx.useC123','Use clip: 123409 cumulus'), K('fx.useC258','Use clip: 258398 tower'), R('cloud_speed','Rolling speed (time-lapse)',0.125,4,.005), R('fx.blend','Frame blending (smoothness)',0,1,.01)]},
-        { name:'No two alike', ctrls:[R('cloud_variety','How different each cloud is',0,1,.01), K('fx.flipOk','Allow mirrored billows'), R('fx.seed','Reshuffle all clouds',0,50,1)]},
-        { name:'Base cloud (under the words)', ctrls:[R('cloud_padding','Room around the words',12,40,1), R('fx.round','Base shape: round ↔ boxy',2,8,.1), R('fx.lift','Base whiteness',0,1,.01), R('fx.even','Base smoothness',0,1,.01), R('fx.feather','Base blends into the billows',2,40,1), C('fx.fill','Base color')]},
-        { name:'Billowing edge', ctrls:[R('fx.billowSize','Billow size (px)',16,120,1), R('fx.edgeJit','Billow size variety (%)',0,60,1), R('fx.billowSpread','Space between billows',0.5,2,.01), R('fx.billowOut','How far the billows stick out',0.1,0.9,.01)]},
+        { name:'No two alike', ctrls:[R('cloud_variety','How different each cloud is',0,1,.01), K('fx.flipOk','Allow mirrored billows'), R('fx.seed','Reshuffle all clouds',0,500,1), R('fx.motionVariety','Individual footage speed variation',0,.5,.01), R('fx.outlineVariety','Outline variation',0,.12,.002), R('fx.outlineSpeed','Outline evolution speed',0,1,.01)]},
+        { name:'Base cloud (under the words)', ctrls:[R('cloud_padding','Room around the words',12,60,1), R('fx.textInsetX','Extra room at left and right',0,40,1), R('fx.textInsetY','Extra room above and below',0,40,1), R('fx.round','Base fullness',2,4.5,.1), R('fx.lift','Cloud whiteness (base and edge)',0,1,.01), R('fx.even','Cloud color blending',0,1,.01), R('fx.feather','Base blends into the billows',2,40,1), C('fx.fill','Cloud color')]},
+        { name:'Billowing edge', ctrls:[R('fx.billowSize','Billow size (px)',16,120,1), R('fx.edgeJit','Billow size variety (%)',0,60,1), R('fx.billowSpread','Space between billows',0.5,2,.01), R('fx.billowOut','How far the billows stick out',0.1,0.9,.01), R('fx.edgeSoft','Billow edge softness',.08,.6,.01), R('fx.edgeRound','Billow fullness',1.4,3.5,.05), R('fx.textureDetail','Footage texture scale',.5,2,.01)]},
         { name:'Size & growing', ctrls:[R('fx.maxWidth','Widest a cloud gets',150,440,1), R('fx.minWidth','Narrowest a cloud gets',80,300,1), R('fx.height','Extra height',0.75,1.4,.01), R('cloud_growth_ms','How fast a cloud grows (ms)',80,1500,10)]},
         { name:'Color & light', ctrls:[R('fx.opacity','Cloud see-through',0.2,1,.01), R('fx.gain','Brightness',0.5,1.5,.01), R('fx.contrast','Contrast',0.5,1.5,.01), R('fx.warm','Cool ↔ warm',-0.3,0.3,.01)]},
-        { name:'Words on the cloud', ctrls:[R('fx.inkSize','Text size',10,30,.5), C('fx.ink','Text color'), R('fx.inkWeight','Text thickness',300,900,100), R('fx.inkShadow','Text glow',0,20,.5), R('fx.lineGap','Line spacing',1,2,.01)]},
-        { name:'Float & breathe', ctrls:[R('fx.bob','Bob up and down',0,12,.1), R('fx.bobSpeed','Bob speed',0,4,.01), R('fx.breathe','Breathing (swell %)',0,6,.1), R('fx.sway','Side to side sway',0,12,.1), R('fx.margin','Distance from screen edge',0,60,1)]},
+        { name:'Words on the cloud', ctrls:[R('fx.inkSize','Text size',10,30,.5), C('fx.ink','Text color'), R('fx.inkWeight','Text thickness',300,900,100), Sel('fx.inkFont','Text font',[['Roboto','Roboto'],['system-ui','System'],['Inter','Inter'],['Georgia','Georgia']]), Sel('fx.inkAlign','Text alignment',[['left','Left'],['center','Center'],['right','Right']]), R('fx.inkSpacing','Letter spacing',0,3,.1), R('fx.inkShadow','Text glow',0,20,.5), C('fx.inkShadowColor','Text glow color'), R('fx.lineGap','Line spacing',1,2,.01), R('fx.inkOffsetX','Text horizontal offset',-20,20,.5), R('fx.inkOffsetY','Text vertical offset',-20,20,.5)]},
+        { name:'Float & breathe', ctrls:[R('fx.bob','Bob up and down',0,12,.1), R('fx.bobSpeed','Bob speed',0,4,.01), R('fx.bobPhase','Different bob phase per cloud',0,6,.05), R('fx.breathe','Breathing (swell %)',0,6,.1), R('fx.breatheSpeed','Breathing speed',0,4,.01), R('fx.sway','Side to side sway',0,12,.1), R('fx.swaySpeed','Sway speed',0,4,.01), R('fx.margin','Distance from screen edge',0,60,1)]},
         { name:'Shadow on the ground', ctrls:[R('cloud_shadow','Shadow darkness',0,0.7,.01), R('fx.shadowBlur','Shadow softness',0,30,.5), R('fx.shadowX','Shadow offset sideways',-60,60,1), R('fx.shadowY','Shadow drop',0.2,1.2,.01)]},
         { name:'Spacing & messages', ctrls:[R('message_spacing','Space between messages',4,64,1), R('preview.messages','Messages shown in the preview',0,6,1), { t:'x', k:'preview.draft', label:'Type a message here and watch your cloud grow' }]},
       ]},
       { id:'pieces', name:'Cloud pieces', sub:'Pieces tear off a cloud\'s own billowing edge, then drift off, get absorbed or dissolve', groups:[
-        { name:'On / off & how often', ctrls:[K('fx.piecesOn','Pieces break off'), R('ambient_count','Most pieces at once',0,8,1), R('fx.pEvery','Seconds between break-offs',2,90,1)]},
-        { name:'Piece size', ctrls:[R('fx.pieceMin','Smallest piece (px)',10,120,1), R('fx.pieceMax','Biggest piece (px)',10,160,1), R('fx.pieceDepth','How deep it tears into the billows',0.15,0.9,.01)]},
-        { name:'Tearing off', ctrls:[R('fx.tearTime','Tearing takes (s)',0.5,12,.1), R('fx.tearDist','Stretch before it lets go (px)',4,80,1), R('fx.neck','Stretchy neck',0,1,.01), R('fx.regrow','Cloud heals in (s)',1,30,.5)]},
-        { name:'Drifting', ctrls:[R('ambient_speed','Overall drift speed',0.1,3,.01), R('fx.windX','Wind sideways',-30,30,.5), R('fx.windY','Wind up/down',-30,30,.5), R('fx.wander','Wander',0,10,.1)]},
-        { name:'What happens to them', ctrls:[R('fx.pDrift','Drift off screen (share)',0,100,1), R('fx.pAbsorb','Absorbed by another cloud (share)',0,100,1), R('fx.pDissolve','Dissolve (share)',0,100,1), R('fx.absorbTime','Absorbing takes (s)',0.5,15,.1), R('fx.pReach','How close before absorbed (px)',0,80,1), R('fx.dissolveAfter','Dissolving starts after (s)',0,20,.5), R('fx.fadeTime','Dissolving takes (s)',0.2,10,.1)]},
-        { name:'Far-away clouds', ctrls:[R('fx.farMax','How many far away',0,8,1), R('fx.farMin','Far: narrowest',5,120,1), R('fx.farMaxW','Far: widest',5,160,1), R('fx.farEvery','New far cloud every (s)',3,60,1), R('fx.farLifeMin','Far: life shortest (s)',5,120,1), R('fx.farLifeMax','Far: life longest (s)',5,180,1), R('fx.farGroundX','Move with the map sideways',-40,40,.5), R('fx.farGroundY','Move with the map up/down',-40,40,.5), R('ambient_opacity','Far clouds see-through',0,1,.01)]},
-        { name:'Look', ctrls:[R('fx.pieceOpacity','Piece strength',0,1,.01)]},
+        { name:'On / off & how often', ctrls:[K('fx.piecesOn','Preview organic break-offs'), R('ambient_count','Most pieces at once',0,12,1), R('fx.pEvery','Seconds between break-offs',2,90,1), R('fx.pJitter','Timing variation',0,.9,.01), R('fx.pChance','Chance at each interval',0,1,.01), R('fx.pBurst','Pieces per event',1,4,1), R('fx.pCooldown','Same cloud rests for (s)',0,60,1)]},
+        { name:'Piece size & shape', ctrls:[R('fx.pieceMin','Smallest piece (px)',10,120,1), R('fx.pieceMax','Biggest piece (px)',10,160,1), R('fx.pSizeBias','Prefer small ↔ large pieces',.25,4,.05), R('fx.pAspect','Piece width relative to height',.4,2,.05), R('fx.pRound','Piece fullness',1.4,4,.05), R('fx.pSoft','Piece edge softness',.08,.65,.01), R('fx.pDensity','Density after separation',.3,1.5,.01), R('fx.pWisps','Fine edge wisps',0,1,.01), R('fx.pieceDepth','How deep it tears into the billows',0.15,0.9,.01)]},
+        { name:'Where pieces form', ctrls:[R('fx.pTop','Chance from top edge',0,1,.05), R('fx.pRight','Chance from right edge',0,1,.05), R('fx.pBottom','Chance from bottom edge',0,1,.05), R('fx.pLeft','Chance from left edge',0,1,.05), R('fx.pClearance','Extra protected room around text',0,40,1)]},
+        { name:'Tearing off & healing', ctrls:[R('fx.pSwell','Billow swell before separation',0,.6,.01), R('fx.pSwellTime','Swell takes (s)',.2,8,.1), R('fx.tearTime','Tearing takes (s)',0.5,12,.1), R('fx.tearDist','Stretch before it lets go (px)',4,80,1), R('fx.neck','Connecting neck strength',0,1,.01), R('fx.pNeckWidth','Connecting neck width',.1,.8,.01), R('fx.pPinch','How quickly the neck thins',.4,4,.05), R('fx.pHealDelay','Pause before healing (s)',0,10,.1), R('fx.regrow','Cloud heals in (s)',1,30,.5)]},
+        { name:'Wind & drifting', ctrls:[R('ambient_speed','Overall drift speed',0.1,3,.01), R('fx.windX','Wind sideways',-30,30,.5), R('fx.windY','Wind up/down',-30,30,.5), R('fx.pSpeedMin','Smallest outward release speed',0,20,.5), R('fx.pSpeedMax','Largest outward release speed',0,30,.5), R('fx.pAcceleration','Acceleration into the wind',0,3,.05), R('fx.pDrag','Resistance to sideways motion',0,2,.05), R('fx.pRise','Additional rise / fall',-15,15,.25), R('fx.wander','Turbulence strength',0,10,.1), R('fx.pTurbulenceRate','Turbulence pace',.05,3,.05), R('fx.pFollow','Inherit parent cloud movement',0,1,.05), R('fx.pStretch','Deformation in the wind',0,.5,.01), R('fx.pLife','Longest life before fading (s)',5,180,1)]},
+        { name:'What happens to them', ctrls:[R('fx.pDrift','Drift off screen (share)',0,100,1), R('fx.pAbsorb','Absorbed by another cloud (share)',0,100,1), R('fx.pDissolve','Dissolve (share)',0,100,1)]},
+        { name:'Absorbing into another cloud', ctrls:[R('fx.pAttract','Find another cloud within (px)',40,600,5), R('fx.pApproach','Approach speed',1,40,.5), R('fx.pMatch','Match the receiving cloud speed',0,1,.05), R('fx.pReach','How close before absorbed (px)',0,80,1), R('fx.absorbTime','Absorbing takes (s)',0.5,15,.1), R('fx.pMergeSoft','Softness of the join',.3,3,.05)]},
+        { name:'Dissolving & last wisps', ctrls:[R('fx.dissolveAfter','Dissolving starts after (s)',0,20,.5), R('fx.fadeTime','Dissolving takes (s)',0.2,10,.1), R('fx.pErode','Thin edges disappear first',0,1,.01), R('fx.pDensityLoss','Density lost while fading',0,1,.01), R('fx.pLastWisp','Length of the final wisp fade',0,.8,.01)]},
+        { name:'Piece light & shadow', ctrls:[R('fx.pieceOpacity','Piece opacity',0,1,.01), K('fx.pInherit','Use parent cloud lighting'), R('fx.pBright','Separate piece brightness',.5,1.5,.01), R('fx.pContrast','Separate piece contrast',.5,1.5,.01), R('fx.pShadow','Piece shadow darkness',0,.6,.01), R('fx.pShadowBlur','Piece shadow softness',0,30,.5), R('fx.pShadowX','Piece shadow offset sideways',-60,60,1), R('fx.pShadowY','Piece shadow drop',0,100,1)]},
+        { name:'Far-away clouds', ctrls:[R('fx.farMax','How many far away',0,8,1), R('fx.farMin','Far: narrowest',5,120,1), R('fx.farMaxW','Far: widest',5,160,1), R('fx.farEvery','New far cloud every (s)',3,60,1), R('fx.farLifeMin','Far: life shortest (s)',5,120,1), R('fx.farLifeMax','Far: life longest (s)',5,180,1), R('fx.farGroundX','Move with the map sideways',-40,40,.5), R('fx.farGroundY','Move with the map up/down',-40,40,.5), R('ambient_opacity','Far clouds see-through',0,1,.01), R('fx.farBlur','Far cloud softness',0,8,.25), R('fx.farHeight','Far cloud height range',.15,.9,.01), R('fx.farRate','Far cloud rolling speed',.1,3,.05), R('fx.farShadow','Far cloud shadow',0,.4,.01)]},
       ]},
       { id:'cloudvid', name:'Cloud videos', sub:'Trim, crop, key out, loop and prepare the cloud footage', groups:[] },
     ],
@@ -849,26 +863,29 @@ const LEGACY_SHOME_DEFAULTS=JSON.parse(JSON.stringify(PAGES.shome.defaults));
 PAGES.shome.defaults=ShoppingHomeSource.defaults(LEGACY_SHOME_DEFAULTS);
 /* ======================= STATE / SAVE ======================= */
 const STATE = { page: 'home', S: null, sec: null, t0: performance.now() };
+let navigationEpoch=0,cloudEditorFlush=null;
+const cloudSourceAssignments=new WeakMap();
 const deep = (o) => JSON.parse(JSON.stringify(o));
 function merge(d, s){ const o = deep(d); for(const k of Object.keys(s||{})){ if(['__proto__','prototype','constructor'].includes(k))continue; if(s[k] && typeof s[k]==='object' && !Array.isArray(s[k]) && o[k] && typeof o[k]==='object') o[k] = merge(o[k], s[k]); else o[k] = s[k]; } return o; }
 const get = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
 function set(o, p, v){ const ks = p.split('.'); let a = o; for(let i=0;i<ks.length-1;i++){ a = a[ks[i]] = a[ks[i]] || {}; } a[ks[ks.length-1]] = v; }
 const saveTimers = new Map();
 const editHistory=new Map();
+const sharedPages=RUNTIME?null:StudioSaveGuard.create({request:async(path,options)=>{const r=await fetch(SB.url+path,{...options,headers:H(options.headers)});if(!r.ok)throw Error(r.status===409?'Someone created this shared page while you were editing. Reload the shared version.':'Shared save failed. Your edit is kept on this computer.');return r.json();},writeLocal:(id,json)=>localStorage.setItem('asgard-'+id,json)});
+let pageSaveNotice=0;
 function rememberPage(){let h=editHistory.get(STATE.page);if(!h){h={items:[deep(STATE.S)],at:0};editHistory.set(STATE.page,h);}const snap=JSON.stringify(STATE.S);if(JSON.stringify(h.items[h.at])!==snap){h.items=h.items.slice(0,h.at+1);h.items.push(deep(STATE.S));if(h.items.length>120)h.items.shift();h.at=h.items.length-1;}}
-function save(record=true){ if(RUNTIME)return; if(record)rememberPage(); const page=STATE.page, id=docId(page), snapshot=deep(STATE.S); $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
-  try { localStorage.setItem('asgard-' + id, JSON.stringify(snapshot)); } catch(e){}
-  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?on_conflict=id', { method:'POST', headers: H({ 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ id, page: page, data: snapshot, updated_by:'studio', updated_at: new Date().toISOString() }) });
-    $('#saveState').textContent = r.ok ? '● All changes saved' : '● Saved on this computer only'; } catch(e){ $('#saveState').textContent = '● Saved on this computer only'; }
+function save(record=true){ if(RUNTIME)return; StudioWorkspaceCore.enforceLocks(STATE.S);if(record)rememberPage(); const page=STATE.page, id=docId(page), snapshot=deep(STATE.S),notice=++pageSaveNotice; $('#saveState').textContent = '● Saving…'; clearTimeout(saveTimers.get(page)); saveTimers.set(page, setTimeout(async () => {
+  try { await sharedPages.save(id,page,snapshot);if(notice===pageSaveNotice&&STATE.page===page)$('#saveState').textContent='● All changes saved'; }
+  catch(e){if(notice===pageSaveNotice&&STATE.page===page){$('#saveState').textContent='● Kept locally · shared save needs attention';StudioWorkbench?.status(e.message,true);}}
 }, 700)); }
 async function load(page){
   if(RUNTIME){if(page!==RUNTIME.envelope.page)throw Error('Runtime page does not match approved design');return merge(PAGES[page].defaults,RUNTIME.envelope.settings||{});}
-  let s = null;
-  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.' + docId(page) + '&select=data', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data; } } catch(e){}
+  let s = null,stamp=null,sharedLoaded=false;
+  try { const r = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.' + docId(page) + '&select=data,updated_at', { headers: H() }); if(r.ok){ const j = await r.json(); s = j[0] && j[0].data;stamp=j[0]?.updated_at??null;sharedLoaded=true; } } catch(e){}
   if(!s){ try { s = JSON.parse(localStorage.getItem('asgard-' + docId(page)) || 'null'); } catch(e){} }
   if(!s && page === 'convo'){ try { const r = await fetch(SB.url + '/rest/v1/raven_scene_settings?select=*&limit=1', { headers: H() }); if(r.ok){ const j = await r.json(); if(j[0]){ s = j[0]; delete s.id; } } } catch(e){} }
   if(page==='shome')s=ShoppingHomeSource.migrate(s,LEGACY_SHOME_DEFAULTS,PAGES.shome.defaults);
-  return merge(PAGES[page].defaults, s || {});
+  const result=merge(PAGES[page].defaults,s||{});if(sharedLoaded)sharedPages.loaded(docId(page),stamp,result);return result;
 }
 async function pushToApp(){
   if(RUNTIME)return;
@@ -879,9 +896,20 @@ async function pushToApp(){
 }
 
 /* ======================= UI ======================= */
+function navigationError(error){$('#pagePick').value=STATE.page;$('#saveState').textContent='● Could not leave this editor · edits kept here';window.StudioWorkbench?.status(error.message,true);}
+async function selectFeature(id){
+ if(RUNTIME||!STATE.S||!PAGES[STATE.page].sections.some(s=>s.id===id))return false;
+ const epoch=++navigationEpoch,page=STATE.page,document=STATE.S;
+ if(id===STATE.sec){$('#pagePick').value=page;return true;}
+ try{await flushCloudEditor();}catch(error){navigationError(error);return false;}
+ if(epoch!==navigationEpoch||STATE.page!==page||STATE.S!==document)return false;
+ STATE.sec=id;AsgardStudioLayout.rememberFeature(id);
+ const q=new URLSearchParams(location.search);q.set('page',page);if(id==='rocks')q.set('section','rocks');else q.delete('section');history.replaceState(null,'','?'+q.toString());
+ $('#pagePick').value=page;nav();panel();return true;
+}
 function nav(){
   const P = PAGES[STATE.page]; const n = $('#secNav'); n.innerHTML = '<div class="cap">THIS PAGE</div>';
-  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => { STATE.sec = s.id; AsgardStudioLayout.rememberFeature(s.id); { const q=new URLSearchParams(location.search); q.set('page',STATE.page); if(s.id==='rocks') q.set('section','rocks'); else q.delete('section'); history.replaceState(null,'','?'+q.toString()); } nav(); panel(); }; n.appendChild(b); });
+  P.sections.forEach(s => { const b = document.createElement('button'); b.className = 'sec' + (STATE.sec === s.id ? ' on' : ''); b.innerHTML = `<i>◆</i><span><b>${s.name}</b><small>${s.sub}</small></span>`; b.onclick = () => selectFeature(s.id); n.appendChild(b); });
   (P.actions || []).forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'cosmic'; b.innerHTML = `<b>▶ ${label}</b>`; b.onclick = fn; n.appendChild(b); });
   AsgardStudioLayout.setPage(STATE.page); $('#pgTitle').textContent = P.title; $('#docTitle').textContent = P.title; $('#pushBtn').hidden = !P.push;
 }
@@ -898,7 +926,7 @@ function panel(){
   if(!STATE.S)return;
   if(STATE.sec==='catalog'&&STATE.page==='store'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');STORE_WORKBENCH.panel($('#panel'));return;}
   if(STATE.sec==='design'){ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');PAGE_TOOLS.panel($('#panel'));return;}
-  if(STATE.sec==='cloudvid'){ROCK_NAV.hideEditor();const pn=$('#panel');pn.classList.remove('rn-editor');pn.innerHTML='';const f=document.createElement('iframe');f.src='studio-effects.html?embed=1';f.title='Cloud footage editor';f.style.cssText='width:100%;height:calc(100vh - 230px);min-height:600px;border:0;border-radius:8px;background:#0e1316';pn.append(f);return;}
+  if(STATE.sec==='cloudvid'){ROCK_NAV.hideEditor();const pn=$('#panel');pn.classList.remove('rn-editor');pn.innerHTML='';const f=document.createElement('iframe');f.src='studio-effects.html?embed=1';f.title='Cloud footage editor';f.style.cssText='width:100%;height:calc(100vh - 230px);min-height:600px;border:0;border-radius:8px;background:#0e1316';pn.append(f);AsgardStudioLayout.custom(pn,'Cloud videos · clip editor');return;}
   if(STATE.sec==='rocks'){ROCK_NAV.showEditor($('#panel'));return;}ROCK_NAV.hideEditor();$('#panel').classList.remove('rn-editor');
   const P = PAGES[STATE.page], sec = P.sections.find(s => s.id === STATE.sec) || P.sections[0], pn = $('#panel'); pn.innerHTML = '';
   sec.groups.forEach(g => { const d = document.createElement('details'); d.className = 'pg-grp'; d.dataset.studioGroup = g.name; d.open = true; d.innerHTML = `<summary>${g.name}</summary>`;
@@ -907,6 +935,8 @@ function panel(){
         const inp = el.querySelector('input'), em = el.querySelector('em'); inp.oninput = () => { const nv = parseFloat(inp.value); set(STATE.S, c.k, nv); em.textContent = fmt(nv); save(); }; }
       else if(c.t === 'k'){ el = document.createElement('label'); el.className = 'pg-chk'; el.innerHTML = `<input type="checkbox" ${v ? 'checked' : ''}> ${c.label}`; el.querySelector('input').onchange = (e) => { set(STATE.S, c.k, e.target.checked); save(); }; }
       else if(c.t === 'c'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="color" value="${/^#/.test(v) ? v : '#ffffff'}">`; el.querySelector('input').oninput = (e) => { set(STATE.S, c.k, e.target.value); save(); }; }
+      else if(c.t === 'direction'){el=StudioEarthTools.direction({get:()=>get(STATE.S,c.k),change:n=>{set(STATE.S,c.k,n);save();}});}
+      else if(c.t === 'pl' && window.StudioEarthTools && EARTH_PLAYER){el=StudioEarthTools.playlist({getState:()=>STATE.S,change:list=>{set(STATE.S,c.k,list);save();},player:EARTH_PLAYER,available:EARTH_VIDEOS,original:RAVEN_CLIPS,src:p=>runtimeAsset(SB.url+'/storage/v1/object/public/raven_earth/'+p)});}
       else if(c.t === 'pl'){ el = document.createElement('div'); el.className = 'pg-row map-playlist'; el.style.display = 'block'; const list = Array.isArray(v) ? v.map(o => Object.assign({}, o)) : []; const hid = document.createElement('input'); hid.type = 'hidden';
         const commit = () => { set(STATE.S, c.k, list); save(); redraw(); }, thumb = (p, slot) => { const ck = (slot || 'list') + ':' + p; if(window.__plThumbs && __plThumbs[ck]) return __plThumbs[ck]; window.__plThumbs = window.__plThumbs || {}; const vd = __plThumbs[ck] = document.createElement('video'); vd.dataset.src = SB.url + '/storage/v1/object/public/raven_earth/' + p + '#t=1'; vd.muted = true; vd.loop = true; vd.playsInline = true; vd.preload = 'none'; plLazy(vd); vd.style.cssText = 'width:112px;height:63px;object-fit:cover;border-radius:6px;flex:none;background:#000'; vd.onmouseenter = () => vd.play().catch(()=>{}); vd.onmouseleave = () => vd.pause(); return vd; };
         const h1 = document.createElement('b'); h1.textContent = 'Play order (' + list.length + ' maps) — each map plays to its end, then the next'; el.append(hid, h1);
@@ -947,7 +977,7 @@ function panel(){
       else if(c.t === 'x'){ el = document.createElement('div'); el.className = 'pg-row'; el.innerHTML = `<label>${c.label}</label><input type="text" class="pg-sel">`; const ti = el.querySelector('input'); ti.value = v == null ? '' : v; ti.oninput = () => { set(STATE.S, c.k, ti.value); save(); }; }
       else if(c.t==='m'){el=document.createElement('div');el.className='pg-row';const label=document.createElement('label');label.textContent=c.label;const holder=document.createElement('input');holder.type='text';holder.readOnly=true;holder.value=(v||[]).length+' selected';holder.setAttribute('aria-label',c.label);const choose=document.createElement('button');choose.className='ghost';choose.textContent='Choose replacement artwork';const clear=document.createElement('button');clear.className='ghost';clear.textContent=STATE.page==='shome'?'Return to original artwork':'Return to original runes';clear.onclick=()=>{set(STATE.S,c.k,deep(get(PAGES[STATE.page].defaults,c.k)||[]));save();redraw();};const state=STATE.S;choose.onclick=()=>SHARED_MEDIA.open({multiple:true,onSelect:assets=>{if(STATE.S!==state)return;set(state,c.k,assets.map(a=>({url:a.url,kind:a.kind,name:a.name})));save();redraw();}});el.append(label,holder,choose,clear);}
       else if(c.t === 'u'){const state=STATE.S;el=SHARED_MEDIA.field(c.label,v,asset=>{if(STATE.S!==state)return;set(state,c.k,asset.url);save();redraw();},c.accept);}
-      el.querySelectorAll('input,select,textarea').forEach(i=>i.dataset.control=c.k);d.appendChild(el); });
+      el.querySelectorAll('input,select,textarea').forEach(i=>{if(i.dataset.editorLocal==='true')return;if(!i.dataset.control)i.dataset.control=c.k;if(!i.getAttribute('aria-label'))i.setAttribute('aria-label',c.label);});d.appendChild(el); });
     pn.appendChild(d); });
   AsgardStudioLayout.arrange(pn,STATE.sec);
   needsNotes(pn);
@@ -959,13 +989,21 @@ function needsNotes(pn){const S=STATE.S||{};const add=(prefix,missing,text)=>{if
 const fmt = (v) => typeof v === 'number' ? (Math.abs(v) >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000) : v;
 async function openPage(page){
   if(RUNTIME){runtimeAction({type:'navigate',target:page});return;}
+  if(page!=='raven'&&!PAGES[page]){navigationError(Error('This studio page is unavailable.'));return false;}
+  const epoch=++navigationEpoch;
+  if(STATE.S){
+   // The shell may already have saved through beforePage; unchanged documents are a no-op in StudioSaveGuard.
+   try{await savePageNow();}catch(error){if(epoch===navigationEpoch)navigationError(error);return false;}
+   if(epoch!==navigationEpoch){$('#pagePick').value=STATE.page;return false;}
+   if(page===STATE.page){$('#pagePick').value=page;return true;}
+  }
   STORE.scroll=0;STORE.scrollMax=0;
   if(page === 'raven'){ location.href = 'index.html'; return; }
   STATE.page = page; STATE.S = null; STATE.sec = new URLSearchParams(location.search).get('section')||AsgardStudioLayout.lastFeature(page)||PAGES[page].sections[0].id;if(!PAGES[page].sections.some(s=>s.id===STATE.sec))STATE.sec=PAGES[page].sections[0].id; STATE.t0 = performance.now();
   ROCK_NAV.root.hidden=page==='shome'||page==='convo';
   ROCK_NAV.setContext(page,['home','swap','shoppost','deals','share'].includes(page));
   { const q=new URLSearchParams(location.search); q.set('page',page); if(STATE.sec==='rocks') q.set('section','rocks'); else q.delete('section'); if(page!=='store') q.delete('store'); if(page!=='browse') q.delete('type'); history.replaceState(null,'','?'+q.toString()); } $('#pagePick').value = page;
-  const loaded=await load(page);if(STATE.page!==page)return;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();
+  const loaded=await load(page);if(epoch!==navigationEpoch||STATE.page!==page)return false;STATE.S=loaded;editHistory.set(page,{items:[deep(loaded)],at:0});nav();panel();return true;
 }
 if(!RUNTIME){
 $('#pagePick').onchange = (e) => openPage(e.target.value);
@@ -980,7 +1018,7 @@ let PREVIEW_MOTION=(()=>{try{return localStorage.getItem('asgard-preview-motion'
 function feedOffset(t,speed,total,visible){const span=Math.max(0,total-(visible||0));if(PREVIEW_MOTION||RUNTIME)return (t*speed)%total;STORE.scrollMax=span;return clamp(STORE.scroll,0,span);}
 /* ======================= RENDER LOOP ======================= */
 const cv = $('#pgCanvas'), ctx = cv.getContext('2d');
-const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,readOnly:!!RUNTIME,onAction:runtimeAction,arrange:RUNTIME?(()=>{}):AsgardStudioLayout.arrange,selectSection:()=>{STATE.sec='design';nav();panel();}});
+const PAGE_TOOLS=StudioPageTools.mount({stage:$('#stage'),canvas:cv,media:SHARED_MEDIA,getState:()=>STATE,save,readOnly:!!RUNTIME,onAction:runtimeAction,arrange:RUNTIME?(()=>{}):AsgardStudioLayout.arrange,selectSection:()=>selectFeature('design')});
 const STORE_WORKBENCH=!RUNTIME?StudioStoreWorkbench.mount({url:SB.url,headers:H,getStore:()=>STORE,getDocument:()=>STATE.S,save:savePageNow,media:SHARED_MEDIA,arrange:AsgardStudioLayout.arrange,addLayers:assets=>PAGE_TOOLS.add('image',assets)}):null;
 /* While Danny edits a part that only shows for a moment, hold the preview on that moment (not while he's tuning speed or motion). */
 const HOLDS={shoppost:{card:S=>S.card&&S.card.auto?S.card.every*(S.card.open/2):null},ads:{take:S=>S.take?S.take.inSec+Math.max(0,S.take.every-2*S.take.inSec)/2:null},swap:{swipe:S=>S.swipe&&S.swipe.auto?S.swipe.every*(1-S.swipe.speed*0.75):null}};
@@ -1080,7 +1118,19 @@ function drawShare(x, t, S, since){
 const MSGS = [ ['peer', 'Hey, you still coming tonight?'], ['mine', 'Yeah! Leaving in 20'], ['peer', 'Bring the speaker'], ['mine', 'Already in the car'], ['peer', 'Perfect, see you soon'], ['mine', 'On my way'] ];
 const CLOUDS = ['cloud-mine-billows-v27', 'cloud-peer-billows-v27', 'message-cloud', 'cloud-billows-166852-v29', 'cloud-anvil-258398-v29', 'cloud-tower-365034-v29'];
 // The cloud grows with the message: words wrap inside the widest-cloud limit and the cloud gets taller line by line
-function rvWrap(x, txt, maxW){ const out = []; for(const para of String(txt).split('\n')){ let line = ''; for(const w of para.split(/\s+/)){ const tryL = line ? line + ' ' + w : w; if(x.measureText(tryL).width <= maxW || !line) line = tryL; else { out.push(line); line = w; } } out.push(line); } return out; }
+function rvWrap(x, txt, maxW){
+  const out = [], limit = Math.max(8, Number(maxW) || 8), split = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined,{granularity:'grapheme'}) : null;
+  for(const para of String(txt).split('\n')){ let line = '';
+    for(const word of para.trim().split(/\s+/)){ if(!word) continue; const together = line ? line + ' ' + word : word;
+      if(x.measureText(together).width <= limit){ line = together; continue; }
+      if(line){ out.push(line); line = ''; }
+      if(x.measureText(word).width <= limit){ line = word; continue; }
+      for(const ch of split ? Array.from(split.segment(word),s=>s.segment) : Array.from(word)){ if(line && x.measureText(line + ch).width > limit){ out.push(line); line = ''; } line += ch; }
+    }
+    out.push(line);
+  }
+  return out.length ? out : [''];
+}
 // Cloud art has empty space around it; like the app (contentBounds) only the visible cloud is stretched around the words
 const RV_BOUNDS = new WeakMap();
 function rvBounds(im){ let b = RV_BOUNDS.get(im); if(b) return b; const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height; b = { sx: 0, sy: 0, sw: w, sh: h };
@@ -1121,6 +1171,8 @@ function rvMist(x, t, S, F, rects){ const M = RV_MIST, dt = M.last == null ? 0 :
 }
 // Your real Raven conversation screen (AsgardRaven _RvConversation), drawn piece for piece.
 const RV = { idx: 0, vids: {}, key: '', last: null, since: 0, diag: false };
+const EARTH_PLAYER = window.StudioEarthTools?.createPlayer({src:p=>runtimeAsset(SB.url+'/storage/v1/object/public/raven_earth/'+p),width:W,height:HH,nightImage:()=>img(UI+'raven_cloud_v20/london.webp')}) || null;
+if(!RUNTIME)window.StudioEarthTools?.bindCanvas(document.getElementById('pgCanvas'),{getState:()=>STATE.S,active:()=>STATE.page==='convo'&&STATE.sec==='earth',change:()=>save()});
 // thumbnails in the map list only download once they scroll into view
 const plSeen = 'IntersectionObserver' in window ? new IntersectionObserver(es => { for(const e of es) if(e.isIntersecting){ const v = e.target; plSeen.unobserve(v); if(!v.src && v.dataset.src){ v.preload = 'metadata'; v.src = v.dataset.src; } } }) : null;
 function plLazy(v){ if(plSeen) plSeen.observe(v); else { v.preload = 'metadata'; v.src = v.dataset.src; } }
@@ -1139,15 +1191,45 @@ function rvShadowText(x, str, X, Y, font, color, align){ x.save(); x.font = font
 // let go, and then drift off, get absorbed by another cloud, or dissolve with the thin parts going first.
 const RVC_HOME = new URL('clouds/', (document.currentScript && document.currentScript.src) || location.href).href;
 const RVC_CLIPS = [['kling-0', 'fx.useKling'], ['klingb-0', 'fx.useKlingB'], ['c123-0', 'fx.useC123'], ['c258-0', 'fx.useC258']];
-const RVC = { meta: null, loading: false, srcs: {}, gl: null, prog: null, u: null, cv: null, clouds: {}, pieces: [], far: [], nextPiece: 3, nextFar: 1, last: null, warned: false };
+const RVC = { meta: null, originals: null, loading: false, sourceKey: '', srcs: {}, gl: null, prog: null, u: null, cv: null, clouds: {}, pieces: [], far: [], nextPiece: 3, nextFar: 1, last: null, warned: false };
 const RVC_GOLD = 0.6180339887;
-function rvcLoad(){ if(RVC.loading) return; RVC.loading = true;
-  fetch(runtimeAsset(RVC_HOME + 'clouds.json')).then(r => r.json()).then(m => { RVC.meta = m; for(const id of Object.keys(m)) rvcSource(id); }).catch(e => console.warn('[clouds] list', e)); }
-function rvcSource(id){ const m = RVC.meta[id], s = RVC.srcs[id] = { id, m, frames: [], ready: false, tex: null, up: 0 };
-  if(!('ImageDecoder' in window)){ if(!RVC.warned){ RVC.warned = true; console.warn('[clouds] this browser cannot play the cloud footage (needs Chrome or Edge)'); } return; }
-  fetch(runtimeAsset(RVC_HOME + m.file)).then(r => r.arrayBuffer()).then(async buf => { const d = new ImageDecoder({ data: buf, type: 'image/webp', premultiplyAlpha: 'none', colorSpaceConversion: 'none' }); await d.tracks.ready; const n = d.tracks.selectedTrack.frameCount;
-    for(let i = 0; i < n; i++){ const r = await d.decode({ frameIndex: i }); s.frames.push(await createImageBitmap(r.image, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' })); r.image.close(); }
-    s.ready = true; }).catch(e => console.warn('[clouds]', id, e)); }
+function rvcLoad(S){
+  if(!RVC.loading){ RVC.loading = true; fetch(runtimeAsset(RVC_HOME + 'clouds.json')).then(r=>{if(!r.ok)throw Error('Cloud list unavailable');return r.json();}).then(m=>{RVC.originals=m;RVC.sourceKey='';}).catch(e=>console.warn('[clouds] list',e)); }
+  if(!RVC.originals)return;
+  const sources=S.fx?.cloudSources||{}, key=JSON.stringify(RVC_CLIPS.map(([id])=>[id,sources[id]||null])); if(key===RVC.sourceKey)return;
+  RVC.sourceKey=key; RVC.meta=Object.assign({},RVC.originals);
+  for(const [id] of RVC_CLIPS){ const custom=sources[id], original=RVC.originals[id]; const url=custom&&typeof custom.url==='string'&&/^https:\/\//.test(custom.url)?custom.url:null;
+    const descriptor=url?{...original,file:url,custom:true,speed:clamp(+custom.speed||1,.1,4),fps:clamp(+custom.fps||8,1,60)}:original;
+    if(RVC.srcs[id]?.m.file===descriptor.file&&RVC.srcs[id]?.m.speed===descriptor.speed)continue;
+    const old=RVC.srcs[id];if(old){old.disposed=true;for(const frame of old.frames)frame.close?.();if(old.tex&&RVC.gl)RVC.gl.deleteTexture(old.tex);}
+    RVC.meta[id]=descriptor;rvcSource(id);
+  }
+  RVC.clouds={};RVC.pieces=[];RVC.far=[];RVC.canvasFrames?.clear();
+}
+function rvcSource(id){ const m = {...RVC.meta[id]}, s = RVC.srcs[id] = { id, m, frames: [], ready: false, tex: null, up: 0 };
+  const url=runtimeAsset(new URL(m.file,RVC_HOME).href);
+  fetch(url).then(r=>{if(!r.ok)throw Error('Cloud footage unavailable ('+r.status+')');return r.arrayBuffer();}).then(async buf=>{
+    let decoder=null;
+    try{
+      if('ImageDecoder' in window){ decoder=new ImageDecoder({data:buf,type:'image/webp',premultiplyAlpha:'none',colorSpaceConversion:'none'});await decoder.tracks.ready;
+        const n=Math.max(1,decoder.tracks.selectedTrack.frameCount), stride=Math.max(1,Math.ceil(n/160)),keptFrames=Math.ceil(n/stride);m.fps/=stride;
+        for(let i=0;i<n;i+=stride){if(s.disposed)return;const r=await decoder.decode({frameIndex:i});const pixels=r.image.displayWidth*r.image.displayHeight;if(pixels>16777216){r.image.close();throw Error('Cloud frame is too large');}
+          // At most 24 MiB of decoded RGBA pixels per source, preserving the original small assets at full resolution.
+          const factor=Math.min(1,512/r.image.displayWidth,384/r.image.displayHeight,Math.sqrt(6*1024*1024/(keptFrames*pixels))), width=Math.max(1,Math.floor(r.image.displayWidth*factor)),height=Math.max(1,Math.floor(r.image.displayHeight*factor));
+          const frame=await createImageBitmap(r.image,{resizeWidth:width,resizeHeight:height,premultiplyAlpha:'none',colorSpaceConversion:'none'});r.image.close();if(s.disposed){frame.close?.();return;}s.frames.push(frame);
+        }
+      }else{const frame=await createImageBitmap(new Blob([buf],{type:'image/webp'}));if(s.disposed){frame.close?.();return;}s.frames.push(frame);if(!RVC.warned){RVC.warned=true;console.warn('[clouds] Still cloud fallback: animated image decoding is unavailable.');}}
+      if(!s.frames.length)return;
+      const first=s.frames[0], scaleX=first.width/m.w,scaleY=first.height/m.h;m.w=first.width;m.h=first.height;
+      if(m.custom){ const cv=document.createElement('canvas');cv.width=m.w;cv.height=m.h;const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(first,0,0);const pixels=cx.getImageData(0,0,m.w,m.h).data;let l=m.w,t=m.h,r=0,b=0;
+        for(let y=0;y<m.h;y+=2)for(let x=0;x<m.w;x+=2)if(pixels[(y*m.w+x)*4+3]>32){l=Math.min(l,x);t=Math.min(t,y);r=Math.max(r,x);b=Math.max(b,y);}
+        if(r<=l||b<=t){l=0;t=0;r=m.w;b=m.h;}m.bx=l;m.by=t;m.bw=r-l;m.bh=b-t;m.body=[(l+r)/2,(t+b)/2];
+        m.puffs=[[l,t,m.bw*.7,m.bh],[l+m.bw*.3,t,m.bw*.7,m.bh],[l,t,m.bw,m.bh]];
+      }else if(scaleX!==1||scaleY!==1){m.bx*=scaleX;m.by*=scaleY;m.bw*=scaleX;m.bh*=scaleY;m.body=[m.body[0]*scaleX,m.body[1]*scaleY];m.puffs=m.puffs.map(p=>[p[0]*scaleX,p[1]*scaleY,p[2]*scaleX,p[3]*scaleY]);}
+      s.ready=true;
+    }finally{decoder?.close();}
+  }).catch(e=>{s.error=e.message;console.warn('[clouds]',id,e);});
+}
 function rvcRb(a, b, n, th){ const c = Math.abs(Math.cos(th)), s = Math.abs(Math.sin(th)); return 1 / Math.pow(Math.pow(c / a, n) + Math.pow(s / b, n), 1 / n); }
 // the base's edge walked at even steps, so billows can be spread evenly around it
 function rvcEdge(A, B, n){ const N = 96, pts = [], cum = [0]; let tot = 0;
@@ -1165,27 +1247,50 @@ uniform vec2 uC; uniform float uScale, uFlip, uOpacity, uGain, uContrast, uWarm;
 uniform int uMode;
 uniform float uA, uB, uN, uFeather, uLift, uEven;
 uniform vec2 uDir; uniform float uExt, uCut, uCutW; uniform vec2 uOff; uniform float uNeck, uErode; uniform vec4 uCrop;
-vec4 tex(vec2 sp){ vec2 uv = sp / uSrcSize; if(uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return vec4(0.0); return mix(texture(uTex, vec3(uv, uLa)), texture(uTex, vec3(uv, uLb)), uMix); }
-vec4 sprite(vec2 q){ if(uFlip > 0.5) q.x = -q.x; vec2 sp = uSrcC + q / uScale; vec4 c = tex(sp); if(uCrop.z > 0.0){ vec2 d = min(sp - uCrop.xy, uCrop.xy + uCrop.zw - sp); c.a *= smoothstep(0.0, 14.0, min(d.x, d.y)); } return c; }
+uniform vec4 uPart, uShape; uniform float uPhase, uClock, uWarp, uNeckWidth, uErosion, uDensityLoss, uOutline;
+vec4 tex(vec2 sp){ vec2 uv = sp / uSrcSize; if(uv.x <= 0.0 || uv.y <= 0.0 || uv.x >= 1.0 || uv.y >= 1.0) return vec4(0.0); vec4 c = mix(texture(uTex, vec3(uv, uLa)), texture(uTex, vec3(uv, uLb)), uMix); vec2 d = min(sp, uSrcSize - sp); c.a *= smoothstep(0.0, 5.0, min(d.x, d.y)); return c; }
+float fullness(vec2 q, float n){ return pow(pow(abs(q.x),n)+pow(abs(q.y),n),1.0/n); }
+vec4 sprite(vec2 q){
+  if(uFlip > 0.5) q.x = -q.x;
+  vec2 sp = uSrcC + q / uScale; vec4 c = tex(sp);
+  if(uCrop.z > 0.0){
+    vec2 p = (sp - uCrop.xy - uCrop.zw*.5) / max(uCrop.zw*.5, vec2(1.0));
+    float angle = atan(p.y,p.x), ripple = .025*sin(angle*5.0+uPhase)+.018*sin(angle*7.0-uClock*.3+uPhase*2.0);
+    float d = fullness(p, uShape.x) / (1.0+ripple);
+    c.a *= 1.0-smoothstep(1.0-uShape.y,1.0,d);
+  }
+  return c;
+}
 // where q sits along the billow's outward direction: -1 inner side .. 1 outer tip
 float along(vec2 q){ return dot(q, uDir) / max(uExt, 1.0); }
-vec3 grade(vec3 c){ c = (c - 0.5) * uContrast + 0.5; c *= uGain; c += vec3(uWarm, uWarm * 0.4, -uWarm); return clamp(c, 0.0, 1.0); }
+float part(vec2 q){
+  vec2 side=vec2(-uDir.y,uDir.x), center=uDir*uExt*(uCut+.38);
+  vec2 z=vec2(dot(q-center,side)/max(2.0,uPart.x*uPart.y),dot(q-center,uDir)/max(2.0,uPart.x));
+  float wisps=1.0+uShape.w*(.07*sin(q.x*.12+uClock*.3+uPhase)+.05*sin(q.y*.19-uClock*.2));
+  float mask=1.0-smoothstep(1.0-uPart.w,1.0,fullness(z,uPart.z)/wisps);
+  return mask*smoothstep(uCut-.18,uCut+.18,along(q));
+}
+vec3 grade(vec3 c){ c=mix(c,uFill,uEven); c+=(1.0-c)*uLift; c = (c - 0.5) * uContrast + 0.5; c *= uGain; c += vec3(uWarm, uWarm * 0.4, -uWarm); return clamp(c, 0.0, 1.0); }
 void main(){
   vec2 p = vP - uC; vec4 c;
   if(uMode == 0){
     // the base under the words: cloud body, solid, fading into the billows at its edge
     float r = length(p), th = atan(p.y, p.x); float Rb = 1.0 / pow(pow(abs(cos(th)) / uA, uN) + pow(abs(sin(th)) / uB, uN), 1.0 / uN);
-    float w = 1.0 - smoothstep(Rb - uFeather, Rb, r);
-    vec4 b = sprite(p); vec3 rgb = mix(uFill, b.rgb, b.a); rgb = mix(rgb, uFill, uEven); rgb += (1.0 - rgb) * uLift;
+    float swell = uOutline*min(uA,uB)*(.55+.25*sin(th*5.0+uPhase+uClock)+.20*sin(th*7.0-uClock*.7));
+    float w = 1.0 - smoothstep(Rb - uFeather, Rb+swell, r);
+    vec4 b = sprite(p); vec3 rgb = mix(uFill, b.rgb, b.a);
     c = vec4(rgb, w);
   } else if(uMode == 1){
     // a billow of the cloud: its outer part goes missing while a piece is torn from it, and grows back
-    c = sprite(p); if(uCutW > 0.0) c.a *= 1.0 - uCutW * smoothstep(uCut - 0.15, uCut + 0.15, along(p));
+    c = sprite(p); if(uCutW > 0.0) c.a *= 1.0 - uCutW * part(p);
   } else if(uMode == 2){
     // the torn piece: the outer part of that billow, pulled away by uOff, with a stretchy neck while it tears
-    vec2 q = p - uOff; vec4 s = sprite(q); float a = s.a * smoothstep(uCut - 0.15, uCut + 0.15, along(q)); vec3 rgb = s.rgb;
-    if(uNeck > 0.001){ vec2 side = vec2(-uDir.y, uDir.x); for(int k = 1; k < 8; k++){ float f = float(k) / 8.0; vec2 qk = p - uOff * f; float pinch = 0.25 + 0.75 * abs(2.0 * f - 1.0); vec2 qs = uDir * dot(qk, uDir) + side * dot(qk, side) / pinch; vec4 sk = sprite(qs); float ak = sk.a * smoothstep(uCut - 0.3, uCut + 0.05, along(qs)) * uNeck; if(ak > a){ a = ak; rgb = sk.rgb; } } }
-    if(uErode > 0.0) a = smoothstep(uErode, min(1.0, uErode + 0.35), a) * (1.0 - uErode * 0.3);
+    vec2 side=vec2(-uDir.y,uDir.x), q=p-uOff;
+    q += side*sin(dot(q,uDir)*.055+uClock+uPhase)*uWarp*uPart.x;
+    vec4 s = sprite(q); float a = s.a * part(q); vec3 rgb = s.rgb;
+    if(uNeck > 0.001){ for(int k = 1; k < 10; k++){ float f = float(k) / 10.0; vec2 qk = p - uOff * f; float pinch = uNeckWidth + (1.0-uNeckWidth) * abs(2.0 * f - 1.0); vec2 qs = uDir * dot(qk, uDir) + side * dot(qk, side) / pinch; vec4 sk = sprite(qs); float ak = sk.a * part(qs) * uNeck; if(ak > a){ a = ak; rgb = sk.rgb; } } }
+    a=1.0-pow(1.0-clamp(a,0.0,1.0),uShape.z);
+    if(uErode > 0.0){ float er=min(.995,uErode*uErosion); a = smoothstep(er, min(1.0, er + .35), a) * (1.0-uErode*uDensityLoss) * (1.0-uErode); }
     c = vec4(rgb, a);
   } else { c = sprite(p); }
   vec3 rgb = grade(c.rgb); float a = clamp(c.a * uOpacity, 0.0, 1.0);
@@ -1198,7 +1303,7 @@ function rvcGL(pw, ph){ if(RVC.gl === false) return null;
     catch(e){ console.warn('[clouds] shader', e); RVC.gl = false; return null; }
     const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
     gl.useProgram(RVC.prog); const loc = gl.getAttribLocation(RVC.prog, 'aP'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = {}; for(const n of ['uRect', 'uView', 'uTex', 'uLa', 'uLb', 'uMix', 'uSrcSize', 'uSrcC', 'uC', 'uScale', 'uFlip', 'uOpacity', 'uGain', 'uContrast', 'uWarm', 'uFill', 'uMode', 'uA', 'uB', 'uN', 'uFeather', 'uLift', 'uEven', 'uDir', 'uExt', 'uCut', 'uCutW', 'uOff', 'uNeck', 'uErode', 'uCrop']) U[n] = gl.getUniformLocation(RVC.prog, n);
+    const U = {}; for(const n of ['uRect', 'uView', 'uTex', 'uLa', 'uLb', 'uMix', 'uSrcSize', 'uSrcC', 'uC', 'uScale', 'uFlip', 'uOpacity', 'uGain', 'uContrast', 'uWarm', 'uFill', 'uMode', 'uA', 'uB', 'uN', 'uFeather', 'uLift', 'uEven', 'uDir', 'uExt', 'uCut', 'uCutW', 'uOff', 'uNeck', 'uErode', 'uCrop', 'uPart', 'uShape', 'uPhase', 'uClock', 'uWarp', 'uNeckWidth', 'uErosion', 'uDensityLoss', 'uOutline']) U[n] = gl.getUniformLocation(RVC.prog, n);
     RVC.u = U; RVC.cv = cv; RVC.gl = gl; gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1i(U.uTex, 0); }
   const gl = RVC.gl; if(RVC.cv.width !== pw || RVC.cv.height !== ph){ RVC.cv.width = pw; RVC.cv.height = ph; }
   gl.viewport(0, 0, pw, ph); return gl; }
@@ -1208,116 +1313,188 @@ function rvcUpload(gl, s){ if(!s || !s.ready) return false; if(!s.tex){ s.tex = 
   if(s.up < s.frames.length){ gl.bindTexture(gl.TEXTURE_2D_ARRAY, s.tex); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     for(let k = 0; k < 12 && s.up < s.frames.length; k++, s.up++) gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, s.up, s.m.w, s.m.h, 1, gl.RGBA, gl.UNSIGNED_BYTE, s.frames[s.up]); }
   return s.up >= s.frames.length; }
-function rvcOk(id){ const s = RVC.srcs[id]; return !!(s && s.tex && s.up >= s.frames.length); }
+function rvcOk(id){ const s = RVC.srcs[id]; return !!(s && s.ready && s.frames.length && (RVC.gl===false || (s.tex && s.up >= s.frames.length))); }
 function rvcHex(h){ const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '')); const v = m ? parseInt(m[1], 16) : 0xf2f4f6; return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255]; }
 function rvcRand(seed){ let h = 2166136261 >>> 0; for(const ch of String(seed)){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return (h % 1000003) / 1000003; }; }
 // a filmed cloud drawn as one billow: size h (px tall), centred at (x, y)
-function rvcSprite(id, h, pi){ const m = RVC.srcs[id].m, c = pi == null ? [m.bx, m.by, m.bw, m.bh] : m.puffs[pi % m.puffs.length], scale = h / c[3]; return { scale, w: c[2] * scale, h, sc: [c[0] + c[2] / 2, c[1] + c[3] / 2], crop: pi == null ? null : [c[0] - 6, c[1] - 6, c[2] + 12, c[3] + 12] }; }
+function rvcSprite(id, h, pi){ const m = RVC.srcs[id].m, c = pi == null ? [m.bx, m.by, m.bw, m.bh] : m.puffs[pi % m.puffs.length], scale = h / c[3]; return { scale, w: c[2] * scale, h, sc: [c[0] + c[2] / 2, c[1] + c[3] / 2], crop: [c[0],c[1],c[2],c[3]] }; }
 function rvcDraw(gl, d, F, S, t){ const U = RVC.u, s = RVC.srcs[d.src]; if(!rvcOk(d.src)) return;
-  const n = s.frames.length, pos = ((t * s.m.fps * S.cloud_speed + d.off) % n + n) % n, la = Math.floor(pos), lb = (la + 1) % n;
+  const n = s.frames.length, rate=(1+Math.sin(d.off||0)*F.motionVariety*S.cloud_variety)*(d.rate??1)*(s.m.speed||1), pos = ((t * s.m.fps * S.cloud_speed * rate + d.off) % n + n) % n, la = Math.floor(pos), lb = (la + 1) % n;
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D_ARRAY, s.tex);
   gl.uniform2f(U.uView, W, HH); gl.uniform4f(U.uRect, d.rx, d.ry, d.rw, d.rh);
   gl.uniform1f(U.uLa, la); gl.uniform1f(U.uLb, lb); gl.uniform1f(U.uMix, (pos - la) * clamp(F.blend, 0, 1));
   gl.uniform2f(U.uSrcSize, s.m.w, s.m.h); gl.uniform2f(U.uSrcC, d.sc[0], d.sc[1]); gl.uniform2f(U.uC, d.cx, d.cy); gl.uniform1f(U.uScale, d.scale); gl.uniform1f(U.uFlip, d.flip ? 1 : 0);
   gl.uniform1i(U.uMode, d.mode); gl.uniform1f(U.uOpacity, clamp(d.alpha, 0, 1));
-  gl.uniform1f(U.uGain, F.gain); gl.uniform1f(U.uContrast, F.contrast); gl.uniform1f(U.uWarm, F.warm); gl.uniform3fv(U.uFill, rvcHex(F.fill));
+  gl.uniform1f(U.uGain, d.mode===2&&!F.pInherit?F.pBright:F.gain); gl.uniform1f(U.uContrast, d.mode===2&&!F.pInherit?F.pContrast:F.contrast); gl.uniform1f(U.uWarm, F.warm); gl.uniform3fv(U.uFill, rvcHex(F.fill));
   gl.uniform1f(U.uA, d.A || 1); gl.uniform1f(U.uB, d.B || 1); gl.uniform1f(U.uN, d.n || 3); gl.uniform1f(U.uFeather, d.feather || 1); gl.uniform1f(U.uLift, F.lift); gl.uniform1f(U.uEven, F.even);
   gl.uniform2f(U.uDir, d.dir ? d.dir[0] : 0, d.dir ? d.dir[1] : -1); gl.uniform1f(U.uExt, d.ext || 1); gl.uniform1f(U.uCut, d.cut || 0.3); gl.uniform1f(U.uCutW, d.cutW || 0);
   gl.uniform2f(U.uOff, d.ox || 0, d.oy || 0); gl.uniform1f(U.uNeck, d.neck || 0); gl.uniform1f(U.uErode, d.erode || 0); gl.uniform4fv(U.uCrop, d.crop || [0, 0, 0, 0]);
+  gl.uniform4fv(U.uPart,d.part||[30,F.pAspect,F.pRound,F.pSoft]);gl.uniform4f(U.uShape,F.edgeRound,F.edgeSoft,d.mode===2?F.pDensity:1,F.pWisps);
+  gl.uniform1f(U.uPhase,d.off||0);gl.uniform1f(U.uClock,t*(d.mode===0?F.outlineSpeed:F.pTurbulenceRate));gl.uniform1f(U.uWarp,d.warp||0);
+  gl.uniform1f(U.uNeckWidth,F.pNeckWidth);gl.uniform1f(U.uErosion,F.pErode);gl.uniform1f(U.uDensityLoss,F.pDensityLoss);gl.uniform1f(U.uOutline,F.outlineVariety*S.cloud_variety);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
 // the billows of one message cloud, spread evenly around its base (golden-ratio spacing: a new billow never moves the others)
-function rvcBillows(c, F, S, t, ids){ const st = RVC.clouds[c.key] || (RVC.clouds[c.key] = { list: [], extra: [] }), rnd = rvcRand(c.key + ':b:' + (F.seed || 0)), v = clamp(S.cloud_variety, 0, 1), size = clamp(F.billowSize, 16, 120);
-  const spec = j => { while(st.list.length <= j){ const pool = ids, prev = st.list.length ? st.list[st.list.length - 1].src : null; let src = pool[Math.floor(rnd() * pool.length) % pool.length]; if(src === prev && pool.length > 1) src = pool[(pool.indexOf(src) + 1) % pool.length];
-      st.list.push({ j: st.list.length, src, pi: Math.floor(rnd() * 8), flip: F.flipOk && rnd() < .5, hf: 1 + (rnd() * 2 - 1) * F.edgeJit / 100 * v, out: rnd(), off: rnd() * 1000, cutW: 0 }); } return st.list[j]; };
+function rvcBillows(c, F, S, t, ids){ const st = RVC.clouds[c.key] || (RVC.clouds[c.key] = { list: [], extra: [] }), v = clamp(S.cloud_variety, 0, 1), size = clamp(F.billowSize, 16, 120), signature=ids.join('|')+':'+F.seed+':'+F.flipOk;
+  if(st.signature!==signature){st.signature=signature;st.list=[];st.extra=[];st.inner=null;RVC.pieces=RVC.pieces.filter(p=>p.key!==c.key);}
+  const spec = j => { while(st.list.length <= j){ const index=st.list.length,rnd=rvcRand(c.key+':b:'+F.seed+':'+index),pool=ids,prev=index?st.list[index-1].src:null; let src=pool[Math.floor(rnd()*pool.length)%pool.length];if(src===prev&&pool.length>1)src=pool[(pool.indexOf(src)+1)%pool.length];
+      st.list.push({ j:index, src, pi:Math.floor(rnd()*8), flip:F.flipOk&&rnd()<.5, variation:rnd()*2-1, out:rnd(), off:rnd()*1000, cutW:0 }); } return st.list[j]; };
   const out = [], per = c.edge.perim; let s = 0, j = 0;
-  while(s < per && j < 80){ const b = spec(j++); if(!RVC.srcs[b.src] || !rvcOk(b.src)) continue; const h = Math.min(size * b.hf, Math.max(c.B * 2.4, size * .6)), sp = rvcSprite(b.src, h, b.pi), e = c.edge.at(c.u0 + s / per), push = h * (F.billowOut - .5 + b.out * .2);
+  while(s < per && j < 80){ const b = spec(j++); if(!RVC.srcs[b.src] || !rvcOk(b.src)) continue; const hf=1+b.variation*F.edgeJit/100*v, h = Math.min(size * hf * (1+(b.swell||0)), Math.max(c.B * 2.4, size * .6)), sp = rvcSprite(b.src, h, b.pi), e = c.edge.at(c.u0 + s / per), projected=(Math.abs(e.nx)*sp.w+Math.abs(e.ny)*sp.h)/2,push = -projected+(c.rim||20)*(.65+b.out*.25);
     const along = Math.abs(e.ny) * sp.w + Math.abs(e.nx) * sp.h, step = along * .5 * F.billowSpread, fade = clamp((per - s) / Math.max(1, step * .6), 0, 1);
     out.push({ b, src: b.src, flip: b.flip, off: b.off, x: c.cx + e.x + e.nx * push, y: c.cy + e.y + e.ny * push, nx: e.nx, ny: e.ny, sp, alpha: fade }); s += step; }
   // inside: a few big billows under the base, so the middle is real cloud too
-  const inner = st.inner || (st.inner = Array.from({ length: 9 }, (_, i) => ({ src: ids[Math.floor(rnd() * ids.length) % ids.length], pi: Math.floor(rnd() * 8), flip: rnd() < .5, u: rnd() * 2 - 1, v: rnd() * 2 - 1, hf: .8 + rnd() * .5, off: rnd() * 1000 })));
+  const inner = st.inner || (st.inner = Array.from({ length: 9 }, (_, i) => {const rnd=rvcRand(c.key+':inside:'+F.seed+':'+i);return { src: ids[Math.floor(rnd() * ids.length) % ids.length], pi: Math.floor(rnd() * 8), flip: rnd() < .5, u: rnd() * 2 - 1, v: rnd() * 2 - 1, hf: .8 + rnd() * .5, off: rnd() * 1000 };}));
   const nIn = clamp(Math.round(c.A * c.B / (size * size * .9)), 1, 9), ins = [];
   for(let i = 0; i < nIn; i++){ const b = inner[i]; if(!rvcOk(b.src)) continue; const h = Math.min(c.B * 2 * b.hf, Math.max(size * 1.4, c.B * 1.2)), sp = rvcSprite(b.src, h, b.pi); ins.push({ b: { cut: 0, cutW: 0 }, inner: true, src: b.src, flip: b.flip, off: b.off, x: c.cx + b.u * Math.max(0, c.A - sp.w * .45), y: c.cy + b.v * Math.max(0, c.B - h * .45), nx: 0, ny: -1, sp, alpha: 1 }); }
   out.unshift(...ins);
-  for(const b of st.extra){ if(!rvcOk(b.src)) continue; const h = Math.min(size * b.hf, Math.max(c.B * 2.4, size * .6)), sp = rvcSprite(b.src, h, b.pi), e = c.edge.at(b.u), push = h * (F.billowOut - .4);
+  for(const b of st.extra){ if(!rvcOk(b.src)) continue; const h = Math.min(size * b.hf, Math.max(c.B * 2.4, size * .6)), sp = rvcSprite(b.src, h, b.pi), e = c.edge.at(b.u),projected=(Math.abs(e.nx)*sp.w+Math.abs(e.ny)*sp.h)/2,push=-projected+(c.rim||20)*.8;
     out.push({ b, src: b.src, flip: b.flip, off: b.off, x: c.cx + e.x + e.nx * push, y: c.cy + e.y + e.ny * push, nx: e.nx, ny: e.ny, sp, alpha: b.alpha }); }
   return out; }
 // tearing, drifting, absorbing and dissolving pieces of the clouds' own billows
 function rvcPieces(t, dt, S, F, clouds){ const R = Math.random, P = RVC.pieces, byKey = Object.fromEntries(clouds.map(c => [c.key, c]));
-  if(F.piecesOn && clouds.length && t >= RVC.nextPiece){ RVC.nextPiece = t + F.pEvery * (0.6 + 0.8 * R());
-    if(P.length < Math.round(S.ambient_count)){ const c = clouds[Math.floor(R() * clouds.length)], cand = (c.bill || []).filter(x => !x.inner && x.alpha >= 1 && !x.b.extra && !x.b.busy && x.ny < .6);
-      if(cand.length){ const x = cand[Math.floor(R() * cand.length)]; x.b.busy = true;
-        P.push({ key: c.key, b: x.b, src: x.src, flip: x.flip, off: x.off, sp: x.sp, dir: [x.nx, x.ny], born: t, state: 'tear', cx: x.x, cy: x.y, ox: 0, oy: 0, vx: 0, vy: 0, erode: 0, alpha: 1, cut: clamp(1 - 2 * F.pieceDepth, -0.9, 0.9) }); } } }
-  const wind = [F.windX, F.windY], spd = S.ambient_speed;
+  if(!F.piecesOn){RVC.pieces=[];RVC.nextPiece=t+Math.max(2,F.pEvery);for(const st of Object.values(RVC.clouds)){for(const b of st.list){b.busy=false;b.cutW=0;b.swell=0;b.healAt=null;}st.extra=[];}return;}
+  if(clouds.length && t >= RVC.nextPiece){ RVC.nextPiece = t + Math.max(.5,F.pEvery * (1 + (R()*2-1)*F.pJitter));
+    if(R()<F.pChance)for(let event=0;event<Math.round(F.pBurst)&&P.length<Math.round(S.ambient_count);event++){
+      const parents=clouds.filter(c=>t-(RVC.clouds[c.key].lastTear??-Infinity)>=F.pCooldown);if(!parents.length)break;const c=parents[Math.floor(R()*parents.length)];
+      const candidates=(c.bill||[]).filter(x=>!x.inner&&x.alpha>=.99&&!x.b.extra&&!x.b.busy&&((Math.abs(x.x-c.cx)>c.textW/2+F.pClearance)||(Math.abs(x.y-c.cy)>c.textH/2+F.pClearance))).map(x=>({x,weight:Math.max(0,x.nx)*F.pRight+Math.max(0,-x.nx)*F.pLeft+Math.max(0,x.ny)*F.pBottom+Math.max(0,-x.ny)*F.pTop}));
+      const total=candidates.reduce((sum,q)=>sum+q.weight,0);if(total<=0)continue;let dice=R()*total,selected=candidates[candidates.length-1];for(const q of candidates){dice-=q.weight;if(dice<=0){selected=q;break;}}
+      const x=selected.x,lo=Math.min(F.pieceMin,F.pieceMax),hi=Math.max(F.pieceMin,F.pieceMax),diam=lo+(hi-lo)*Math.pow(R(),1/Math.max(.1,F.pSizeBias));x.b.busy=true;RVC.clouds[c.key].lastTear=t;
+      const part=[diam/2,F.pAspect,F.pRound,F.pSoft];x.b.part=part;
+      P.push({key:c.key,b:x.b,src:x.src,flip:x.flip,off:x.off,sp:x.sp,dir:[x.nx,x.ny],born:t,state:'swell',cx:x.x,cy:x.y,ox:0,oy:0,vx:0,vy:0,parentVx:0,parentVy:0,erode:0,alpha:0,part,diam,cut:clamp(1-2*F.pieceDepth,-.8,.8)});
+    }
+  }
+  const wind = [F.windX, F.windY-F.pRise], spd = S.ambient_speed;
   for(const p of P){ const par = byKey[p.key];
-    if(p.state === 'tear'){ const live = par && (par.bill || []).find(x => x.b === p.b); if(live){ p.cx = live.x; p.cy = live.y; p.dir = [live.nx, live.ny]; p.sp = live.sp; }
-      const s = clamp((t - p.born) / Math.max(.2, F.tearTime), 0, 1), e = s * s * (3 - 2 * s); p.ox = p.dir[0] * F.tearDist * e; p.oy = p.dir[1] * F.tearDist * e; p.neck = F.neck * Math.pow(1 - s, 1.2); p.b.cutW = Math.min(1, .2 + s * 1.1); p.b.cut = p.cut;
-      if(s >= 1 || !live){ p.state = 'free'; p.freeAt = t; p.neck = 0; p.b.cutW = 1; p.b.healAt = t; const tot = F.pDrift + F.pAbsorb + F.pDissolve || 1, r = R() * tot; p.fate = r < F.pDrift ? 'drift' : r < F.pDrift + F.pAbsorb ? 'absorb' : 'dissolve';
-        const o2 = 3 + R() * 4; p.vx = p.dir[0] * o2 + wind[0]; p.vy = p.dir[1] * o2 + wind[1];
-        if(p.fate === 'absorb'){ let best = null, bd = 1e9; for(const c of clouds){ if(c.key === p.key) continue; const d = Math.hypot(c.cx - p.cx, c.cy - p.cy); if(d < bd){ bd = d; best = c; } } p.target = best ? best.key : null; if(!best) p.fate = 'drift'; } } }
-    else { const age = t - p.freeAt; p.vx += (wind[0] - p.vx) * Math.min(1, dt * .25) + (R() - .5) * F.wander * dt * 2; p.vy += (wind[1] - p.vy) * Math.min(1, dt * .25) + (R() - .5) * F.wander * dt * 2;
+    p.part=[p.diam/2,F.pAspect,F.pRound,F.pSoft];p.b.part=p.part;
+    if(p.state === 'swell'||p.state === 'tear'){ const live = par && (par.bill || []).find(x => x.b === p.b); if(live){ p.parentVx=dt?(live.x-p.cx)/dt:0;p.parentVy=dt?(live.y-p.cy)/dt:0;p.cx = live.x; p.cy = live.y; p.dir = [live.nx, live.ny]; p.sp = live.sp; }
+      if(!live){p.dead=true;p.b.busy=false;p.b.cutW=0;continue;}
+      const swell=clamp((t-p.born)/Math.max(.1,F.pSwellTime),0,1);p.b.swell=F.pSwell*swell*swell*(3-2*swell);
+      if(swell<1)continue;p.state='tear';
+      const s = clamp((t - p.born-F.pSwellTime) / Math.max(.2, F.tearTime), 0, 1), e = s * s * (3 - 2 * s),take=clamp(s/.45,0,1);p.alpha=take*take*(3-2*take);p.ox = p.dir[0] * F.tearDist * e; p.oy = p.dir[1] * F.tearDist * e; p.neck = F.neck * Math.pow(1 - s, F.pPinch); p.b.cutW=p.alpha;p.b.cut=p.cut;
+      if(s >= 1){ p.state = 'free'; p.freeAt = t; p.neck = 0; p.b.cutW = 1; p.b.healAt = t+F.pHealDelay; const tot = F.pDrift + F.pAbsorb + F.pDissolve || 1, r = R() * tot; p.fate = r < F.pDrift ? 'drift' : r < F.pDrift + F.pAbsorb ? 'absorb' : 'dissolve';
+        const lo=Math.min(F.pSpeedMin,F.pSpeedMax),hi=Math.max(F.pSpeedMin,F.pSpeedMax),o2=lo+R()*(hi-lo); p.vx = p.dir[0] * o2 + wind[0]+clamp(p.parentVx,-30,30)*F.pFollow; p.vy = p.dir[1] * o2 + wind[1]+clamp(p.parentVy,-30,30)*F.pFollow;
+        if(p.fate === 'absorb'){ let best = null, bd = F.pAttract; for(const c of clouds){ if(c.key === p.key) continue; const d = Math.hypot(c.cx - p.cx, c.cy - p.cy); if(d < bd){ bd = d; best = c; } } p.target = best ? best.key : null; if(!best) p.fate = 'drift'; } } }
+    else { const age = t - p.freeAt,phase=t*F.pTurbulenceRate+p.off;
+      p.vx += (wind[0]-p.vx)*Math.min(1,dt*F.pAcceleration)+Math.sin(phase)*F.wander*dt; p.vy += (wind[1]-p.vy)*Math.min(1,dt*F.pAcceleration)+Math.cos(phase*.73)*F.wander*dt;
+      const wlen=Math.hypot(...wind)||1,side=[-wind[1]/wlen,wind[0]/wlen],cross=p.vx*side[0]+p.vy*side[1],drag=Math.min(1,dt*F.pDrag);p.vx-=side[0]*cross*drag;p.vy-=side[1]*cross*drag;
       const wx = p.cx + p.ox + p.dir[0] * p.sp.h * .3, wy = p.cy + p.oy + p.dir[1] * p.sp.h * .3;
       if(p.fate === 'absorb'){ const tg = byKey[p.target]; if(!tg){ p.fate = 'drift'; } else { const dx = tg.cx - wx, dy = tg.cy - wy, d = Math.hypot(dx, dy) || 1, ta = Math.atan2(-dy, -dx), reach = rvcRb(tg.A, tg.B, tg.n, ta) + F.billowSize * .5 + F.pReach;
-          const wantv = 10 * spd; p.vx += (dx / d * wantv - p.vx) * Math.min(1, dt * .6); p.vy += (dy / d * wantv - p.vy) * Math.min(1, dt * .6);
+          const wantv=F.pApproach,match=clamp(1-(d-reach)/Math.max(1,F.pAttract),0,1)*F.pMatch; p.vx += (dx / d * wantv+(tg.vx||0)*match-p.vx) * Math.min(1, dt * .6); p.vy += (dy / d * wantv+(tg.vy||0)*match-p.vy) * Math.min(1, dt * .6);
           if(d < reach && p.absorbAt == null){ p.absorbAt = t; const st = RVC.clouds[tg.key]; if(st){ // it becomes one of the target's billows where it touched
               const ex = tg.edge, best = { u: 0, d: 1e9 }; for(let i = 0; i < 64; i++){ const q = ex.at(i / 64), dd = Math.hypot(tg.cx + q.x - wx, tg.cy + q.y - wy); if(dd < best.d){ best.d = dd; best.u = i / 64; } }
               p.joined = { extra: true, u: best.u, src: p.src, pi: p.b.pi, flip: p.flip, hf: p.sp.h / Math.max(1, F.billowSize), out: .5, off: p.off, alpha: 0, cutW: 0, j: -1, bornAt: t }; st.extra.push(p.joined); } }
-          if(p.absorbAt != null){ const a = clamp((t - p.absorbAt) / Math.max(.3, F.absorbTime), 0, 1); p.alpha = 1 - a; if(p.joined) p.joined.alpha = a; if(a >= 1){ p.dead = true; if(p.joined) p.joined.healAt = t; } } } }
-      if(p.fate === 'dissolve' && age > F.dissolveAfter){ p.erode = clamp((age - F.dissolveAfter) / Math.max(.3, F.fadeTime), 0, 1); if(p.erode >= 1) p.dead = true; }
+          if(p.absorbAt != null){ const raw=clamp((t-p.absorbAt)/Math.max(.3,F.absorbTime),0,1),a=Math.pow(raw,F.pMergeSoft);p.alpha=1-a;if(p.joined)p.joined.alpha=a;p.vx*=1-Math.min(1,dt*F.pMatch*3);p.vy*=1-Math.min(1,dt*F.pMatch*3);if(raw>=1){p.dead=true;if(p.joined)p.joined.healAt=t;} } } }
+      if((p.fate === 'dissolve' && age > F.dissolveAfter)||age>F.pLife){ const start=p.fate==='dissolve'?Math.min(F.dissolveAfter,F.pLife):F.pLife,duration=Math.max(.2,F.fadeTime)*(1+F.pLastWisp),raw=clamp((age-start)/duration,0,1);p.erode=raw;if(raw>=1)p.dead=true; }
       p.ox += p.vx * dt * spd; p.oy += p.vy * dt * spd;
       if(wx < -260 || wx > W + 260 || wy < -260 || wy > HH + 260) p.dead = true; } }
   RVC.pieces = P.filter(p => !p.dead);
   // torn billows grow back; absorbed pieces melt into their new cloud over time
-  for(const st of Object.values(RVC.clouds)){ for(const b of st.list) if(b.healAt != null){ b.cutW = 1 - clamp((t - b.healAt) / Math.max(.5, F.regrow), 0, 1); if(b.cutW <= 0){ b.cutW = 0; b.healAt = null; b.busy = false; } }
+  for(const st of Object.values(RVC.clouds)){ for(const b of st.list) if(b.healAt != null){ b.cutW = 1 - clamp((t - b.healAt) / Math.max(.5, F.regrow), 0, 1);b.swell=F.pSwell*b.cutW; if(b.cutW <= 0){ b.cutW = 0;b.swell=0; b.healAt = null; b.busy = false; } }
     st.extra = st.extra.filter(b => { if(b.healAt == null) return true; b.alpha = 1 - clamp((t - b.healAt - F.regrow) / Math.max(.5, F.regrow), 0, 1); return b.alpha > 0; }); } }
 // small whole clouds far below, drifting with the map
 function rvcFar(t, dt, S, F, ids){ const R = Math.random, L = RVC.far;
+  L.splice(Math.round(F.farMax));
   if(ids.length && t >= RVC.nextFar){ RVC.nextFar = t + F.farEvery * (0.6 + 0.8 * R()); if(L.length < Math.round(F.farMax)){ const src = ids[Math.floor(R() * ids.length)], w = F.farMin + R() * Math.max(0, F.farMaxW - F.farMin), m = RVC.srcs[src].m;
-      L.push({ src, w, x: R() * W, y: 110 + R() * (HH * .55), born: t, life: F.farLifeMin + R() * Math.max(0, F.farLifeMax - F.farLifeMin), off: R() * 400, flip: R() < .5, sp: rvcSprite(src, w * m.bh / m.bw) }); } }
-  for(const f of L){ f.x += F.farGroundX * dt * S.ambient_speed; f.y += F.farGroundY * dt * S.ambient_speed; f.age = t - f.born; f.alpha = clamp(Math.min(f.age / 3, (f.life - f.age) / 3), 0, 1); }
+      L.push({ src, w, sizeRoll:R(),lifeRoll:R(),yRoll:R(),x:R()*W,y:110,dy:0,born:t,life:30,off:R()*400,flip:R()<.5,sp:rvcSprite(src,w*m.bh/m.bw) }); } }
+  for(const f of L){ f.x += F.farGroundX * dt * S.ambient_speed;f.dy+=F.farGroundY*dt*S.ambient_speed;f.y=110+f.yRoll*HH*F.farHeight+f.dy; f.age = t - f.born;f.life=Math.min(F.farLifeMin,F.farLifeMax)+f.lifeRoll*Math.abs(F.farLifeMax-F.farLifeMin);f.w=Math.min(F.farMin,F.farMaxW)+f.sizeRoll*Math.abs(F.farMaxW-F.farMin);const m=RVC.srcs[f.src].m;f.sp=rvcSprite(f.src,f.w*m.bh/m.bw); f.alpha = clamp(Math.min(f.age / 3, (f.life - f.age) / 3), 0, 1); }
   RVC.far = L.filter(f => f.age < f.life && f.x > -200 && f.x < W + 200 && f.y > -200 && f.y < HH + 200); }
+// Canvas2D uses the same footage, timing and particle state when WebGL2 is unavailable.
+// Rounded masks are made before compositing, so source rectangles can never become cloud edges.
+function rvcCanvasPath(q,A,B,n,phase=0,amount=.035){q.beginPath();for(let i=0;i<=96;i++){const a=i/96*Math.PI*2,r=rvcRb(Math.max(1,A),Math.max(1,B),n,a)*(1+amount*(.55*Math.sin(a*5+phase)+.45*Math.sin(a*7-phase*.7)));const px=Math.cos(a)*r,py=Math.sin(a)*r;i?q.lineTo(px,py):q.moveTo(px,py);}q.closePath();}
+function rvcCanvasPool(w,h){RVC.pool??=[];const index=RVC.poolIndex++,cv=RVC.pool[index]||(RVC.pool[index]=document.createElement('canvas'));w=Math.max(2,Math.ceil(w));h=Math.max(2,Math.ceil(h));if(cv.width!==w)cv.width=w;if(cv.height!==h)cv.height=h;const q=cv.getContext('2d');q.setTransform(1,0,0,1,0,0);q.globalAlpha=1;q.globalCompositeOperation='source-over';q.filter='none';q.clearRect(0,0,w,h);return{cv,q};}
+function rvcCanvasFrame(src,frame,crop,F,mask=true,piece=false){
+  RVC.canvasFrames??=new Map();const s=RVC.srcs[src],box=crop||[0,0,s.m.w,s.m.h],gain=piece&&!F.pInherit?F.pBright:F.gain,contrast=piece&&!F.pInherit?F.pContrast:F.contrast;
+  const key=[src,s.m.file,frame,box.join(','),mask,piece,gain,contrast,F.warm,F.fill,F.lift,F.even,F.edgeRound,F.edgeSoft].join('|');if(RVC.canvasFrames.has(key))return RVC.canvasFrames.get(key);
+  const cv=document.createElement('canvas');cv.width=Math.max(2,Math.ceil(box[2]));cv.height=Math.max(2,Math.ceil(box[3]));const q=cv.getContext('2d');q.filter=`brightness(${gain}) contrast(${contrast})`;q.drawImage(s.frames[frame],box[0],box[1],box[2],box[3],0,0,cv.width,cv.height);q.filter='none';
+  q.globalCompositeOperation='source-atop';q.globalAlpha=F.even;q.fillStyle=F.fill;q.fillRect(0,0,cv.width,cv.height);q.globalAlpha=F.lift;q.fillStyle='#ffffff';q.fillRect(0,0,cv.width,cv.height);
+  if(F.warm){q.globalAlpha=Math.abs(F.warm)*.6;q.fillStyle=F.warm>0?'#ffd2a1':'#a1ceff';q.fillRect(0,0,cv.width,cv.height);}q.globalAlpha=1;
+  if(mask){const m=document.createElement('canvas');m.width=cv.width;m.height=cv.height;const k=m.getContext('2d');k.translate(m.width/2,m.height/2);k.filter=`blur(${Math.max(1,Math.min(m.width,m.height)*F.edgeSoft*.13)}px)`;k.fillStyle='#ffffff';rvcCanvasPath(k,m.width*.465,m.height*.465,F.edgeRound,frame*.13,.035);k.fill();q.globalCompositeOperation='destination-in';q.drawImage(m,0,0);}
+  RVC.canvasFrames.set(key,cv);while(RVC.canvasFrames.size>160)RVC.canvasFrames.delete(RVC.canvasFrames.keys().next().value);return cv;
+}
+function rvcCanvasStamp(b,F,S,t,piece=false){
+  const s=RVC.srcs[b.src],sp=b.sp,n=s.frames.length,rate=(1+Math.sin(b.off||0)*F.motionVariety*S.cloud_variety)*(b.rate??1)*(s.m.speed||1),pos=((t*s.m.fps*S.cloud_speed*rate+b.off)%n+n)%n,la=Math.floor(pos),lb=(la+1)%n,mix=(pos-la)*F.blend;
+  const {cv,q}=rvcCanvasPool(sp.w+12,sp.h+12);q.translate(cv.width/2,cv.height/2);if(b.flip)q.scale(-1,1);
+  for(const [frame,weight] of [[la,1-mix],[lb,mix]])if(weight>0){q.globalAlpha=weight;q.globalCompositeOperation='lighter';q.drawImage(rvcCanvasFrame(b.src,frame,sp.crop,F,true,piece),-sp.w/2,-sp.h/2,sp.w,sp.h);}q.globalAlpha=1;q.globalCompositeOperation='source-over';if(b.flip)q.scale(-1,1);
+  const part=b.part||b.b?.part,cut=b.cut??b.b?.cut,cutW=b.b?.cutW||0;
+  if(part&&(piece||cutW>0)){
+    const {cv:mask,q:m}=rvcCanvasPool(cv.width,cv.height),nx=b.dir?.[0]??b.nx,ny=b.dir?.[1]??b.ny,ext=(Math.abs(nx)*sp.w+Math.abs(ny)*sp.h)/2,er=piece?(b.erode||0):0;
+    m.translate(mask.width/2+nx*ext*(cut+.38),mask.height/2+ny*ext*(cut+.38));m.rotate(Math.atan2(ny,nx)-Math.PI/2);m.filter=`blur(${Math.max(.5,part[0]*part[3]*.3)}px)`;m.fillStyle='#fff';
+    const remain=1-er*F.pErode*.85;rvcCanvasPath(m,part[0]*part[1]*remain,part[0]*remain,part[2],b.off+t*F.pTurbulenceRate,F.pWisps*.09);m.fill();
+    q.setTransform(1,0,0,1,0,0);q.globalCompositeOperation=piece?'destination-in':'destination-out';q.globalAlpha=piece?1:cutW;q.drawImage(mask,0,0);q.globalAlpha=1;q.globalCompositeOperation='source-over';
+  }
+  return cv;
+}
+function rvcCanvasRender(x,t,S,F,clouds){
+  RVC.poolIndex=0;
+  for(const f of RVC.far){const stamp=rvcCanvasStamp({...f,rate:F.farRate},F,S,t);x.save();x.globalAlpha=f.alpha*S.ambient_opacity;x.filter=F.farBlur?`blur(${F.farBlur}px)`:'none';if(F.farShadow){x.shadowColor=`rgba(0,0,0,${F.farShadow})`;x.shadowBlur=6;x.shadowOffsetX=10;x.shadowOffsetY=16;}x.drawImage(stamp,f.x-stamp.width/2,f.y-stamp.height/2);x.restore();}
+  for(const c of clouds){if(!c.bodySrc)continue;const source=RVC.srcs[c.bodySrc],frame=Math.floor(((t*source.m.fps*S.cloud_speed+c.bodyOff)%source.frames.length+source.frames.length)%source.frames.length),m=source.m;
+    x.save();x.translate(c.cx,c.cy);x.globalAlpha=F.opacity;x.fillStyle=F.fill;x.shadowColor=F.fill;x.shadowBlur=c.feather*.4;rvcCanvasPath(x,c.A,c.B,c.n,c.bodyOff+t*F.outlineSpeed,F.outlineVariety*S.cloud_variety);x.fill();x.shadowBlur=0;x.clip();
+    const ki=Math.max(c.A/Math.max(20,m.bw*.16),c.B/Math.max(20,m.bh*.16))/F.textureDetail,texture=rvcCanvasFrame(c.bodySrc,frame,null,F,false);x.globalAlpha=F.opacity;
+    x.drawImage(texture,-m.body[0]*ki,-m.body[1]*ki,m.w*ki,m.h*ki);x.restore();
+    for(const b of c.bill){const stamp=rvcCanvasStamp(b,F,S,t);x.save();x.globalAlpha=b.alpha*F.opacity;x.drawImage(stamp,b.x-stamp.width/2,b.y-stamp.height/2);x.restore();}
+  }
+  for(const p of RVC.pieces){if(p.alpha<=0)continue;const stamp=rvcCanvasStamp(p,F,S,t,true),gx=p.cx+p.ox,gy=p.cy+p.oy,er=p.erode||0,alpha=p.alpha*F.pieceOpacity*F.opacity*(1-er)*(1-er*F.pDensityLoss);
+    x.save();if(F.pShadow){x.globalAlpha=alpha*F.pShadow;x.filter=`brightness(0) blur(${F.pShadowBlur}px)`;x.drawImage(stamp,gx-stamp.width/2+F.pShadowX,gy-stamp.height/2+F.pShadowY);x.filter='none';}
+    if(p.neck>0){for(let k=1;k<9;k++){const f=k/9,pinch=F.pNeckWidth+(1-F.pNeckWidth)*Math.abs(2*f-1);x.save();x.translate(p.cx+p.ox*f,p.cy+p.oy*f);x.rotate(Math.atan2(p.dir[1],p.dir[0])-Math.PI/2);x.scale(pinch,1);x.rotate(-Math.atan2(p.dir[1],p.dir[0])+Math.PI/2);x.globalAlpha=alpha*p.neck/4;x.drawImage(stamp,-stamp.width/2,-stamp.height/2);x.restore();}}
+    x.globalAlpha=clamp(alpha*F.pDensity,0,1);
+    if(p.state==='free'&&F.pStretch>0){for(let y=0;y<stamp.height;y+=6){const dy=Math.min(6,stamp.height-y),shift=Math.sin(y*.055+t*F.pTurbulenceRate+p.off)*F.pStretch*p.part[0];x.drawImage(stamp,0,y,stamp.width,dy,gx-stamp.width/2+shift,gy-stamp.height/2+y,stamp.width,dy);}}
+    else x.drawImage(stamp,gx-stamp.width/2,gy-stamp.height/2);x.restore();
+  }
+}
 // lay out, animate and draw all message clouds; returns them so the words can be written on top
 function rvcMessages(x, t, S, F, rows, composerTop){
-  rvcLoad(); const dt = RVC.last == null ? 0 : clamp(t - RVC.last, 0, .1); RVC.last = t;
+  rvcLoad(S);x.save(); const dt = RVC.last == null ? 0 : clamp(t - RVC.last, 0, .1); RVC.last = t;
   const ids = RVC_CLIPS.filter(([id, k]) => F[k.slice(3)] !== false && RVC.srcs[id]).map(c => c[0]);
   const sc = x.canvas.width / W, gl = rvcGL(Math.round(W * sc), Math.round(HH * sc));
   if(gl) for(const id of ids) rvcUpload(gl, RVC.srcs[id]);
   const ready = ids.filter(rvcOk);
-  const tfont = `${F.inkWeight} ${F.inkSize}px Roboto, system-ui`; x.font = tfont;
-  const lineH = F.inkSize * F.lineGap, n = clamp(F.round, 2, 8), kse = Math.pow(2, 1 / n), P = S.cloud_padding, out = [], size = clamp(F.billowSize, 16, 120);
-  const rim = size * (F.billowOut + .35);   // how far the billows reach past the base
+  const tfont = `${F.inkWeight} ${F.inkSize}px "${F.inkFont}", system-ui`; x.font = tfont;if('letterSpacing'in x)x.letterSpacing=F.inkSpacing+'px';
+  const lineH = F.inkSize * F.lineGap, n = clamp(F.round, 2, 4.5), kse = Math.pow(2, 1 / n), P = Math.max(12,S.cloud_padding), out = [], size = clamp(F.billowSize, 16, 120);
+  const rim = Math.min(40,size * (F.billowOut*.35+.18)), feather=Math.max(2,Math.min(F.feather,P*.9));
+  const px=P+F.textInsetX+Math.abs(F.inkOffsetX),py=P+F.textInsetY+Math.abs(F.inkOffsetY);
   let yy = composerTop - 12;
   const grow = 1 - Math.exp(-dt * 1000 / Math.max(40, S.cloud_growth_ms) * 3);
-  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], key = who + ':' + k, rnd = rvcRand(key + ':' + (F.seed || 0)), maxTot = Math.min(F.maxWidth, W - 2 * F.margin);
-    const twMax = Math.max(40, 2 * ((maxTot / 2 - rim) / kse - P)), lines = rvWrap(x, txt, twMax), tw = Math.max(...lines.map(l => x.measureText(l).width)), th = lines.length * lineH;
-    const A = Math.max((tw / 2 + P) * kse, F.minWidth / 2 - rim), B = (th / 2 + P) * kse * Math.max(1, F.height / 0.75);
-    const st = RVC.clouds[key] || (RVC.clouds[key] = { list: [], extra: [] }); if(!st.z) st.z = { A: A * .25, B: B * .25 }; st.z.A += (A - st.z.A) * grow; st.z.B += (B - st.z.B) * grow;
-    const br = 1 + Math.sin(t * S.cloud_speed * 1.3 + k) * F.breathe / 100, Az = st.z.A * br, Bz = st.z.B * br, hx = Az + rim, hy = Bz + rim;
-    if(yy - 2 * hy < 92) break;
-    const cx = (who === 'mine' ? W - F.margin - hx : F.margin + hx) + Math.sin(t * .5 * F.bobSpeed + k) * F.sway, cy = yy - hy + Math.sin(t * F.bobSpeed + k * 1.7) * F.bob;
-    const c = { key, k, who, txt, lines, lineH, tfont, A: Az, B: Bz, n, cx, cy, hx, hy, u0: rnd(), bodySrc: null, bodyFlip: rnd() < .5, bodyOff: rnd() * 1000, feather: Math.max(2, Math.min(F.feather, P * 1.4)) };
+  for(let k = rows.length - 1; k >= 0; k--){ const [who, txt] = rows[k], key = who + ':' + k, rnd = rvcRand(key + ':' + (F.seed || 0)), maxTot = Math.max(170,Math.min(F.maxWidth,W-2*F.margin-2*F.sway));
+    const twMax = Math.max(F.inkSize*2,2*((maxTot/2-rim-feather)/kse-px)), lines = rvWrap(x, txt, twMax), tw = Math.max(...lines.map(l => x.measureText(l).width)), th = lines.length * lineH;
+    const safeA=(tw/2+px)*kse+feather,safeB=(th/2+py)*kse+feather;
+    const A = Math.max(safeA,Math.min(F.minWidth,maxTot)/2-rim), B=safeB*Math.max(1,F.height/.75);
+    const st = RVC.clouds[key] || (RVC.clouds[key] = { list: [], extra: [] }); if(!st.z)st.z={A,B};
+    st.z.A += (A-st.z.A)*grow;st.z.B+=(B-st.z.B)*grow;
+    // The dense text-safe core is a lower bound at every frame; growth only animates the surrounding volume.
+    const br=1+(Math.sin(t*S.cloud_speed*F.breatheSpeed+k)+1)*.5*F.breathe/100,Az=Math.max(safeA,st.z.A)*br,Bz=Math.max(safeB,st.z.B)*br,hx=Az+rim,hy=Bz+rim;
+    if(yy-2*hy<92&&out.length)break;
+    const cx=clamp((who==='mine'?W-F.margin-hx:F.margin+hx)+Math.sin(t*F.swaySpeed+k)*F.sway,hx+2,W-hx-2),cy=yy-hy+Math.sin(t*F.bobSpeed+k*F.bobPhase)*F.bob;
+    const vx=dt&&st.position?(cx-st.position.x)/dt:0,vy=dt&&st.position?(cy-st.position.y)/dt:0;st.position={x:cx,y:cy};
+    const c = {key,k,who,txt,lines,lineH,tfont,textW:tw,textH:th,A:Az,B:Bz,n,cx,cy,hx,hy,rim,vx,vy,u0:rnd(),bodySrc:null,bodyFlip:F.flipOk&&rnd()<.5,bodyOff:rnd()*1000,feather};
     c.edge = rvcEdge(Az, Bz, n); if(ready.length){ c.bodySrc = ready[Math.floor(rnd() * ready.length)]; c.bill = rvcBillows(c, F, S, t, ready); }
     out.push(c); yy -= 2 * hy + S.message_spacing; }
   // shadows on the ground
   if(S.cloud_shadow > 0) for(const c of out){ if(!c.bodySrc) continue; x.save(); x.fillStyle = `rgba(0,0,0,${0.35 * S.cloud_shadow})`; x.filter = `blur(${F.shadowBlur}px)`; x.beginPath(); x.ellipse(c.cx + F.shadowX, c.cy + c.hy * F.shadowY * 1.6, c.hx * .72, c.hy * .26, 0, 0, 7); x.fill(); x.restore(); }
-  if(!gl) return out;
+  if(!ready.length){for(const c of out){x.save();x.globalAlpha=F.opacity;x.fillStyle=F.fill;x.beginPath();for(let i=0;i<=128;i++){const a=i/128*Math.PI*2,r=rvcRb(c.A,c.B,c.n,a)*(1+F.outlineVariety*(.55+.25*Math.sin(a*5+c.bodyOff)+.2*Math.sin(a*7+t*F.outlineSpeed)));const xx=c.cx+Math.cos(a)*r,yy=c.cy+Math.sin(a)*r;i?x.lineTo(xx,yy):x.moveTo(xx,yy);}x.closePath();x.shadowColor=F.fill;x.shadowBlur=feather*.6;x.fill();x.restore();c.fallback=true;}x.restore();return out;}
   rvcPieces(t, dt, S, F, out.filter(c => c.bodySrc)); rvcFar(t, dt, S, F, ready);
+  if(!gl){rvcCanvasRender(x,t,S,F,out);x.restore();return out;}
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(RVC.prog);
-  for(const f of RVC.far) rvcDraw(gl, { mode: 3, src: f.src, off: f.off, flip: f.flip, cx: f.x, cy: f.y, sc: f.sp.sc, scale: f.sp.scale, rx: f.x - f.sp.w / 2 - 2, ry: f.y - f.sp.h / 2 - 2, rw: f.sp.w + 4, rh: f.sp.h + 4, alpha: f.alpha * S.ambient_opacity }, F, S, t);
+  for(const f of RVC.far){if(F.farShadow>0){x.save();x.filter='blur(6px)';x.fillStyle=`rgba(0,0,0,${f.alpha*F.farShadow})`;x.beginPath();x.ellipse(f.x+10,f.y+16,f.sp.w*.4,f.sp.h*.2,0,0,Math.PI*2);x.fill();x.restore();}rvcDraw(gl,{mode:3,src:f.src,off:f.off,flip:f.flip,rate:F.farRate,cx:f.x,cy:f.y,sc:f.sp.sc,scale:f.sp.scale,crop:f.sp.crop,rx:f.x-f.sp.w*.56,ry:f.y-f.sp.h*.56,rw:f.sp.w*1.12,rh:f.sp.h*1.12,alpha:f.alpha*S.ambient_opacity},F,S,t);}
+  x.save();x.filter=F.farBlur>0?`blur(${F.farBlur}px)`:'none';x.drawImage(RVC.cv,0,0,W,HH);x.restore();gl.clear(gl.COLOR_BUFFER_BIT);
   for(const c of out){ if(!c.bodySrc) continue;
+    const m = RVC.srcs[c.bodySrc].m, ki = Math.max(c.A / Math.max(20, m.bw * .16), c.B / Math.max(20, m.bh * .16))/F.textureDetail;
+    rvcDraw(gl, { mode: 0, src: c.bodySrc, off: c.bodyOff, flip: c.bodyFlip, cx: c.cx, cy: c.cy, sc: m.body, scale: ki, A: c.A, B: c.B, n: c.n, feather: c.feather, rx: c.cx - c.A*1.14-2, ry: c.cy - c.B*1.14-2, rw: 2.28*c.A+4, rh: 2.28*c.B+4, alpha: F.opacity }, F, S, t);
     for(const b of c.bill){ const ext = (Math.abs(b.nx) * b.sp.w + Math.abs(b.ny) * b.sp.h) / 2;
-      rvcDraw(gl, { mode: 1, src: b.src, off: b.off, flip: b.flip, cx: b.x, cy: b.y, sc: b.sp.sc, scale: b.sp.scale, crop: b.sp.crop, rx: b.x - b.sp.w / 2 - 2, ry: b.y - b.sp.h / 2 - 2, rw: b.sp.w + 4, rh: b.sp.h + 4, alpha: b.alpha * F.opacity, dir: [b.nx, b.ny], ext, cut: b.b.cut, cutW: b.b.cutW }, F, S, t); }
-    const m = RVC.srcs[c.bodySrc].m, ki = Math.max(c.A / Math.max(20, m.bw * .16), c.B / Math.max(20, m.bh * .16));
-    rvcDraw(gl, { mode: 0, src: c.bodySrc, off: c.bodyOff, flip: c.bodyFlip, cx: c.cx, cy: c.cy, sc: m.body, scale: ki, A: c.A, B: c.B, n: c.n, feather: c.feather, rx: c.cx - c.A - 2, ry: c.cy - c.B - 2, rw: 2 * c.A + 4, rh: 2 * c.B + 4, alpha: F.opacity }, F, S, t); }
-  for(const p of RVC.pieces){ const ext = (Math.abs(p.dir[0]) * p.sp.w + Math.abs(p.dir[1]) * p.sp.h) / 2, gx = p.cx + p.ox, gy = p.cy + p.oy, hw = p.sp.w / 2 + 4, hh = p.sp.h / 2 + 4;
-    rvcDraw(gl, { mode: 2, src: p.src, off: p.off, flip: p.flip, cx: p.cx, cy: p.cy, sc: p.sp.sc, scale: p.sp.scale, crop: p.sp.crop, dir: p.dir, ext, cut: p.cut, ox: p.ox, oy: p.oy, neck: p.neck || 0, erode: p.erode, alpha: p.alpha * F.pieceOpacity * F.opacity,
+      rvcDraw(gl, { mode: 1, src: b.src, off: b.off, flip: b.flip, cx: b.x, cy: b.y, sc: b.sp.sc, scale: b.sp.scale, crop: b.sp.crop, rx: b.x - b.sp.w*.56, ry: b.y - b.sp.h*.56, rw: b.sp.w*1.12, rh: b.sp.h*1.12, alpha: b.alpha * F.opacity, dir: [b.nx, b.ny], ext, cut: b.b.cut, cutW: b.b.cutW,part:b.b.part }, F, S, t); }
+  }
+  for(const p of RVC.pieces){ const ext = (Math.abs(p.dir[0]) * p.sp.w + Math.abs(p.dir[1]) * p.sp.h) / 2, gx = p.cx + p.ox, gy = p.cy + p.oy,warpPad=F.pStretch*(p.part?.[0]||0)+4, hw = p.sp.w / 2 + warpPad, hh = p.sp.h / 2 + warpPad;
+    if(F.pShadow>0&&p.alpha>0){x.save();x.filter=`blur(${F.pShadowBlur}px)`;x.fillStyle=`rgba(0,0,0,${p.alpha*(1-p.erode)*F.pShadow})`;x.beginPath();x.ellipse(gx+F.pShadowX,gy+F.pShadowY,p.diam*.4*F.pAspect,p.diam*.18,0,0,Math.PI*2);x.fill();x.restore();}
+    rvcDraw(gl, { mode: 2, src: p.src, off: p.off, flip: p.flip, cx: p.cx, cy: p.cy, sc: p.sp.sc, scale: p.sp.scale, crop: p.sp.crop, dir: p.dir, ext, cut: p.cut, ox: p.ox, oy: p.oy, neck: p.neck || 0, erode: p.erode,part:p.part,warp:p.state==='free'?F.pStretch:0,alpha:p.alpha*F.pieceOpacity*F.opacity,
       rx: Math.min(p.cx, gx) - hw, ry: Math.min(p.cy, gy) - hh, rw: Math.abs(gx - p.cx) + 2 * hw, rh: Math.abs(gy - p.cy) + 2 * hh }, F, S, t); }
   x.drawImage(RVC.cv, 0, 0, W, HH);
-  return out; }
+  x.restore();return out; }
 
 function drawConvo(x, t, S){
   const E = S.earth || {}, clips = (Array.isArray(E.clips) && E.clips.length ? E.clips : RAVEN_CLIPS.map(c => ({ p: c[1], name: c[0], speed: c[2] })));
   x.fillStyle = '#F0DFC0'; x.fillRect(0, 0, W, HH);
-  // 1. the map: whole screen, BoxFit.cover, plays each map to its end, then the next one in your order
+  // 1. The same full-screen map, with reversible source cuts and independent camera / playback controls.
+  if(EARTH_PLAYER) EARTH_PLAYER.draw(x,t,S,{paused:runtimePaused,clips});
+  else {
   const key = clips.map(c => c.p).join('|'); if(key !== RV.key){ RV.key = key; RV.idx = 0; }
   const cur = clips[RV.idx % clips.length];
   for(const v of Object.values(RV.vids)) if(v !== RV.cur && !v.paused) v.pause();
@@ -1329,6 +1506,7 @@ function drawConvo(x, t, S){
     if((v.error || (v.readyState < 2 && performance.now() - RV.since > 12000)) && clips.length > 1){ RV.idx++; }
     const show = v.readyState >= 2 ? v : RV.last && RV.last.readyState >= 2 ? RV.last : null; if(show === v) RV.last = v;
     if(show){ x.save(); x.filter = `brightness(${S.ground_brightness ?? 1})`; cover(x, show, 0, 0, W, HH); x.restore(); } }
+  }
   // water shimmer: the app lights the water using each map's water mask; here a light sweep stands in for it
   if(S.water_shimmer > 0 && !E.night){ x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = S.water_shimmer * .25; const g = x.createLinearGradient(0, 0, W, HH); const ph = (t * .15) % 1; g.addColorStop(Math.max(0, ph - .1), 'rgba(255,255,255,0)'); g.addColorStop(ph, 'rgba(255,255,255,1)'); g.addColorStop(Math.min(1, ph + .1), 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, HH); x.restore(); }
   // 2. dark fade top and bottom (0x90071823 → clear at 18%, clear to 76% → 0xB0071823)
@@ -1339,8 +1517,9 @@ function drawConvo(x, t, S){
   const rows = MSGS.slice(0, n).map(m => m.slice()); if(String(P.draft || '').trim()) rows.push(['mine', String(P.draft), true]);
   // 4. (inside) pieces tear off the clouds' own edges, then drift off, get absorbed, or dissolve
   const clouds = rvcMessages(x, t, S, F, rows, composerTop);
-  for(const c of clouds){ if(!c.bodySrc && RVC.gl !== false) continue; x.save(); x.font = c.tfont; x.fillStyle = F.ink; x.textAlign = 'center'; x.textBaseline = 'middle'; if(F.inkShadow > 0){ x.shadowColor = 'rgba(255,255,255,.9)'; x.shadowBlur = F.inkShadow; }
-    c.lines.forEach((l, i) => x.fillText(l, c.cx, c.cy + 1 + (i - (c.lines.length - 1) / 2) * c.lineH)); x.restore(); }
+  for(const c of clouds){ if(!c.bodySrc && !c.fallback) continue; x.save(); x.font = c.tfont; x.fillStyle = F.ink; x.textAlign = F.inkAlign; x.textBaseline = 'middle';if('letterSpacing'in x)x.letterSpacing=F.inkSpacing+'px';if(F.inkShadow>0){x.shadowColor=F.inkShadowColor;x.shadowBlur=F.inkShadow;}
+    const textX=c.cx+F.inkOffsetX+(F.inkAlign==='left'?-c.textW/2:F.inkAlign==='right'?c.textW/2:0);
+    c.lines.forEach((l,i)=>x.fillText(l,textX,c.cy+F.inkOffsetY+(i-(c.lines.length-1)/2)*c.lineH));x.restore(); }
   if(!n && !String(P.draft || '').trim()) rvShadowText(x, 'Write a message.', W / 2, HH * .45, '16px system-ui', '#fff', 'center'), rvShadowText(x, 'Watch your cloud form.', W / 2, HH * .45 + 26, '16px system-ui', '#fff', 'center');
   x.textAlign = 'left'; x.textBaseline = 'alphabetic';
   // 5. header: back arrow, name, save contact, scene controls (only you), refresh
@@ -1366,14 +1545,54 @@ function drawHeimdall(x, t, S, since){
   if(ok(moon)){ const mwid = W * Mo.size; x.save(); x.filter = `brightness(${Mo.bright})`; x.beginPath(); x.ellipse(W / 2, moonY + mwid * 0.42, mwid / 2, mwid * 0.42, 0, Math.PI, 2 * Math.PI); x.lineTo(W, HH); x.lineTo(0, HH); x.closePath(); x.clip(); cover(x, moon, W / 2 - mwid / 2, moonY, mwid, mwid * 0.84); x.fillStyle = '#000'; x.fillRect(0, moonY + mwid * 0.84, W, HH); x.restore(); }
 }
 
+async function flushCloudEditor(){
+ if(RUNTIME||STATE.sec!=='cloudvid')return;const editor=document.querySelector('#panel iframe[title="Cloud footage editor"]')?.contentWindow?.AsgardWorkspaceEditor;if(!editor)return;
+ if(cloudEditorFlush?.editor===editor)return cloudEditorFlush.promise;
+ const pending={editor,promise:null};pending.promise=(async()=>{await editor.ready;await editor.save();})();cloudEditorFlush=pending;
+ try{await pending.promise;}finally{if(cloudEditorFlush===pending)cloudEditorFlush=null;}
+}
 async function savePageNow(){
  if(RUNTIME)return;
+ await flushCloudEditor();
  if(ROCK_NAV.edits.size||ROCK_NAV.saving)await AsgardStudioLayout.saveNavigation(ROCK_NAV);
- if(!STATE.S)return;const page=STATE.page,snapshot=deep(STATE.S);clearTimeout(saveTimers.get(page));rememberPage();
- localStorage.setItem('asgard-'+docId(page),JSON.stringify(snapshot));
- const r=await fetch(SB.url+'/rest/v1/studio_designs?on_conflict=id',{method:'POST',headers:H({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:docId(page),page,data:snapshot,updated_by:'studio',updated_at:new Date().toISOString()})});
- $('#saveState').textContent=r.ok?'● All changes saved':'● Shared save failed';if(!r.ok)throw Error('Save failed');
+ if(!STATE.S)return;StudioWorkspaceCore.enforceLocks(STATE.S);const page=STATE.page,snapshot=deep(STATE.S),notice=++pageSaveNotice;clearTimeout(saveTimers.get(page));rememberPage();
+ try{await sharedPages.save(docId(page),page,snapshot);if(notice===pageSaveNotice)$('#saveState').textContent='● All changes saved';}
+ catch(e){$('#saveState').textContent='● Kept locally · shared save needs attention';StudioWorkbench?.status(e.message,true);throw e;}
 }
+// Prepared footage is explicitly assigned by the embedded editor, then saved with the same version guard.
+function rollbackCloudSource(change){
+ if(!change||STATE.S!==change.document||cloudSourceAssignments.get(change.document)?.get(change.slot)!==change)return false;
+ const sources=change.document.fx?.cloudSources||{},present=Object.prototype.hasOwnProperty.call(sources,change.slot);
+ if(present!==change.assignedPresent||sources[change.slot]!==change.assigned||JSON.stringify(sources[change.slot])!==change.signature)return false;
+ const restore=document=>{if(change.had)set(document,change.path,deep(change.previous));else if(document.fx?.cloudSources)delete document.fx.cloudSources[change.slot];};
+ restore(change.document);
+ const history=editHistory.get(change.page);
+ for(const snapshot of history?.items||[]){if(change.historyEntries.has(snapshot))continue;const value=get(snapshot,change.path),exists=Object.prototype.hasOwnProperty.call(snapshot.fx?.cloudSources||{},change.slot);if(exists===change.assignedPresent&&JSON.stringify(value)===change.signature)restore(snapshot);}
+ // A pending autosave captured the rejected source. Keep other edits locally with the corrected assignment.
+ clearTimeout(saveTimers.get(change.page));saveTimers.delete(change.page);
+ try{localStorage.setItem('asgard-'+docId(change.page),JSON.stringify(change.document));}catch{}
+ return true;
+}
+window.addEventListener('message',async event=>{
+ const m=event.data,frame=document.querySelector('#panel iframe[title="Cloud footage editor"]');
+ if(RUNTIME||STATE.page!=='convo'||event.origin!==location.origin||event.source!==frame?.contentWindow||m?.type!=='studio-cloud-source')return;
+ const reply=(ok,message)=>event.source.postMessage({type:'studio-cloud-source-result',requestId:m.requestId,ok,message},event.origin);
+ let change=null;try{
+  if(!['kling-0','klingb-0','c123-0','c258-0'].includes(m.slot))throw Error('Choose one of the four message cloud sources.');
+  const a=m.asset,path='fx.cloudSources.'+m.slot,locks=STATE.S._studioEditor?.locks||{};
+  if(Object.keys(locks).some(k=>path===k||path.startsWith(k+'.')||k.startsWith(path+'.')))throw Error('This source is locked. Unlock it in the message cloud settings first.');
+  let assigned;if(a!==null){
+   const url=new URL(a?.url||'',location.href);if(url.origin!==new URL(SB.url).origin||!/^\/storage\/v1\/object\/public\/(studio-published-media|studio|asgard_ui)\//.test(url.pathname)||!url.pathname.toLowerCase().endsWith('.webp'))throw Error('Choose a prepared cloud from the shared studio.');
+   for(const key of ['width','height','frames','fps','speed'])if(!Number.isFinite(+a[key]))throw Error('The prepared cloud is missing its playback details.');
+   if(a.width<1||a.width>4096||a.height<1||a.height>4096||a.frames<1||a.frames>600||a.fps<=0||a.fps>60||a.speed<.1||a.speed>3)throw Error('The prepared cloud dimensions or playback rate are outside the supported range.');
+   assigned={url:url.href,width:+a.width,height:+a.height,frames:+a.frames,fps:+a.fps,speed:+a.speed};
+  }
+  change={document:STATE.S,page:STATE.page,slot:m.slot,path,had:Object.prototype.hasOwnProperty.call(STATE.S.fx?.cloudSources||{},m.slot),previous:get(STATE.S,path),assigned,assignedPresent:a!==null,signature:JSON.stringify(assigned),historyEntries:new Set(editHistory.get(STATE.page)?.items||[])};
+  let assignments=cloudSourceAssignments.get(STATE.S);if(!assignments){assignments=new Map();cloudSourceAssignments.set(STATE.S,assignments);}assignments.set(m.slot,change);
+  if(a!==null)set(STATE.S,path,assigned);else if(STATE.S.fx.cloudSources)delete STATE.S.fx.cloudSources[m.slot];
+  await savePageNow();reply(true,a===null?'Original cloud source restored.':'Prepared footage is saved and playing on the message clouds.');
+ }catch(e){rollbackCloudSource(change);reply(false,e.message);}
+});
 // Runtime capabilities are explicit: a visual preview does not imply app behavior.
 const RUNTIME_BINDINGS={heimdall:['real notification events','notification actions'],home:['feed data','post actions'],convo:['original Dart cloud conversation','authenticated messaging'],share:['selected post','real favorites','share action'],swap:['real listings','seller data','offer and buy actions'],ads:['approved ads','ad actions'],shoppost:['selected post','tagged products','purchase actions'],deals:['active deals','deal actions'],track:['real orders','tracking screen']};
 function runtimeNeedsBinding(){return !!RUNTIME_BINDINGS[STATE.page];}
@@ -1434,7 +1653,7 @@ if(RUNTIME){
     if(a&&a.type==='navigate'&&parent!==window){parent.postMessage({type:'studio-open',target:a.target,storeId:a.storeId||'',pageType:a.pageType||''},location.origin);return;}
     if(a&&a.type==='navigate'&&a.target==='store'&&a.storeId){location.href='pages.html?page=store&store='+encodeURIComponent(a.storeId);return;}}const items=(P.sections||[]).map(sec=>({id:sec.id,name:sec.name,sub:sec.sub}));
    document.querySelector('.canvas-pick')?.remove();const m=document.createElement('div');m.className='canvas-pick';m.style.left=Math.max(4,Math.min(e.clientX,innerWidth-260))+'px';m.style.top=Math.max(4,Math.min(e.clientY,innerHeight-50-items.length*46))+'px';const h=document.createElement('div');h.className='canvas-pick-title';h.textContent='Edit what is here';m.append(h);
-   for(const it of items){const b=document.createElement('button');b.type='button';const bb=document.createElement('b');bb.textContent=it.name;const sm=document.createElement('small');sm.textContent=it.sub||'';b.append(bb,sm);b.onclick=()=>{m.remove();STATE.sec=it.id;nav();panel();};m.append(b);}
+   for(const it of items){const b=document.createElement('button');b.type='button';const bb=document.createElement('b');bb.textContent=it.name;const sm=document.createElement('small');sm.textContent=it.sub||'';b.append(bb,sm);b.onclick=async()=>{if(await selectFeature(it.id))m.remove();};m.append(b);}
    document.body.append(m);setTimeout(()=>document.addEventListener('pointerdown',function off(ev){if(!m.contains(ev.target)){m.remove();document.removeEventListener('pointerdown',off,true);}},true),0);});
  }
  {const t=document.querySelector('.ctitle');if(t){const l=document.createElement('label');l.className='phone-size-control preview-motion';l.title='Off: the preview stays still and you scroll it by dragging or with the mouse wheel. On: lists and feeds scroll by themselves.';const c=document.createElement('input');c.type='checkbox';c.checked=PREVIEW_MOTION;c.onchange=()=>{PREVIEW_MOTION=c.checked;STORE.scroll=0;try{localStorage.setItem('asgard-preview-motion',c.checked?'1':'0');}catch(e){}};l.append(c,document.createTextNode(' Auto-scroll preview'));t.append(l);}}
@@ -1443,7 +1662,7 @@ if(RUNTIME){
  function wbDocument(){return STATE.sec==='rocks'?ROCK_NAV.S:STATE.S;}
  function wbPath(path){if(path.startsWith('_studioLayers.')&&STATE.sec==='design'){const id=PAGE_TOOLS.selectedId?.(),i=STATE.S._studioLayers?.findIndex(l=>l.id===id);return i>=0?'_studioLayers.'+i+'.'+path.slice(14):null;}return path;}
  StudioWorkbench.mount({document:wbDocument,path:wbPath,read:p=>StudioWorkspaceCore.get(wbDocument(),p),navigation:()=>ROCK_NAV.S,save:async()=>{if(STATE.sec==='rocks')ROCK_NAV.edits.set('_studioEditor',deep(ROCK_NAV.S._studioEditor));await savePageNow();},restore:async(doc,nav)=>{if(STATE.sec==='rocks')ROCK_NAV.applyState(StudioWorkspaceCore.preserveLocks(ROCK_NAV.S,doc));else {STATE.S=StudioWorkspaceCore.preserveLocks(STATE.S,doc);if(nav)ROCK_NAV.applyState(StudioWorkspaceCore.preserveLocks(ROCK_NAV.S,nav));panel();}}});
- window.AsgardWorkspaceEditor={ready:editorReady,save:savePageNow,feature(id){if(!STATE.S)return;if(PAGES[STATE.page].sections.some(s=>s.id===id)){STATE.sec=id;nav();panel();}},topic:AsgardStudioLayout.select};
+ window.AsgardWorkspaceEditor={ready:editorReady,save:savePageNow,feature:selectFeature,topic:AsgardStudioLayout.select};
  window.AsgardPageEditor={snapshot:()=>({schemaVersion:1,designId:docId(STATE.page),page:STATE.page,storeId:STATE.page==='store'?STORE.id:null,pageType:STATE.page==='browse'?BROWSE.type:null,settings:deep(STATE.S),navigation:deep(ROCK_NAV.S),bindingContract:{version:1}}),save:savePageNow,descriptor:runtimeDescriptor,referencedAssets};
  if(window.StudioTransfer)StudioTransfer.mount(window.AsgardPageEditor);
 }
