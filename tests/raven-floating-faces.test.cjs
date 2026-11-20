@@ -38,4 +38,30 @@ test('tier 2 retains a curved reflection under its saved gas and does not change
  assert.equal(proxy.disk,0);assert.equal(proxy.lens,0);assert.equal(proxy.faceAmt,.85);assert.equal(proxy.x,q.look.x);assert.equal(proxy.size,q.r);
  assert.equal(JSON.stringify(saved),original);assert.equal(at(0)[3].look.diskOpacity,.08);
 });
+test('the full directory bridge loads portraits, renders all tiers and preserves the face under tier-2 gas',async()=>{
+ let frame=0,engine,referenceCalls=[],errors=[];
+ const noop=()=>{},context2d=new Proxy({}, {get:(o,k)=>{
+  if(k==='getImageData')return()=>({data:new Uint8ClampedArray(78*169*4)});
+  return o[k]??noop;
+ },set:(o,k,v)=>(o[k]=v,true)});
+ const canvas=()=>({width:0,height:0,getContext:()=>context2d});
+ class Portrait {constructor(){this.complete=true;this.naturalWidth=512;this.width=512;this.height=512;}}
+ class Engine {constructor(c){this.canvas=c;this.faces=[];engine=this;this.frames=0;}resize(W,H){this.canvas.width=W;this.canvas.height=H;}setBackground(){} _uploadFaces(){this.uploaded=this.faces.map(f=>f?.src||null);}render(){this.frames++;for(const h of this.holes)assert.ok(h.surfaceLight.every(Number.isFinite));}}
+ const k={W:390,H:844,TAU:Math.PI*2,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),status:e=>errors.push(e),frameId:()=>frame,shadowBlurFor:()=>0,drawBackground:noop,readSavedDesign:async()=>({holes:JSON.parse(JSON.stringify(saved))})};
+ const win={StudioKit:k,BH:{...w.BH,BHScene:Engine},AsgardModelPreview:w.AsgardModelPreview,AsgardVariants:w.AsgardVariants,AsgardReference:{ReferenceHole:class {draw(...args){referenceCalls.push(args);}}}};
+ const c=vm.createContext({window:win,Image:Portrait,document:{createElement:canvas}});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../raven-tiers-1120.js'),'utf8'),c);
+ const bridge=win.RavenSavedTiers;await bridge.load();
+ const p={...params,'hh.faces':true,'hh.faceBright':.9,'hh.names':true,'hh.nameSize':13,'hh.nameColor':'#fff'},g={...geometry,cx:164};
+ for(frame=1;frame<=8;frame++){assert.equal(bridge.draw(context2d,p,g,frame/60).length,4);bridge.draw(context2d,p,g,frame/60);}
+ assert.deepEqual(errors,[]);assert.equal(engine.frames,8);assert.equal(referenceCalls.length,8);
+ assert.deepEqual(Array.from(engine.uploaded),['faces/Baldr.jpg','faces/Freya.jpg','faces/Loki.jpg','faces/Hel.jpg']);
+ assert.equal(engine.refl.on,true);assert.equal(engine.refl.bright,.9);
+ assert.equal(referenceCalls[0][2].faceWindow,true);assert.equal(referenceCalls[0][1],engine.canvas);
+ frame++;bridge.draw(context2d,{...p,'hh.faces':false},g,frame/60);
+ assert.ok(engine.holes.every(h=>h.faceAmt===0));assert.ok(engine.uploaded.every(f=>f===null));
+ assert.equal(referenceCalls.at(-1)[2].faceWindow,false);
+ frame++;bridge.draw(context2d,{...p,'hh.face3':'Saga'},g,frame/60);
+ assert.equal(engine.uploaded[2],'faces/Saga.jpg');assert.deepEqual(errors,[]);
+});
 

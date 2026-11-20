@@ -124,7 +124,7 @@
         engine.holes.forEach((h, i) => {
           const next = window.BH.surfaceLighting(h, engine.holes, pixels, W, H, settings.rule || {});
           next.surfaceLight[3] *= finite(p['hh.faceLight'], 1);
-          const current = window.BH.settleLighting(lighting.get(poses[i].tier), next, dt);
+          const current = window.BH.settleLighting(next, lighting.get(poses[i].tier), dt);
           lighting.set(poses[i].tier, current);
           h.surfaceLight = current.surfaceLight; h.surfaceColor = current.surfaceColor;
         });
