@@ -21,6 +21,130 @@ const NAME_STYLES = [[0, 'Regular'], [1, 'Bold'], [2, 'Italic'], [3, 'Bold itali
 const ST = { scroll: 0, entry: 0, velocity: 0, settle: null, dragging: false, spinPhase: 0, time: 0, down: null, lastY: 0, lastT: 0, vy: 0, moved: 0 };
 let G = { items: [], tabs: [], names: [] };
 
+
+/* ---------- YOUR SPHERE (SphereGL from your studio, with your saved settings) ---------- */
+class SphereGL {
+  constructor() {
+    const c = this.c = document.createElement('canvas'); const gl = this.gl = c.getContext('webgl2', { premultipliedAlpha: true, alpha: true }); if (!gl) return;
+    const vs = `#version 300 es
+in vec2 a; out vec2 v; void main(){ v=a; gl_Position=vec4(a,0.,1.); }`;
+    const fs = `#version 300 es
+precision highp float; in vec2 v; out vec4 o;
+uniform sampler2D T; uniform float uSpin, uTilt, uRepeat, uAmb, uTint, uRim, uLimb, uBody; uniform vec3 uTintC, uRimC; uniform vec4 uTop; uniform vec3 uTopC;
+void main(){
+  vec2 p = vec2(v.x, -v.y); float r2 = dot(p,p); if(r2>1.){ o=vec4(0); return; }
+  vec3 n = vec3(p.x, -p.y, sqrt(1.-r2));
+  float ct=cos(uTilt), st=sin(uTilt); vec3 q = vec3(n.x*ct + n.y*st, -n.x*st + n.y*ct, n.z);
+  float lon = atan(q.x, q.z) + uSpin; float lat = asin(clamp(q.y,-1.,1.));
+  vec2 uv = vec2(lon/6.2831853, 0.5 - lat/3.1415926) * vec2(uRepeat*2., uRepeat);
+  vec3 tex = texture(T, fract(uv)).rgb;
+  if(uTint > 0.5){ float l = dot(tex, vec3(.3,.59,.11)); tex = uTintC * l * 1.6; }
+  vec3 light = vec3(uAmb);
+  { vec3 ld = normalize(vec3(uTop.w, 1., uTop.z)); float t = max(dot(n, ld), 0.); light += uTopC * pow(t, uTop.y) * uTop.x; }
+  float limb = mix(1., pow(n.z, .6), uLimb);
+  vec3 col = tex * light * limb;
+  float rim = pow(1.-n.z, 3.) * uRim; col += uRimC * rim;
+  float edge = smoothstep(1., .985, sqrt(r2));
+  float al = clamp(max(uBody, max(col.r, max(col.g, col.b))), 0., 1.) * edge;
+  o = vec4(col*edge, al);
+}`;
+    const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+    const pr = this.p = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
+    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const l = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
+    this.u = {}; for (const k of ['T', 'uSpin', 'uTilt', 'uRepeat', 'uAmb', 'uTint', 'uRim', 'uLimb', 'uBody', 'uTintC', 'uRimC', 'uTop', 'uTopC']) this.u[k] = gl.getUniformLocation(pr, k);
+    this.t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, this.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  }
+  setTexture(img) { const gl = this.gl; if (!gl || img === this.img) return; this.img = img; gl.bindTexture(gl.TEXTURE_2D, this.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D); }
+  render(sizePx, time) {
+    const gl = this.gl; if (!gl) return null; const n = Math.max(2, Math.round(sizePx)); if (this.c.width !== n) { this.c.width = n; this.c.height = n; }
+    gl.viewport(0, 0, n, n); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(this.p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.t); gl.uniform1i(this.u.T, 0);
+    const h3 = c => { const v = rgb(c); return [v[0] / 255, v[1] / 255, v[2] / 255]; };
+    gl.uniform1f(this.u.uSpin, time * P['sb.spin'] * .6); gl.uniform1f(this.u.uTilt, P['sb.tilt'] * D2R); gl.uniform1f(this.u.uRepeat, P['sb.repeat']); gl.uniform1f(this.u.uAmb, P['sb.ambient']);
+    gl.uniform1f(this.u.uTint, P['sb.tint'] ? 1 : 0); gl.uniform3fv(this.u.uTintC, h3(P['sb.tintColor'])); gl.uniform1f(this.u.uRim, P['sb.rimLight']); gl.uniform3fv(this.u.uRimC, h3(P['sb.rim'])); gl.uniform1f(this.u.uLimb, P['sb.limb']); gl.uniform1f(this.u.uBody, P['sb.body']);
+    gl.uniform4f(this.u.uTop, P['sb.topLight'], P['sb.topSharp'], P['sb.topToward'], P['sb.topSide']); gl.uniform3fv(this.u.uTopC, h3(P['sb.topColor']));
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return this.c;
+  }
+}
+const SPH_TEX = { red: (() => { const i = new Image(); i.src = 'ui/sphere_red.jpg'; return i; })(), teal: (() => { const i = new Image(); i.src = 'ui/sphere_teal.jpg'; return i; })() };
+let SPH = null;
+function drawSphereBody(ctx, g) {
+  if (!P['sb.on']) return; if (!SPH) { try { SPH = new SphereGL(); } catch (e) { console.warn(e); SPH = { render: () => null, setTexture() {} }; } }
+  const tex = SPH_TEX[P['sb.texture']] || SPH_TEX.red; if (tex.complete && tex.naturalWidth) SPH.setTexture(tex);
+  const cv = SPH.render(2 * g.radius * Math.min(2.5, scaleOf(ctx)), ST.time); if (cv) ctx.drawImage(cv, g.cx - g.radius, g.cy - g.radius, g.radius * 2, g.radius * 2);
+}
+
+/* ---------- STREAMER BLACK HOLES UP TOP (_RvCosmicHeader, sphere view) bending the see-through background ---------- */
+const HOLE_ART = [0, 1].map(i => { const im = new Image(); im.src = 'raven/hole' + i + '.webp'; return im; });
+const LIVE = ['Baldr', 'Saga', 'Tyr', 'Vidar', 'Sif', 'Idun', 'Skadi', 'Loki', 'Ullr', 'Eir', 'Freya', 'Bragi'];
+const DEMO_SECONDS = 20;
+const winF = (t, a, b, f) => smooth((t - a) / f) * (1 - smooth((t - b + f) / f));
+function periodic(pts, phase) { const q = (((phase % 1) + 1) % 1) * pts.length, i = Math.floor(q), u = q - i, p = j => pts[((j % pts.length) + pts.length) % pts.length], a = p(i - 1), b = p(i), c = p(i + 1), d = p(i + 2); return [0, 1].map(k => (b[k] * 2 + (c[k] - a[k]) * u + (a[k] * 2 - b[k] * 5 + c[k] * 4 - d[k]) * u * u + (-a[k] + b[k] * 3 - c[k] * 3 + d[k]) * u * u * u) * .5); }
+function holePoses(W, H, g, seconds) {
+  const t = seconds % DEMO_SECONDS, bottom = g.cy - g.radius, top = Math.max(P['hh.top'] + 44, 65), low = Math.max(top + 70, bottom - 38), scale = clamp(W / 390, .7, 1.3) * P['hh.size'];
+  const project = q => [q[0] * W, top + q[1] * (low - top)], travel = seconds / 160 * P['hh.speed'];
+  const primary = project([.48 + .065 * Math.sin(seconds * .045), .94 + .04 * Math.sin(TAU * (seconds - 5) / 20)]);
+  const angle = TAU * seconds / 40, ecc = .22; let E = angle; for (let j = 0; j < 5; j++) E -= (E - ecc * Math.sin(E) - angle) / (1 - ecc * Math.cos(E));
+  const sep = P['hh.pairGap'] * scale, orbit = [(Math.cos(E) - ecc) * sep, Math.sin(E) * sep * .75];
+  const large = [primary[0] - orbit[0] * .13, primary[1] - orbit[1] * .13], small = [primary[0] + orbit[0] * .87, primary[1] + orbit[1] * .87];
+  const sling = project(periodic([[.85, .13], [.73, .27], [.55, .78], [.20, .91], [.12, .48], [.31, .25], [.68, .40], [.84, .65]], travel));
+  const fling = winF(t, 16, 20, 1.5), fly = [W * .50 + g.radius * .78 + 4 * Math.sin(seconds * .13), g.cy - g.radius * .66 + fling * 9];
+  const name = i => i < LIVE.length ? LIVE[i] : '';
+  const out = [{ name: name(0), c: large, r: 22 * scale, kind: 1 }, { name: name(1), c: small, r: 11 * scale, kind: 0 }, { name: name(2), c: sling, r: 30 * scale, kind: 0 }, { name: name(3), c: fly, r: 9 * scale, kind: 1, behind: t > 16 && t < 20 }];
+  const more = Math.round(P['hh.extra']);
+  for (let i = 4; i < Math.min(LIVE.length, 4 + more); i++) { const q = TAU * (seconds / 180 + i * .137); out.push({ name: LIVE[i], c: [W * (.5 + .60 * Math.cos(q)), top + (low - top) * (.22 + .12 * Math.sin(q * 2))], r: (12 + (i % 3) * 4) * scale, kind: i % 2 }); }
+  const excess = Math.max(out[0].c[1] - (bottom - out[0].r - 34), out[1].c[1] - (bottom - out[1].r - 34)), shift = (excess + Math.sqrt(excess * excess + 36)) * .5;
+  out[0].c = [out[0].c[0], out[0].c[1] - shift]; out[1].c = [out[1].c[0], out[1].c[1] - shift];
+  return out;
+}
+const HPR = 2; let hgl = null, hglc = null, hprog = null, htex = null, hbad = false, hsnap = null;
+function holeLens(W, H, holes) {
+  if (hbad) return null;
+  if (!hgl) { hglc = document.createElement('canvas'); hgl = hglc.getContext('webgl', { premultipliedAlpha: true, alpha: true }); if (!hgl) { hbad = true; return null; }
+    const vs = 'attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+    const fs = `precision highp float;varying vec2 v;uniform sampler2D sky;uniform vec2 size;uniform int n;uniform vec4 L[12];uniform float reach,ein;
+    void main(){vec2 q=v*size;vec4 col=vec4(0.);
+    for(int i=0;i<12;i++){if(i>=n)break;vec2 c=L[i].xy;float r=L[i].z;if(r<2.)continue;vec2 d=q-c;float rho=length(d);float ro=r*reach;
+     if(rho>=r*.92&&rho<=ro){float u=(rho-r)/(ro-r);float fade=1.-clamp(u,0.,1.)*clamp(u,0.,1.)*(3.-2.*clamp(u,0.,1.));float e=r*ein*L[i].w;float beta=rho-(e*e/max(rho,1.))*fade;
+      vec2 s=c+normalize(d)*beta;vec2 uv=s/size;uv=1.-abs(1.-mod(uv,2.));col=vec4(texture2D(sky,uv).rgb,1.);}}
+    gl_FragColor=col;}`;
+    const sh = (t, src) => { const s = hgl.createShader(t); hgl.shaderSource(s, src); hgl.compileShader(s); if (!hgl.getShaderParameter(s, hgl.COMPILE_STATUS)) throw new Error(hgl.getShaderInfoLog(s)); return s; };
+    try { hprog = hgl.createProgram(); hgl.attachShader(hprog, sh(hgl.VERTEX_SHADER, vs)); hgl.attachShader(hprog, sh(hgl.FRAGMENT_SHADER, fs)); hgl.linkProgram(hprog); hgl.useProgram(hprog); } catch (e) { console.warn(e); hbad = true; return null; }
+    const b = hgl.createBuffer(); hgl.bindBuffer(hgl.ARRAY_BUFFER, b); hgl.bufferData(hgl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), hgl.STATIC_DRAW); const loc = hgl.getAttribLocation(hprog, 'p'); hgl.enableVertexAttribArray(loc); hgl.vertexAttribPointer(loc, 2, hgl.FLOAT, false, 0, 0);
+    htex = hgl.createTexture(); hgl.bindTexture(hgl.TEXTURE_2D, htex); [hgl.TEXTURE_MIN_FILTER, hgl.TEXTURE_MAG_FILTER].forEach(k => hgl.texParameteri(hgl.TEXTURE_2D, k, hgl.LINEAR)); [hgl.TEXTURE_WRAP_S, hgl.TEXTURE_WRAP_T].forEach(k => hgl.texParameteri(hgl.TEXTURE_2D, k, hgl.CLAMP_TO_EDGE));
+    hsnap = document.createElement('canvas'); }
+  const SW = Math.round(W * HPR / 2), SH = Math.round(H * HPR / 2); if (hsnap.width !== SW || hsnap.height !== SH) { hsnap.width = SW; hsnap.height = SH; }
+  const sx = hsnap.getContext('2d'); sx.setTransform(SW / W, 0, 0, SH / H, 0, 0); sx.filter = 'none'; K.drawBackground(sx, P);
+  const CW = Math.round(W * HPR), CH = Math.round(H * HPR); if (hglc.width !== CW || hglc.height !== CH) { hglc.width = CW; hglc.height = CH; }
+  hgl.viewport(0, 0, CW, CH); hgl.clearColor(0, 0, 0, 0); hgl.clear(hgl.COLOR_BUFFER_BIT); hgl.useProgram(hprog);
+  hgl.bindTexture(hgl.TEXTURE_2D, htex); hgl.texImage2D(hgl.TEXTURE_2D, 0, hgl.RGBA, hgl.RGBA, hgl.UNSIGNED_BYTE, hsnap);
+  const arr = new Float32Array(48); const hs = holes.slice(0, 12); hs.forEach((h, i) => arr.set([h.c[0], h.c[1], h.r, h.s || 1], i * 4));
+  hgl.uniform4fv(hgl.getUniformLocation(hprog, 'L'), arr); hgl.uniform1i(hgl.getUniformLocation(hprog, 'n'), hs.length); hgl.uniform2f(hgl.getUniformLocation(hprog, 'size'), W, H);
+  hgl.uniform1f(hgl.getUniformLocation(hprog, 'reach'), P['hh.reach']); hgl.uniform1f(hgl.getUniformLocation(hprog, 'ein'), P['hh.bend']);
+  hgl.drawArrays(hgl.TRIANGLE_STRIP, 0, 4); return hglc;
+}
+function drawHoles(ctx, g) {
+  if (!P['hh.on']) { G.holes = []; return; }
+  const W = K.W, H = K.H, seconds = ST.time, t = seconds % DEMO_SECONDS, holes = holePoses(W, H, g, seconds).filter(h => h.c[0] > -100 && h.c[0] < W + 100); G.holes = holes;
+  const outsideSphere = () => { ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(g.cx, g.cy, g.radius, 0, TAU, true); ctx.clip('evenodd'); };
+  if (P['hh.lens'] && P['bg.mode'] !== 'plain') { const out = holeLens(W, H, holes); if (out) { ctx.save(); outsideSphere(); ctx.drawImage(out, 0, 0, W, H); ctx.restore(); } }
+  // space ripples from the pair (10–16 s), outside the sphere
+  if (P['hh.ripples'] && holes.length >= 2 && t >= 10 && t < 16) { const o = [(holes[0].c[0] + holes[1].c[0]) / 2, (holes[0].c[1] + holes[1].c[1]) / 2]; ctx.save(); outsideSphere();
+    for (let j = 0; j < 3; j++) { const age = t - 10 - j * .65; if (age < 0) continue; const r = age * 58 + 8, a = smooth(age / .25) * clamp(1 - age / 6, 0, 1) * .5; ctx.beginPath(); for (let k = 0; k <= 120; k++) { const an = TAU * k / 120, wb = 1 + .025 * Math.sin(an * 4 - t * 2), x = o[0] + Math.cos(an) * r * wb, y = o[1] + Math.sin(an) * r * .7 * wb; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.save(); ctx.filter = `blur(${(4 * scaleOf(ctx)).toFixed(1)}px)`; ctx.lineWidth = 5; ctx.strokeStyle = `rgba(113,200,244,${a * .22})`; ctx.stroke(); ctx.restore(); ctx.lineWidth = .8; ctx.strokeStyle = `rgba(179,232,255,${a})`; ctx.stroke(); }
+    ctx.restore(); }
+  // the bridge of light between the pair (7–15 s)
+  if (P['hh.bridge'] && holes.length >= 2) { const op = winF(t, 7, 15, 2); if (op > 0) { const a = holes[0], b = holes[1], dx = b.c[0] - a.c[0], dy = b.c[1] - a.c[1], d = Math.hypot(dx, dy) || 1, ax = dx / d, ay = dy / d, nx = -ay, ny = ax, st = [a.c[0] + ax * a.r * .95, a.c[1] + ay * a.r * .95], en = [b.c[0] - ax * b.r * .95, b.c[1] - ay * b.r * .95], m = [(st[0] + en[0]) / 2 + nx * Math.sin(t * 2) * 5, (st[1] + en[1]) / 2 + ny * Math.sin(t * 2) * 5], col = mix('#FFCB80', '#94E8FF', .55);
+    for (const w of [9, 3, .85]) { ctx.save(); ctx.lineCap = 'round'; ctx.filter = `blur(${((w > 5 ? 5 : .5) * scaleOf(ctx)).toFixed(1)}px)`; ctx.lineWidth = w; ctx.strokeStyle = rgba(col, op * (w > 5 ? .12 : w > 1 ? .35 : .9)); ctx.beginPath(); ctx.moveTo(st[0], st[1]); ctx.quadraticCurveTo(m[0], m[1], en[0], en[1]); ctx.stroke(); ctx.restore(); } } }
+  for (const h of holes) {
+    const im = HOLE_ART[h.kind]; ctx.save(); if (h.behind) outsideSphere();
+    if (im.complete && im.naturalWidth) { const w = h.r * (h.kind === 0 ? 3.78 : 7.0), hh = w * im.naturalHeight / im.naturalWidth; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(h.c[0], h.c[1], h.r * .92, 0, TAU); ctx.fill(); ctx.globalCompositeOperation = 'screen'; ctx.drawImage(im, h.c[0] - w / 2, h.c[1] - hh / 2, w, hh); }
+    ctx.restore();
+  }
+  if (P['hh.names']) { ctx.font = `500 ${P['hh.nameSize']}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; for (const h of holes) { if (!h.name || h.behind) continue; ctx.save(); ctx.shadowColor = '#000'; ctx.shadowBlur = K.shadowBlurFor(ctx, 5); ctx.fillStyle = P['hh.nameColor']; ctx.fillText(h.name, h.c[0], h.c[1] + h.r + 13); ctx.restore(); } }
+}
+
 /* ---------- geometry (_RvGeometry) ---------- */
 function geometry() {
   const W = K.W, H = K.H;
@@ -225,6 +349,37 @@ const sc = K.screen({
     def('Sphere', 'Place', 'sphere', 'sphere.size', 'Radius factor', 'num', .85, { min: .3, max: 1.5, step: .01 });
     def('Sphere', 'Place', 'sphere', 'sphere.maxY', 'Lowest center', 'num', .66, { min: .3, max: .95, step: .005, unit: 'of height' });
     def('Sphere', 'Place', 'sphere', 'sphere.bottomGap', 'Bottom clearance', 'num', 124, { min: 0, max: 400, step: 1, unit: 'px' });
+    def('Sphere', 'Body', 'sphere', 'sb.on', 'Show the sphere', 'bool', true, { info: 'Your sphere from your earlier studio (your saved settings), with the app\'s lit runes on top.' });
+    def('Sphere', 'Body', 'sphere', 'sb.texture', 'Surface', 'select', 'red', { opts: [['red', 'Your runes (red-gold)'], ['teal', 'Your runes (teal)']] });
+    def('Sphere', 'Body', 'sphere', 'sb.repeat', 'Rune size (smaller = bigger)', 'num', 2, { min: 1, max: 6, step: .1 });
+    def('Sphere', 'Body', 'sphere', 'sb.spin', 'How fast it turns', 'num', .22, { min: -1, max: 1, step: .005 });
+    def('Sphere', 'Body', 'sphere', 'sb.tilt', 'Lean the spinning axis', 'num', 17.9, { min: -90, max: 90, step: .1, unit: '°' });
+    def('Sphere', 'Body', 'sphere', 'sb.body', 'Solid dark ball', 'num', 1, { min: 0, max: 1, step: .01 });
+    def('Sphere', 'Body', 'sphere', 'sb.ambient', 'How much shows with no light', 'num', 0, { min: 0, max: 1, step: .005 });
+    def('Sphere', 'Body', 'sphere', 'sb.limb', 'Darken toward the edge', 'num', .34, { min: 0, max: 1, step: .01 });
+    def('Sphere', 'Body light', 'sphere', 'sb.topLight', 'Light from above', 'num', 1.2, { min: 0, max: 4, step: .05 });
+    def('Sphere', 'Body light', 'sphere', 'sb.topSharp', 'Light sharpness', 'num', 3, { min: .5, max: 20, step: .1 });
+    def('Sphere', 'Body light', 'sphere', 'sb.topToward', 'Light toward you', 'num', .6, { min: -1, max: 2, step: .01 });
+    def('Sphere', 'Body light', 'sphere', 'sb.topSide', 'Light from the side', 'num', 0, { min: -2, max: 2, step: .01 });
+    def('Sphere', 'Body light', 'sphere', 'sb.topColor', 'Light color', 'color', '#FFFFFF');
+    def('Sphere', 'Body light', 'sphere', 'sb.tint', 'Tint the surface', 'bool', false);
+    def('Sphere', 'Body light', 'sphere', 'sb.tintColor', 'Tint color', 'color', '#E40B05');
+    def('Sphere', 'Body light', 'sphere', 'sb.rimLight', 'Edge light', 'num', 0, { min: 0, max: 2, step: .01 });
+    def('Sphere', 'Body light', 'sphere', 'sb.rim', 'Edge light color', 'color', '#6FD6FF');
+    def('Streamer black holes', 'Holes', 'holes', 'hh.on', 'Streamer black holes up top', 'bool', true);
+    def('Streamer black holes', 'Holes', 'holes', 'hh.size', 'Size', 'num', 1, { min: .3, max: 3, step: .01, unit: '×' });
+    def('Streamer black holes', 'Holes', 'holes', 'hh.top', 'Top of their sky', 'num', 21, { min: 0, max: 200, step: 1, unit: 'px' });
+    def('Streamer black holes', 'Holes', 'holes', 'hh.extra', 'Extra streamers drifting', 'int', 8, { min: 0, max: 8, step: 1 });
+    def('Streamer black holes', 'Holes', 'holes', 'hh.speed', 'Travel speed', 'num', 1, { min: 0, max: 5, step: .05, unit: '×' });
+    def('Streamer black holes', 'Holes', 'holes', 'hh.pairGap', 'Pair orbit size', 'num', 50, { min: 10, max: 150, step: 1, unit: 'px' });
+    def('Streamer black holes', 'Bending', 'holes', 'hh.lens', 'Bend what is behind the phone', 'bool', true, { info: 'The holes bend the live camera / tilt background in real time.' });
+    def('Streamer black holes', 'Bending', 'holes', 'hh.bend', 'Bend strength', 'num', 1.16, { min: 0, max: 3, step: .01 });
+    def('Streamer black holes', 'Bending', 'holes', 'hh.reach', 'Bend reach', 'num', 3.5, { min: 1.2, max: 10, step: .1, unit: '× hole' });
+    def('Streamer black holes', 'Pair', 'holes', 'hh.bridge', 'Light bridge between the pair', 'bool', true);
+    def('Streamer black holes', 'Pair', 'holes', 'hh.ripples', 'Space ripples from the pair', 'bool', true);
+    def('Streamer black holes', 'Names', 'holes', 'hh.names', 'Names under holes', 'bool', true);
+    def('Streamer black holes', 'Names', 'holes', 'hh.nameSize', 'Name size', 'num', 13, { min: 6, max: 24, step: .5, unit: 'px' });
+    def('Streamer black holes', 'Names', 'holes', 'hh.nameColor', 'Name color', 'color', '#ECF4FF');
     def('Sphere', 'Runes', 'sphere', 'sphere.on', 'Lit runes sphere', 'bool', true, { info: 'The amber rune texture wrapped on the sphere. It only shows where the message tabs light it.' });
     def('Sphere', 'Runes', 'sphere', 'sphere.spin', 'Spin speed', 'num', 1, { min: 0, max: 12, step: .05, unit: '×', dart: 'spinSpeed (1 turn / 160 s at 1×)' });
     def('Sphere', 'Runes', 'sphere', 'sphere.tilt', 'Spin axis tilt', 'num', 23.4, { min: -90, max: 90, step: .1, unit: '°' });
@@ -360,6 +515,8 @@ const sc = K.screen({
       for (let j = 0; j < 3; j++) lamps.push({ x: (r.x + r.w * j / 3 - g.cx) / g.radius, y: (r.y + r.h / 2 - g.cy) / g.radius, p: str * (j === 0 ? P['light.first'] : P['light.other']) });
     }
     G.lamps = lamps;
+    drawHoles(ctx, g);
+    drawSphereBody(ctx, g);
     if (renderSphere(g, lamps)) ctx.drawImage(GL.canvas, g.cx - g.radius, g.cy - g.radius, g.radius * 2, g.radius * 2);
     for (const it of items) { drawBust(ctx, g, it); drawName(ctx, g, it); }
     drawChrome(ctx, g, PEOPLE);
@@ -369,6 +526,7 @@ const sc = K.screen({
     const g = G.g; if (!g) return;
     const box = (b, pad = 3) => () => { ctx.beginPath(); ctx.roundRect(b.x - pad, b.y - pad, b.w + pad * 2, b.h + pad * 2, 5); };
     if (base === 'sphere' || base === 'sphere.light') { H1(() => { ctx.beginPath(); ctx.arc(g.cx, g.cy, g.radius + 3, 0, TAU); }); if (base === 'sphere.light') for (const l of G.lamps) H1(() => { ctx.beginPath(); ctx.arc(g.cx + l.x * g.radius, g.cy + l.y * g.radius, 4, 0, TAU); }); }
+    else if (base === 'holes') (G.holes || []).forEach(h => H1(() => { ctx.beginPath(); ctx.arc(h.c[0], h.c[1], h.r + 6, 0, TAU); }));
     else if (base === 'busts') G.busts.forEach(b => H1(box(b, 2)));
     else if (base === 'busts.path') { H1(() => { ctx.beginPath(); const lim = P['path.limit']; for (let k = 0; k <= 60; k++) { const t = -lim + 2 * lim * k / 60, th = P['path.curve'] * t, sn = Math.sin(th), cs = Math.cos(th); const x = g.cx + g.radius * (-P['path.bulge'] * cs + P['path.lean'] * sn + P['path.flare'] * Math.pow(Math.abs(sn), 4)), y = g.cy - g.radius * sn; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } }); G.busts.forEach(b => H1(() => { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 3, 0, TAU); })); }
     else if (base === 'names') G.names.forEach(b => H1(box(b)));
@@ -380,6 +538,7 @@ const sc = K.screen({
   bounds(base) {
     const g = G.g || geometry(), sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
     const front = G.items && G.items.length ? G.items[G.items.length - 1] : null;
+    if (base === 'holes') return sq(K.W / 2, Math.max(60, (g.cy - g.radius) * .55), K.W);
     if (base === 'header' && G.header) return sq(G.header.x + G.header.w / 2, G.header.y + G.header.h / 2, G.header.w * 1.05);
     if (base === 'owner' && G.owner) return sq(G.owner.x + G.owner.w / 2, G.owner.y + G.owner.h / 2, G.owner.w * 1.05);
     if ((base === 'tabs' || base === 'tabs.text' || base === 'tethers' || base === 'names') && front) { const t = G.tabs.find(t => t.it === front) || G.tabs[0]; if (t) return sq(t.x + t.w / 2 - 30, t.y + t.h / 2, Math.max(150, t.w * 1.9)); }
