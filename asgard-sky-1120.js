@@ -42,7 +42,7 @@ const LIVE = [['ad58d4a8', 6, 'Baldr', 'https://i.pravatar.cc/300?img=47', 2500,
   .map(([sid, n, name, url, viewers, followers]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + String(n).padStart(2, '0'), stream_id: sid, orb_key: 'stream:' + sid, name, url, viewer_count: viewers, follower_count: followers, is_live: true, pic: img(url) }));
 
 /* ---------- state ---------- */
-const ST = { motion: .18, swipe: 0, drag: null, links: [], orbs: [] };
+const ST = { motion: .18, swipe: 0, drag: null, links: [], orbs: [], scroll: 0, vel: 0 };
 let G = { orbs: [], strip: null, labels: {} };
 const asHash = key => { let h = 7; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) & 0x7fffffff; return h; };
 const asHeat = (v, lo, hi) => { const l = Math.log(lo), h = Math.log(hi), x = Math.log(Math.max(1, v)); return clamp((x - l) / (h - l), 0, 1); };
@@ -281,14 +281,78 @@ function drawLinks(ctx, dy) {
   }
 }
 
+/* ---------- the feed under the strip (_stage / _postPage / _AsLift / _AsBottomBar) ---------- */
+const POSTS = [['Idun', 'test_idun', 'https://i.pravatar.cc/300?img=64', 'Test saga 1 from Idun', 'https://picsum.photos/seed/idun1/600/800', 259, 7, '2026-10-25T19:08:30Z'], ['Thor', 'test_thor', 'https://i.pravatar.cc/300?img=5', 'Test saga 1 from Thor', 'https://picsum.photos/seed/thor1/600/800', 203, 27, '2026-10-25T18:55:44Z'], ['Idun', 'test_idun', 'https://i.pravatar.cc/300?img=64', 'Test saga 2 from Idun', 'https://picsum.photos/seed/idun2/600/800', 65, 23, '2026-10-25T17:56:37Z'], ['Thor', 'test_thor', 'https://i.pravatar.cc/300?img=5', 'Test saga 2 from Thor', 'https://picsum.photos/seed/thor2/600/800', 208, 9, '2026-10-25T17:21:35Z'], ['Idun', 'test_idun', 'https://i.pravatar.cc/300?img=64', 'Test saga 3 from Idun', 'https://picsum.photos/seed/idun3/600/800', 31, 12, '2026-10-25T16:58:46Z'], ['Thor', 'test_thor', 'https://i.pravatar.cc/300?img=5', 'Test saga 3 from Thor', 'https://picsum.photos/seed/thor3/600/800', 390, 28, '2026-10-25T16:56:38Z']]
+  .map(([name, handle, av, body, im, likes, comments, at]) => ({ name, handle, avatar: img(av), body, pic: img(im), likes, comments, at: new Date(at), county: 'Flagler', state: 'FL', topic: 'general', liked: false }));
+const ICONS = ['wayfinder', 'saga', 'gjallarhorn', 'raven'].map(n => img('asgard/' + n + '.webp')); const HORN = img('asgard/horn.webp');
+const MI = { heartO: new Path2D('M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z'), heart: new Path2D('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'), chat: new Path2D('M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z'), send: new Path2D('M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'), more: new Path2D('M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z') };
+function icon(ctx, path, x, y, size, color) { ctx.save(); ctx.translate(x, y); ctx.scale(size / 24, size / 24); ctx.fillStyle = color; ctx.fill(path); ctx.restore(); }
+function ago(d) { const m = (Date.now() - d.getTime()) / 60000; if (m < 1) return 'now'; if (m < 60) return Math.floor(m) + 'm'; if (m < 1440) return Math.floor(m / 60) + 'h'; if (m < 10080) return Math.floor(m / 1440) + 'd'; return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear(); }
+function shadowText(ctx, t, x, y, blur1, blur2) { ctx.save(); ctx.shadowColor = '#000'; ctx.shadowBlur = K.shadowBlurFor(ctx, blur1); ctx.fillText(t, x, y); if (blur2) { ctx.shadowBlur = K.shadowBlurFor(ctx, blur2); ctx.fillText(t, x, y); } ctx.restore(); }
+function wrapText(ctx, text, maxW, maxLines) { const words = text.split(/\s+/), lines = []; let line = ''; for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; } if (line) lines.push(line); if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (ctx.measureText(l + '…').width > maxW && l.length) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; } return lines; }
+const footprint = () => P['bar.height'] + P['bar.bottom'];
+function bottomBlockH(ctx, p, w) { ctx.font = `400 ${P['post.capSize']}px Roboto`; const cap = (p.pic && p.body) ? wrapText(ctx, p.body, w - 24, 3).length * P['post.capSize'] * 1.3 : 0; const tags = (p.topic !== 'general' || p.store) ? 6 + 24 : 6; return 26 + cap + tags + 6 + 26 + 8; }
+function drawPost(ctx, p, x, y, w, h, clipTop) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, Math.max(y, clipTop), w, y + h - Math.max(y, clipTop)); ctx.clip();
+  ctx.fillStyle = P['post.bg']; ctx.fillRect(x, y, w, h);
+  const im = p.pic;
+  if (im && im.complete && im.naturalWidth) { const s = Math.min(w / im.naturalWidth, h / im.naturalHeight), dw = im.naturalWidth * s, dh = im.naturalHeight * s; ctx.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); p.mediaBox = { x: x + (w - dw) / 2, y: y + (h - dh) / 2, w: dw, h: dh }; }
+  else { const g = ctx.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, P['post.cardA']); g.addColorStop(1, P['post.cardB']); ctx.fillStyle = g; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#fff'; ctx.font = `700 ${P['post.cardSize']}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const ls = wrapText(ctx, p.body, w - 52, 12); const lh = P['post.cardSize'] * 1.3, cy = y + 80 + (h - 210) / 2; ls.forEach((l, i) => ctx.fillText(l, x + w / 2, cy + (i - (ls.length - 1) / 2) * lh)); p.mediaBox = { x, y, w, h }; }
+  // header row
+  const hh = 8 + 40 + 18; const tg = ctx.createLinearGradient(0, y, 0, y + hh); tg.addColorStop(0, `rgba(0,0,0,${P['post.topShade']})`); tg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = tg; ctx.fillRect(x, y, w, hh);
+  const ar = P['post.avatar'], ax = x + 10 + ar, ay = y + 8 + 20; ctx.save(); ctx.beginPath(); ctx.arc(ax, ay, ar, 0, TAU); ctx.clip(); const av = p.avatar; if (av && av.complete && av.naturalWidth) { const s = Math.max(2 * ar / av.naturalWidth, 2 * ar / av.naturalHeight); ctx.drawImage(av, ax - av.naturalWidth * s / 2, ay - av.naturalHeight * s / 2, av.naturalWidth * s, av.naturalHeight * s); } else { ctx.fillStyle = '#3A4350'; ctx.fillRect(ax - ar, ay - ar, ar * 2, ar * 2); } ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#fff'; ctx.font = `800 ${P['post.nameSize']}px Roboto`; shadowText(ctx, p.name, ax + ar + 10, ay - 3, 4);
+  ctx.font = `400 ${P['post.subSize']}px Roboto`; ctx.fillStyle = `rgba(255,255,255,${P['post.subAlpha']})`; shadowText(ctx, '@' + p.handle + '  ·  ' + ago(p.at) + '  ·  ' + p.county + ', ' + p.state, ax + ar + 10, ay + P['post.subSize'] + 1, 4);
+  icon(ctx, MI.more, x + w - 4 - 36, ay - 12, 24, '#fff');
+  p.headBox = { x, y, w, h: hh };
+  // bottom block that rides above the floating icons (_AsLift)
+  const bh = bottomBlockH(ctx, p, w), bottom = y + h, barTop = K.H - footprint(), cap = Math.max(footprint(), K.H * .5);
+  const lift = P['post.lift'] ? clamp(bottom - barTop, 0, cap) : 0, rowBottom = bottom - lift - 8, show = P['post.lift'] ? clamp(1 - (rowBottom - barTop) / 24, 0, 1) : 1;
+  const by = bottom - lift - bh; ctx.save(); ctx.globalAlpha *= show;
+  const bg = ctx.createLinearGradient(0, by, 0, by + bh); bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(1, `rgba(0,0,0,${P['post.bottomShade']})`); ctx.fillStyle = bg; ctx.fillRect(x, by, w, bh);
+  let cy = by + 26; ctx.fillStyle = '#fff'; ctx.font = `400 ${P['post.capSize']}px Roboto`; ctx.textBaseline = 'top';
+  if (p.pic && p.body) { for (const l of wrapText(ctx, p.body, w - 24, 3)) { shadowText(ctx, l, x + 12, cy, 4); cy += P['post.capSize'] * 1.3; } }
+  cy += 6; cy += 6;
+  const rowY = cy, mid = rowY + 13; ctx.textBaseline = 'middle'; ctx.font = `400 ${P['post.countSize']}px Roboto`;
+  let ix = x + 12; icon(ctx, p.liked ? MI.heart : MI.heartO, ix, mid - P['post.likeIcon'] / 2, P['post.likeIcon'], p.liked ? P['post.liked'] : '#fff'); ix += P['post.likeIcon'] + 4; ctx.fillStyle = '#fff'; ctx.fillText(String(p.likes), ix, mid); ix += ctx.measureText(String(p.likes)).width + P['post.gap'];
+  icon(ctx, MI.chat, ix, mid - 12.5, 25, '#fff'); ix += 25 + 4; ctx.fillText(String(p.comments), ix, mid); ix += ctx.measureText(String(p.comments)).width + P['post.gap'];
+  icon(ctx, MI.send, ix, mid - 12, 24, '#fff');
+  ctx.restore(); p.bottomBox = { x, y: by, w, h: bh }; p.likeBox = { x: x + 12, y: rowY, w: P['post.likeIcon'] + 40, h: 26 };
+  ctx.restore();
+}
+function hornGlow(ctx, cx, cy, size, t) {
+  const base = size / 2, pulse = .5 + .5 * Math.sin(t * TAU * 4), surge = .5 + .5 * Math.sin(t * TAU * 1.3), coreR = base * (.42 + .16 * pulse);
+  let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR); g.addColorStop(0, 'rgba(255,251,232,.95)'); g.addColorStop(.45, 'rgba(255,211,106,.55)'); g.addColorStop(1, 'rgba(255,176,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, TAU); ctx.fill();
+  const r = new DartRandom(7);
+  for (let i = 0; i < 18; i++) { const jit = r.nextDouble(), reach = r.nextDouble(), wd = .05 + .05 * r.nextDouble(), a0 = i * TAU / 18 + jit * .25 + t * TAU * .15, flare = (pulse + reach * .7 + t * 3) % 1, len = base * (.7 + .55 * reach) * (.7 + .5 * flare * (.6 + .4 * surge));
+    g = ctx.createRadialGradient(cx, cy, 0, cx, cy, len); g.addColorStop(0, 'rgba(255,244,204,.75)'); g.addColorStop(.5, 'rgba(255,196,77,.25)'); g.addColorStop(1, 'rgba(255,176,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0 - wd) * base * .22, cy + Math.sin(a0 - wd) * base * .22); ctx.lineTo(cx + Math.cos(a0) * len, cy + Math.sin(a0) * len); ctx.lineTo(cx + Math.cos(a0 + wd) * base * .22, cy + Math.sin(a0 + wd) * base * .22); ctx.closePath(); ctx.fill(); }
+}
+function drawBar(ctx, now) {
+  if (!P['bar.on']) { G.bar = null; return; }
+  const W = K.W, H = K.H, bh = P['bar.height'], top = H - P['bar.bottom'] - bh, left = P['bar.side'], cw = (W - P['bar.side'] * 2) / 4, size = P['bar.icon'], k = scaleOf(ctx);
+  const labels = [P['bar.l1'], P['bar.l2'], P['bar.l3'], P['bar.l4']]; G.bar = { x: left, y: top, w: W - P['bar.side'] * 2, h: bh }; G.barBtns = [];
+  for (let i = 0; i < 4; i++) {
+    const cx = left + cw * (i + .5), colH = size + 4 + P['bar.labelSize'] * 1.2, iy = top + (bh - colH) / 2, ix = cx - size / 2;
+    const glowing = i === 2 && P['bar.hornGlow'], t = (now / 1000 / 1.6) % 1, im = glowing ? HORN : (i === 2 ? ICONS[2] : ICONS[i]);
+    if (glowing) { const pad = 30; hornGlow(ctx, cx, iy + size / 2, size + pad * 2, t); }
+    if (im.complete && im.naturalWidth) {
+      if (!glowing) { ctx.save(); ctx.filter = `brightness(0) blur(${(P['bar.shadowBlur'] * k).toFixed(2)}px)`; ctx.globalAlpha = P['bar.shadowAlpha']; ctx.drawImage(im, ix, iy + P['bar.shadowY'], size, size); ctx.restore(); }
+      const shake = glowing ? Math.sin(t * TAU * 23) * .8 : 0; ctx.drawImage(im, ix + shake, iy, size, size);
+    }
+    if (i === 2 && P['bar.hornDot'] && !glowing) { ctx.fillStyle = P['bar.dotColor']; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(ix + size + 2 - 5, iy - 2 + 5, 5 - .6, 0, TAU); ctx.fill(); ctx.stroke(); }
+    ctx.font = `800 ${P['bar.labelSize']}px Roboto`; ctx.fillStyle = P['bar.labelColor']; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; shadowText(ctx, labels[i], cx, iy + size + 4, 4, 8);
+    G.barBtns.push({ x: cx - cw / 2, y: top, w: cw, h: bh, icon: { x: ix, y: iy, w: size, h: size }, label: labels[i] });
+  }
+}
+
 /* ---------- labels ---------- */
 const PLACE = new Path2D('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zM7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.88-2.88 7.19-5 9.88C9.92 16.21 7 11.85 7 9zm5 2.5c1.38 0 2.5-1.12 2.5-2.5S13.38 6.5 12 6.5 9.5 7.62 9.5 9s1.12 2.5 2.5 2.5z');
 function spaced(ctx, text, x, y, spacing) { let cx = x; for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; } return cx - x; }
 
 /* ---------- module ---------- */
 const sc = K.screen({
-  id: 'sky', title: 'Live discovery (black holes)', docId: 'asgard_sky',
-  crumb: 'Asgard › Feed › Live discovery strip <small>· Asgard Dart</small>',
+  id: 'sky', title: 'Asgard feed', docId: 'asgard_sky',
+  crumb: 'Asgard › Feed (black holes, posts, floating icons) <small>· Asgard Dart</small>',
   docMeta: { widget: 'Asgard', part: 'Live discovery strip (black holes)', source: 'FlutterFlow export 2026-11-19 + live_streams test accounts' },
   startGroup: 'Black holes', startSection: 'Look',
   spec(def) {
@@ -383,6 +447,41 @@ const sc = K.screen({
     def('Faces and names', 'Live badge', 'names', 'badge.text', 'Badge word', 'text', 'ALIVE');
     def('Faces and names', 'Live badge', 'names', 'badge.size', 'Badge text size', 'num', 7, { min: 4, max: 16, step: .5, unit: 'px' });
     def('Faces and names', 'Live badge', 'names', 'badge.color', 'Badge color', 'color', '#8F383E');
+    def('Post', 'Page', 'post', 'feed.bg', 'Asgard page color behind everything', 'bool', true, { info: 'Off = see-through background (camera / tilt) instead of the dark page color.' });
+    def('Post', 'Page', 'post', 'post.bg', 'Page color', 'color', '#11151C');
+    def('Post', 'Page', 'post', 'post.cardA', 'Text-only post color 1', 'color', '#1B2A4A');
+    def('Post', 'Page', 'post', 'post.cardB', 'Text-only post color 2', 'color', '#2A1F3D');
+    def('Post', 'Page', 'post', 'post.cardSize', 'Text-only post text size', 'num', 22, { min: 12, max: 40, step: .5, unit: 'px' });
+    def('Post', 'Page', 'post', 'test.textOnly', 'Show first post as text-only', 'bool', false);
+    def('Post', 'Header', 'post.head', 'post.topShade', 'Top shade', 'num', .54, { min: 0, max: 1, step: .01 });
+    def('Post', 'Header', 'post.head', 'post.avatar', 'Face size (radius)', 'num', 18, { min: 8, max: 40, step: .5, unit: 'px' });
+    def('Post', 'Header', 'post.head', 'post.nameSize', 'Name size', 'num', 14, { min: 8, max: 28, step: .5, unit: 'px' });
+    def('Post', 'Header', 'post.head', 'post.subSize', 'Handle line size', 'num', 11, { min: 7, max: 20, step: .5, unit: 'px' });
+    def('Post', 'Header', 'post.head', 'post.subAlpha', 'Handle line brightness', 'num', .70, { min: .1, max: 1, step: .01 });
+    def('Post', 'Likes row', 'post.bottom', 'post.bottomShade', 'Bottom shade', 'num', .87, { min: 0, max: 1, step: .01 });
+    def('Post', 'Likes row', 'post.bottom', 'post.capSize', 'Caption size', 'num', 14, { min: 8, max: 28, step: .5, unit: 'px' });
+    def('Post', 'Likes row', 'post.bottom', 'post.likeIcon', 'Heart size', 'num', 26, { min: 12, max: 48, step: .5, unit: 'px' });
+    def('Post', 'Likes row', 'post.bottom', 'post.countSize', 'Count size', 'num', 13, { min: 8, max: 24, step: .5, unit: 'px' });
+    def('Post', 'Likes row', 'post.bottom', 'post.gap', 'Gap between buttons', 'num', 22, { min: 4, max: 60, step: 1, unit: 'px' });
+    def('Post', 'Likes row', 'post.bottom', 'post.liked', 'Liked heart color', 'color', '#FF7A7A', { info: 'Tap a heart on the phone to see it.' });
+    def('Post', 'Likes row', 'post.bottom', 'post.lift', 'Ride above the floating icons', 'bool', true);
+    def('Bottom icons', 'Layout', 'bar', 'bar.on', 'Show floating icons', 'bool', true);
+    def('Bottom icons', 'Layout', 'bar', 'bar.icon', 'Icon size', 'num', 44, { min: 20, max: 80, step: 1, unit: 'px' });
+    def('Bottom icons', 'Layout', 'bar', 'bar.height', 'Row height', 'num', 72, { min: 40, max: 140, step: 1, unit: 'px' });
+    def('Bottom icons', 'Layout', 'bar', 'bar.side', 'Side gap', 'num', 14, { min: 0, max: 60, step: 1, unit: 'px' });
+    def('Bottom icons', 'Layout', 'bar', 'bar.bottom', 'Bottom gap', 'num', 8, { min: 0, max: 60, step: 1, unit: 'px' });
+    def('Bottom icons', 'Shadow', 'bar', 'bar.shadowY', 'Shadow drop', 'num', 8, { min: 0, max: 30, step: .5, unit: 'px' });
+    def('Bottom icons', 'Shadow', 'bar', 'bar.shadowBlur', 'Shadow softness', 'num', 4, { min: 0, max: 20, step: .5, unit: 'px' });
+    def('Bottom icons', 'Shadow', 'bar', 'bar.shadowAlpha', 'Shadow strength', 'num', .6, { min: 0, max: 1, step: .01 });
+    def('Bottom icons', 'Labels', 'bar.labels', 'bar.labelSize', 'Label size', 'num', 10, { min: 6, max: 20, step: .5, unit: 'px' });
+    def('Bottom icons', 'Labels', 'bar.labels', 'bar.labelColor', 'Label color', 'color', '#FFFFFF');
+    def('Bottom icons', 'Labels', 'bar.labels', 'bar.l1', 'Button 1', 'text', 'Wayfinder');
+    def('Bottom icons', 'Labels', 'bar.labels', 'bar.l2', 'Button 2', 'text', 'Carve a Saga');
+    def('Bottom icons', 'Labels', 'bar.labels', 'bar.l3', 'Button 3', 'text', 'Gjallarhorn');
+    def('Bottom icons', 'Labels', 'bar.labels', 'bar.l4', 'Button 4', 'text', 'Raven');
+    def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.hornGlow', 'Horn bursting (a saga was sent to you)', 'bool', false);
+    def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.hornDot', 'Dot (follow request waiting)', 'bool', false);
+    def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.dotColor', 'Dot color', 'color', '#FFC72C');
     def('Test people', 'Live test accounts', 'holes', 'test.count', 'How many streaming', 'int', 12, { min: 0, max: 12, step: 1, info: 'Baldr, Saga, Tyr, Vidar… from live_streams, most viewers first.' });
     def('Test people', 'Live test accounts', 'holes', 'test.viewers', 'Viewers ×', 'num', 1, { min: .01, max: 20, step: .01, info: 'Scale everyone\'s viewers to watch holes change stage.' });
     def('Test people', 'Live test accounts', 'holes', 'test.live', 'They are live', 'bool', true);
@@ -392,10 +491,15 @@ const sc = K.screen({
     { label: 'Re-center', title: 'Clear the swipe offset', onclick: () => { ST.swipe = 0; } },
   ],
   onShow() { P = sc.P; },
-  update(dt) { P = sc.P; if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.fling) { ST.swipe += ST.fling * dt * 6; ST.fling *= Math.pow(.02, dt); if (Math.abs(ST.fling) < 1) ST.fling = 0; } },
+  update(dt) { P = sc.P; if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
   draw(ctx, now, studio) {
     P = sc.P; sc.ty = 0; const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
     G.strip = { x: 0, y: 0, w: W, h: sh };
+    if (P['feed.bg']) { ctx.fillStyle = P['post.bg']; ctx.fillRect(0, 0, W, H); }
+    const feedTop = sh - P['strip.fade'], pageH = H - feedTop; G.feedTop = feedTop; G.pageH = pageH; G.maxScroll = Math.max(0, POSTS.length * pageH + footprint() - pageH);
+    POSTS[0].pic0 = POSTS[0].pic0 || POSTS[0].pic; POSTS[0].pic = P['test.textOnly'] ? null : POSTS[0].pic0;
+    G.posts = [];
+    for (let i = 0; i < POSTS.length; i++) { const y = feedTop + i * pageH - ST.scroll; if (y > H || y + pageH < feedTop) continue; drawPost(ctx, POSTS[i], 0, y, W, pageH, feedTop); G.posts.push(POSTS[i]); }
     const orbs = orbLayout(W, lh); G.orbs = orbs;
     // strip layer (faded into the feed at the bottom)
     const k = scaleOf(ctx), Lw = Math.ceil(W * k), Lh = Math.ceil(sh * k);
@@ -417,6 +521,7 @@ const sc = K.screen({
     if (P['strip.fade'] > 0) { x.globalCompositeOperation = 'destination-in'; const g = x.createLinearGradient(0, 0, 0, sh); g.addColorStop(0, '#fff'); g.addColorStop(clamp((sh - P['strip.fade']) / sh, 0, 1), '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, sh); x.globalCompositeOperation = 'source-over'; }
     ctx.drawImage(L, 0, 0, Lw, Lh, 0, 0, W, sh);
     G.top = top;
+    drawBar(ctx, now);
     if (studio) K.hl(ctx, now);
   },
   highlight(ctx, base, sub, H1) {
@@ -427,26 +532,40 @@ const sc = K.screen({
     else if (base === 'links') { ST.links.forEach(l => H1(() => { ctx.beginPath(); ctx.moveTo(l[0], l[1] + top); ctx.lineTo(l[3], l[4] + top); })); if (!ST.links.length) G.orbs.forEach(o => H1(() => { ctx.beginPath(); ctx.arc(o.x, o.y + top, o.d / 2 + 6, 0, TAU); })); }
     else if (base === 'faces') G.orbs.forEach(o => H1(() => { ctx.beginPath(); ctx.arc(o.x, o.y + top, o.d / 2 + 3, 0, TAU); }));
     else if (base === 'names') G.orbs.forEach(o => o.nameBox && H1(box(o.nameBox, 2, 4)));
+    else if (base === 'post') (G.posts || []).forEach(p => p.mediaBox && H1(box(p.mediaBox, -2, 4)));
+    else if (base === 'post.head') (G.posts || []).forEach(p => p.headBox && H1(box(p.headBox, -2, 4)));
+    else if (base === 'post.bottom') (G.posts || []).forEach(p => p.bottomBox && H1(box(p.bottomBox, -2, 4)));
+    else if (base === 'bar' && G.bar) (G.barBtns || []).forEach(b => H1(box(b.icon, 3, 10)));
+    else if (base === 'bar.labels' && G.barBtns) G.barBtns.forEach(b => H1(box({ x: b.x + 4, y: b.icon.y + b.icon.h + 2, w: b.w - 8, h: P['bar.labelSize'] * 1.3 + 4 }, 1, 4)));
   },
   bounds(base) {
     const W = K.W, sh = G.strip ? G.strip.h : 229, top = G.top || 48, sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
     const center = G.orbs.slice().sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0];
     if (base === 'labels') return sq(W / 2, 40, W * .7);
+    if ((base === 'bar' || base === 'bar.labels') && G.bar) return sq(W / 2, G.bar.y + G.bar.h / 2, W);
+    if (base === 'post.head' && G.posts && G.posts[0] && G.posts[0].headBox) { const b = G.posts[0].headBox; return sq(W / 2, Math.max(b.y, G.feedTop) + 30, W * .9); }
+    if (base === 'post.bottom' && G.posts && G.posts[0] && G.posts[0].bottomBox) { const b = G.posts.find(p => p.bottomBox.y > G.feedTop) || G.posts[0]; return sq(W / 2, b.bottomBox.y + b.bottomBox.h / 2, W); }
     if (center && (base === 'holes' || base === 'holes.disk' || base === 'faces' || base === 'names' || base === 'lens' || base === 'links')) return sq(center.x, center.y + top + 8, Math.max(center.d * 2.6, 150));
     return sq(W / 2, sh / 2, W);
   },
   pick(p) {
     const top = G.top || 48;
     for (const o of G.orbs) { if (o.nameBox && p.x >= o.nameBox.x && p.x <= o.nameBox.x + o.nameBox.w && p.y >= o.nameBox.y && p.y <= o.nameBox.y + o.nameBox.h) return ['Faces and names', 'Name']; if (Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2) return ['Faces and names', 'Face']; if (Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d * 1.2) return ['Black holes', 'Look']; }
+    if (G.bar && p.y >= G.bar.y && p.y <= G.bar.y + G.bar.h) return ['Bottom icons', 'Layout'];
+    if (G.strip && p.y >= G.strip.h) { for (const q of G.posts || []) { if (q.headBox && p.y >= q.headBox.y && p.y <= q.headBox.y + q.headBox.h) return ['Post', 'Header']; if (q.bottomBox && p.y >= q.bottomBox.y && p.y <= q.bottomBox.y + q.bottomBox.h) return ['Post', 'Likes row']; } return ['Post', 'Page']; }
     if (G.strip && p.y < 70) return ['Strip', 'Labels'];
     if (G.strip && p.y < G.strip.h) return ['Strip', 'Deep space'];
     return ['Background', null];
   },
   pointer: {
-    down(p) { if (G.strip && p.y < G.strip.h) ST.drag = { x: p.x, x0: p.x, t: performance.now(), v: 0 }; },
-    move(p) { const d = ST.drag; if (!d) return; const now = performance.now(), dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; d.t = now; },
+    down(p) { const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, v: 0 }; } },
+    move(p) { const d = ST.drag; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
     up(p) {
       const d = ST.drag; ST.drag = null; if (!d) return;
+      if (d.mode === 'feed') {
+        if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { K.status(b.label + ': opens its page in the app.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; } return; }
+        ST.vel = clamp(d.v, -4000, 4000); return;
+      }
       if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) K.status('Tapped ' + hit.person.name + ': in the app this opens the black-hole flight into their live room.'); return; }
       ST.swipe += clamp(d.v, -650, 650) * .14;
     },
