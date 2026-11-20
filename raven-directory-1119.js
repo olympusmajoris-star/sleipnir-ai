@@ -126,6 +126,7 @@ function holeLens(W, H, holes) {
 }
 function drawHoles(ctx, g) {
   if (!P['hh.on']) { G.holes = []; return; }
+  if (P['hh.source'] === 'saved') { G.holes = window.RavenSavedTiers.draw(ctx, P, g, ST.time); return; }
   const W = K.W, H = K.H, seconds = ST.time, t = seconds % DEMO_SECONDS, holes = holePoses(W, H, g, seconds).filter(h => h.c[0] > -100 && h.c[0] < W + 100); G.holes = holes;
   const outsideSphere = () => { ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(g.cx, g.cy, g.radius, 0, TAU, true); ctx.clip('evenodd'); };
   if (P['hh.lens'] && P['bg.mode'] !== 'plain') { const out = holeLens(W, H, holes); if (out) { ctx.save(); outsideSphere(); ctx.drawImage(out, 0, 0, W, H); ctx.restore(); } }
@@ -367,6 +368,9 @@ const sc = K.screen({
     def('Sphere', 'Body light', 'sphere', 'sb.rimLight', 'Edge light', 'num', 0, { min: 0, max: 2, step: .01 });
     def('Sphere', 'Body light', 'sphere', 'sb.rim', 'Edge light color', 'color', '#6FD6FF');
     def('Streamer black holes', 'Holes', 'holes', 'hh.on', 'Streamer black holes up top', 'bool', true);
+    def('Streamer black holes', 'Holes', 'holes', 'hh.source', 'Preview source', 'select', 'saved', { opts: [['saved', 'My saved tiers 1–4'], ['pair', 'Opus pair animation']], info: 'Uses your existing saved tier artwork and renderer over the live camera. It does not replace your saved tier designs.' });
+    def('Streamer black holes', 'Holes', 'holes', 'hh.tier', 'Show tier', 'select', 0, { opts: [[0, 'All four together'], [1, 'Tier 1 · 0–20 views'], [2, 'Tier 2 · 21–149 views'], [3, 'Tier 3 · 150–499 views'], [4, 'Tier 4 · 500–1,999 views']] });
+    def('Streamer black holes', 'Holes', 'holes', 'hh.drift', 'Tier preview drift', 'bool', true);
     def('Streamer black holes', 'Holes', 'holes', 'hh.size', 'Size', 'num', 1, { min: .3, max: 3, step: .01, unit: '×' });
     def('Streamer black holes', 'Holes', 'holes', 'hh.top', 'Top of their sky', 'num', 21, { min: 0, max: 200, step: 1, unit: 'px' });
     def('Streamer black holes', 'Holes', 'holes', 'hh.extra', 'Extra streamers drifting', 'int', 8, { min: 0, max: 8, step: 1 });
@@ -490,7 +494,7 @@ const sc = K.screen({
     def('Header', 'Label', 'header', 'header.read', 'Read wording', 'text', 'Read');
     def('Header', 'Owner area', 'owner', 'owner.on', 'Show owner tuning area', 'bool', false, { info: 'In the app the owner sees in-app sliders at the top. Turn on to see the space it takes.' });
   },
-  toolbar: [{ label: 'Replay entry', title: 'Play the busts sliding in again', onclick: () => { ST.entry = 0; ST.scroll = 0; ST.velocity = 0; ST.settle = null; } }, { label: 'Back to dial', title: 'Same as the back arrow', onclick: () => K.show('dial') }],
+  toolbar: [{ label: 'Replay entry', title: 'Play the busts sliding in again', onclick: () => { ST.entry = 0; ST.scroll = 0; ST.velocity = 0; ST.settle = null; } }, { label: 'Back to dial', title: 'Same as the back arrow', onclick: () => K.show('dial') }, { label: 'Reload saved tiers', title: 'Read your current tier designs without changing them', onclick: () => window.RavenSavedTiers.reload() }],
   onShow() { ST.entry = 0; ST.scroll = 0; ST.velocity = 0; ST.settle = null; },
   update(dt) {
     P = sc.P; ST.time += dt;
@@ -581,3 +585,4 @@ const sc = K.screen({
 });
 sc.ST = ST; sc.geometry = () => { P = sc.P; return geometry(); }; sc.G = () => G;
 })();
+

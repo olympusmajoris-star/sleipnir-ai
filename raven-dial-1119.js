@@ -11,6 +11,12 @@
 const K = window.StudioKit;
 const { TAU, D2R, clamp, ease, wrap, rgb, rgba, mix, WHITE, scaleOf, blur, arc } = K;
 let P = {};
+const shapeMotion = [];
+function motionSettings(i) {
+  const keys = ['spinOn','period','dir','start','axis','axisX','axisY','axisZ','response','tilt','yaw','roll'];
+  return Object.fromEntries(keys.map(k => [k, P['s' + i + '.' + k]]));
+}
+function motionState(i) { return shapeMotion[i] || (shapeMotion[i] = window.RavenMotion.create(motionSettings(i))); }
 // The 4 glass shapes
 const SHAPES = [
   { tab: 'Messages', kind: 'Sphere', pos: [-1.5, -204], color: '#169EFF', period: 22, start: 11.459, icon: .84, iconY: 0 },
@@ -252,8 +258,8 @@ function drawIcon(ctx, i, ox, oy, size, e, color) {
 function drawShape(ctx, i, ox, oy, size, e, phase) {
   const S = k => P['s' + i + '.' + k];
   e = clamp(e, 0, 1); const color = rgb(S('color')), boost = S('glowBoost');
-  const tilt = S('tilt') * D2R;
-  const rot = v => { const cy = Math.cos(phase), sy = Math.sin(phase), cx = Math.cos(tilt), sx = Math.sin(tilt); const x = v[0] * cy + v[2] * sy, z = v[2] * cy - v[0] * sy; return [x, v[1] * cx - z * sx, v[1] * sx + z * cx]; };
+  const state = motionState(i), settings = motionSettings(i);
+  const rot = v => window.RavenMotion.rotate(state, settings, v);
   const proj = v => { const p = rot(v), per = 4 / (4 - p[2]), sc = size * .94; return { x: ox + size / 2 + p[0] * sc * per, y: oy + size / 2 + p[1] * sc * per, z: p[2] }; };
   if (i === 0) {
     const c = { x: ox + size / 2, y: oy + size / 2 }, r = size * S('r');
@@ -327,7 +333,8 @@ function drawShape(ctx, i, ox, oy, size, e, phase) {
     ctx.save(); ctx.lineJoin = 'round'; ctx.lineWidth = 1.5 + e * .4; ctx.strokeStyle = g; ctx.stroke(fc.path); ctx.restore();
   }
 }
-function shapePhase(i) { const S = k => P['s' + i + '.' + k]; if (!S('spinOn')) return S('start') * D2R; return ST.amb * TAU / Math.max(.1, S('period')) * S('dir') + S('start') * D2R; }
+// Rotation advances only in update, never in the stage or close-up draw pass.
+function shapePhase(i) { return motionState(i); }
 
 
 
@@ -597,8 +604,13 @@ SHAPES.forEach((s, i) => {
   def(g, 'Spin', t, p + 'spinOn', 'Spin', 'bool', true, { info: `The ${s.kind.toLowerCase()} turns slowly in place; the icon inside stays facing you.` });
   def(g, 'Spin', t, p + 'period', 'Seconds per turn', 'num', s.period, { min: 1, max: 240, step: .5, unit: 's' });
   def(g, 'Spin', t, p + 'dir', 'Direction', 'select', 1, { opts: [[1, 'Forward'], [-1, 'Reverse']] });
+  def(g, 'Spin', t, p + 'axis', 'Spin axis', 'select', 'y', { opts: [['x', 'X · tumble up / down'], ['y', 'Y · turn left / right'], ['z', 'Z · turn like a wheel'], ['custom', 'Custom XYZ axis']], info: 'Each shape has its own axis. Changing it continues smoothly from the current pose.' });
+  def(g, 'Spin', t, p + 'response', 'Speed / direction smoothing', 'num', .18, { min: 0, max: 2, step: .01, unit: 's', info: 'How gently motion responds to a changed speed, direction, or axis. Spin off holds the current pose.' });
   def(g, 'Spin', t, p + 'start', 'Start angle', 'num', s.start, { min: -180, max: 180, step: .5, unit: '°' });
-  def(g, 'Spin', t, p + 'tilt', 'Tilt toward you', 'num', -10.886, { min: -90, max: 90, step: .5, unit: '°' });
+  def(g, 'Orientation', t, p + 'tilt', 'X tilt toward you', 'num', -10.886, { min: -180, max: 180, step: .5, unit: '°' });
+  def(g, 'Orientation', t, p + 'yaw', 'Y turn left / right', 'num', 0, { min: -180, max: 180, step: .5, unit: '°' });
+  def(g, 'Orientation', t, p + 'roll', 'Z roll', 'num', 0, { min: -180, max: 180, step: .5, unit: '°' });
+  for (const [a, v] of [['X', 0], ['Y', 1], ['Z', 0]]) def(g, 'Custom axis', t, p + 'axis' + a, a + ' weight', 'num', v, { min: -1, max: 1, step: .01, info: 'Used when Spin axis is Custom XYZ axis. Weights are normalized; all zero uses Y.' });
   if (i > 0) {
     def(g, 'Proportions', t, p + 'w', 'Width', 'num', 1, { min: .2, max: 2.5, step: .01, unit: '×' });
     def(g, 'Proportions', t, p + 'h', 'Height', 'num', 1, { min: .2, max: 2.5, step: .01, unit: '×' });
@@ -633,11 +645,12 @@ SHAPES.forEach((s, i) => {
 
   },
   toolbar: [{ label: 'Replay', title: 'Play the rise-in again', onclick: () => replay() }, { label: 'Close', title: 'Play the close animation', onclick: () => closeDial() }, { label: 'Play exit', title: 'Play the dismantle the app runs after Messages is chosen, then come back', onclick: () => { ST.dis = 0; ST.disStay = true; } }],
-  onSet(k) { P = sc.P; if (/^s\d\.(x|y)$/.test(k) && !ST.grab && !ST.turn.on) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
-  onLoad() { P = sc.P; if (!ST.grab) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
+  onSet(k) { P = sc.P; const reset = /^s([0-3])\.start$/.exec(k); if (reset) shapeMotion[+reset[1]] = window.RavenMotion.create(motionSettings(+reset[1])); if (/^s\d\.(x|y)$/.test(k) && !ST.grab && !ST.turn.on) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
+  onLoad() { P = sc.P; shapeMotion.length = 0; if (!ST.grab) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
   onShow() { ST.dis = -1; replay(); },
   update(dt, now) {
     P = sc.P;
+    for (let i = 0; i < 4; i++) window.RavenMotion.advance(motionState(i), motionSettings(i), dt);
     if (ST.rise.mode === 'fwd') { ST.rise.v = clamp((now - ST.rise.t0) / P['anim.rise'], 0, 1); if (ST.rise.v >= 1) ST.rise.mode = 'done'; }
     else if (ST.rise.mode === 'rev') { ST.rise.v = Math.max(0, ST.rise.from - (now - ST.rise.t0) / P['anim.close']); if (ST.rise.v <= 0) { ST.rise.mode = 'closed'; K.status('Dial closed. Press Close again or tap the screen to open it.'); } }
     if (ST.turn.on) { const p = clamp((now - ST.turn.t0) / P['feel.snap'], 0, 1); ST.angle = ST.turn.from + (ST.turn.to - ST.turn.from) * ease(p); if (p >= 1) { ST.turn.on = false; if (ST.armed && !ST.closing) { ST.armed = false; ST.ready = true; } } }
@@ -744,3 +757,4 @@ function pickPart(raw) {
 
 
 })();
+

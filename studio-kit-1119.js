@@ -325,6 +325,15 @@ K.freeze = on => { frozen = on; };
 K.showHighlights = on => { showHL = on; };
 K.setHover = t => { hover = t; hoverUntil = t ? Infinity : 0; };
 K.save = () => save(cur, false);
+K.frameId = () => frame;
+// Read an existing design without changing it or the current screen's values.
+K.readSavedDesign = async id => {
+  const response = await fetch(SB.url + '/rest/v1/studio_designs?id=eq.' + encodeURIComponent(id) + '&select=data', { headers: { apikey: SB.key, Authorization: 'Bearer ' + SB.key }, cache: 'no-store' });
+  if (!response.ok) throw Error('Saved design could not load (HTTP ' + response.status + ')');
+  const rows = await response.json();
+  if (!rows[0]?.data) throw Error('Saved design was not found');
+  return rows[0].data;
+};
 
 /* ---------- start ---------- */
 K.start = async function ({ title, first }) {
@@ -360,3 +369,4 @@ K.start = async function ({ title, first }) {
 };
 window.StudioKit = K;
 })();
+
