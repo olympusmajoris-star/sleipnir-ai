@@ -187,12 +187,12 @@ const sc = K.screen({
       }
       const fromC = Math.hypot(p.x - G.cx, p.y - G.cy);
       if (v.y < -900 && Math.abs(v.x) < Math.abs(v.y) * .6 && fromC < G.r * 1.4) { ST.target = Math.round(ST.rot); ST.snap = true; open(selected()); return; }
-      if (v.y > 1100 && Math.abs(v.x) < Math.abs(v.y) * .5) { K.status('Swipe down: closes the Wayfinder in the app.'); ST.target = Math.round(ST.rot); ST.snap = true; return; }
+      if (v.y > 1100 && Math.abs(v.x) < Math.abs(v.y) * .5) { ST.target = Math.round(ST.rot); ST.snap = true; K.go('sky'); return; }
       ST.target = Math.round(ST.rot + clamp(ST.vel * P['fl.fling'], -4, 4)); ST.snap = true;
     },
     cancel() { ST.drag = false; ST.snap = true; ST.target = Math.round(ST.rot); },
   },
 });
-function open(i) { const NM = names(); if (i === 3 || i === 6) { ST.flash = NM[i]; ST.flashAt = ST.t; return; } K.status('Opens ' + NM[i] + ' in the app.'); }
+function open(i) { const NM = names(); if (i === 3 || i === 6) { ST.flash = NM[i]; ST.flashAt = ST.t; return; } if (i === 0 || i === 1) { K.go('sky'); return; } K.status(NM[i] + ' is not built in the studio yet. Swipe down to go back to Asgard.'); }
 sc.ST = ST; sc.G = () => G;
 })();

@@ -234,7 +234,7 @@ const sc = K.screen({
   onShow() { P = sc.P; ST.born = ST.t; ST.pull = 0; ST.exiting = false; },
   update(dt) {
     P = sc.P; ST.t += dt;
-    if (ST.exiting) { ST.pullV += 9000 * dt; ST.pull += ST.pullV * dt; if (ST.pull > K.H + 60) { ST.exiting = false; ST.pull = 0; ST.born = ST.t; K.status('Closed: in the app this goes back to Asgard. Opened again here.'); } }
+    if (ST.exiting) { ST.pullV += 9000 * dt; ST.pull += ST.pullV * dt; if (ST.pull > K.H + 60) { ST.exiting = false; ST.pull = 0; ST.born = ST.t; if (!K.go('sky')) K.status('Closed: in the app this goes back to Asgard.'); } }
     else if (!ST.pulling && ST.pull !== 0) { const k = 1 - Math.pow(.0004, dt); ST.pull += -ST.pull * k; if (Math.abs(ST.pull) < .3) ST.pull = 0; }
   },
   draw(ctx, now, studio) {
@@ -322,7 +322,7 @@ const sc = K.screen({
     move(p) { const d = ST.drag; if (!d || ST.exiting) return; const now = performance.now(), dy = p.y - d.y; ST.pull = Math.max(0, ST.pull + dy); d.v = dy / Math.max(1, now - d.t) * 1000; d.y = p.y; d.t = now; },
     up(p) {
       const d = ST.drag; ST.drag = null; ST.pulling = false; if (!d || ST.exiting) return;
-      if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const hb = G.hornBox; if (hb && p.x >= hb.x - 12 && p.x <= hb.x + hb.w + 12 && p.y >= hb.y - 12 && p.y <= hb.y + hb.h + 12) K.status('Horn tapped: in the app this opens your alerts list.'); return; }
+      if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const hb = G.hornBox; if (hb && p.x >= hb.x - 12 && p.x <= hb.x + hb.w + 12 && p.y >= hb.y - 12 && p.y <= hb.y + hb.h + 12) K.status('Horn: in the app this opens your alerts list (not built in the studio yet). Swipe down to go back to Asgard.'); return; }
       if (ST.pull > 90 || d.v > 700) { ST.exiting = true; ST.pullV = Math.max(d.v, 900); }
     },
     cancel() { ST.drag = null; ST.pulling = false; },

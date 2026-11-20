@@ -436,7 +436,7 @@ function drawFlight(ctx, now) {
   if (t < a + .02) flightScene(ctx, F, clamp(t / a, 0, 1), W, H);
   if (t >= a) wormhole(ctx, F, u, v, W, H, smooth(u / .14));
   if (v > 0) portalRoom(ctx, F, W, H, smooth((v - .1) / .7), 1.5 - .5 * easeOut(v));
-  if (F.dir !== 0) { ctx.font = '400 12px Roboto'; ctx.fillStyle = '#C7D5E2'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('Skip effect', W - 12 - 8, 10 + 14); }
+  if (F.dir !== 0) { ctx.font = '400 12px Roboto'; ctx.fillStyle = '#C7D5E2'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('Skip effect', W - 12 - 8, K.isMobile ? 64 : 24); }
 }
 function startFlight(o) {
   const W = K.W, H = K.H, top = G.top || 48;
@@ -690,11 +690,11 @@ const sc = K.screen({
     up(p) {
       const d = ST.drag; ST.drag = null; if (!d) return;
       if (d.mode === 'flight') { const F = ST.flight; if (!F) return; const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
-        if (F.dir !== 0 && p.y < 60 && p.x > K.W - 120) { F.t = F.dir > 0 ? 1 : 0; if (F.dir > 0) F.dir = 0; else ST.flight = null; return; }
+        if (F.dir !== 0 && p.y < (K.isMobile ? 100 : 60) && p.y > (K.isMobile ? 50 : 0) && p.x > K.W - 120) { F.t = F.dir > 0 ? 1 : 0; if (F.dir > 0) F.dir = 0; else ST.flight = null; return; }
         if (F.dir === 0 && (inR(F.ret) || (p.y < 60 && p.x < 60))) { F.dir = -1; return; }
         if (F.dir === 0 && inR(F.btn)) { K.status('In the app this enters ' + F.orb.person.name + '’s live stream.'); } return; }
       if (d.mode === 'feed') {
-        if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { K.status(b.label + ': opens its page in the app.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; } return; }
+        if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { const i = G.barBtns.indexOf(b); if (i === 0) K.go('way'); else if (i === 2) K.go('horn'); else if (i === 3) K.go('dial', { href: 'raven-studio-1119.html#dial' }); else K.status('Carve a Saga (Post a Saga / Be Alive menu) is not built in the studio yet.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; return; } const r = (G.posts || []).find(q => q.bottomBox && p.y >= q.bottomBox.y + q.bottomBox.h - 40 && p.y <= q.bottomBox.y + q.bottomBox.h); if (r && p.x > 12 + P['post.likeIcon'] + 40 + P['post.gap'] + 40) K.status(p.x > 12 + P['post.likeIcon'] + 40 + P['post.gap'] * 2 + 70 ? 'Share: the share animation is the next thing I am building.' : 'Comments are not built in the studio yet.'); return; }
         ST.vel = clamp(d.v, -4000, 4000); return;
       }
       if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) startFlight(hit); return; }

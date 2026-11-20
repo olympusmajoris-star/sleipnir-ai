@@ -72,7 +72,7 @@ select,input[type=text],input[type=number]{background:#0c1219;border:1px solid v
 .sw{width:44px;height:24px;border-radius:12px;padding:0;position:relative;background:#26313d}.sw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#8ea3b8;transition:left .15s}.sw.on{background:#1d6b59;border-color:#2aa486}.sw.on::after{left:23px;background:#e6fff8}
 .note{grid-column:1/-1;color:var(--mut);font-size:12px;padding:2px 2px 4px 26px}#zoomBox{display:flex;flex-direction:column;gap:8px}#zoomWrap{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}#zoom{display:block;width:100%;aspect-ratio:1/1}
 #zoomLab{position:absolute;left:8px;top:6px;font-size:11px;color:#cfe;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px}#zoomHelp{color:var(--mut);font-size:12px}#legend{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}#legend i{display:inline-block;width:22px;height:0;border-top:2px dashed var(--hl)}
-#mobBtns{display:none}#phoneLink{font-size:12px;color:var(--mut)}#phoneLink a{color:#9fe}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(20px);max-width:86vw;background:rgba(10,14,19,.92);color:#e8eef5;border:1px solid #2a3a4a;border-radius:14px;padding:10px 14px;font:500 13px/1.35 Roboto,system-ui,sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20}#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}#mobBtns{display:none}#phoneLink{font-size:12px;color:var(--mut)}#phoneLink a{color:#9fe}
 @media (max-width:820px){#app{display:block}#stageWrap{position:fixed;inset:0;padding:0;border:0}#stage{border-radius:0;box-shadow:none}#side{position:fixed;left:0;right:0;bottom:0;height:52vh;background:rgba(10,14,19,.97);border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .25s;z-index:5}#side.open{transform:none}#work{grid-template-columns:1fr;padding:8px;overflow:auto}#zoomBox{display:none}#controls{max-height:none;overflow:visible}.row{grid-template-columns:118px minmax(0,1fr) 28px}#bar .desk{display:none}#mobBtns{display:flex;gap:8px;position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:6}#mobBtns button{background:rgba(10,14,19,.75);backdrop-filter:blur(6px)}}`;
 const HTML = `<div id="app"><div id="stageWrap"><canvas id="stage"></canvas></div><div id="side"><div id="bar"><div id="crumb"></div><span id="screenBtns"></span><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bPick" title="Click a part to open its controls">Pick part</button><button id="bHl" class="on" title="Show the highlighted edges">Highlights</button><select id="selPhone" class="desk" title="Phone screen size"></select><button id="bSave" title="Save to the shared studio">Save</button></div><div id="status">Loading…</div><div id="screens"></div><div id="tabs"></div><div id="chips"></div><div id="work"><div id="controls"></div><div id="zoomBox"><div id="zoomWrap"><canvas id="zoom"></canvas><div id="zoomLab"></div></div><div id="legend"><i></i> dashed gold edge = what the control you're on changes</div><div id="zoomHelp">Close-up of the part you're editing, live.</div><div id="phoneLink"></div></div></div></div></div><div id="mobBtns"><button id="mPick">Pick part</button><button id="mCtl">Controls</button></div><video id="cam" playsinline muted autoplay style="display:none"></video>`;
 
@@ -251,7 +251,9 @@ function commit() {
 }
 function applySnap(json) { cur.P = Object.assign({}, cur.DEF, JSON.parse(json)); ensureCamera(); if (cur.onLoad) cur.onLoad(); buildControls(); }
 function updUndo() { $('bUndo').disabled = cur.hi <= 0; $('bRedo').disabled = cur.hi >= cur.hist.length - 1; }
-function status(t) { $('status').textContent = t; } K.status = status;
+function status(t) { $('status').textContent = t; }
+let toastTimer = 0; function toast(t) { let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); } el.textContent = t; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 3200); }
+K.status = t => { status(t); toast(t); }; K.toast = toast;
 function localGet(k) { try { return JSON.parse(localStorage.getItem('studioKit1119.' + k)); } catch (e) { return null; } }
 function localSet(k, v) { try { localStorage.setItem('studioKit1119.' + k, JSON.stringify(v)); } catch (e) {} }
 async function save(sc, auto) {
@@ -280,8 +282,8 @@ K.screen = function (def) {
   sc.ui = { group: def.startGroup || SPEC[0].group, section: def.startSection || SPEC[0].section, last: {} };
   K.screens[def.id] = sc; K.order.push(def.id); return sc;
 };
-K.show = async function (id) {
-  const sc = K.screens[id]; if (!sc) return;
+K.show = async function (id, opts) {
+  opts = opts || {}; const sc = K.screens[id]; if (!sc) return; const firstShow = !cur;
   if (cur && cur.onHide) cur.onHide();
   cur = sc; K.cur = sc;
   if (!sc.loaded) await load(sc);
@@ -291,8 +293,10 @@ K.show = async function (id) {
   buildScreens(); openSection(sc.ui.group, sc.ui.section); updUndo(); ensureCamera();
   if (sc.onShow) sc.onShow();
   status(sc.loadedFrom ? 'Loaded your saved settings for ' + sc.title + ' from the ' + sc.loadedFrom + '.' : sc.title + ': all values are the Dart originals. Changes save automatically.');
-  try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  try { if (opts.fromPop) {} else if (firstShow || opts.replace) history.replaceState(null, '', '#' + id); else if (location.hash !== '#' + id) history.pushState(null, '', '#' + id); } catch (e) {}
 };
+K.go = (id, how) => { if (K.screens[id]) { K.show(id); return true; } if (how && how.href) { location.href = how.href; return true; } return false; };
+K.back = () => { if (history.length > 1) history.back(); };
 
 /* ---------- loop ---------- */
 function render(now) {
@@ -332,7 +336,7 @@ K.start = async function ({ title, first }) {
   window.addEventListener('resize', layout);
   $('bUndo').onclick = () => { if (cur.hi > 0) { cur.hi--; applySnap(cur.hist[cur.hi]); updUndo(); const sc = cur; clearTimeout(sc.saveTimer); sc.saveTimer = setTimeout(() => save(sc, true), 1500); } };
   $('bRedo').onclick = () => { if (cur.hi < cur.hist.length - 1) { cur.hi++; applySnap(cur.hist[cur.hi]); updUndo(); const sc = cur; clearTimeout(sc.saveTimer); sc.saveTimer = setTimeout(() => save(sc, true), 1500); } };
-  const setPick = on => { pickMode = on; $('bPick').classList.toggle('on', on); $('mPick').classList.toggle('on', on); $('stageWrap').classList.toggle('pick', on); if (on) status('Pick part: tap any part to open its controls. Press Pick part again to go back to using the page.'); };
+  const setPick = on => { pickMode = on; $('bPick').classList.toggle('on', on); $('mPick').classList.toggle('on', on); $('stageWrap').classList.toggle('pick', on); if (on) K.status('Pick part: tap any part to open its controls. Press Pick part again to go back to using the page.'); };
   $('bPick').onclick = () => setPick(!pickMode); $('mPick').onclick = () => setPick(!pickMode);
   $('bHl').onclick = () => { showHL = !showHL; $('bHl').classList.toggle('on', showHL); };
   $('bSave').onclick = () => save(cur, false);
@@ -345,6 +349,7 @@ K.start = async function ({ title, first }) {
   window.addEventListener('deviceorientation', e => { if (e.gamma == null) return; tilt.tx = clamp(e.gamma / 30, -1, 1); tilt.ty = clamp((e.beta - 45) / 30, -1, 1); });
   layout();
   try { await document.fonts.load('500 23px Roboto'); await document.fonts.load('400 14px Roboto'); await document.fonts.load('700 16px Roboto'); } catch (e) {}
+  window.addEventListener('popstate', () => { const id = (location.hash || '').slice(1); if (K.screens[id] && (!cur || cur.id !== id)) K.show(id, { fromPop: true }); });
   const want = (location.hash || '').slice(1);
   await K.show(K.screens[want] ? want : first || K.order[0]);
   last = performance.now();

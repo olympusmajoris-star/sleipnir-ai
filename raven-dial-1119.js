@@ -720,7 +720,7 @@ SHAPES.forEach((s, i) => {
 
   },
   pick(p) { P = sc.P; return pickPart(unRise(p)); },
-  pointer: { down: pDown, move: pMove, up: pUp, cancel: pCancel },
+  pointer: { down: (p, e) => { sc._flick = { x: p.x, y: p.y, t: performance.now(), lx: p.x, ly: p.y, lt: performance.now(), vx: 0, vy: 0 }; pDown(p, e); }, move: (p, e) => { const f = sc._flick; if (f) { const now = performance.now(), dt = Math.max(1, now - f.lt); f.vx = (p.x - f.lx) / dt * 1000; f.vy = (p.y - f.ly) / dt * 1000; f.lx = p.x; f.ly = p.y; f.lt = now; } pMove(p, e); }, up: (p, e) => { const f = sc._flick; sc._flick = null; if (f && !ST.didTurn) { const dy = p.y - f.y; if (dy > 60 && f.vy > 900 && Math.abs(f.vx) < f.vy * .6) { pCancel && pCancel(p, e); K.go('sky', { href: 'asgard-studio-1120.html#sky' }); return; } } pUp(p, e); }, cancel: pCancel },
 });
 sc.ST = ST; sc.metrics = () => { P = sc.P; return metrics(); }; sc.replay = replay; sc.closeDial = closeDial;
 function pickPart(raw) {
