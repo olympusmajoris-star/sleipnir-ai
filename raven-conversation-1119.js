@@ -6,8 +6,8 @@
    (_rvCloudParts, _RvCloudVolume, _RvCloudSurfacePainter, crowns and
    footage films), break-off / distant ambient clouds (_RvMistScene,
    _RvMistPainter) and _RvMessageComposer. Defaults = the Dart and the
-   live raven_scene_settings row. Not ported yet: the construction
-   entrance animation and the water-shimmer reflection masks.
+   live raven_scene_settings row, including the construction entrance,
+   registered terrain lines and water-shimmer reflection masks.
    ===================================================================== */
 (() => {
 'use strict';
@@ -31,9 +31,9 @@ class Film {
   constructor(asset) { this.asset = asset; this.history = []; this.prev = null; this.cur = null; this.poster = null; this.blend = 0; this.motion = 0; this.dur = .1; this.speed = 1; this.ready = false; this.idx = 0; this.count = 0; this.decoding = false; this.retry = 0; this.cb = null; }
   async load() {
     try {
-      if ('ImageDecoder' in window) {
+      if ('ImageDecoder' in window || window.RavenWebP) {
         const resp = await fetch(ART + this.asset); const buf = await resp.arrayBuffer();
-        this.dec = new ImageDecoder({ data: buf, type: 'image/webp' }); await this.dec.tracks.ready; this.count = this.dec.tracks.selectedTrack.frameCount || 1;
+        const Decoder = window.ImageDecoder || window.RavenWebP.Decoder; this.dec = new Decoder({ data: buf, type: 'image/webp' }); await this.dec.tracks.ready; this.count = this.dec.tracks.selectedTrack.frameCount || 1;
         const frames = [];
         for (let i = 0; i < Math.min(12, this.count); i++) { const r = await this.dec.decode({ frameIndex: i }); frames.push(await createImageBitmap(r.image)); this.dur = Math.max(.1, (r.image.duration || 0) / 1e6); r.image.close(); }
         this.idx = frames.length - 1; this.history = frames.slice(0, Math.max(0, frames.length - 2)); this.prev = frames[frames.length - 2] || frames[0]; this.cur = frames[frames.length - 1];
@@ -47,13 +47,13 @@ class Film {
   after(v) { const o = Math.abs(v) % 10; return o === 0 || this.history.length < o ? this.cur : (o === 1 ? this.prev : this.history[this.history.length - o + 1]); }
   tick(dt) {
     if (!this.ready || !this.dec) return; const s = Math.min(dt, .1);
-    this.motion += s * this.speed; this.blend = Math.min(1, this.blend + s * this.speed / Math.max(.1, this.dur));
-    if (this.blend >= 1 && !this.decoding && this.motion >= this.retry) this.advance();
+    this.motion += s * this.speed * (this.direction < 0 ? -1 : 1); this.blend = Math.min(1, this.blend + s * this.speed / Math.max(.1, this.dur));
+    if (this.blend >= 1 && this.speed > 0 && !this.decoding && performance.now() >= this.retry) this.advance();
   }
   async advance() {
     this.decoding = true;
-    try { this.idx = (this.idx + 1) % this.count; const r = await this.dec.decode({ frameIndex: this.idx }); const bmp = await createImageBitmap(r.image); this.dur = Math.max(.1, (r.image.duration || 0) / 1e6); r.image.close(); if (this.prev) this.history.push(this.prev); if (this.history.length > 10) { const old = this.history.shift(); if (old && old.close && old !== this.prev && old !== this.cur) old.close(); } this.prev = this.cur; this.cur = bmp; this.blend = 0; }
-    catch (e) { this.retry = this.motion + 2; } finally { this.decoding = false; }
+    try { this.idx = (this.idx + (this.direction < 0 ? -1 : 1) + this.count) % this.count; const r = await this.dec.decode({ frameIndex: this.idx }); const bmp = await createImageBitmap(r.image); this.dur = Math.max(.1, (r.image.duration || 0) / 1e6); r.image.close(); if (this.prev) this.history.push(this.prev); if (this.history.length > 10) { const old = this.history.shift(); if (old && old.close && old !== this.prev && old !== this.cur) old.close(); } this.prev = this.cur; this.cur = bmp; this.blend = 0; }
+    catch (e) { this.retry = performance.now() + 2000; } finally { this.decoding = false; }
   }
 }
 const FILMS = FILM_ASSETS.map(a => new Film(a));
@@ -167,8 +167,9 @@ let G = { clouds: [] };
 const videos = [document.createElement('video'), document.createElement('video')];
 videos.forEach(v => { v.crossOrigin = 'anonymous'; v.muted = true; v.playsInline = true; v.preload = 'auto'; v.loop = false; });
 let vCur = 0;
-function loadClip(vi, idx) { idx = +idx; const v = videos[vi]; v.src = EARTH + CLIPS[idx][1]; v.dataset.idx = idx; v.playbackRate = rate(idx); v.play().catch(() => {}); }
-const rate = idx => clamp(CLIPS[+idx || 0][2] * P['sc.daySpeed'] / 8, .0625, 4);
+function loadClip(vi, idx, play = true) { idx = clamp(Math.round(+idx || 0),0,CLIPS.length-1); const v = videos[vi]; if (+v.dataset.idx !== idx || !v.src) { v.src = EARTH + CLIPS[idx][1]; v.dataset.idx = idx; } v.playbackRate = rate(idx); if (play && P['earth.play']) v.play().catch(() => {}); else v.pause(); }
+const rate = idx => clamp(CLIPS[+idx || 0][2] * P['sc.daySpeed'] / 8 * (P['earth.rate' + (+idx || 0)] ?? 1), .0625, 4);
+let waterClock = 0, windClock = 0;
 function tileFor(id, size) {
   let t = ST.tiles[id]; const now = performance.now();
   if (!t) t = ST.tiles[id] = { born: now, from: size, to: size, t0: now, vol: null, volKey: '' };
@@ -233,7 +234,7 @@ function drawCloud(ctx, x0, y0, w, h, formed, mine, variant, lines, textW, textH
 /* ---------- ambient mist (_RvMistScene / _RvMistPainter) ---------- */
 function offshoot(Wd, Hd, targets) {
   const r = ST.rand; if (!targets.length) return null;
-  const roll = r(), kind = roll < .62 ? 'small' : roll < .91 ? 'medium' : 'large';
+  const roll = r(), small = P['amb.smallChance'], medium = Math.min(1 - small, P['amb.mediumChance']), kind = roll < small ? 'small' : roll < small + medium ? 'medium' : 'large';
   const width = kind === 'small' ? P['amb.smallW'] + r() * 34 : kind === 'medium' ? P['amb.mediumW'] + r() * 46 : P['amb.largeW'] + r() * 42;
   const entries = targets.slice().sort(() => r() - .5); let chosen = null, anchor = null, normal = null, best = -Infinity;
   for (const e of entries.slice(0, 5)) for (const n of [[-1, .24], [1, .22], [-.26, 1], [.24, -1]]) {
@@ -245,15 +246,16 @@ function offshoot(Wd, Hd, targets) {
     if (score > best) { best = score; chosen = e; anchor = a; normal = n; }
   }
   if (!chosen) return null;
-  const fate = kind === 'large' ? 'drift' : kind === 'small' ? (r() < .72 ? 'dissolve' : 'drift') : (r() < .58 ? 'absorb' : 'drift');
+  const naturalFate = kind === 'large' ? 'drift' : kind === 'small' ? (r() < .72 ? 'dissolve' : 'drift') : (r() < .58 ? 'absorb' : 'drift');
+  const fate = P['amb.fate'] === 'natural' ? naturalFate : P['amb.fate'];
   const ox = chosen.x + anchor[0] * chosen.w - normal[0] * 22, oy = chosen.y + anchor[1] * chosen.h - normal[1] * 22, sp = kind === 'large' ? 5 : 6 + r() * 3;
-  return { id: ST.serial++, source: chosen.id, anchor, normal, x: ox, y: oy, vx: normal[0] * sp, vy: normal[1] * sp, width, life: kind === 'small' ? 15 + r() * 15 : 44 + r() * 28, fate, skin: Math.floor(r() * 5), phase: Math.floor(r() * 10), turn: (r() - .5) * .65, kind, attach: P['amb.attach'] + r() * 3, aspect: .59 + r() * .2, age: 0, fade: 0, merging: 0, sp: { x: ox, y: oy } };
+  return { id: ST.serial++, source: chosen.id, anchor, normal, x: ox, y: oy, vx: normal[0] * sp, vy: normal[1] * sp, width, life: kind === 'small' ? P['amb.smallLife'] + r() * P['amb.smallLifeVar'] : P['amb.largeLife'] + r() * P['amb.largeLifeVar'], fate, skin: Math.floor(r() * 5), phase: Math.floor(r() * 10), turn: (r() - .5) * .65, kind, attach: P['amb.attach'] + r() * P['amb.attachVar'], aspect: .59 + r() * .2, age: 0, fade: 0, merging: 0, sp: { x: ox, y: oy } };
 }
 function distantCloud(Wd, Hd, targets) {
   const r = ST.rand; let pos = null;
   for (let i = 0; i < 16; i++) { const p = { x: 25 + r() * Math.max(1, Wd - 50), y: 110 + r() * Math.max(1, Hd - 220) }; if (!targets.some(t => p.x >= t.x - 32 && p.x <= t.x + t.w + 32 && p.y >= t.y - 32 && p.y <= t.y + t.h + 32)) { pos = p; break; } }
   if (!pos) return null;
-  return { id: ST.serial++, x: pos.x, y: pos.y, vx: 0, vy: 0, width: P['amb.distantW'] + r() * 27, life: 27 + r() * 25, fate: 'dissolve', skin: Math.floor(r() * 5), phase: Math.floor(r() * 10), turn: (r() - .5) * .7, kind: 'distant', attach: 0, aspect: .52 + r() * .24, age: 0, fade: 0, merging: 0 };
+  return { id: ST.serial++, x: pos.x, y: pos.y, vx: 0, vy: 0, width: P['amb.distantW'] + r() * 27, life: P['amb.distantLife'] + r() * P['amb.distantLifeVar'], fate: 'dissolve', skin: Math.floor(r() * 5), phase: Math.floor(r() * 10), turn: (r() - .5) * .7, kind: 'distant', attach: 0, aspect: .52 + r() * .24, age: 0, fade: 0, merging: 0 };
 }
 const mGrowth = p => p.attach > 0 ? easeIO(p.age / p.attach) : easeIO(p.age / 3);
 const mOpacity = p => (p.kind === 'distant' ? easeIO(p.age / 3) : (.42 + .58 * mGrowth(p))) * (1 - p.fade) * (1 - p.merging);
@@ -266,7 +268,7 @@ function stepMist(dt, Wd, Hd, targets) {
   const budget = clamp(Math.round(P['sc.ambientCount']), 0, 8);
   if (budget === 0) { ST.mist = []; return; }
   if (active) { ST.nextOff -= dt; if (ST.nextOff <= 0) { if (ST.mist.filter(p => p.kind !== 'distant').length < budget) { const c = offshoot(Wd, Hd, targets); if (c) ST.mist.push(c); } ST.nextOff = schedule(); } ST.nextDist = 4 + ST.rand() * .5; }
-  else { ST.nextDist -= dt; if (ST.nextDist <= 0) { if (ST.mist.filter(p => p.kind === 'distant').length < Math.min(3, budget)) { const c = distantCloud(Wd, Hd, targets); if (c) ST.mist.push(c); } ST.nextDist = 14 + ST.rand() * 10; } }
+  else { ST.nextDist -= dt; if (ST.nextDist <= 0) { if (ST.mist.filter(p => p.kind === 'distant').length < Math.min(3, budget)) { const c = distantCloud(Wd, Hd, targets); if (c) ST.mist.push(c); } ST.nextDist = P['amb.distantEvery'] + ST.rand() * P['amb.distantEveryVar']; } }
   const byId = Object.fromEntries(targets.map(t => [t.id, t]));
   for (const p of ST.mist) {
     p.age += dt;
@@ -274,7 +276,7 @@ function stepMist(dt, Wd, Hd, targets) {
     if (p.source != null && p.age < p.attach) { if (!p.sp) { p.fade = Math.min(1, p.fade + dt / 2); continue; } p.x = p.sp.x + p.normal[0] * p.width * .40 * mGrowth(p); p.y = p.sp.y + p.normal[1] * p.width * .40 * mGrowth(p); continue; }
     if (p.target != null) { const r = byId[p.target]; if (!r) { p.target = null; p.fade = Math.max(p.fade, .1); } else { p.merging = Math.min(1, p.merging + dt / 4.2); const s = p.ms, ex = clamp(s.x, r.x + 10, r.x + r.w - 10), ey = clamp(s.y, r.y + 10, r.y + r.h - 10), e = easeIO(p.merging); p.x = s.x + (ex - s.x) * e; p.y = s.y + (ey - s.y) * e; if (p.merging >= 1) p.dead = true; continue; } }
     if (p.kind === 'distant') { p.x += P['amb.groundVX'] * dt; p.y += P['amb.groundVY'] * dt; }
-    else { const wx = Math.sin(ST.mistTime * .13 + p.id * 2.1) * 1.3, wy = Math.cos(ST.mistTime * .11 + p.id * .9) * .85; p.x += (p.vx + wx) * dt * P['sc.ambientSpeed']; p.y += (p.vy + wy) * dt * P['sc.ambientSpeed']; }
+    else { const wx = Math.sin(windClock * .13 + p.id * 2.1) * 1.3 * P['amb.turbulence'], wy = Math.cos(windClock * .11 + p.id * .9) * .85 * P['amb.turbulence']; p.x += (p.vx + wx + P['amb.windX']) * dt * P['sc.ambientSpeed']; p.y += (p.vy + wy + P['amb.windY']) * dt * P['sc.ambientSpeed']; }
     if (p.kind !== 'distant' && p.fade === 0 && p.fate === 'absorb' && p.age > p.attach + 4) for (const t of targets) if (t.id !== p.source && p.x >= t.x - p.width * .3 && p.x <= t.x + t.w + p.width * .3 && p.y >= t.y - p.width * .3 && p.y <= t.y + t.h + p.width * .3) { p.target = t.id; p.ms = { x: p.x, y: p.y }; break; }
     if (p.fade > 0 || (p.fate !== 'drift' && p.age > p.life + p.attach)) p.fade = Math.min(1, p.fade + dt / (p.kind === 'distant' ? 6 : 8));
     const m = p.width * P['sc.ambientScale']; if (p.fade >= 1 || p.x < -m || p.x > Wd + m || p.y < -m || p.y > Hd + m || p.age > 180) p.dead = true;
@@ -303,7 +305,7 @@ function drawMist(ctx) {
     };
     const body = shadow => {
       const dsp = p.kind === 'distant' ? [5, 8] : [P['amb.shadowX'], P['amb.shadowY']], cx = p.x + (shadow ? dsp[0] : 0), cy = p.y + (shadow ? dsp[1] : 0);
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(p.turn + .035 * Math.sin(ST.mistTime * .10 + p.id));
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(p.turn + P['amb.angle'] * Math.PI / 180 + P['amb.rock'] * Math.PI / 180 * Math.sin(windClock * .10 + p.id));
       if (shadow) ctx.filter = `blur(${((p.kind === 'distant' ? 2.4 : 7) * scaleOf(ctx)).toFixed(1)}px)`;
       const dw = w * (1 + .045 * Math.sin(ST.mistTime * .17 + p.id)), dh = h * (1 + .035 * Math.cos(ST.mistTime * .13 + p.id * 1.7));
       drawFilm(ctx, film, { x: -dw / 2, y: -dh / 2, w: dw, h: dh }, { phase: p.phase, opacity: op * (shadow ? P['sc.shadow'] * (p.kind === 'distant' ? .8 : 1) : 1), shadow });
@@ -338,7 +340,7 @@ function drawWater(ctx, v, alpha, now) {
   const t = v.currentTime, i = clamp(Math.floor(t / tr.step), 0, tr.frames.length - 1), m = waterMask(clip[3], tr, i); if (m.empty) return;
   const W = K.W, H = K.H, vw = v.videoWidth, vh = v.videoHeight, sc0 = Math.max(W / vw, H / vh), sw = W / sc0, sh = H / sc0;
   const src = { x: (vw - sw) / 2 / vw * tr.width, y: (vh - sh) / 2 / vh * tr.height, w: sw / vw * tr.width, h: sh / vh * tr.height };
-  const L = waterLayer, x = L.getContext('2d'), LW = L.width, LH = L.height, wc = waterColor(tr, t), clock = now / 1000;
+  const L = waterLayer, x = L.getContext('2d'), LW = L.width, LH = L.height, wc = waterColor(tr, t), clock = waterClock;
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, LW, LH);
   const g = x.createLinearGradient(0, 0, LW, LH); g.addColorStop(0, lerpC(wc, P['wa.light'], .10)); g.addColorStop(1, lerpC(wc, P['wa.deep'], .12));
   x.globalAlpha = P['wa.tint'] * strength; x.fillStyle = g; x.fillRect(0, 0, LW, LH); x.globalAlpha = 1;
@@ -509,10 +511,19 @@ const sc = K.screen({
     def('Earth', 'Footage', 'earth', 'earth.on', 'Earth footage', 'bool', true);
     def('Earth', 'Footage', 'earth', 'earth.clip', 'Recording', 'select', 0, { opts: CLIPS.map((c, i) => [i, c[0]]), info: 'The app plays all 14 recordings in order; pick one to look at here.' });
     def('Earth', 'Footage', 'earth', 'earth.cycle', 'Play all in order', 'bool', true);
+    def('Earth', 'Footage', 'earth', 'earth.play', 'Play footage', 'bool', true, { info: 'Pause holds the current frame. The next recording starts only after the current one finishes.' });
     def('Earth', 'Footage', 'earth', 'sc.daySpeed', 'Travel speed', 'num', 8, { min: .0625, max: 32, step: .0625, dart: 'raven_scene_settings.day_speed (playback = .20 × speed ÷ 8)' });
     def('Earth', 'Footage', 'earth', 'sc.groundBrightness', 'Ground brightness', 'num', 1, { min: .3, max: 1.5, step: .01, dart: 'ground_brightness' });
     def('Earth', 'Footage', 'earth', 'earth.fade', 'Crossfade between clips', 'int', 1200, { min: 0, max: 5000, step: 50, unit: 'ms' });
     def('Earth', 'Footage', 'earth', 'earth.paper', 'Page color under Earth', 'color', '#F0DFC0');
+    def('Earth', 'Place', 'earth', 'earth.x', 'Left / right', 'num', 0, { min: -.5, max: .5, step: .005, unit: 'of width' });
+    def('Earth', 'Place', 'earth', 'earth.y', 'Up / down', 'num', 0, { min: -.5, max: .5, step: .005, unit: 'of height' });
+    def('Earth', 'Place', 'earth', 'earth.zoom', 'Zoom', 'num', 1, { min: 1, max: 4, step: .01, unit: '×' });
+    def('Earth', 'Place', 'earth', 'earth.angle', 'Map orientation', 'num', 0, { min: -180, max: 180, step: .5, unit: '°', info: 'Turns the footage, water, and terrain lines together. The travel path itself is part of each recording.' });
+    def('Earth', 'Place', 'earth', 'earth.flipX', 'Mirror left / right', 'bool', false);
+    def('Earth', 'Place', 'earth', 'earth.flipY', 'Mirror up / down', 'bool', false);
+    def('Earth', 'Place', 'earth', 'earth.opacity', 'Footage opacity', 'num', 1, { min: 0, max: 1, step: .01 });
+    CLIPS.forEach((clip, i) => def('Earth', 'Clip speeds', 'earth', 'earth.rate' + i, clip[0], 'num', 1, { min: .125, max: 4, step: .025, unit: '× travel speed' }));
     def('Earth', 'Shade bands', 'earth.shade', 'shade.on', 'Top/bottom shading', 'bool', true);
     def('Earth', 'Shade bands', 'earth.shade', 'shade.color', 'Shade color', 'color', '#071823');
     def('Earth', 'Shade bands', 'earth.shade', 'shade.top', 'Top strength', 'num', .565, { min: 0, max: 1, step: .005 });
@@ -528,6 +539,7 @@ const sc = K.screen({
     def('Earth', 'Water shimmer', 'earth', 'wa.spark', 'Sparkle brightness', 'num', .32, { min: 0, max: 1.5, step: .01 });
     def('Earth', 'Water shimmer', 'earth', 'wa.sparkles', 'Sparkle count', 'int', 1100, { min: 0, max: 1100, step: 10 });
     def('Earth', 'Water shimmer', 'earth', 'wa.maskBlur', 'Shoreline softness', 'num', 1.4, { min: 0, max: 6, step: .1 });
+    def('Earth', 'Water shimmer', 'earth', 'wa.speed', 'Shimmer speed', 'num', 1, { min: 0, max: 4, step: .025, unit: '×' });
     // Construction entrance
     def('Construction', 'Timing', 'construct', 'con.on', 'Play when page opens', 'bool', true);
     def('Construction', 'Timing', 'construct', 'con.seconds', 'Duration', 'num', 4.8, { min: 3.2, max: 9, step: .1, unit: 's', dart: '_rvEntranceSeconds' });
@@ -562,6 +574,11 @@ const sc = K.screen({
     def('Message clouds', 'Scene values', 'clouds', 'sc.spacing', 'Space between messages', 'num', 14, { min: 4, max: 64, step: 1, unit: 'px', dart: 'message_spacing' });
     def('Message clouds', 'Scene values', 'clouds', 'sc.variety', 'Billow movement', 'num', .85, { min: 0, max: 1, step: .01, dart: 'cloud_variety' });
     def('Message clouds', 'Scene values', 'clouds', 'sc.cloudSpeed', 'Footage speed', 'num', 1, { min: .125, max: 4, step: .025, unit: '×', dart: 'cloud_speed' });
+    def('Message clouds', 'Scene values', 'clouds', 'cl.play', 'Animate cloud footage', 'bool', true);
+    ['Your cloud', 'Their cloud', 'Anvil billows', 'Tower billows', 'Soft billows'].forEach((name, i) => {
+      def('Message clouds', 'Footage layers', 'clouds', 'film.' + i + '.speed', name + ' speed', 'num', 1, { min: 0, max: 4, step: .025, unit: '×' });
+      def('Message clouds', 'Footage layers', 'clouds', 'film.' + i + '.dir', name + ' direction', 'select', 1, { opts: [[1, 'Forward'], [-1, 'Reverse']], info: 'Controls this animated cloud source independently.' });
+    });
     def('Message clouds', 'Size', 'clouds', 'cl.inset', 'Edge billow depth', 'num', 62, { min: 20, max: 120, step: 1, unit: 'px', dart: '_rvCloudInset 62' });
     def('Message clouds', 'Size', 'clouds', 'cl.maxW', 'Widest cloud', 'num', 440, { min: 200, max: 600, step: 5, unit: 'px' });
     def('Message clouds', 'Size', 'clouds', 'cl.side', 'Side offset', 'num', .16, { min: 0, max: 1, step: .01, info: 'Yours lean right, theirs lean left.' });
@@ -601,12 +618,25 @@ const sc = K.screen({
     def('Drifting clouds', 'Break-offs', 'mist', 'amb.interval', 'Break-off every', 'num', 30, { min: 18, max: 90, step: 1, unit: 's', info: 'While you are chatting, a piece breaks off a cloud about this often. Press "Break off now" to see one.' });
     def('Drifting clouds', 'Break-offs', 'mist', 'amb.activeFor', 'Chat counts as active for', 'num', 45, { min: 5, max: 300, step: 5, unit: 's' });
     def('Drifting clouds', 'Break-offs', 'mist', 'amb.attach', 'Stays attached', 'num', 5.5, { min: .5, max: 20, step: .5, unit: 's' });
+    def('Drifting clouds', 'Break-offs', 'mist', 'amb.attachVar', 'Extra attached time', 'num', 3, { min: 0, max: 20, step: .5, unit: 's' });
+    def('Drifting clouds', 'Break-offs', 'mist', 'amb.smallChance', 'Small piece chance', 'num', .62, { min: 0, max: 1, step: .01 });
+    def('Drifting clouds', 'Break-offs', 'mist', 'amb.mediumChance', 'Medium piece chance', 'num', .29, { min: 0, max: 1, step: .01, info: 'The remaining chance produces a large piece. Small takes priority if the two add to more than one.' });
+    def('Drifting clouds', 'Break-offs', 'mist', 'amb.fate', 'What pieces do', 'select', 'natural', { opts: [['natural', 'Original mix by size'], ['drift', 'Keep drifting'], ['dissolve', 'Dissolve'], ['absorb', 'Merge into another cloud']] });
     def('Drifting clouds', 'Break-offs', 'mist', 'amb.smallW', 'Small piece size', 'num', 76, { min: 20, max: 200, step: 1, unit: 'px' });
     def('Drifting clouds', 'Break-offs', 'mist', 'amb.mediumW', 'Medium piece size', 'num', 116, { min: 40, max: 260, step: 1, unit: 'px' });
     def('Drifting clouds', 'Break-offs', 'mist', 'amb.largeW', 'Large piece size', 'num', 170, { min: 60, max: 320, step: 1, unit: 'px' });
     def('Drifting clouds', 'Distant clouds', 'mist', 'amb.distantW', 'Distant cloud size', 'num', 25, { min: 5, max: 120, step: 1, unit: 'px' });
     def('Drifting clouds', 'Distant clouds', 'mist', 'amb.groundVX', 'Drift with ground →', 'num', -5, { min: -40, max: 40, step: .5, unit: 'px/s' });
     def('Drifting clouds', 'Distant clouds', 'mist', 'amb.groundVY', 'Drift with ground ↓', 'num', 3, { min: -40, max: 40, step: .5, unit: 'px/s' });
+    def('Drifting clouds', 'Distant clouds', 'mist', 'amb.distantEvery', 'Time between clouds', 'num', 14, { min: 1, max: 120, step: 1, unit: 's' });
+    def('Drifting clouds', 'Distant clouds', 'mist', 'amb.distantEveryVar', 'Timing variation', 'num', 10, { min: 0, max: 60, step: 1, unit: 's' });
+    for (const [key, label, val] of [['smallLife','Small piece life',15],['smallLifeVar','Small life variation',15],['largeLife','Medium / large piece life',44],['largeLifeVar','Medium / large life variation',28],['distantLife','Distant cloud life',27],['distantLifeVar','Distant life variation',25]]) def('Drifting clouds', 'Lifetime', 'mist', 'amb.' + key, label, 'num', val, { min: key.endsWith('Var') ? 0 : 1, max: 180, step: 1, unit: 's', info: 'Applies when the next cloud forms. Use Break off now to preview it.' });
+    def('Drifting clouds', 'Wind and rotation', 'mist', 'amb.windX', 'Wind left / right', 'num', 0, { min: -40, max: 40, step: .5, unit: 'px/s' });
+    def('Drifting clouds', 'Wind and rotation', 'mist', 'amb.windY', 'Wind up / down', 'num', 0, { min: -40, max: 40, step: .5, unit: 'px/s' });
+    def('Drifting clouds', 'Wind and rotation', 'mist', 'amb.turbulence', 'Wind variation', 'num', 1, { min: 0, max: 5, step: .05, unit: '×' });
+    def('Drifting clouds', 'Wind and rotation', 'mist', 'amb.windSpeed', 'Wind / rocking tempo', 'num', 1, { min: 0, max: 5, step: .05, unit: '×' });
+    def('Drifting clouds', 'Wind and rotation', 'mist', 'amb.angle', 'Cloud rotation', 'num', 0, { min: -180, max: 180, step: .5, unit: '°' });
+    def('Drifting clouds', 'Wind and rotation', 'mist', 'amb.rock', 'Rocking amount', 'num', .035 * 180 / Math.PI, { min: 0, max: 30, step: .1, unit: '°' });
     def('Drifting clouds', 'Shadow', 'mist', 'amb.shadowX', 'Shadow right', 'num', 17, { min: -60, max: 60, step: 1, unit: 'px' });
     def('Drifting clouds', 'Shadow', 'mist', 'amb.shadowY', 'Shadow down', 'num', 29, { min: -60, max: 80, step: 1, unit: 'px' });
     // Header
@@ -643,18 +673,29 @@ const sc = K.screen({
     { label: 'Break off now', title: 'Spawn a break-off piece from a cloud right now', onclick: () => { noteActivity(); ST.wasActive = true; ST.mistInit = true; ST.nextOff = 0; } },
     { label: 'Clear', title: 'Remove all messages here', onclick: () => { ST.msgs = []; ST.mist = []; } },
   ],
-  onShow() { P = sc.P; startFilms(); ensureInput().style.display = ''; if (!ST.seeded) { ST.seeded = true; const now = Date.now(); [['Hey, are you still coming to the market Saturday?', false], ['Yes! I will bring the honey cakes', true], ['Perfect. Bring the big basket too, the one with the handles', false], ['Already packed it', true]].forEach(([b, mine], i, a) => ST.msgs.unshift({ id: 's' + i, body: b, mine, at: new Date(now - (a.length - i) * 240000) })); } if (P['earth.on']) loadClip(vCur, P['earth.clip']); if (P['con.on']) startBuild(); else ST.prog = 1; },
-  onHide() { if (input) input.style.display = 'none'; videos.forEach(v => v.pause()); },
-  onSet(k, v) { if (k === 'earth.clip') { ST.clipIdx = v; vCur = 0; loadClip(0, v); videos[1].pause(); ST.swap = null; } if (k === 'sc.daySpeed') videos.forEach(x => { if (x.dataset.idx != null) x.playbackRate = rate(x.dataset.idx); }); },
+  onShow() { P = sc.P; if (ST.hiddenAt != null && ST.swap?.t0 != null) ST.swap.t0 += performance.now() - ST.hiddenAt; ST.hiddenAt = null; if (ST.swap?.t0 != null && P['earth.on'] && P['earth.play']) videos[1-vCur].play().catch(() => {}); startFilms(); ensureInput().style.display = ''; if (!ST.seeded) { ST.seeded = true; const now = Date.now(); [['Hey, are you still coming to the market Saturday?', false], ['Yes! I will bring the honey cakes', true], ['Perfect. Bring the big basket too, the one with the handles', false], ['Already packed it', true]].forEach(([b, mine], i, a) => ST.msgs.unshift({ id: 's' + i, body: b, mine, at: new Date(now - (a.length - i) * 240000) })); } if (P['earth.on']) { if (videos[vCur].dataset.idx == null) loadClip(vCur, P['earth.clip']); else if (P['earth.play'] && !videos[vCur].ended) videos[vCur].play().catch(() => {}); } if (P['con.on']) startBuild(); else ST.prog = 1; },
+  onHide() { if (input) input.style.display = 'none'; ST.hiddenAt = performance.now(); videos.forEach(v => v.pause()); },
+  onSet(k, v) {
+    P = sc.P;
+    if (k === 'earth.clip') { ST.clipIdx = v; vCur = 0; loadClip(0, v); videos[1].pause(); ST.swap = null; }
+    if (k === 'sc.daySpeed' || k.startsWith('earth.rate')) videos.forEach(x => { if (x.dataset.idx != null) x.playbackRate = rate(x.dataset.idx); });
+    if (k === 'earth.play' || k === 'earth.on') { if (!P['earth.play'] || !P['earth.on']) videos.forEach(x => x.pause()); else { if (videos[vCur].dataset.idx == null) loadClip(vCur, P['earth.clip']); else if (!videos[vCur].ended) videos[vCur].play().catch(() => {}); if (ST.swap?.t0 != null) videos[1-vCur].play().catch(() => {}); } }
+  },
   update(dt, now) {
-    P = sc.P; FILMS.forEach(f => { f.speed = P['sc.cloudSpeed']; f.tick(dt); });
+    P = sc.P; FILMS.forEach((f,i) => { f.speed = P['cl.play'] ? P['sc.cloudSpeed'] * P['film.' + i + '.speed'] : 0; f.direction = P['film.' + i + '.dir']; f.tick(dt); });
+    waterClock += dt * P['wa.speed']; windClock += dt * P['amb.windSpeed'];
     if (ST.active && now > ST.activeUntil) ST.active = false;
     // construction progress (waits at .28 until footage and clouds are ready, like the app)
     if (ST.prog < 1) { const ready = (!P['earth.on'] || videos[vCur].readyState >= 2) && FILMS.every(f => f.ready || f.failed); if (ready || ST.prog < .28) ST.prog = Math.min(ready ? 1 : .28, ST.prog + dt / Math.max(.5, P['con.seconds'])); }
-    // earth journey: crossfade to next clip near the end
+    // Match _RvEarthJourney: keep every last frame, and wait for the next clip.
     const v = videos[vCur];
-    if (P['earth.on'] && P['earth.cycle'] && v.duration && !ST.swap && v.currentTime > v.duration - (P['earth.fade'] / 1000) * rate(v.dataset.idx) - .05) { const ni = (+v.dataset.idx + 1) % CLIPS.length; loadClip(1 - vCur, ni); ST.swap = { t0: now }; }
-    if (ST.swap && now - ST.swap.t0 > P['earth.fade']) { videos[vCur].pause(); vCur = 1 - vCur; ST.swap = null; }
+    if (P['earth.on'] && P['earth.cycle'] && v.dataset.idx != null && !ST.swap) { const ni = (+v.dataset.idx + 1) % CLIPS.length; if (+videos[1-vCur].dataset.idx !== ni) loadClip(1-vCur, ni, false); }
+    const playing = P['earth.on'] && P['earth.play'];
+    if (!playing && ST.swap?.t0 != null) ST.swap.t0 += dt * 1000;
+    const decision = window.RavenEarthControls.journey(v, videos[1-vCur], ST.swap, now, P['earth.fade'], playing, P['earth.cycle']);
+    if (decision.type === 'prepare') ST.swap = { t0: null };
+    if (decision.type === 'start') { ST.swap.t0 = now; videos[1-vCur].play().catch(() => {}); }
+    if (decision.type === 'commit') { v.pause(); vCur = 1-vCur; ST.swap = null; }
     const g = G.layout; if (g && prog() >= .96) stepMist(dt, K.W, K.H, g.targets);
     placeInput(); if (input) input.style.visibility = prog() >= P['con.cmpEnd'] ? 'visible' : 'hidden';
   },
@@ -667,13 +708,14 @@ const sc = K.screen({
     ctx.fillStyle = P['earth.paper']; ctx.globalAlpha = P['bg.mode'] === 'plain' ? 1 : 0; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
     if (P['earth.on']) {
       ctx.save(); if (pr < .78) ctx.clip(revealedPath(cells, pr, W, H));
-      const drawV = (v, a) => { if (!v.videoWidth || a <= 0) return; const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s; ctx.save(); ctx.globalAlpha = a; ctx.filter = `brightness(${P['sc.groundBrightness']})`; ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh); ctx.restore(); ctx.save(); ctx.filter = `brightness(${P['sc.groundBrightness']})`; drawWater(ctx, v, a, now); ctx.restore(); };
-      drawV(videos[vCur], 1); if (ST.swap) drawV(videos[1 - vCur], clamp((now - ST.swap.t0) / Math.max(1, P['earth.fade']), 0, 1));
+      ctx.transform(...window.RavenEarthControls.matrix(P,W,H));
+      const drawV = (v, a) => { if (!v.videoWidth || a <= 0) return; a *= P['earth.opacity']; const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s; ctx.save(); ctx.globalAlpha = a; ctx.filter = `brightness(${P['sc.groundBrightness']})`; ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh); ctx.restore(); ctx.save(); ctx.filter = `brightness(${P['sc.groundBrightness']})`; drawWater(ctx, v, a, now); ctx.restore(); };
+      drawV(videos[vCur], 1); if (ST.swap?.t0 != null) drawV(videos[1 - vCur], clamp((now - ST.swap.t0) / Math.max(1, P['earth.fade']), 0, 1));
       ctx.restore();
     }
     if (P['shade.on']) { const op = cRamp(pr, .48, .82); if (op > 0) { const g = ctx.createLinearGradient(0, 0, 0, H), c = P['shade.color']; g.addColorStop(0, rgba(c, P['shade.top'])); g.addColorStop(P['shade.topEnd'], rgba(c, 0)); g.addColorStop(P['shade.bottomStart'], rgba(c, 0)); g.addColorStop(1, rgba(c, P['shade.bottom'])); ctx.save(); ctx.globalAlpha = op; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore(); } }
     // construction drawing over the page
-    if (pr < .96) { let terr = null; const v = videos[vCur]; if (pr < .91 && v.videoWidth && v.dataset.idx != null) { const raw = terrainAt(CLIPS[+v.dataset.idx][1], v.currentTime); if (raw) { const vw = v.videoWidth, vh = v.videoHeight, s0 = Math.max(W / vw, H / vh), sw = W / s0, sh = H / s0, sx = (vw - sw) / 2, sy = (vh - sh) / 2; terr = raw.filter(q => q.length >= 2).map(q => q.map(([x, y]) => [(x * vw - sx) * W / sw, (y * vh - sy) * H / sh])); } } G.terrain = terr ? terr.length : 0; drawConstruction(ctx, pr, W, H, cells, hdr, G.composer, terr); }
+    if (pr < .96) { let terr = null; const v = videos[vCur]; if (pr < .91 && v.videoWidth && v.dataset.idx != null) { const raw = terrainAt(CLIPS[+v.dataset.idx][1], v.currentTime); if (raw) { const vw = v.videoWidth, vh = v.videoHeight, s0 = Math.max(W / vw, H / vh), sw = W / s0, sh = H / s0, sx = (vw - sw) / 2, sy = (vh - sh) / 2; const transform = window.RavenEarthControls.matrix(P,W,H); terr = raw.filter(q => q.length >= 2).map(q => q.map(([x, y]) => window.RavenEarthControls.point(transform, (x * vw - sx) * W / sw, (y * vh - sy) * H / sh)));  } } G.terrain = terr ? terr.length : 0; drawConstruction(ctx, pr, W, H, cells, hdr, G.composer, terr); }
     // drifting clouds sit behind the message clouds
     if (pr >= .96) drawMist(ctx); else G.mist = [];
     // message clouds mount once the page is built, then form
@@ -767,3 +809,4 @@ const ADD = new Path2D('M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4
 const UP = new Path2D('M13 19V7.83l4.88 4.88c.39.39 1.03.39 1.42 0 .39-.39.39-1.02 0-1.41l-6.59-6.59c-.39-.39-1.02-.39-1.41 0l-6.6 6.58c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L11 7.83V19c0 .55.45 1 1 1s1-.45 1-1z');
 sc.ST = ST; sc.FILMS = FILMS; sc.videos = videos; sc.CLIPS = CLIPS; sc.dbg = () => ({ water: !!WATER, terr: !!TERR, idx: videos[vCur].dataset.idx, vCur, t: videos[vCur].currentTime, rs: videos[vCur].readyState, prog: prog(), targets: G.layout && G.layout.targets.length, mist: ST.mist.length, nextOff: ST.nextOff, active: ST.active });
 })();
+
