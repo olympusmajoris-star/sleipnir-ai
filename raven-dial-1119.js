@@ -511,7 +511,11 @@ function circlePoints(cx,cy,r,start=0,sweep=TAU) {return Array.from({length:73},
 function drawBlueprint(ctx,m,progress) {
   const form=window.RavenGlass.formation(P,progress),fade=1-form.color;
   if(progress<=0||fade<=0)return;
-  ctx.save();ctx.globalAlpha*=fade;ctx.strokeStyle=P['build.color'];ctx.lineWidth=P['build.width'];ctx.lineCap='round';ctx.lineJoin='round';
+  if(P['build.glow']>0&&P['build.glowStrength']>0){ctx.save();ctx.globalAlpha*=P['build.glowStrength'];blur(ctx,P['build.glow']);blueprintPass(ctx,m,progress,form,fade,P['build.width']*2);ctx.restore();}
+  blueprintPass(ctx,m,progress,form,fade,P['build.width']);
+}
+function blueprintPass(ctx,m,progress,form,fade,lineWidth) {
+  ctx.save();ctx.globalAlpha*=fade;ctx.strokeStyle=P['build.color'];ctx.lineWidth=lineWidth;ctx.lineCap='round';ctx.lineJoin='round';
   const u=m.thickness/32,spread=P['build.spread']*m.unit*(1-form.assemble),bands=bandList(m,ST.angle+ST.spin);
   if(P['build.guides']&&form.guides>0){
     ctx.save();ctx.globalAlpha*=form.guides*P['build.guideStrength'];ctx.lineWidth=.55;
@@ -553,6 +557,7 @@ function drawDialContents(ctx,m,reveal,buildProgress) {
   for(let i=0;i<4;i++){const s=m.st[i],e=alignment(m,ST.angle,i)*(ST.confirmed?1:.7);drawShape(ctx,i,s.x-s.size/2,s.y-s.size/2,s.size,e,shapePhase(i));}
   ctx.restore();
 }
+const LOOP_SECTIONS = new Set(['Construction', 'Dial entrance', 'Glass entrance', 'Rise & close', 'Entrance preview']);
 /* ---------- module ---------- */
 const sc = K.screen({
   id: 'dial', title: 'Raven dial', docId: 'raven_dial',
@@ -603,7 +608,11 @@ def('Dial', 'Dial entrance', 'dial', 'dial.entry.startScale', 'Starting size whe
 def('Dial', 'Dial entrance', 'dial', 'dial.entry.turn', 'Turn while arriving', 'num', 0, { min: -720, max: 720, step: 5, unit: '°' });
 def('Dial', 'Dial entrance', 'dial', 'dial.entry.brightness', 'Arrival light intensity', 'num', 1, { min: .2, max: 4, step: .05, unit: '×' });
 def('Dial', 'Dial entrance', 'dial', 'dial.entry.segments', 'Assembly segments', 'int', 16, { min: 4, max: 48, step: 1 });
+def('Dial', 'Construction', 'dial', 'build.loop', 'Replay on a loop while you edit', 'bool', true, { info: 'While you are on Construction, Dial entrance, Glass entrance, Rise & close or Entrance preview, the entrance keeps replaying so you see every change. Studio only.' });
+def('Dial', 'Construction', 'dial', 'build.loopPause', 'Pause between replays', 'num', 1.2, { min: 0, max: 6, step: .1, unit: 's' });
 def('Dial', 'Construction', 'dial', 'build.color', 'Construction line color', 'color', '#BCEBFF');
+def('Dial', 'Construction', 'dial', 'build.glow', 'Line glow spread', 'num', 0, { min: 0, max: 20, step: .1, unit: 'px', info: 'Soft glow around the construction lines. 0 = no glow (as it was).' });
+def('Dial', 'Construction', 'dial', 'build.glowStrength', 'Line glow strength', 'num', .8, { min: 0, max: 1, step: .01 });
 def('Dial', 'Construction', 'dial', 'build.width', 'Construction line thickness', 'num', .8, { min: .2, max: 3, step: .05, unit: 'px' });
 def('Dial', 'Construction', 'dial', 'build.spread', 'Distance parts assemble from', 'num', 42, { min: 0, max: 160, step: 1, unit: 'px' });
 def('Dial', 'Construction', 'dial', 'build.colorAt', 'Color begins after', 'num', .72, { min: .4, max: .95, step: .01, unit: 'of entrance', info: 'All outlines finish assembling before the existing colors fill in. The remaining time controls the color fade.' });
@@ -760,6 +769,8 @@ def('Feel', 'Turning', 'ring.markers', 'feel.alignZone', 'Lined-up zone', 'num',
 def('Feel', 'Turning', 'feel', 'feel.turnStart', 'Turn starts after', 'num', 1.03, { min: 0, max: 20, step: .05, unit: '°' });
 def('Feel', 'Turning', 'feel', 'feel.grabMargin', 'Grab margin', 'num', 4, { min: 0, max: 40, step: .5, unit: 'px', info: 'How far off the ring your finger can drift and keep turning it.' });
 def('Feel', 'Confirm', 'feel.inner', 'feel.tapTolerance', 'Tap wiggle allowed', 'num', 10, { min: 0, max: 60, step: .5, unit: 'px', info: 'A tap inside the ring confirms only if the finger moved less than this.' });
+def('Exit', 'Dismantle', 'exit', 'dis.loop', 'Replay the exit on a loop while you edit', 'bool', true, { info: 'While you are on the Exit controls, the exit plays, the dial comes back, and it plays again, so you see every change. Studio only.' });
+def('Exit', 'Dismantle', 'exit', 'dis.loopPause', 'Pause between replays', 'num', .8, { min: 0, max: 6, step: .1, unit: 's' });
 def('Exit', 'Dismantle', 'exit', 'dis.on', 'Animate after middle is confirmed', 'bool', true, { info: 'Press "Play exit" to watch it without leaving.' });
 def('Exit', 'Dismantle', 'exit', 'dis.style', 'Disappearance style', 'select', 'unbuild', { opts: [['unbuild','Color to outlines, then dismantle'],['fade','Dissolve smoothly'],['shrink','Contract into the glass'],['strips','Pull away in strips']] });
 def('Exit', 'Dismantle', 'exit', 'dis.seconds', 'Duration', 'num', 1.2, { min: .2, max: 4, step: .02, unit: 's' });
@@ -869,6 +880,13 @@ SHAPES.forEach((s, i) => {
     else if (ST.rise.mode === 'rev') { ST.rise.v = Math.max(0, ST.rise.from - (now - ST.rise.t0) / P['anim.close']); if (ST.rise.v <= 0) { ST.rise.mode = 'closed'; K.status('Dial closed. Press Close again or tap the screen to open it.'); } }
     if (ST.turn.on) { const p = clamp((now - ST.turn.t0) / P['feel.snap'], 0, 1); ST.angle = ST.turn.from + (ST.turn.to - ST.turn.from) * window.RavenGlass.ease(p,P['feel.snapEase']); if (p >= 1) { ST.turn.on = false; if (ST.armed && !ST.closing) { ST.armed = false; ST.ready = true; } } }
     if (ST.dis >= 0) { ST.dis = Math.min(1, ST.dis + dt / Math.max(.05, P['dis.seconds'])); if (ST.dis >= 1) finishExit(); }
+    // Studio: keep replaying the entrance while its controls are open.
+    const editingEntrance = !K.viewOnly && K.cur === sc && sc.ui.group === 'Dial' && LOOP_SECTIONS.has(sc.ui.section);
+    const editingExit = !K.viewOnly && K.cur === sc && sc.ui.group === 'Exit';
+    const settled = !P['anim.hold'] && ST.rise.mode === 'done' && !G.entering && ST.dis < 0 && !ST.closing && ST.active == null;
+    if (editingEntrance && P['build.loop'] && settled) { ST.loopWait = (ST.loopWait || 0) + dt; if (ST.loopWait >= P['build.loopPause']) { ST.loopWait = 0; replay(); } }
+    else if (editingExit && P['dis.loop'] && settled) { ST.loopWait = (ST.loopWait || 0) + dt; if (ST.loopWait >= P['dis.loopPause']) { ST.loopWait = 0; ST.dis = 0; ST.disStay = true; ST.closing = true; ST.navStarted = false; } }
+    else ST.loopWait = 0;
     const response=1-Math.exp(-dt/Math.max(.01,P['feel.touchResponse']));touch.press+=((ST.active!=null?1:0)-touch.press)*response;touch.x+=(touch.tx-touch.x)*response;touch.y+=(touch.ty-touch.y)*response;
     ST.amb += dt; if (ST.active == null) ST.wob += dt * P['wobble.speed'];
     const motor = ST.idle || (P['ring.spinAfterGrab'] && !ST.grab);
