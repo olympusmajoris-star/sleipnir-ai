@@ -11,6 +11,16 @@ function diff(a,b){let sum=0;for(let i=0;i<a.length;i++)sum+=Math.abs(a[i]-b[i])
 test('approved original stays on its exact original renderer until a style or camera control changes',()=>{
  assert.ok(V.isOriginal({speed:1.35,radius:40}));for(const change of [{ringSize:1.2},{density:.5},{glow:1.4},{axisZ:20},{view3d:true},{tintAmount:1}])assert.equal(V.isOriginal(change),false);
 });
+
+test('face window preserves the foreground disk while opening the black center',()=>{
+ const a=frame({faceWindow:false,tilt:8}),b=frame({faceWindow:true,tilt:8}),center=(Math.floor(n/2)*n+Math.floor(n/2))*4;
+ assert.equal(a[center+3],255);assert.equal(b[center+3],0);
+ let frontMaterial=0;for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  const rn=Math.hypot((x+.5)/n*320-160,(y+.5)/n*320-160)/27,i=(y*n+x)*4;
+  if(rn>1.1)assert.deepEqual(b.slice(i,i+4),a.slice(i,i+4));
+  if(rn<.98&&b[i+3]>0&&b[i]+b[i+1]+b[i+2]>0)frontMaterial++;
+ }assert.ok(frontMaterial>0);
+});
 test('axis basis remains orthonormal and preserves the spherical shadow at every view',()=>{
  for(const tilt of [3,28,60,90])for(const axisY of [-70,0,70]){
   const b=V.basis(V.settings({tilt,axisY,axisZ:17}));for(const v of [b.u,b.v,b.n])assert.ok(Math.abs(Math.hypot(...v)-1)<1e-10);
@@ -59,3 +69,4 @@ test('flow renewals remain continuous instead of flashing or snapping',()=>{
   assert.ok(diff(a,b)/(a.length)<.04,`visible reset at ${t}s`);
  }
 });
+

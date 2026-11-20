@@ -99,7 +99,7 @@ uniform vec3 uCrestColor[MAXH], uSurfaceColor[MAXH];
 uniform vec4 uSurfaceLight[MAXH]; // direction in camera coordinates, incident brightness
 uniform vec4 uProfile[MAXH]; // identity: the body is always spherical
  uniform vec4 uRefl; uniform vec4 uRefl2;   // reflection: amount, face size, gloss, rim sky | catchlight, face brightness, blur, -   // follower rule: funnel darkness, influence width (hole radii), swirl smear, edge glare
-uniform vec4 uHF[MAXH]; uniform vec4 uFaceEdge; uniform float uEdgeW[MAXH]; uniform vec4 uEnv[MAXH]; uniform float uMutual;   // env: colorFromSky, sampleRadius, feedFromSky, -   // faceSphere, faceShade, -, -
+uniform vec4 uHF[MAXH]; uniform vec4 uFacePose[MAXH]; uniform vec4 uFaceEdge; uniform float uEdgeW[MAXH]; uniform vec4 uEnv[MAXH]; uniform float uMutual;   // face pose: x, y, rotation radians, zoom
 uniform vec3 uCDin[MAXH], uCDout[MAXH], uCRing[MAXH], uCCor[MAXH], uCFlare[MAXH], uCJet[MAXH], uCGlow[MAXH], uCHor[MAXH];
 
 float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
@@ -459,7 +459,11 @@ void main(){
         vec3 n = vec3(p2.x, -p2.y, sqrt(max(0., 1. - pr*pr)));
         vec3 rf = reflect(vec3(0,0,-1), n);                               // what this point of the ball mirrors
         vec2 m = rf.xy / (1.0 + max(rf.z, -0.95));                        // sphere-map: squeezes hard toward the rim
-        vec2 fu = clamp(vec2(m.x, -m.y) / max(uRefl.y, 0.05) * 0.5 + 0.5, 0., 1.);
+        vec4 pose = uFacePose[capI];
+        vec2 fm = vec2(m.x, -m.y) / max(uRefl.y, 0.05) - pose.xy;
+        float cr = cos(pose.z), sr = sin(pose.z);
+        fm = vec2(cr*fm.x + sr*fm.y, -sr*fm.x + cr*fm.y) / max(pose.w, 0.05);
+        vec2 fu = clamp(fm * 0.5 + 0.5, 0., 1.);
         vec2 auv2 = vec2((mod(cell,4.0) + fu.x)/4.0, (floor(cell/4.0) + fu.y)/2.0);
         vec3 face = textureLod(uFaces, auv2, uRefl2.z).rgb;
         float win = smoothstep(1.0, 0.72, length(m) / max(uRefl.y, 0.05)) * smoothstep(-0.2, 0.45, rf.z);
@@ -727,6 +731,7 @@ class BHScene {
     gl.uniform1f(u.uMutual, this.mutual ?? 0.6);
     A('uEnv',h=>[h.envColor ?? 0, h.envRadius ?? 2.4, h.envFeed ?? 0, 0]);
     A('uHF',h=>[h.faceSphere ?? 0, h.faceShade ?? 0, h.faceTurn ?? 0, h.faceCover ?? 1.0]);
+    A('uFacePose',h=>[h.faceShiftX ?? 0, h.faceShiftY ?? 0, (h.faceRotate ?? 0)*Math.PI/180, h.reflectionZoom ?? 1]);
     A('uFL',h=>h.fl||[0,3.6,0,0]); A('uDust',h=>[h.dust||0,0,0,0]); A('uCR',h=>h.crest||[0,0,0.02,0]); A('uFA',h=>h.fa||[1,0,1,0]);
     C('uCrestColor',h=>h.crestColor||[0,0,0]);
     A('uSurfaceLight',h=>h.surfaceLight||[0,0,1,0]); C('uSurfaceColor',h=>h.surfaceColor||[0,0,0]);
@@ -739,3 +744,4 @@ class BHScene {
 
 G.BH = { BHScene, BH_DEFAULTS, BH_PRESETS, LIB_TO_PRESET, MAXH, rotM, surfaceLighting, projectedProfile, settleLighting, materialFor, supplyAngle, ANGLE_STUDIES };
 })(window);
+

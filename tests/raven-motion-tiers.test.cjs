@@ -50,7 +50,7 @@ test('Actual dial registration wires all four controls and advances once per upd
   dial.update(1/60,17);dial.P['s1.axis']='x';dial.onSet('s1.axis');dial.update(1/60,34);
   assert.ok(Number.isFinite(dial.ST.amb));
 });
-test('Saved tier previews preserve approved model parameters and all four stay visible', () => {
+test('Saved tier previews preserve approved model parameters while all four float through the sky', () => {
   const h={dashboards:{viewers:{tiers:[{look:{lens:1,reach:.55}}]}},quietPreview:{size:40},referencePreview:{radius:40,lens:.45},referenceGrowth:{on:true,views:149,ringEnd:1.26,densityEnd:1.05},modelPreview:{id:'saved-third',x:.5,y:.235,look:{diskIn:3,diskOut:11,corona:1.2}},tierModels:{4:{id:'saved-fourth',x:.5,y:.235,look:{diskIn:1.8,diskOut:8,diskOpacity:.08}}}};
   const original=JSON.stringify(h);
   const K={W:390,H:844,clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
@@ -63,8 +63,9 @@ test('Saved tier previews preserve approved model parameters and all four stay v
   assert.equal(poses[3].look.diskOpacity,h.tierModels['4'].look.diskOpacity);
   assert.equal(poses[2].look.corona,h.modelPreview.look.corona);
   assert.equal(poses[0].look.disk,0);
-  for(const p of poses){assert.ok(p.c[0]>0&&p.c[0]<390);assert.ok(p.c[1]>0&&p.c[1]<303);}
+  for(const p of poses){assert.ok(p.c[0]>=-p.pad&&p.c[0]<390+p.pad);assert.ok(p.c[1]>0&&p.c[1]<303);}
   assert.equal(JSON.stringify(h),original);
   const solo=w.RavenSavedTiers.models(h,{'hh.tier':4,'hh.lens':false},{cy:414,radius:111},12);
   assert.equal(solo.length,1);assert.equal(solo[0].look.lens,0);assert.ok(solo[0].r>poses[3].r);
 });
+

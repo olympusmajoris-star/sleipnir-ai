@@ -76,7 +76,7 @@ const VS=`attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*
 const FS=`precision highp float;
 varying vec2 uv;
 uniform sampler2D art,core,base,flow,atlas,sky;
-uniform float time,spinDirection,lens,lensReach,patchSize,ringSize,density,glow,tintAmount,view3d,thickness;
+uniform float time,spinDirection,lens,lensReach,patchSize,ringSize,density,glow,tintAmount,view3d,thickness,faceWindow;
 uniform vec3 tint,axisU,axisV,normal;
 uniform vec2 roll;
 uniform vec4 placement;
@@ -97,7 +97,7 @@ vec4 orbitSample(sampler2D tex,float angle,float row,float omega){
 }
 vec4 disk(float rho,float angle){float rr=1.06+(rho-1.06)/ringSize;float omega=.46*pow(1.4074/max(rho,1.111),1.5);vec4 q=orbitSample(atlas,angle,clamp(rr/5.4,0.,1.),omega);q.a*=step(1.06,rho)*step(rr,5.4);q.rgb=color(q.rgb);q.a=opacity(q.a);return q;}
 void main(){
-  vec2 d=(uv-.5)*patchSize;float r=length(d),rn=r/27.;vec4 gas=vec4(0.);
+  vec2 d=(uv-.5)*patchSize;float r=length(d),rn=r/27.,faceCut=0.;vec4 gas=vec4(0.);
   if(view3d<.5){
     vec2 local=vec2(d.x*roll.x+d.y*roll.y,-d.x*roll.y+d.y*roll.x);
     vec2 plane=vec2(dot(local,vec2(.64278761,-.76604444)),dot(local,vec2(.76604444,.64278761))/.47);
@@ -114,10 +114,10 @@ void main(){
     float moving=.92*(1.-rim)*smoothstep(23.,30.,length(sd));
     vec3 c=color(mix(q.rgb,texture2D(base,p).rgb*detail*2.,moving))*(1.-sourceCore);
     float a=opacity(q.a*(1.-sourceCore));
-    gas=over(vec4(c,a),vec4(0.,0.,0.,shadow));
+    faceCut=shadow*faceWindow;gas=over(vec4(c,a),vec4(0.,0.,0.,shadow*(1.-faceWindow)));
   }else{
     vec2 q=d/27.;float sphere=1.-smoothstep(.987,1.012,rn);
-    gas=vec4(0.,0.,0.,sphere);
+    faceCut=sphere*faceWindow;gas=vec4(0.,0.,0.,sphere*(1.-faceWindow));
     // Bent image of the far half of the disk rises above the sphere. It fades
     // continuously toward a top view; there is no blinking light animation.
     vec2 farDir=normalize(normal.xy+vec2(.000001));
@@ -143,7 +143,7 @@ void main(){
   float falloff=1.-smoothstep(1.75,lensReach,rn),sourceRadius=rn-lens*2.1025*falloff/max(rn,.65);
   vec2 bent=placement.xy+d*placement.zw*(sourceRadius/max(rn,.0001));
   vec3 bg=texture2D(sky,clamp(bent,vec2(0.),vec2(1.))).rgb;
-  float field=step(.00001,lens)*(1.-smoothstep(lensReach-.3,lensReach,rn));
+  float field=step(.00001,lens)*(1.-smoothstep(lensReach-.3,lensReach,rn))*(1.-faceCut);
   float a=gas.a+field*(1.-gas.a);gl_FragColor=vec4((gas.rgb+bg*field*(1.-gas.a))/max(a,.00001),a);
 }`;
 function tintOf(s){return /^#[0-9a-f]{6}$/i.test(s.tintColor)?[1,3,5].map(i=>parseInt(s.tintColor.slice(i,i+2),16)/255):[.918,.651,.733];}
@@ -181,9 +181,9 @@ function renderSoftware(out,pixels,atlas,bg,W,H,input,time,n,cache){
   };
   const crestColor=color([.94,.77,.72],s,tint);
   for(let i=0;i<n*n;i++){
-    const g=i*22,j=i*4;gas.fill(0);
+    const g=i*22,j=i*4;let faceCut=0;gas.fill(0);
     if(!s.view3d){const x=geo[g+3],y=geo[g+4],cx=geo[g+5],cy=geo[g+6],inside=x>=-.5&&x<223.5&&y>=-.5&&y<165.5,cin=cx>=-.5&&cx<223.5&&cy>=-.5&&cy<165.5;
-      const lx=cx-101.5,ly=cy-88.5;gas[3]=Math.max(cin?sample(pixels.core,224,166,cx,cy,0)/255:0,1-smooth(.975,1,Math.hypot(lx,ly)/R));
+      const lx=cx-101.5,ly=cy-88.5;const shadow=Math.max(cin?sample(pixels.core,224,166,cx,cy,0)/255:0,1-smooth(.975,1,Math.hypot(lx,ly)/R));faceCut=s.faceWindow?shadow:0;gas[3]=shadow-faceCut;
       if(inside){const core=sample(pixels.core,224,166,x,y,0)/255,rim=Math.max(sample(pixels.core,224,166,x+2,y,0),sample(pixels.core,224,166,x-2,y,0),sample(pixels.core,224,166,x,y+2,0),sample(pixels.core,224,166,x,y-2,0))/255,moving=.92*(1-rim)*smooth(23,30,geo[g+10]),fu=mod(geo[g+7]-(motion.turns+motion.a*(geo[g+9]-1/180))*dir,1)*512-.5,fu2=mod(geo[g+7]-(motion.turns+motion.b*(geo[g+9]-1/180))*dir,1)*512-.5,fv=clamp(geo[g+8],0,1)*128-.5;
         sample4(pixels.art,224,166,x,y,hi);sample4(pixels.base,224,166,x,y,lo);sample4(pixels.flow,512,128,fu,fv,detail,true);sample4(pixels.flow,512,128,fu2,fv,alternate,true);for(let k=0;k<3;k++)detail[k]=detail[k]*(1-motion.blend)+alternate[k]*motion.blend;
         for(let k=0;k<3;k++)rgb[k]=(hi[k]*(1-moving)+lo[k]*detail[k]/127.5*moving)/255;
@@ -191,11 +191,11 @@ function renderSoftware(out,pixels,atlas,bg,W,H,input,time,n,cache){
         over(rgb,opacity(hi[3]/255*(1-core)),gas);
       }
     }else{
-      gas[3]=geo[g+3];let a;if(geo[g+6]>.00001){a=disk(geo[g+4],geo[g+5]);over(a,a[3]*geo[g+6],gas);}
+      faceCut=s.faceWindow?geo[g+3]:0;gas[3]=geo[g+3]-faceCut;let a;if(geo[g+6]>.00001){a=disk(geo[g+4],geo[g+5]);over(a,a[3]*geo[g+6],gas);}
       if(geo[g+7]>.00001)over(crestColor,clamp(geo[g+7],0,1),gas);
       for(let l=0;l<3;l++){if(geo[g+10+l*3]<.00001)continue;a=disk(geo[g+8+l*3],geo[g+9+l*3]);over(a,(1-Math.pow(1-Math.min(a[3],.999999),1/3))*geo[g+10+l*3],gas);}
     }
-    const field=geo[g+2],alpha=gas[3]+field*(1-gas[3]);
+    const field=geo[g+2]*(1-faceCut),alpha=gas[3]+field*(1-gas[3]);
     if(alpha<.00001){out[j]=out[j+1]=out[j+2]=out[j+3]=0;continue;}
     sample4(bg,W,H,pos.x+geo[g]*pos.scale-.5,pos.y+geo[g+1]*pos.scale-.5,skyPixel);
     for(let k=0;k<3;k++)out[j+k]=(gas[k]*255+skyPixel[k]*field*(1-gas[3]))/alpha;
@@ -210,7 +210,7 @@ class Renderer{
       const shader=(type,source)=>{const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));return sh;};
       const p=this.program=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,VS));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));gl.useProgram(p);
       gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const loc=gl.getAttribLocation(p,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-      this.uniforms={};for(const k of ['art','core','base','flow','atlas','sky','time','spinDirection','lens','lensReach','patchSize','ringSize','density','glow','tintAmount','view3d','thickness','tint','axisU','axisV','normal','roll','placement'])this.uniforms[k]=gl.getUniformLocation(p,k);
+      this.uniforms={};for(const k of ['art','core','base','flow','atlas','sky','time','spinDirection','lens','lensReach','patchSize','ringSize','density','glow','tintAmount','view3d','thickness','faceWindow','tint','axisU','axisV','normal','roll','placement'])this.uniforms[k]=gl.getUniformLocation(p,k);
       this.textures=Array.from({length:6},(_,i)=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,i===3||i===4?gl.REPEAT:gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t;});
     }catch(e){console.warn('Reference variants: using software renderer',e);this.gl=null;}
   }
@@ -226,7 +226,7 @@ class Renderer{
       sky.getContext('2d').drawImage(background,0,0,bw,bh);
       [this.prepared.art,this.prepared.core,this.prepared.base,this.prepared.flow,this.atlasCanvas,sky].forEach((src,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);if(i===5||!this.uploaded)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);if(i===5){gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);}gl.uniform1i(this.uniforms[['art','core','base','flow','atlas','sky'][i]],i);});this.uploaded=true;
       const b=basis(s),roll=(s.axisZ+50)*Math.PI/180;
-      for(const [k,v] of Object.entries({time:time*(s.speed??1),spinDirection:s.spinDirection<0?-1:1,lens:Math.max(0,s.lens??.9),lensReach:s.lensReach??3.24,patchSize:size,ringSize:s.ringSize,density:s.density,glow:s.glow,tintAmount:s.tintAmount,view3d:s.view3d?1:0,thickness:s.thickness}))gl.uniform1f(this.uniforms[k],v);
+      for(const [k,v] of Object.entries({time:time*(s.speed??1),spinDirection:s.spinDirection<0?-1:1,lens:Math.max(0,s.lens??.9),lensReach:s.lensReach??3.24,patchSize:size,ringSize:s.ringSize,density:s.density,glow:s.glow,tintAmount:s.tintAmount,view3d:s.view3d?1:0,thickness:s.thickness,faceWindow:s.faceWindow?1:0}))gl.uniform1f(this.uniforms[k],v);
       for(const [k,v] of Object.entries({tint:tintOf(s),axisU:b.u,axisV:b.v,normal:b.n}))gl.uniform3fv(this.uniforms[k],v);
       gl.uniform2f(this.uniforms.roll,Math.cos(roll),Math.sin(roll));gl.uniform4f(this.uniforms.placement,pos.x/W,pos.y/H,pos.scale/W,pos.scale/H);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
     }else{
@@ -240,3 +240,4 @@ class Renderer{
 }
 G.AsgardVariants={orientationFor,tier2At,liveSettings,defaults,settings,isOriginal,basis,extent,makeAtlas,geometry,renderSoftware,Renderer,VS,FS};
 })(window);
+

@@ -53,3 +53,10 @@ test('inner gas moves faster than the outer gas',()=>{
   const g=geometry(settings,320),index=(x,y)=>(y*320+x)*10;
   assert.ok(g[index(190,160)+6]>g[index(250,160)+6]);
 });
+
+test('a reflected face can show through the horizon without changing gas or outside lens pixels',()=>{
+ const a=frame(2),b=frame(2,{faceWindow:true});
+ const center=((n/2)*n+n/2)*4;assert.equal(a[center+3],255);assert.equal(b[center+3],0);
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(Math.hypot((x+.5)/n*PATCH-PATCH/2,(y+.5)/n*PATCH-PATCH/2)>35){const i=(y*n+x)*4;assert.deepEqual(b.slice(i,i+4),a.slice(i,i+4));}
+});
+

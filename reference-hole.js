@@ -10,7 +10,7 @@ const VS=`attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*
 const FS=`precision highp float;
 varying vec2 uv;
 uniform sampler2D art,core,base,flow,sky;
-uniform float time,lens,lensReach,spinDirection;
+uniform float time,lens,lensReach,spinDirection,faceWindow;
 uniform vec4 placement;
 // Two overlapping, smoothly renewed flow phases bound differential shear.
 // The reset phase is invisible; the disk never winds into concentric wires.
@@ -38,12 +38,12 @@ void main(){
   float moving=.92*(1.-rim)*smoothstep(23.,30.,r);
   vec3 gas=mix(original.rgb,texture2D(base,p).rgb*detail,moving);
   gas*=1.-shadow;
-  float alpha=max(original.a,shadow);
+  float alpha=mix(max(original.a,shadow),original.a*(1.-shadow),faceWindow);
   float falloff=1.-smoothstep(1.75,lensReach,rn);
   float sourceRadius=rn-lens*2.1025*falloff/max(rn,.65);
   vec2 bent=placement.xy+d*placement.zw*(sourceRadius/max(rn,.0001));
   vec3 background=texture2D(sky,clamp(bent,vec2(0.),vec2(1.))).rgb;
-  float field=step(.00001,lens)*(1.-smoothstep(lensReach-.30,lensReach,rn));
+  float field=step(.00001,lens)*(1.-smoothstep(lensReach-.30,lensReach,rn))*(1.-shadow*faceWindow);
   float coverage=alpha+field*(1.-alpha);
   vec3 rgb=(gas*alpha+background*field*(1.-alpha))/max(coverage,.00001);
   gl_FragColor=vec4(rgb,coverage);
@@ -120,7 +120,7 @@ function renderSoftware(out,pixels,bg,W,H,settings,time,n=PATCH,cachedGeometry){
     const shadow=inside?sample(pixels.core,WIDTH,HEIGHT,x,y,0)/255:0;
     const rim=inside?Math.max(sample(pixels.core,WIDTH,HEIGHT,x+2,y,0),sample(pixels.core,WIDTH,HEIGHT,x-2,y,0),sample(pixels.core,WIDTH,HEIGHT,x,y+2,0),sample(pixels.core,WIDTH,HEIGHT,x,y-2,0))/255:0;
     const moving=.92*(1-rim)*smooth(23,30,Math.hypot(geo[g],geo[g+1]));
-    const a=Math.max(alpha,shadow),field=geo[g+7],coverage=a+field*(1-a);
+    const a=settings.faceWindow?alpha*(1-shadow):Math.max(alpha,shadow),field=geo[g+7]*(settings.faceWindow?1-shadow:1),coverage=a+field*(1-a);
     if(coverage<.00001){out[j]=out[j+1]=out[j+2]=out[j+3]=0;continue;}
     const shear=geo[g+6]-1/180,fu=mod(geo[g+4]-(motion.turns+motion.a*shear)*dir,1)*FLOW_W-.5,fu2=mod(geo[g+4]-(motion.turns+motion.b*shear)*dir,1)*FLOW_W-.5,fv=Math.max(0,Math.min(1,geo[g+5]))*FLOW_H-.5;
     const sx=pos.x+geo[g+2]*pos.scale-.5,sy=pos.y+geo[g+3]*pos.scale-.5;
@@ -141,7 +141,7 @@ class ReferenceHole{
     if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(this.program));
     gl.useProgram(this.program);const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
     const p=gl.getAttribLocation(this.program,'p');gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
-    this.uniforms={};for(const key of ['art','core','base','flow','sky','time','lens','lensReach','spinDirection','placement'])this.uniforms[key]=gl.getUniformLocation(this.program,key);
+    this.uniforms={};for(const key of ['art','core','base','flow','sky','time','lens','lensReach','spinDirection','faceWindow','placement'])this.uniforms[key]=gl.getUniformLocation(this.program,key);
     this.textures=[0,1,2,3,4].map((_,i)=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,i===3?gl.REPEAT:gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t;});
   }
   draw(ctx,background,settings,time,W,H){
@@ -153,7 +153,7 @@ class ReferenceHole{
     const pos=positionAt(settings,time,W,H),gl=this.gl;
     if(gl){gl.useProgram(this.program);gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
       [this.prepared.art,this.prepared.core,this.prepared.base,this.prepared.flow,background].forEach((src,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,this.textures[i]);if(i===4||!this.uploaded)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.uniform1i(this.uniforms[['art','core','base','flow','sky'][i]],i);});this.uploaded=true;
-      gl.uniform1f(this.uniforms.time,time*(settings.speed??1));gl.uniform1f(this.uniforms.lens,Math.max(0,settings.lens??.9));gl.uniform1f(this.uniforms.lensReach,settings.lensReach??3.24);gl.uniform1f(this.uniforms.spinDirection,settings.spinDirection<0?-1:1);gl.uniform4f(this.uniforms.placement,pos.x/W,pos.y/H,pos.scale/W,pos.scale/H);
+      gl.uniform1f(this.uniforms.faceWindow,settings.faceWindow?1:0);gl.uniform1f(this.uniforms.time,time*(settings.speed??1));gl.uniform1f(this.uniforms.lens,Math.max(0,settings.lens??.9));gl.uniform1f(this.uniforms.lensReach,settings.lensReach??3.24);gl.uniform1f(this.uniforms.spinDirection,settings.spinDirection<0?-1:1);gl.uniform4f(this.uniforms.placement,pos.x/W,pos.y/H,pos.scale/W,pos.scale/H);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);ctx.drawImage(this.canvas,pos.x-PATCH/2*pos.scale,pos.y-PATCH/2*pos.scale,PATCH*pos.scale,PATCH*pos.scale);
     }else{
       const n=240;
@@ -177,3 +177,4 @@ class CanvasBackground{
 }
 G.AsgardReference={motionAt,ReferenceHole,CanvasBackground,prepare,prepareFlow,renderSoftware,geometry,positionAt,VS,FS,WIDTH,HEIGHT,CX,CY,RADIUS,PATCH};
 })(window);
+

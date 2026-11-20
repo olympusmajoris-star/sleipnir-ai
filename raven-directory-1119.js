@@ -381,12 +381,28 @@ const sc = K.screen({
     def('Streamer black holes', 'Holes', 'holes', 'hh.on', 'Streamer black holes up top', 'bool', true);
     def('Streamer black holes', 'Holes', 'holes', 'hh.source', 'Preview source', 'select', 'saved', { opts: [['saved', 'My saved tiers 1–4'], ['pair', 'Opus pair animation']], info: 'Uses your existing saved tier artwork and renderer over the live camera. It does not replace your saved tier designs.' });
     def('Streamer black holes', 'Holes', 'holes', 'hh.tier', 'Show tier', 'select', 0, { opts: [[0, 'All four together'], [1, 'Tier 1 · 0–20 views'], [2, 'Tier 2 · 21–149 views'], [3, 'Tier 3 · 150–499 views'], [4, 'Tier 4 · 500–1,999 views']] });
-    def('Streamer black holes', 'Holes', 'holes', 'hh.drift', 'Tier preview drift', 'bool', true);
     def('Streamer black holes', 'Holes', 'holes', 'hh.size', 'Size', 'num', 1, { min: .3, max: 3, step: .01, unit: '×' });
     def('Streamer black holes', 'Holes', 'holes', 'hh.top', 'Top of their sky', 'num', 21, { min: 0, max: 200, step: 1, unit: 'px' });
     def('Streamer black holes', 'Holes', 'holes', 'hh.extra', 'Extra streamers drifting', 'int', 8, { min: 0, max: 8, step: 1 });
-    def('Streamer black holes', 'Holes', 'holes', 'hh.speed', 'Travel speed', 'num', 1, { min: 0, max: 5, step: .05, unit: '×' });
     def('Streamer black holes', 'Holes', 'holes', 'hh.pairGap', 'Pair orbit size', 'num', 50, { min: 10, max: 150, step: 1, unit: 'px' });
+    def('Streamer black holes', 'Floating', 'holes', 'hh.drift', 'Float across the screen', 'bool', true);
+    def('Streamer black holes', 'Floating', 'holes', 'hh.direction', 'Travel direction', 'select', 1, { opts: [[1, 'Left to right'], [-1, 'Right to left']] });
+    def('Streamer black holes', 'Floating', 'holes', 'hh.speed', 'Floating speed', 'num', 1, { min: 0, max: 5, step: .05, unit: '×', info: 'Multiplies your saved floating speed. Zero holds the holes still.' });
+    def('Streamer black holes', 'Floating', 'holes', 'hh.wobble', 'Gentle up / down', 'num', .35, { min: 0, max: 2, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faces', 'Show reflected faces', 'bool', true, { info: 'Your existing glossy black-sphere reflection. Faces stay attached to their black holes as they float.' });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceAmount', 'Face opacity', 'num', .85, { min: 0, max: 1, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceSize', 'Reflection size', 'num', .7, { min: .1, max: 1.5, step: .01, info: 'How much of the black sphere the reflection covers. The dark rim remains visible.' });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceBright', 'Face brightness', 'num', .8, { min: 0, max: 2, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceBlur', 'Reflection softness', 'num', .6, { min: 0, max: 4, step: .05 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceGloss', 'Surface gloss', 'num', .7, { min: .1, max: 3, step: .05 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceRim', 'Surrounding edge light', 'num', .5, { min: 0, max: 2, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceLight', 'Surrounding light strength', 'num', 1, { min: 0, max: 3, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceCatch', 'Reflected light glint', 'num', 0, { min: 0, max: 2, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceX', 'Face left / right', 'num', 0, { min: -1, max: 1, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceY', 'Face up / down', 'num', 0, { min: -1, max: 1, step: .01 });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceZoom', 'Face zoom', 'num', 1, { min: .5, max: 3, step: .01, unit: '×' });
+    def('Streamer black holes', 'Faces', 'holes', 'hh.faceTurn', 'Face rotation', 'num', 0, { min: -180, max: 180, step: 1, unit: '°' });
+    for (const [tier, name] of [[1, 'Baldr'], [2, 'Freya'], [3, 'Loki'], [4, 'Hel']]) def('Streamer black holes', 'Faces', 'holes', 'hh.face' + tier, 'Tier ' + tier + ' preview face', 'select', name, { opts: DEMO.map(person => [person[0], person[0]]), info: 'Uses the existing Studio test people. It does not reassign live streamers.' });
     def('Streamer black holes', 'Bending', 'holes', 'hh.lens', 'Bend what is behind the phone', 'bool', true, { info: 'The holes bend the live camera / tilt background in real time.' });
     def('Streamer black holes', 'Bending', 'holes', 'hh.bend', 'Bend strength', 'num', 1.16, { min: 0, max: 3, step: .01 });
     def('Streamer black holes', 'Bending', 'holes', 'hh.reach', 'Bend reach', 'num', 3.5, { min: 1.2, max: 10, step: .1, unit: '× hole' });
@@ -607,4 +623,5 @@ const sc = K.screen({
 });
 sc.ST = ST; sc.geometry = () => { P = sc.P; return geometry(); }; sc.G = () => G;
 })();
+
 

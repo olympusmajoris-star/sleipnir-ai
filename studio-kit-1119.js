@@ -61,22 +61,23 @@ button,select,input{font:inherit;color:var(--text)}button{background:var(--panel
 select,input[type=text],input[type=number]{background:#0c1219;border:1px solid var(--line);border-radius:7px;padding:4px 6px}
 #app{display:grid;grid-template-columns:auto 1fr;height:100%}#stageWrap{position:relative;height:100%;padding:10px;display:flex;align-items:center;justify-content:center;background:#04060a;border-right:1px solid var(--line)}
 #stage{display:block;border-radius:24px;background:#000;touch-action:none;box-shadow:0 0 0 1px #1c2734}#stageWrap.pick #stage{cursor:crosshair}
-#side{display:flex;flex-direction:column;min-width:0;height:100%}#bar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#side{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;overflow-y:auto}#bar,#status,#screens,#tabs,#chips,#cameraTools{flex-shrink:0}#bar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 #crumb{font-weight:500;margin-right:auto;font-size:14px}#crumb small{color:var(--mut);font-weight:400}#status{color:var(--mut);font-size:12px;padding:0 10px 6px;min-height:20px}
 #screens,#tabs,#chips{display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line)}#screens:empty{display:none}#screens button{padding:7px 14px;font-weight:500}#screens button.on{background:#14304a;border-color:#4aa8ff;color:#d6ecff}
 #tabs button{padding:7px 12px}#chips button{padding:5px 10px;font-size:12px;border-radius:999px}
-#work{flex:1;min-height:0;display:grid;grid-template-columns:minmax(320px,580px) minmax(260px,380px);gap:14px;padding:12px;overflow:hidden;align-content:start}#controls{overflow:auto;max-height:100%;padding-right:4px}
-.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.boxHead{display:flex;align-items:center;gap:8px;padding:2px 2px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}.boxHead b{font-size:14px;font-weight:500;margin-right:auto}
+#work{flex:1 0 200px;min-height:200px;display:grid;grid-template-columns:minmax(280px,580px) minmax(220px,380px);grid-template-rows:minmax(0,1fr);gap:14px;padding:12px;overflow:hidden}#controls{min-height:0;min-width:0;height:100%;overflow-y:scroll;overflow-x:hidden;padding-right:8px;scrollbar-gutter:stable;overscroll-behavior:contain}#controls,#zoomBox{scrollbar-width:auto;scrollbar-color:#48a895 #111821}#controls::-webkit-scrollbar,#zoomBox::-webkit-scrollbar{width:12px}#controls::-webkit-scrollbar-thumb,#zoomBox::-webkit-scrollbar-thumb{background:#48a895;border:3px solid #111821;border-radius:8px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.boxHead{position:sticky;top:0;z-index:1;background:var(--panel);display:flex;align-items:center;gap:8px;padding:2px 2px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}.boxHead b{font-size:14px;font-weight:500;margin-right:auto}
 .row{display:grid;grid-template-columns:150px minmax(0,1fr) 28px;gap:8px;align-items:center;padding:5px 6px;border-radius:8px;border:1px solid transparent}.row:hover,.row.act{background:#172230;border-color:#2c3d52}
-.lab{display:flex;align-items:center;gap:6px;min-width:0}.lab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.info{width:18px;height:18px;padding:0;border-radius:50%;font-size:11px;line-height:16px;flex:none;color:var(--mut)}
+.lab{display:flex;align-items:center;gap:6px;min-width:0}.lab span{white-space:normal;overflow-wrap:anywhere;line-height:1.3}.info{width:18px;height:18px;padding:0;border-radius:50%;font-size:11px;line-height:16px;flex:none;color:var(--mut)}
 .ctl{display:flex;align-items:center;gap:8px;min-width:0}.ctl input[type=range]{flex:1;min-width:60px;max-width:220px;accent-color:var(--acc)}.ctl input[type=number]{width:74px}.ctl input[type=text]{flex:1;min-width:0}
 .ctl input[type=color]{width:34px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;background:none}.unit{color:var(--mut);font-size:11px;min-width:16px}.rst{width:26px;height:26px;padding:0;color:var(--mut)}
 .sw{width:44px;height:24px;border-radius:12px;padding:0;position:relative;background:#26313d}.sw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#8ea3b8;transition:left .15s}.sw.on{background:#1d6b59;border-color:#2aa486}.sw.on::after{left:23px;background:#e6fff8}
-.note{grid-column:1/-1;color:var(--mut);font-size:12px;padding:2px 2px 4px 26px}#zoomBox{display:flex;flex-direction:column;gap:8px}#zoomWrap{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}#zoom{display:block;width:100%;aspect-ratio:1/1}
+.note{grid-column:1/-1;color:var(--mut);font-size:12px;padding:2px 2px 4px 26px}#zoomBox{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}#zoomWrap{flex-shrink:0}#zoomWrap{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}#zoom{display:block;width:100%;aspect-ratio:1/1}
 #zoomLab{position:absolute;left:8px;top:6px;font-size:11px;color:#cfe;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px}#zoomHelp{color:var(--mut);font-size:12px}#legend{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}#legend i{display:inline-block;width:22px;height:0;border-top:2px dashed var(--hl)}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(20px);max-width:86vw;background:rgba(10,14,19,.92);color:#e8eef5;border:1px solid #2a3a4a;border-radius:14px;padding:10px 14px;font:500 13px/1.35 Roboto,system-ui,sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20}#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}html.viewonly #mobBtns,html.viewonly #side{display:none!important}#mobBtns{display:none}#phoneLink{font-size:12px;color:var(--mut)}#phoneLink a{color:#9fe}
-@media (max-width:820px){#app{display:block}#stageWrap{position:fixed;inset:0;padding:0;border:0}#stage{border-radius:0;box-shadow:none}#side{position:fixed;left:0;right:0;bottom:0;height:52vh;background:rgba(10,14,19,.97);border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .25s;z-index:5}#side.open{transform:none}#work{grid-template-columns:1fr;padding:8px;overflow:auto}#zoomBox{display:none}#controls{max-height:none;overflow:visible}.row{grid-template-columns:118px minmax(0,1fr) 28px}#bar .desk{display:none}#mobBtns{display:flex;gap:8px;position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:6}#mobBtns button{background:rgba(10,14,19,.75);backdrop-filter:blur(6px)}}`;
-const HTML = `<div id="app"><div id="stageWrap"><canvas id="stage"></canvas></div><div id="side"><div id="bar"><div id="crumb"></div><span id="screenBtns"></span><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bPick" title="Click a part to open its controls">Pick part</button><button id="bHl" class="on" title="Show the highlighted edges">Highlights</button><select id="selPhone" class="desk" title="Phone screen size"></select><button id="bSave" title="Save to the shared studio">Save</button></div><div id="status">Loading…</div><div id="screens"></div><div id="tabs"></div><div id="chips"></div><div id="work"><div id="controls"></div><div id="zoomBox"><div id="zoomWrap"><canvas id="zoom"></canvas><div id="zoomLab"></div></div><div id="legend"><i></i> dashed gold edge = what the control you're on changes</div><div id="zoomHelp">Close-up of the part you're editing, live.</div><div id="phoneLink"></div></div></div></div></div><div id="mobBtns"><button id="mPick">Pick part</button><button id="mCtl">Controls</button></div><video id="cam" playsinline muted autoplay style="display:none"></video>`;
+#cameraTools{margin:0 10px 6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px}#cameraTools[hidden]{display:none}#cameraTools summary{cursor:pointer;color:#b9e5dc}#cameraSourceRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:8px}#selCamera{max-width:260px}#cameraInfo{font-size:12px;color:var(--mut);padding-top:6px}#cameraPreview[hidden]{display:none}#cameraPreview{padding-top:8px}#cam{display:block;max-width:100%;width:260px;height:146px;object-fit:contain;background:#000}#cameraPreview p{margin:4px 0;color:var(--mut);font-size:12px}
+@media (max-width:820px){#app{display:block}#stageWrap{position:fixed;inset:0;padding:0;border:0}#stage{border-radius:0;box-shadow:none}#side{position:fixed;left:0;right:0;bottom:0;height:52vh;background:rgba(10,14,19,.97);border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .25s;z-index:5}#side.open{transform:none}#work{display:block;flex:1 0 180px;min-height:180px;padding:8px;overflow:auto}#zoomBox{display:none}#controls{height:auto;overflow:visible;padding-right:0}.row{grid-template-columns:118px minmax(0,1fr) 28px}#bar .desk{display:none}#mobBtns{display:flex;gap:8px;position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:6}#mobBtns button{background:rgba(10,14,19,.75);backdrop-filter:blur(6px)}}`;
+const HTML = `<div id="app"><div id="stageWrap"><canvas id="stage"></canvas></div><div id="side"><div id="bar"><div id="crumb"></div><span id="screenBtns"></span><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bPick" title="Click a part to open its controls">Pick part</button><button id="bHl" class="on" title="Show the highlighted edges">Highlights</button><select id="selPhone" class="desk" title="Phone screen size"></select><button id="bSave" title="Save to the shared studio">Save</button></div><div id="status">Loading…</div><details id="cameraTools" hidden><summary>Camera source &amp; original feed</summary><div id="cameraSourceRow"><label for="selCamera">Camera</label><select id="selCamera"><option value="">Automatic camera</option></select><button id="bCameraReconnect">Reconnect</button><button id="bCameraPreview">Show original feed</button></div><div id="cameraInfo" role="status"></div><div id="cameraPreview" hidden><video id="cam" playsinline muted autoplay></video><p>This is the camera before any Studio effects. If the white symbol appears here, check the selected camera or its privacy shutter.</p></div></details><div id="screens"></div><div id="tabs"></div><div id="chips"></div><div id="work"><div id="controls" tabindex="0" role="region" aria-label="Scrollable settings"></div><div id="zoomBox"><div id="zoomWrap"><canvas id="zoom"></canvas><div id="zoomLab"></div></div><div id="legend"><i></i> dashed gold edge = what the control you're on changes</div><div id="zoomHelp">Close-up of the part you're editing, live.</div><div id="phoneLink"></div></div></div></div></div><div id="mobBtns"><button id="mPick">Pick part</button><button id="mCtl">Controls</button></div>`;
 
 const K = { TAU, D2R, clamp, ease, smooth, wrap, rgb, rgba, mix, hsv, WHITE, scaleOf, blur, arc, shadowBlurFor, makeSpec, bgSpec, W: 390, H: 844, isMobile: false, screens: {}, order: [] };
 let cur = null; // current screen
@@ -84,21 +85,56 @@ let pickMode = false, showHL = true, hover = null, hoverUntil = 0, cssScale = 1,
 let stage, sctx, zoom, zctx, cam;
 
 /* ---------- background ---------- */
-let camState = 'off', camFacing = null, camStream = null; const bgImg = new Image(); let bgLoaded = '';
+let camState = 'off', camFacing = null, camDevice = '', camStream = null, camRequest = 0;
+const bgImg = new Image(); let bgLoaded = '';
 const tilt = { tx: 0, ty: 0, x: 0, y: 0 }; K.tilt = tilt;
-async function ensureCamera() {
-  const P = cur.P;
-  if (P['bg.mode'] !== 'camera' && !(P['env.on'] && P['env.source'] === 'camera')) { stopCamera(); return; }
-  if (camState === 'on' && camFacing === P['bg.facing']) return;
-  if (camState === 'starting') return;
-  stopCamera(); camState = 'starting';
+function cameraInfo(message) { if ($('cameraInfo')) $('cameraInfo').textContent = message; }
+async function refreshCameraDevices() {
+  const select = $('selCamera'); if (!select) return;
+  const selected = localGet('cameraDevice') || '';
+  const devices = await navigator.mediaDevices?.enumerateDevices?.().catch(() => []) || [];
+  select.innerHTML = ''; const auto = document.createElement('option'); auto.value = ''; auto.textContent = 'Automatic camera'; select.appendChild(auto);
+  devices.filter(d => d.kind === 'videoinput').forEach((d, i) => {
+    const option = document.createElement('option'); option.value = d.deviceId;
+    option.textContent = d.label || 'Camera ' + (i + 1); select.appendChild(option);
+  });
+  if (selected && !devices.some(d => d.kind === 'videoinput' && d.deviceId === selected)) {
+    const option = document.createElement('option'); option.value = selected; option.textContent = 'Saved camera (currently unavailable)'; select.appendChild(option);
+  }
+  select.value = selected;
+}
+async function ensureCamera(force = false) {
+  const P = cur.P, needed = P['bg.mode'] === 'camera' || (P['env.on'] && P['env.source'] === 'camera');
+  $('cameraTools').hidden = !needed;
+  if (!needed) { stopCamera(); return; }
+  const device = localGet('cameraDevice') || '';
+  if (!force && camState === 'on' && camFacing === P['bg.facing'] && camDevice === device) return;
+  if (!force && camState === 'starting') return;
+  stopCamera(); const request = ++camRequest; camState = 'starting'; cameraInfo('Opening camera…');
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw Error('no camera api');
-    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: P['bg.facing'] }, width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false });
-    cam.srcObject = camStream; await cam.play().catch(() => {}); camState = 'on'; camFacing = P['bg.facing'];
-  } catch (e) { camState = 'failed'; status('Camera not available here (' + (e.name || e.message) + '). Showing black. On the phone, allow the camera.'); }
+    const video = { width: { ideal: 1280 }, height: { ideal: 1280 } };
+    if (device) video.deviceId = { exact: device }; else video.facingMode = { ideal: P['bg.facing'] };
+    const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+    if (request !== camRequest) { stream.getTracks().forEach(t => t.stop()); return; }
+    camStream = stream; cam.srcObject = stream; await cam.play().catch(() => {});
+    camState = 'on'; camFacing = P['bg.facing']; camDevice = device;
+    const track = stream.getVideoTracks()[0];
+    cameraInfo('Receiving video from ' + (track?.label || 'the selected camera') + '.');
+    if (track) track.onended = () => { if (camStream === stream) { camState = 'off'; cameraInfo('Camera stopped. Choose a source or press Reconnect.'); } };
+    await refreshCameraDevices();
+  } catch (e) {
+    if (request !== camRequest) return;
+    camState = 'failed';
+    cameraInfo('Camera unavailable (' + (e.name || e.message) + '). Select another source or reconnect.');
+    await refreshCameraDevices();
+    status('Camera unavailable here. The preview uses black until camera video is available.');
+  }
 }
-function stopCamera() { if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; camState = cur && cur.P['bg.mode'] === 'camera' && camState === 'failed' ? 'failed' : 'off'; camFacing = null; }
+function stopCamera() {
+  camRequest++; if (camStream) camStream.getTracks().forEach(t => t.stop());
+  camStream = null; if (cam) cam.srcObject = null; camState = 'off'; camFacing = null; camDevice = '';
+}
 function cover(ctx, src, sw, sh, zm, ox, oy, mirror) { const W = K.W, H = K.H, s = Math.max(W / sw, H / sh) * zm, dw = sw * s, dh = sh * s; ctx.save(); if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); } ctx.drawImage(src, (W - dw) / 2 + ox, (H - dh) / 2 + oy, dw, dh); ctx.restore(); }
 function drawBackground(ctx, P) {
   const W = K.W, H = K.H;
@@ -361,7 +397,12 @@ K.start = async function ({ title, first }) {
   $('bHl').onclick = () => { showHL = !showHL; $('bHl').classList.toggle('on', showHL); };
   $('bSave').onclick = () => save(cur, false);
   $('mCtl').onclick = () => $('side').classList.toggle('open');
-  $('phoneLink').innerHTML = 'On the phone, open:<br><a href="' + location.href.split('#')[0] + '">' + location.href.split('#')[0] + '</a>';
+  $('selCamera').onchange = () => { localSet('cameraDevice', $('selCamera').value); ensureCamera(true); };
+  $('bCameraReconnect').onclick = () => ensureCamera(true);
+  $('bCameraPreview').onclick = () => { const panel = $('cameraPreview'); panel.hidden = !panel.hidden; $('bCameraPreview').textContent = panel.hidden ? 'Show original feed' : 'Hide original feed'; };
+  if (navigator.mediaDevices?.addEventListener) navigator.mediaDevices.addEventListener('devicechange', refreshCameraDevices);
+  const phoneUrl = new URL(location.href); phoneUrl.searchParams.delete('edit'); phoneUrl.hash = '';
+  $('phoneLink').innerHTML = 'On the phone, open:<br>'; const phoneAnchor = document.createElement('a'); phoneAnchor.href = phoneUrl.href; phoneAnchor.textContent = phoneUrl.href; $('phoneLink').appendChild(phoneAnchor);
   stage.addEventListener('pointerdown', ev => { const p = toLocal(ev); if (pickMode) { const r = cur.pick(p); if (r) openSection(r[0], r[1]); ev.preventDefault(); return; } try { stage.setPointerCapture(ev.pointerId); } catch (e) {} cur.pointer && cur.pointer.down(p, ev); });
   stage.addEventListener('pointermove', ev => { const p = toLocal(ev); if (!K.isMobile && cur.P['bg.mode'] === 'tilt') { tilt.tx = clamp((p.x / K.W - .5) * 2, -1, 1); tilt.ty = clamp((p.y / K.H - .5) * 2, -1, 1); } cur.pointer && cur.pointer.move(p, ev); });
   stage.addEventListener('pointerup', ev => cur.pointer && cur.pointer.up(toLocal(ev), ev));
@@ -377,4 +418,5 @@ K.start = async function ({ title, first }) {
 };
 window.StudioKit = K;
 })();
+
 
