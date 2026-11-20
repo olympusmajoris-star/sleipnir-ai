@@ -173,6 +173,10 @@ function skySnap(w, h) {
   skyCanvas = c; skyKey = key; lensTexDirty = true; return c;
 }
 
+/* ---------- see-through sky: the live background, snapshotted each frame for the lens ---------- */
+let thruCanvas = null;
+function throughSnap(w, h) { if (!thruCanvas) thruCanvas = document.createElement('canvas'); const W = Math.round(w * PR), H = Math.round(h * PR); if (thruCanvas.width !== W || thruCanvas.height !== H) { thruCanvas.width = W; thruCanvas.height = H; } const x = thruCanvas.getContext('2d'); x.setTransform(PR, 0, 0, PR, 0, 0); x.filter = 'none'; K.drawBackground(x, P); lensTexDirty = true; return thruCanvas; }
+
 /* ---------- _AsLensPainter as a WebGL shader (same lens equation, per pixel) ---------- */
 let gl = null, glc = null, prog = null, tex = null, lensTexDirty = true, glFail = false;
 function initGL() {
@@ -190,13 +194,13 @@ function initGL() {
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
-let lensFrame = -1, lensOut = null;
+let lensFrame = -1, lensOut = null, lensTexSrc = null;
 function lensLayer(w, h, lenses, sky) {
   if (glFail || !sky) return null; if (!gl) initGL(); if (glFail) return null;
   const fr = K.frameId ? K.frameId() : performance.now(); if (lensFrame === fr && lensOut) return lensOut; lensFrame = fr;
   const W = Math.round(w * PR), H = Math.round(h * PR); if (glc.width !== W || glc.height !== H) { glc.width = W; glc.height = H; }
   gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-  if (lensTexDirty) { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sky); lensTexDirty = false; }
+  if (lensTexDirty || lensTexSrc !== sky) { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sky); lensTexDirty = false; lensTexSrc = sky; }
   const arr = new Float32Array(28); const ls = lenses.slice(0, 7); ls.forEach((l, i) => arr.set([l.x, l.y, l.r, l.s], i * 4));
   gl.uniform4fv(gl.getUniformLocation(prog, 'L'), arr); gl.uniform1i(gl.getUniformLocation(prog, 'n'), ls.length); gl.uniform2f(gl.getUniformLocation(prog, 'size'), w, h);
   gl.uniform1f(gl.getUniformLocation(prog, 'reach'), P['lens.reach']); gl.uniform1f(gl.getUniformLocation(prog, 'swirl'), P['lens.swirl']);
@@ -471,6 +475,7 @@ const sc = K.screen({
     def('Strip', 'Deep space', 'strip', 'deep.starAlpha', 'Star brightness', 'num', 1, { min: 0, max: 2, step: .05, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
     def('Strip', 'Deep space', 'strip', 'deep.bright', 'Bright stars', 'int', 25, { min: 0, max: 25, step: 1, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
     def('Strip', 'Deep space', 'strip', 'deep.grains', 'Dust specks', 'int', 1600, { min: 0, max: 1600, step: 50, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Photo sky', 'strip', 'sky.mode', 'Sky behind the black holes', 'select', 'space', { opts: [['space', 'Space (Webb photo, as in the app)'], ['through', 'See-through: your camera / tilt background']], info: 'See-through: the black holes bend whatever is behind the phone, live. Pick the camera or tilt picture in the Background tab.' });
     def('Strip', 'Photo sky', 'strip', 'sky.on', 'Webb deep-field photo', 'bool', true);
     def('Strip', 'Photo sky', 'strip', 'sky.dark', 'Darken photo', 'num', .30, { min: 0, max: 1, step: .01 });
     def('Strip', 'Labels', 'labels', 'lab.title', 'Top label', 'text', 'A S G A R D');
@@ -622,7 +627,7 @@ const sc = K.screen({
     if (ST.flight) { drawFlight(ctx, now); if (studio) K.hl(ctx, now); return; }
     const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
     G.strip = { x: 0, y: 0, w: W, h: sh };
-    if (P['feed.bg']) { ctx.fillStyle = P['post.bg']; ctx.fillRect(0, 0, W, H); }
+    if (P['feed.bg']) { const y0 = P['sky.mode'] === 'through' ? sh - P['strip.fade'] : 0; ctx.fillStyle = P['post.bg']; ctx.fillRect(0, y0, W, H - y0); }
     const feedTop = sh - P['strip.fade'], pageH = H - feedTop; G.feedTop = feedTop; G.pageH = pageH; G.maxScroll = Math.max(0, POSTS.length * pageH + footprint() - pageH);
     POSTS[0].pic0 = POSTS[0].pic0 || POSTS[0].pic; POSTS[0].pic = P['test.textOnly'] ? null : POSTS[0].pic0;
     G.posts = [];
@@ -632,8 +637,9 @@ const sc = K.screen({
     const k = scaleOf(ctx), Lw = Math.ceil(W * k), Lh = Math.ceil(sh * k);
     const L = sc._layer || (sc._layer = document.createElement('canvas')); if (L.width !== Lw || L.height !== Lh) { L.width = Lw; L.height = Lh; }
     const x = L.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.filter = 'none'; x.clearRect(0, 0, Lw, Lh); x.scale(k, k);
-    x.drawImage(deepSpace(W, sh, Math.min(3, k)), 0, 0, W, sh);
-    const sky = P['sky.on'] ? skySnap(W, sh) : null; if (sky) x.drawImage(sky, 0, 0, W, sh);
+    const through = P['sky.mode'] === 'through';
+    if (!through) x.drawImage(deepSpace(W, sh, Math.min(3, k)), 0, 0, W, sh);
+    const sky = through ? throughSnap(W, sh) : P['sky.on'] ? skySnap(W, sh) : null; if (sky && !through) x.drawImage(sky, 0, 0, W, sh);
     const lensesLive = orbs.filter(o => o.live).map(o => ({ x: o.x, y: o.y + top, r: o.d / 2, s: o.strength }));
     if (P['lens.on'] && sky && lensesLive.length) { const out = lensLayer(W, sh, lensesLive, sky); if (out) x.drawImage(out, 0, 0, W, sh); }
     drawRims(x, orbs.map(o => ({ x: o.x, y: o.y + top, r: o.d / 2 })));

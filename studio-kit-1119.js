@@ -109,6 +109,7 @@ function drawBackground(ctx, P) {
   if (P['bg.dim'] > 0) { ctx.fillStyle = rgba(P['bg.dimColor'], P['bg.dim']); ctx.fillRect(0, 0, W, H); }
 }
 
+K.drawBackground = (ctx, P) => drawBackground(ctx, P);
 /* ---------- highlight ---------- */
 function activeTarget() { if (hover && (hoverUntil === Infinity || performance.now() < hoverUntil)) return hover; return null; }
 function sectionTarget() { const s = cur.SPEC.find(x => x.group === cur.ui.group && x.section === cur.ui.section); return s ? s.target.split(':')[0] : null; }
