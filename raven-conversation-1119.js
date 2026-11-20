@@ -17,7 +17,7 @@ let P = {};
 const easeIO = t => { t = clamp(t, 0, 1); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
 const ART = 'https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/asgard_ui/raven_cloud_v20/';
 const EARTH = 'https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/raven_earth/';
-const CLIPS = [['San Francisco', 'v32/earth-san-francisco-rigid-v32.mp4'], ['Egypt', 'v32/earth-egypt-rigid-v32.mp4'], ['Japan', 'v34/earth-japan-continuous-v34.mp4'], ['Coast and green valleys', 'v32/earth-green-valleys-rigid-v32.mp4'], ['Florida coast', 'v32/earth-florida-rigid-v32.mp4'], ['Terrain', 'v34/earth-terrain-continuous-v34.mp4'], ['River plains', 'v34/earth-river-plains-continuous-v34.mp4'], ['Woodlands', 'v34/earth-woodlands-continuous-v34.mp4'], ['Forest river', 'v34/earth-forest-river-continuous-v34.mp4'], ['Changing landscapes', 'v34/earth-changing-landscapes-continuous-v34.mp4'], ['Green rivers', 'v34/earth-green-rivers-continuous-v34.mp4'], ['Farmland', 'v34/earth-farmland-continuous-v34.mp4'], ['Close farmland', 'v34/earth-close-farmland-continuous-v34.mp4'], ['Ice and fjords', 'v34/earth-ice-fjords-continuous-v34.mp4']];
+const CLIPS = [['San Francisco', 'v32/earth-san-francisco-rigid-v32.mp4', 0.2, 'water-san-francisco-v29.json'], ['Egypt', 'v32/earth-egypt-rigid-v32.mp4', 0.2, 'water-egypt-v29.json'], ['Japan', 'v34/earth-japan-continuous-v34.mp4', 0.2, 'water-japan-v29.json'], ['Coast and green valleys', 'v32/earth-green-valleys-rigid-v32.mp4', 0.2, 'water-green-valleys-v29.json'], ['Florida coast', 'v32/earth-florida-rigid-v32.mp4', 0.2, 'water-florida-v29.json'], ['Terrain', 'v34/earth-terrain-continuous-v34.mp4', 0.4, 'water-terrain-v29.json'], ['River plains', 'v34/earth-river-plains-continuous-v34.mp4', 0.4, 'water-river-plains-v29.json'], ['Woodlands', 'v34/earth-woodlands-continuous-v34.mp4', 0.4, 'water-woodlands-v29.json'], ['Forest river', 'v34/earth-forest-river-continuous-v34.mp4', 0.4, 'water-forest-river-v29.json'], ['Changing landscapes', 'v34/earth-changing-landscapes-continuous-v34.mp4', 0.4, 'water-changing-landscapes-v29.json'], ['Green rivers', 'v34/earth-green-rivers-continuous-v34.mp4', 0.4, 'water-green-rivers-v29.json'], ['Farmland', 'v34/earth-farmland-continuous-v34.mp4', 0.4, 'water-farmland-v29.json'], ['Close farmland', 'v34/earth-close-farmland-continuous-v34.mp4', 0.4, 'water-close-farmland-v29.json'], ['Ice and fjords', 'v34/earth-ice-fjords-continuous-v34.mp4', 0.4, 'water-ice-fjords-v29.json']];
 const MINE = 'cloud-mine-billows-v27.webp', PEER = 'cloud-peer-billows-v27.webp';
 const FILM_ASSETS = [MINE, PEER, 'cloud-anvil-258398-v29.webp', 'cloud-tower-365034-v29.webp', 'cloud-billows-166852-v29.webp'];
 const BOUNDS = { 'cloud-anvil-258398-v29.webp': [125, 110, 598, 356], 'cloud-billows-166852-v29.webp': [144, 130, 495, 296], 'cloud-tower-365034-v29.webp': [67, 107, 567, 331], [MINE]: [19, 87, 622, 340], [PEER]: [18, 87, 620, 341] };
@@ -162,13 +162,13 @@ function cloudSize(body, avail) {
 }
 
 /* ---------- state ---------- */
-const ST = { msgs: [], draft: '', draftId: 'd' + Date.now(), tiles: {}, active: false, activeUntil: 0, mist: [], mistTime: 0, nextOff: 0, nextDist: 4, mistInit: false, serial: 0, rand: rng(1119), clipIdx: 0, swap: null, focus: false };
+const ST = { prog: 1, msgs: [], draft: '', draftId: 'd' + Date.now(), tiles: {}, active: false, activeUntil: 0, mist: [], mistTime: 0, nextOff: 0, nextDist: 4, mistInit: false, serial: 0, rand: rng(1119), clipIdx: 0, swap: null, focus: false };
 let G = { clouds: [] };
 const videos = [document.createElement('video'), document.createElement('video')];
 videos.forEach(v => { v.crossOrigin = 'anonymous'; v.muted = true; v.playsInline = true; v.preload = 'auto'; v.loop = false; });
 let vCur = 0;
-function loadClip(vi, idx) { const v = videos[vi]; v.src = EARTH + CLIPS[idx][1]; v.dataset.idx = idx; v.playbackRate = rate(); v.play().catch(() => {}); }
-const rate = () => clamp(.20 * P['sc.daySpeed'] / 8, .0625, 4);
+function loadClip(vi, idx) { idx = +idx; const v = videos[vi]; v.src = EARTH + CLIPS[idx][1]; v.dataset.idx = idx; v.playbackRate = rate(idx); v.play().catch(() => {}); }
+const rate = idx => clamp(CLIPS[+idx || 0][2] * P['sc.daySpeed'] / 8, .0625, 4);
 function tileFor(id, size) {
   let t = ST.tiles[id]; const now = performance.now();
   if (!t) t = ST.tiles[id] = { born: now, from: size, to: size, t0: now, vol: null, volKey: '' };
@@ -176,6 +176,8 @@ function tileFor(id, size) {
   return t;
 }
 function curSize(t, now) { const p = clamp((now - t.t0) / Math.max(1, P['sc.growthMs']), 0, 1), e = 1 - Math.pow(1 - p, 3); return { w: t.from.w + (t.to.w - t.from.w) * e, h: t.from.h + (t.to.h - t.from.h) * e }; }
+function prog() { return P['con.hold'] ? clamp(P['con.at'], 0, 1) : ST.prog; }
+function startBuild() { ST.prog = 0; ST.tiles = {}; ST.mist = []; ST.mistInit = false; }
 function noteActivity() { ST.active = true; ST.activeUntil = performance.now() + P['amb.activeFor'] * 1000; if (!ST.wasActive) ST.nextOff = schedule(); }
 const schedule = () => clamp(P['amb.interval'], 18, 90) * (.74 + ST.rand() * .52);
 function timeStr(d) { return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
@@ -313,6 +315,172 @@ function drawMist(ctx) {
   }
 }
 
+/* ---------- water shimmer (_RvWaterTrack / _RvWaterPainter) ---------- */
+let WATER = null; fetch('raven/water-1120.json').then(r => r.json()).then(d => { WATER = d; }).catch(() => {});
+const waterMasks = new Map(), WS = 4;
+const SPARK = (() => { const r = rng(1937), out = []; for (let i = 0; i < 1100; i++) { const x = r(), y = r(), ph = r() * TAU, sp = .6 + r() * .6, w = .7 + r() * 1.8; out.push([x, y, ph, sp, w]); } return out; })();
+function waterMask(name, tr, i) {
+  const key = name + '|' + i + '|' + P['wa.maskBlur']; let m = waterMasks.get(key); if (m) return m;
+  const fr = tr.frames, A = fr[i] || [], B = fr[Math.min(i + 1, fr.length - 1)] || [], C = fr[Math.max(0, i - 1)] || [];
+  const W = tr.width, H = tr.height, grid = n => { const g = new Uint8Array(W * H); for (const [x, y, w, h] of n) for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (xx >= 0 && yy >= 0 && xx < W && yy < H) g[yy * W + xx] = 1; return g; };
+  const a = grid(A), b = grid(B), c = grid(C); let any = 0; const hard = mkCanvas(W * WS, H * WS), hx = hard.getContext('2d'); hx.fillStyle = '#fff';
+  for (let k = 0; k < W * H; k++) if (a[k] && b[k] && c[k]) { any = 1; hx.fillRect((k % W) * WS, Math.floor(k / W) * WS, WS, WS); }
+  if (!any) { m = { empty: true }; waterMasks.set(key, m); return m; }
+  const soft = mkCanvas(W * WS, H * WS), sx = soft.getContext('2d'); sx.filter = `blur(${P['wa.maskBlur'] * WS}px)`; sx.drawImage(hard, 0, 0); sx.filter = 'none'; sx.globalCompositeOperation = 'destination-in'; sx.drawImage(hard, 0, 0);
+  m = { hard, soft }; waterMasks.set(key, m); if (waterMasks.size > 40) waterMasks.delete(waterMasks.keys().next().value); return m;
+}
+const waterLayer = mkCanvas(240 * WS, 150 * WS);
+function waterColor(tr, t) { const cs = tr.colors || []; if (!cs.length) return [0x21, 0x46, 0x56]; const i = clamp(Math.floor(t / tr.step), 0, cs.length - 1), j = Math.min(i + 1, cs.length - 1), f = (t / tr.step) % 1; return [0, 1, 2].map(k => cs[i][k] + (cs[j][k] - cs[i][k]) * f); }
+const lerpC = (a, hex, f) => { const b = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]; return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',')})`; };
+function drawWater(ctx, v, alpha, now) {
+  const strength = P['sc.waterShimmer']; if (!WATER || strength <= 0 || !v.videoWidth || alpha <= 0 || !P['wa.on']) return;
+  const clip = CLIPS[+v.dataset.idx]; const tr = clip && WATER[clip[3]]; if (!tr) return;
+  const t = v.currentTime, i = clamp(Math.floor(t / tr.step), 0, tr.frames.length - 1), m = waterMask(clip[3], tr, i); if (m.empty) return;
+  const W = K.W, H = K.H, vw = v.videoWidth, vh = v.videoHeight, sc0 = Math.max(W / vw, H / vh), sw = W / sc0, sh = H / sc0;
+  const src = { x: (vw - sw) / 2 / vw * tr.width, y: (vh - sh) / 2 / vh * tr.height, w: sw / vw * tr.width, h: sh / vh * tr.height };
+  const L = waterLayer, x = L.getContext('2d'), LW = L.width, LH = L.height, wc = waterColor(tr, t), clock = now / 1000;
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, LW, LH);
+  const g = x.createLinearGradient(0, 0, LW, LH); g.addColorStop(0, lerpC(wc, P['wa.light'], .10)); g.addColorStop(1, lerpC(wc, P['wa.deep'], .12));
+  x.globalAlpha = P['wa.tint'] * strength; x.fillStyle = g; x.fillRect(0, 0, LW, LH); x.globalAlpha = 1;
+  x.globalCompositeOperation = 'destination-in'; x.drawImage(m.soft, 0, 0); x.globalCompositeOperation = 'source-over';
+  const hz = x.createRadialGradient(LW * .58, LH * .30, 0, LW * .58, LH * .30, LW * .55); hz.addColorStop(0, `rgba(255,246,218,${P['wa.haze'] * strength})`); hz.addColorStop(1, 'rgba(255,246,218,0)'); x.fillStyle = hz; x.fillRect(0, 0, LW, LH);
+  const n = Math.min(SPARK.length, Math.round(P['wa.sparkles'])); x.fillStyle = '#FFF8E5';
+  for (let k = 0; k < n; k++) {
+    const [rx, ry, ph, sp, w] = SPARK[k], px = rx * tr.width, py = ry * tr.height;
+    const crest = Math.pow(Math.max(0, Math.sin(clock * sp + ph)), 5), glare = Math.exp(-Math.pow((px - tr.width * .58) / (tr.width * .4), 2) - Math.pow((py - tr.height * .3) / (tr.height * .65), 2));
+    const a = crest * glare * strength * P['wa.spark']; if (a < .005) continue;
+    x.globalAlpha = Math.min(1, a); x.beginPath(); x.ellipse((px + Math.sin(clock * .24 + ph) * .7) * WS, py * WS, w / 2 * WS, .175 * WS, 0, 0, TAU); x.fill();
+  }
+  x.globalAlpha = 1; x.globalCompositeOperation = 'destination-in'; x.drawImage(m.hard, 0, 0); x.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.globalAlpha = alpha; ctx.drawImage(L, src.x * WS, src.y * WS, src.w * WS, src.h * WS, 0, 0, W, H); ctx.restore();
+}
+
+/* ---------- terrain outlines (_RvTerrainRegistration) ---------- */
+let TERR = null; const terrCache = {}; fetch('raven/terrain-1120.json').then(r => r.json()).then(d => { TERR = d; }).catch(() => {});
+const TALIAS = { 'earth-japan-continuous-v34.mp4': 'earth-japan-rigid-v32.mp4', 'earth-terrain-continuous-v34.mp4': 'earth-terrain-v29.mp4', 'earth-river-plains-continuous-v34.mp4': 'earth-river-plains-v29.mp4', 'earth-woodlands-continuous-v34.mp4': 'earth-woodlands-v29.mp4', 'earth-forest-river-continuous-v34.mp4': 'earth-forest-river-v29.mp4', 'earth-changing-landscapes-continuous-v34.mp4': 'earth-changing-landscapes-v29.mp4', 'earth-green-rivers-continuous-v34.mp4': 'earth-green-rivers-v29.mp4', 'earth-farmland-continuous-v34.mp4': 'earth-farmland-v29.mp4', 'earth-close-farmland-continuous-v34.mp4': 'earth-close-farmland-v29.mp4', 'earth-ice-fjords-continuous-v34.mp4': 'earth-ice-fjords-v29.mp4' };
+function decodeTerrain(b64) {
+  const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  const dv = new DataView(u.buffer); let c = 0; const byte = () => u[c++], short = () => { const v = dv.getUint16(c, true); c += 2; return v; }, num = () => { const v = dv.getFloat32(c, true); c += 4; return v; };
+  if (byte() !== 1) return null; const sw = short(), sh = short(), duration = num(), count = short(), frames = [];
+  for (let f = 0; f < count; f++) { const time = num(), pc = byte(), paths = []; for (let p = 0; p < pc; p++) { const n = byte(), pts = []; for (let k = 0; k < n; k++) { const packed = byte() | (byte() << 8) | (byte() << 16); pts.push([(packed & 4095) / 4095, (packed >> 12) / 4095]); } paths.push(pts); } const qc = byte(), poses = []; for (let q = 0; q < qc; q++) { const t = num(), m = [num(), num(), num(), num(), num(), num()]; poses.push({ t, m, e: num() }); } frames.push({ time, paths, poses }); }
+  return { sw, sh, duration, frames };
+}
+function terrainAt(asset, seconds) {
+  if (!TERR) return null; const file = asset.split('/').pop(), name = TALIAS[file] || file, enc = TERR[name]; if (!enc) return null;
+  const reg = terrCache[name] || (terrCache[name] = decodeTerrain(enc)); if (!reg) return null;
+  const time = isFinite(seconds) ? clamp(seconds, 0, reg.duration) : 0; let fr = reg.frames[0];
+  for (const c of reg.frames) if (Math.abs(c.time - time) < Math.abs(fr.time - time)) fr = c;
+  const ps = fr.poses; if (!ps.length || time < ps[0].t - .02 || time > ps[ps.length - 1].t + .02) return null;
+  let a = ps[0], b = ps[ps.length - 1]; for (const q of ps) { if (q.t <= time) a = q; if (q.t >= time) { b = q; break; } }
+  if (a.e >= 3 || b.e >= 3) return null; if (a.t > b.t) a = b; const span = b.t - a.t, f = span > 1e-5 ? clamp((time - a.t) / span, 0, 1) : 0, m = a.m.map((v, k) => v + (b.m[k] - v) * f);
+  return fr.paths.map(pts => pts.map(([x, y]) => [m[0] * x + m[1] * y + m[2], m[3] * x + m[4] * y + m[5]]));
+}
+
+/* ---------- construction entrance (_RvConstructionPainter, mesh, assembly reveal) ---------- */
+const cEase = (v, a, b) => easeIO(clamp((v - a) / (b - a), 0, 1)), cRamp = (v, a, b) => clamp((v - a) / (b - a), 0, 1);
+function meshCells(W, H) {
+  const cols = Math.max(1, Math.round(P['con.cols'])), rows = Math.max(1, Math.round(P['con.rows'])), cells = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const x0 = W * c / cols, x1 = W * (c + 1) / cols, y0 = H * r / rows, y1 = H * (r + 1) / rows, span = .36 / rows, ms = .42 + r * span + c * span * .14; cells.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0, ms, me: ms + span * .58 }); }
+  return cells;
+}
+const cellReveal = (c, p) => easeIO(cRamp(p, c.ms, c.me));
+function revealedPath(cells, p, W, H, into) { const path = into || new Path2D(); if (p >= .78) { path.rect(0, 0, W, H); return path; } for (const c of cells) { const a = cellReveal(c, p); if (a <= 0) continue; path.rect(c.x, c.y, c.w, c.h * Math.min(1, a)); } return path; }
+function polyLen(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; }
+function trace(ctx, polys, amount) {
+  if (amount <= 0) return; if (!Array.isArray(polys[0][0])) polys = [polys];
+  let rem = amount >= .999 ? Infinity : polys.reduce((s, q) => s + (q.len ?? (q.len = polyLen(q))), 0) * amount;
+  ctx.beginPath();
+  for (const q of polys) { if (rem <= 0) break; ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) { const d = Math.hypot(q[i][0] - q[i - 1][0], q[i][1] - q[i - 1][1]); if (d >= rem) { const f = rem / d; ctx.lineTo(q[i - 1][0] + (q[i][0] - q[i - 1][0]) * f, q[i - 1][1] + (q[i][1] - q[i - 1][1]) * f); rem = 0; break; } ctx.lineTo(q[i][0], q[i][1]); rem -= d; } }
+  ctx.stroke();
+}
+function rrPoly(x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); const pts = [], arc = (cx, cy, a0) => { for (let k = 0; k <= 8; k++) { const a = a0 + k / 8 * Math.PI / 2; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } }; arc(x + w - r, y + r, -Math.PI / 2); arc(x + w - r, y + h - r, 0); arc(x + r, y + h - r, Math.PI / 2); arc(x + r, y + r, Math.PI); pts.push(pts[0].slice()); return pts; }
+function ovalPoly(cx, cy, r) { const pts = []; for (let k = 0; k <= 32; k++) { const a = k / 32 * TAU; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return pts; }
+function cross(ctx, x, y, alpha, radius = 3.5) { if (alpha <= 0) return; ctx.strokeStyle = rgba(P['con.charcoal'], alpha); ctx.lineWidth = .55; ctx.beginPath(); ctx.moveTo(x - radius, y); ctx.lineTo(x + radius, y); ctx.moveTo(x, y - radius); ctx.lineTo(x, y + radius); ctx.stroke(); ctx.fillStyle = rgba(P['con.amber'], alpha); ctx.beginPath(); ctx.arc(x, y, .75, 0, TAU); ctx.fill(); }
+function measure(ctx, ax, ay, bx, by, amount, alpha) {
+  if (amount <= 0 || alpha <= 0) return; const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy); if (L < 1) return; const tx = dx / L, ty = dy / L, nx = -ty, ny = tx;
+  ctx.strokeStyle = rgba(P['con.charcoal'], alpha); ctx.lineWidth = .55; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + dx * amount, ay + dy * amount); ctx.moveTo(ax - nx * 3, ay - ny * 3); ctx.lineTo(ax + nx * 3, ay + ny * 3);
+  if (amount > .98) { ctx.moveTo(bx - nx * 3, by - ny * 3); ctx.lineTo(bx + nx * 3, by + ny * 3); }
+  for (let n = 1; n < 8; n++) { if (n / 8 > amount) break; const px = ax + dx * n / 8, py = ay + dy * n / 8; ctx.moveTo(px - nx * 1.5, py - ny * 1.5); ctx.lineTo(px + nx * 1.5, py + ny * 1.5); } ctx.stroke();
+}
+function partFrame(ctx, p, r, begin, end, dir, composer) {
+  if (r.w <= 0 || r.h <= 0) return; const drawn = cEase(p, begin - .18, begin + .03), seated = cEase(p, begin - .09, end - .06), ret = 1 - cEase(p, end - .07, end + .07); if (drawn <= 0 || ret <= 0) return;
+  const rad = Math.min(composer ? 24 : 13, r.h / 2), depthStep = composer ? P['con.cmpDepth'] : P['con.hdDepth'], col = [P['con.amber'], P['con.blue'], P['con.red']];
+  ctx.lineWidth = .9; ctx.strokeStyle = rgba(P['con.charcoal'], .58 * ret); trace(ctx, rrPoly(r.x, r.y, r.w, r.h, rad), drawn);
+  for (let layer = 0; layer < 3; layer++) {
+    const z = (1 - seated) * (layer + 1) * depthStep, sx = dir * z * .37, sy = -z, inf = (1 - seated) * layer * 1.4, e = { x: r.x + sx - inf, y: r.y + sy - inf, w: r.w + inf * 2, h: r.h + inf * 2 }, color = col[layer];
+    if (layer > 0) {
+      ctx.save(); ctx.filter = `blur(${(3 * scaleOf(ctx)).toFixed(2)}px)`; ctx.fillStyle = rgba(P['con.amber'], .07 * drawn * ret); ctx.beginPath(); ctx.roundRect(e.x + 2, e.y + 3.5 + (1 - seated) * 3, e.w, e.h, rad); ctx.fill(); ctx.restore();
+      ctx.fillStyle = rgba(color, (layer === 1 ? .045 : .065) * drawn * ret); ctx.beginPath(); ctx.roundRect(e.x, e.y, e.w, e.h, rad); ctx.fill();
+      ctx.fillStyle = rgba(color, .20 * drawn * ret); ctx.beginPath(); ctx.roundRect(e.x, e.y, e.w, e.h, rad); ctx.roundRect(e.x + 1.7, e.y + 1.7, e.w - 3.4, e.h - 3.4, Math.max(0, rad - 1.7)); ctx.fill('evenodd');
+    }
+    ctx.lineWidth = layer === 2 ? 1.3 : .85; ctx.strokeStyle = rgba(color, .67 * ret); trace(ctx, rrPoly(e.x, e.y, e.w, e.h, rad), drawn);
+    if (layer === 2 && seated < .995) for (const x of [r.x + rad, r.x + r.w - rad]) { const ty = r.y + r.h; ctx.strokeStyle = rgba(P['con.charcoal'], .45 * ret); ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(x, ty); ctx.lineTo(x + sx, ty + sy); ctx.stroke(); cross(ctx, x, ty, .36 * ret); }
+  }
+  const ins = Math.min(7, r.h * .17); ctx.lineWidth = .8; ctx.strokeStyle = rgba(P['con.blue'], .42 * ret); trace(ctx, rrPoly(r.x + ins, r.y + ins, r.w - ins * 2, r.h - ins * 2, Math.max(3, rad - 7)), drawn);
+  const mx = r.x + r.w - Math.min(25, r.w * .09), my = r.y + r.h / 2; ctx.strokeStyle = rgba(P['con.amber'], .53 * ret); trace(ctx, ovalPoly(mx, my, Math.min(12, r.h * .24)), drawn); cross(ctx, mx, my, .33 * drawn * ret, 3);
+  const divs = composer ? [r.x + r.w - Math.min(50, r.w * .18)] : [r.x + 45, r.x + r.w - Math.min(95, r.w * .26)];
+  for (const x of divs) measure(ctx, x, r.y + 6, x, r.y + r.h - 6, drawn, .32 * ret);
+  const along = composer ? r.y + r.h + 6 : r.y - 6; measure(ctx, r.x + rad, along, r.x + r.w - rad, along, drawn, .38 * ret);
+}
+function drawConstruction(ctx, p, W, H, cells, hdr, cmp, terrain) {
+  if (p >= .96) return;
+  const unfilled = new Path2D(); unfilled.rect(0, 0, W, H); revealedPath(cells, p, W, H, unfilled);
+  ctx.save(); ctx.clip(unfilled, 'evenodd');
+  const g = ctx.createRadialGradient(W / 2 - .35 * W / 2, H / 2 - .5 * H / 2, 0, W / 2 - .35 * W / 2, H / 2 - .5 * H / 2, 1.45 * Math.min(W, H)); g.addColorStop(0, P['con.paperLight']); g.addColorStop(.55, P['con.paper']); g.addColorStop(1, P['con.paperDark']); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+  const sa = 1 - cEase(p, .53, .79), bi = Math.min(12, W * .03), B = { x: bi, y: bi, w: W - bi * 2, h: H - bi * 2 };
+  if (sa > 0 && P['con.scaffold']) {
+    const tr = cEase(p, 0, .18); ctx.lineWidth = .6; ctx.strokeStyle = rgba(P['con.charcoal'], .22 * sa); trace(ctx, rrPoly(B.x, B.y, B.w, B.h, 24), tr);
+    for (const [x, y] of [[B.x, B.y], [B.x + B.w, B.y], [B.x + B.w, B.y + B.h], [B.x, B.y + B.h]]) cross(ctx, x, y, (.15 + tr * .25) * sa, 5);
+    const ap = cEase(p, .02, .22); measure(ctx, W / 2, B.y, W / 2, B.y + B.h, ap, .10 * sa);
+    for (const r of [hdr, cmp]) if (r) measure(ctx, B.x, r.y + r.h / 2, B.x + B.w, r.y + r.h / 2, ap, .15 * sa);
+  }
+  const tp = terrain || [], ta = (1 - cEase(p, .60, .82)) * P['con.terrain'];
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (ta > 0) for (let i = 0; i < tp.length; i++) { const amt = cEase(p, .025 + (i % 7) * .012, .23 + (i % 5) * .021); ctx.lineWidth = i % 6 === 0 ? 1.05 : .63; ctx.strokeStyle = rgba(i % 6 === 0 ? P['con.amber'] : P['con.charcoal'], Math.min(1, (i % 6 === 0 ? .20 : .14) * ta)); trace(ctx, tp[i], amt); }
+  const cx = W / 2, cy = H / 2, inks = [P['con.charcoal'], P['con.amber'], P['con.blue']], tints = [P['con.amber'], P['con.red'], P['con.blue']];
+  for (let layer = 2; layer >= 0; layer--) {
+    const drawn = cEase(p, .025 + layer * .035, .22 + layer * .055), seated = cEase(p, .16 + layer * .045, .52 + layer * .06), ret = 1 - cEase(p, .57 + layer * .025, .78 + layer * .015);
+    if (drawn <= 0 || ret <= 0 || !tp.length) continue;
+    const z = (1 - seated) * (P['con.lift'] + layer * P['con.liftStep']), sx = (layer - 1) * z * .24, sy = -z, scY = 1 - (1 - seated) * (.10 + layer * .055), alpha = drawn * ret * P['con.terrain'];
+    ctx.save(); ctx.clip(unfilled, 'evenodd'); ctx.translate(cx + sx, cy + sy); ctx.scale(1, scY); ctx.translate(-cx, -cy);
+    for (let i = layer; i < tp.length; i += 3) {
+      const amt = cEase(p, .025 + (i % 7) * .012, .23 + (i % 5) * .021);
+      if (z > 1) { ctx.save(); ctx.translate(z * .035, 2.2 + z * .07); ctx.lineJoin = 'round'; ctx.lineCap = 'butt'; ctx.lineWidth = 1.2; ctx.strokeStyle = rgba(tints[layer], Math.min(1, .26 * alpha)); trace(ctx, tp[i], amt); ctx.restore(); }
+      ctx.lineCap = 'round'; ctx.lineWidth = i % 5 === 0 ? 1.10 : .76; ctx.strokeStyle = rgba(inks[layer], Math.min(1, .78 * alpha)); trace(ctx, tp[i], amt);
+    }
+    ctx.restore();
+    if (z > 1.5) { let n = 0; for (let i = layer; i < tp.length && n < 6; i += 9) { const q = tp[i]; if (!q || q.length < 2) continue; const L = q.len ?? (q.len = polyLen(q)); if (L < 14) continue; let rem = L * .38, at = q[0]; for (let k = 1; k < q.length; k++) { const d = Math.hypot(q[k][0] - q[k - 1][0], q[k][1] - q[k - 1][1]); if (d >= rem) { const f = rem / d; at = [q[k - 1][0] + (q[k][0] - q[k - 1][0]) * f, q[k - 1][1] + (q[k][1] - q[k - 1][1]) * f]; break; } rem -= d; }
+      const rx = cx + (at[0] - cx) + sx, ry = cy + (at[1] - cy) * scY + sy, inB = (x, y) => x >= 0 && y >= 0 && x <= W && y <= H; if (!inB(at[0], at[1]) || !inB(rx, ry)) continue;
+      ctx.save(); ctx.clip(unfilled, 'evenodd'); ctx.lineWidth = .65; ctx.strokeStyle = rgba(inks[layer], .28 * alpha); ctx.beginPath(); ctx.moveTo(at[0], at[1]); ctx.lineTo(rx, ry); ctx.stroke(); cross(ctx, at[0], at[1], .31 * alpha, 2.8); ctx.strokeStyle = rgba(tints[layer], .56 * alpha); ctx.beginPath(); ctx.arc(rx, ry, 1.35, 0, TAU); ctx.stroke(); ctx.restore(); n++; } }
+  }
+  if (p > .42 && p < .78 && P['con.fronts']) for (const c of cells) {
+    const a = cellReveal(c, p); if (a <= .001 || a >= .999) continue; const f = c.y + c.h * a, st = Math.sin(a * Math.PI);
+    ctx.save(); ctx.filter = `blur(${(2.5 * scaleOf(ctx)).toFixed(2)}px)`; ctx.strokeStyle = rgba(P['con.charcoal'], .24 * st); ctx.lineWidth = 2.2; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(c.x, f + 2.3); ctx.lineTo(c.x + c.w, f + 2.3); ctx.stroke(); ctx.restore();
+    ctx.strokeStyle = rgba('#F8EAC9', .66 * st); ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(c.x, f); ctx.lineTo(c.x + c.w, f); ctx.stroke();
+    ctx.strokeStyle = rgba(P['con.amber'], .35 * st); ctx.lineWidth = .65; ctx.beginPath(); ctx.moveTo(c.x, f + 1); ctx.lineTo(c.x + c.w, f + 1); ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+  const fa = 1 - cEase(p, .70, .86);
+  if (hdr && cmp && fa > 0) { const fx0 = Math.min(hdr.x, cmp.x) - 3, fx1 = Math.max(hdr.x + hdr.w, cmp.x + cmp.w) + 3, fy0 = hdr.y - 3, fy1 = cmp.y + cmp.h + 3, rails = cEase(p, .16, .40); for (const x of [fx0, fx1]) measure(ctx, x, fy0 + 13, x, fy1 - 20, rails, .23 * fa); cross(ctx, (fx0 + fx1) / 2, (fy0 + fy1) / 2, .13 * rails * fa, 5); }
+  if (hdr) partFrame(ctx, p, hdr, P['con.hdBegin'], P['con.hdEnd'], -1, false);
+  if (cmp) partFrame(ctx, p, cmp, P['con.cmpBegin'], P['con.cmpEnd'], 1, true);
+}
+// _RvAssemblyReveal: lift + squash + warm tint while a part seats.
+let warmSvg = null;
+function warmFilter(w) {
+  if (!warmSvg) { warmSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); warmSvg.setAttribute('width', 0); warmSvg.setAttribute('height', 0); warmSvg.style.position = 'absolute'; warmSvg.innerHTML = '<filter id="rvWarm" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"/></filter>'; document.body.appendChild(warmSvg); }
+  const m = [1 - w * .19, w * .15, w * .04, 0, w * 15 / 255, w * .07, 1 - w * .19, w * .08, 0, w * 8 / 255, w * .06, w * .07, 1 - w * .34, 0, 0, 0, 0, 0, 1, 0];
+  warmSvg.querySelector('feColorMatrix').setAttribute('values', m.map(v => v.toFixed(4)).join(' ')); return 'url(#rvWarm)';
+}
+function withReveal(ctx, prog, box, begin, end, lift, fromSide, fn) {
+  if (prog >= end) { fn(); return; }
+  const p = cEase(prog, begin, end), mat = cEase(prog, begin + (end - begin) * .42, end), warm = 1 - mat, op = cRamp(p, 0, .42); if (op <= 0) return;
+  const cx = box.x + box.w / 2, cy = box.y + box.h / 2; ctx.save(); ctx.globalAlpha *= op; if (warm > .001) ctx.filter = warmFilter(warm);
+  ctx.translate(cx, cy); ctx.translate(fromSide * (1 - p), -lift * (1 - p)); ctx.rotate(.012 * (1 - p) * (fromSide < 0 ? -1 : 1)); ctx.scale(1 - .018 * (1 - p), 1 - .11 * (1 - p)); ctx.translate(-cx, -cy);
+  fn(); ctx.restore();
+}
+
 /* ---------- composer input overlay ---------- */
 let input = null;
 function ensureInput() {
@@ -351,6 +519,42 @@ const sc = K.screen({
     def('Earth', 'Shade bands', 'earth.shade', 'shade.topEnd', 'Top band reaches', 'num', .18, { min: 0, max: .6, step: .01, unit: 'of height' });
     def('Earth', 'Shade bands', 'earth.shade', 'shade.bottom', 'Bottom strength', 'num', .69, { min: 0, max: 1, step: .005 });
     def('Earth', 'Shade bands', 'earth.shade', 'shade.bottomStart', 'Bottom band starts', 'num', .76, { min: .3, max: 1, step: .01, unit: 'of height' });
+    def('Earth', 'Water shimmer', 'earth', 'sc.waterShimmer', 'Water shimmer', 'num', .5, { min: 0, max: 1, step: .01, dart: 'water_shimmer' });
+    def('Earth', 'Water shimmer', 'earth', 'wa.on', 'Show water shimmer', 'bool', true);
+    def('Earth', 'Water shimmer', 'earth', 'wa.tint', 'Water tint strength', 'num', .38, { min: 0, max: 1, step: .01 });
+    def('Earth', 'Water shimmer', 'earth', 'wa.light', 'Tint light color', 'color', '#7AA6AD');
+    def('Earth', 'Water shimmer', 'earth', 'wa.deep', 'Tint deep color', 'color', '#0B2737');
+    def('Earth', 'Water shimmer', 'earth', 'wa.haze', 'Sun haze', 'num', .06, { min: 0, max: .5, step: .005 });
+    def('Earth', 'Water shimmer', 'earth', 'wa.spark', 'Sparkle brightness', 'num', .32, { min: 0, max: 1.5, step: .01 });
+    def('Earth', 'Water shimmer', 'earth', 'wa.sparkles', 'Sparkle count', 'int', 1100, { min: 0, max: 1100, step: 10 });
+    def('Earth', 'Water shimmer', 'earth', 'wa.maskBlur', 'Shoreline softness', 'num', 1.4, { min: 0, max: 6, step: .1 });
+    // Construction entrance
+    def('Construction', 'Timing', 'construct', 'con.on', 'Play when page opens', 'bool', true);
+    def('Construction', 'Timing', 'construct', 'con.seconds', 'Duration', 'num', 4.8, { min: 3.2, max: 9, step: .1, unit: 's', dart: '_rvEntranceSeconds' });
+    def('Construction', 'Timing', 'construct', 'con.hold', 'Freeze at a moment', 'bool', false, { info: 'Turn on, then slide Moment to look at any point of the build.' });
+    def('Construction', 'Timing', 'construct', 'con.at', 'Moment', 'num', .35, { min: 0, max: 1, step: .005, info: '0 = start, 1 = finished.' });
+    def('Construction', 'Blocks', 'construct', 'con.cols', 'Block columns', 'int', 4, { min: 1, max: 10, step: 1 });
+    def('Construction', 'Blocks', 'construct', 'con.rows', 'Block rows', 'int', 7, { min: 1, max: 14, step: 1 });
+    def('Construction', 'Blocks', 'construct', 'con.fronts', 'Bright edge on opening blocks', 'bool', true);
+    def('Construction', 'Lines and layers', 'construct', 'con.scaffold', 'Outer guide frame', 'bool', true);
+    def('Construction', 'Lines and layers', 'construct', 'con.terrain', 'Terrain drawing strength', 'num', 1, { min: 0, max: 2.5, step: .05 });
+    def('Construction', 'Lines and layers', 'construct', 'con.lift', 'Layer lift', 'num', 24, { min: 0, max: 80, step: 1, unit: 'px' });
+    def('Construction', 'Lines and layers', 'construct', 'con.liftStep', 'Extra lift per layer', 'num', 22, { min: 0, max: 60, step: 1, unit: 'px' });
+    def('Construction', 'Colors', 'construct', 'con.charcoal', 'Pencil', 'color', '#413B32');
+    def('Construction', 'Colors', 'construct', 'con.amber', 'Amber', 'color', '#AA7034');
+    def('Construction', 'Colors', 'construct', 'con.red', 'Red', 'color', '#B64F32');
+    def('Construction', 'Colors', 'construct', 'con.blue', 'Blue', 'color', '#48747A');
+    def('Construction', 'Colors', 'construct', 'con.paperLight', 'Paper (light)', 'color', '#F8EBCB');
+    def('Construction', 'Colors', 'construct', 'con.paper', 'Paper', 'color', '#F0E2BF');
+    def('Construction', 'Colors', 'construct', 'con.paperDark', 'Paper (dark edge)', 'color', '#DBC99E');
+    def('Construction', 'Header and composer', 'construct.parts', 'con.hdBegin', 'Header starts at', 'num', .46, { min: 0, max: .9, step: .01 });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.hdEnd', 'Header done at', 'num', .76, { min: .1, max: 1, step: .01 });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.hdLift', 'Header slide', 'num', -22, { min: -80, max: 80, step: 1, unit: 'px' });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.hdDepth', 'Header layer depth', 'num', 10, { min: 0, max: 40, step: .5, unit: 'px' });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.cmpBegin', 'Composer starts at', 'num', .50, { min: 0, max: .9, step: .01 });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.cmpEnd', 'Composer done at', 'num', .82, { min: .1, max: 1, step: .01 });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.cmpLift', 'Composer slide', 'num', 44, { min: -80, max: 120, step: 1, unit: 'px' });
+    def('Construction', 'Header and composer', 'construct.parts', 'con.cmpDepth', 'Composer layer depth', 'num', 13, { min: 0, max: 40, step: .5, unit: 'px' });
     // Message clouds
     def('Message clouds', 'Scene values', 'clouds', 'sc.padding', 'Text padding', 'num', 18, { min: 12, max: 40, step: .5, unit: 'px', dart: 'cloud_padding' });
     def('Message clouds', 'Scene values', 'clouds', 'sc.growthMs', 'Grow time', 'int', 250, { min: 80, max: 1500, step: 10, unit: 'ms', dart: 'cloud_growth_ms', info: 'How fast a cloud grows as you type.' });
@@ -434,76 +638,90 @@ const sc = K.screen({
     def('Composer', 'Empty page', 'empty', 'em.size', 'Empty-page text size', 'num', 16, { min: 8, max: 32, step: .5, unit: 'px' });
   },
   toolbar: [
+    { label: 'Replay construction', title: 'Play the page building itself again', onclick: () => startBuild() },
     { label: 'Add test messages', title: 'Adds lines from the test accounts', onclick: () => { const lines = [['That looks amazing', false], ['I sent you the photo', true], ['See you tonight?', false], ["I'll be there at six", true]]; const now = Date.now(); lines.forEach(([b, mine], i) => ST.msgs.unshift({ id: 't' + now + i, body: b, mine, at: new Date(now - (lines.length - i) * 60000) })); noteActivity(); } },
-    { label: 'Break off now', title: 'Spawn a break-off piece from a cloud right now', onclick: () => { noteActivity(); ST.nextOff = 0; } },
+    { label: 'Break off now', title: 'Spawn a break-off piece from a cloud right now', onclick: () => { noteActivity(); ST.wasActive = true; ST.mistInit = true; ST.nextOff = 0; } },
     { label: 'Clear', title: 'Remove all messages here', onclick: () => { ST.msgs = []; ST.mist = []; } },
   ],
-  onShow() { P = sc.P; startFilms(); ensureInput().style.display = ''; if (!ST.seeded) { ST.seeded = true; const now = Date.now(); [['Hey, are you still coming to the market Saturday?', false], ['Yes! I will bring the honey cakes', true], ['Perfect. Bring the big basket too, the one with the handles', false], ['Already packed it', true]].forEach(([b, mine], i, a) => ST.msgs.unshift({ id: 's' + i, body: b, mine, at: new Date(now - (a.length - i) * 240000) })); } if (P['earth.on']) loadClip(vCur, P['earth.clip']); },
+  onShow() { P = sc.P; startFilms(); ensureInput().style.display = ''; if (!ST.seeded) { ST.seeded = true; const now = Date.now(); [['Hey, are you still coming to the market Saturday?', false], ['Yes! I will bring the honey cakes', true], ['Perfect. Bring the big basket too, the one with the handles', false], ['Already packed it', true]].forEach(([b, mine], i, a) => ST.msgs.unshift({ id: 's' + i, body: b, mine, at: new Date(now - (a.length - i) * 240000) })); } if (P['earth.on']) loadClip(vCur, P['earth.clip']); if (P['con.on']) startBuild(); else ST.prog = 1; },
   onHide() { if (input) input.style.display = 'none'; videos.forEach(v => v.pause()); },
-  onSet(k, v) { if (k === 'earth.clip') { ST.clipIdx = v; vCur = 0; loadClip(0, v); videos[1].pause(); ST.swap = null; } if (k === 'sc.daySpeed') videos.forEach(x => x.playbackRate = rate()); },
+  onSet(k, v) { if (k === 'earth.clip') { ST.clipIdx = v; vCur = 0; loadClip(0, v); videos[1].pause(); ST.swap = null; } if (k === 'sc.daySpeed') videos.forEach(x => { if (x.dataset.idx != null) x.playbackRate = rate(x.dataset.idx); }); },
   update(dt, now) {
     P = sc.P; FILMS.forEach(f => { f.speed = P['sc.cloudSpeed']; f.tick(dt); });
     if (ST.active && now > ST.activeUntil) ST.active = false;
+    // construction progress (waits at .28 until footage and clouds are ready, like the app)
+    if (ST.prog < 1) { const ready = (!P['earth.on'] || videos[vCur].readyState >= 2) && FILMS.every(f => f.ready || f.failed); if (ready || ST.prog < .28) ST.prog = Math.min(ready ? 1 : .28, ST.prog + dt / Math.max(.5, P['con.seconds'])); }
     // earth journey: crossfade to next clip near the end
     const v = videos[vCur];
-    if (P['earth.on'] && P['earth.cycle'] && v.duration && !ST.swap && v.currentTime > v.duration - (P['earth.fade'] / 1000) * rate() - .05) { const ni = (+v.dataset.idx + 1) % CLIPS.length; loadClip(1 - vCur, ni); ST.swap = { t0: now }; }
+    if (P['earth.on'] && P['earth.cycle'] && v.duration && !ST.swap && v.currentTime > v.duration - (P['earth.fade'] / 1000) * rate(v.dataset.idx) - .05) { const ni = (+v.dataset.idx + 1) % CLIPS.length; loadClip(1 - vCur, ni); ST.swap = { t0: now }; }
     if (ST.swap && now - ST.swap.t0 > P['earth.fade']) { videos[vCur].pause(); vCur = 1 - vCur; ST.swap = null; }
-    const g = G.layout; if (g) stepMist(dt, K.W, K.H, g.targets);
-    placeInput();
+    const g = G.layout; if (g && prog() >= .96) stepMist(dt, K.W, K.H, g.targets);
+    placeInput(); if (input) input.style.visibility = prog() >= P['con.cmpEnd'] ? 'visible' : 'hidden';
   },
   draw(ctx, now, studio) {
-    P = sc.P; sc.ty = 0; const W = K.W, H = K.H;
-    // paper + earth
-    ctx.fillStyle = P['earth.paper']; ctx.globalAlpha = P['bg.mode'] === 'plain' ? 1 : 0; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
-    if (P['earth.on']) {
-      const drawV = (v, a) => { if (!v.videoWidth || a <= 0) return; const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s; ctx.save(); ctx.globalAlpha = a; ctx.filter = `brightness(${P['sc.groundBrightness']})`; ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh); ctx.restore(); };
-      drawV(videos[vCur], 1); if (ST.swap) drawV(videos[1 - vCur], clamp((now - ST.swap.t0) / Math.max(1, P['earth.fade']), 0, 1));
-    }
-    if (P['shade.on']) { const g = ctx.createLinearGradient(0, 0, 0, H), c = P['shade.color']; g.addColorStop(0, rgba(c, P['shade.top'])); g.addColorStop(P['shade.topEnd'], rgba(c, 0)); g.addColorStop(P['shade.bottomStart'], rgba(c, 0)); g.addColorStop(1, rgba(c, P['shade.bottom'])); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
-    // header
-    const hdTop = P['hd.top'], hdH = 48;
-    // composer
+    P = sc.P; sc.ty = 0; const W = K.W, H = K.H, pr = prog(), cells = meshCells(W, H);
+    const hdTop = P['hd.top'], hdr = P['hd.on'] ? { x: 6, y: hdTop, w: W - 12, h: 48 } : null;
     const lh = P['cmp.size'] * P['cmp.line'], boxH = Math.max(48, lh + 24) + 2, cx = P['cmp.side'], cy = H - P['cmp.bottom'] - boxH, cw = W - P['cmp.side'] * 2;
     G.composer = { x: cx, y: cy, w: cw, h: boxH };
-    // layout clouds (reverse list) between header and composer
-    const listTop = hdTop + 2 + hdH + 4, listBottom = cy - 6 - 24, availW = W - 20 - 18;
-    const items = []; const nowMs = performance.now();
-    if (ST.draft.trim()) items.push({ id: 'cloud-' + ST.draftId, body: ST.draft, mine: true, cap: 'Your message · not sent', draft: true });
-    for (const m of ST.msgs) items.push({ id: 'cloud-' + m.id, body: m.body, mine: m.mine, cap: (m.mine ? 'You' : P['hd.title']) + ' · ' + timeStr(m.at) });
-    let y = listBottom; const placed = [], targets = [];
-    for (const it of items) {
-      const s = cloudSize(it.body, availW), tile = tileFor(it.id, { w: s.w, h: s.h }), cur = curSize(tile, nowMs);
-      const capH = P['cap.on'] ? P['cap.size'] * 1.3 + 8 + 2 : 0, blockH = cur.h + capH + P['sc.spacing'];
-      y -= blockH; if (y + blockH < listTop - 200) break;
-      const a = (it.mine ? 1 : -1) * P['cl.side'], left = 10 + (W - 20 - cur.w) * (a + 1) / 2;
-      const formed = clamp((nowMs - tile.born) / Math.max(1, P['cl.form']), 0, 1);
-      placed.push({ it, s, x: left, y, w: cur.w, h: cur.h, formed, capY: y + cur.h + 2, capH });
-      targets.push({ id: it.id, x: left, y, w: cur.w, h: cur.h });
+    // paper + Earth (Earth is cut out block by block while the page builds)
+    ctx.fillStyle = P['earth.paper']; ctx.globalAlpha = P['bg.mode'] === 'plain' ? 1 : 0; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+    if (P['earth.on']) {
+      ctx.save(); if (pr < .78) ctx.clip(revealedPath(cells, pr, W, H));
+      const drawV = (v, a) => { if (!v.videoWidth || a <= 0) return; const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s; ctx.save(); ctx.globalAlpha = a; ctx.filter = `brightness(${P['sc.groundBrightness']})`; ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh); ctx.restore(); ctx.save(); ctx.filter = `brightness(${P['sc.groundBrightness']})`; drawWater(ctx, v, a, now); ctx.restore(); };
+      drawV(videos[vCur], 1); if (ST.swap) drawV(videos[1 - vCur], clamp((now - ST.swap.t0) / Math.max(1, P['earth.fade']), 0, 1));
+      ctx.restore();
+    }
+    if (P['shade.on']) { const op = cRamp(pr, .48, .82); if (op > 0) { const g = ctx.createLinearGradient(0, 0, 0, H), c = P['shade.color']; g.addColorStop(0, rgba(c, P['shade.top'])); g.addColorStop(P['shade.topEnd'], rgba(c, 0)); g.addColorStop(P['shade.bottomStart'], rgba(c, 0)); g.addColorStop(1, rgba(c, P['shade.bottom'])); ctx.save(); ctx.globalAlpha = op; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore(); } }
+    // construction drawing over the page
+    if (pr < .96) { let terr = null; const v = videos[vCur]; if (pr < .91 && v.videoWidth && v.dataset.idx != null) { const raw = terrainAt(CLIPS[+v.dataset.idx][1], v.currentTime); if (raw) { const vw = v.videoWidth, vh = v.videoHeight, s0 = Math.max(W / vw, H / vh), sw = W / s0, sh = H / s0, sx = (vw - sw) / 2, sy = (vh - sh) / 2; terr = raw.filter(q => q.length >= 2).map(q => q.map(([x, y]) => [(x * vw - sx) * W / sw, (y * vh - sy) * H / sh])); } } G.terrain = terr ? terr.length : 0; drawConstruction(ctx, pr, W, H, cells, hdr, G.composer, terr); }
+    // drifting clouds sit behind the message clouds
+    if (pr >= .96) drawMist(ctx); else G.mist = [];
+    // message clouds mount once the page is built, then form
+    const listTop = hdTop + 48 + 4, listBottom = cy - 6 - 24, availW = W - 20 - 18;
+    const placed = [], targets = [];
+    if (pr >= .80) {
+      const items = [], nowMs = performance.now();
+      if (ST.draft.trim()) items.push({ id: 'cloud-' + ST.draftId, body: ST.draft, mine: true, cap: 'Your message · not sent', draft: true });
+      for (const m of ST.msgs) items.push({ id: 'cloud-' + m.id, body: m.body, mine: m.mine, cap: (m.mine ? 'You' : P['hd.title']) + ' · ' + timeStr(m.at) });
+      let y = listBottom;
+      for (const it of items) {
+        const s = cloudSize(it.body, availW), tile = tileFor(it.id, { w: s.w, h: s.h }), cur = curSize(tile, nowMs);
+        const capH = P['cap.on'] ? P['cap.size'] * 1.3 + 8 + 2 : 0, blockH = cur.h + capH + P['sc.spacing'];
+        y -= blockH; if (y + blockH < listTop - 200) break;
+        const a = (it.mine ? 1 : -1) * P['cl.side'], left = 10 + (W - 20 - cur.w) * (a + 1) / 2;
+        const formed = clamp((nowMs - tile.born) / Math.max(1, P['cl.form']), 0, 1);
+        placed.push({ it, s, x: left, y, w: cur.w, h: cur.h, formed, capY: y + cur.h + 2, capH });
+        targets.push({ id: it.id, x: left, y, w: cur.w, h: cur.h });
+      }
+      ctx.save(); ctx.beginPath(); ctx.rect(0, listTop, W, cy - listTop); ctx.clip();
+      if (!placed.length) { ctx.fillStyle = '#fff'; ctx.font = `400 ${P['em.size']}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = '#000'; ctx.shadowBlur = K.shadowBlurFor(ctx, 8); const ls = P['em.text'].split('\n'); ls.forEach((l, i) => ctx.fillText(l, W / 2, (listTop + cy) / 2 + (i - (ls.length - 1) / 2) * P['em.size'] * 1.6)); ctx.shadowBlur = 0; }
+      for (const p of placed) {
+        if (p.y > cy || p.y + p.h < listTop - 100) continue;
+        drawCloud(ctx, p.x, p.y, p.w, p.h, p.formed, p.it.mine, strSeed(p.it.id), p.s.lines, p.s.textW, p.s.textH, p.s.inset);
+        if (P['cap.on']) { ctx.font = `400 ${P['cap.size']}px Roboto`; const tw = ctx.measureText(p.it.cap).width, pw = tw + 20, ph = P['cap.size'] * 1.3 + 8, px = p.x + p.w / 2 - pw / 2; ctx.fillStyle = rgba(P['cap.bg'], P['cap.alpha']); ctx.beginPath(); ctx.roundRect(px, p.capY, pw, ph, P['cap.round']); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.it.cap, px + pw / 2, p.capY + ph / 2); p.cap = { x: px, y: p.capY, w: pw, h: ph }; }
+      }
+      ctx.restore();
     }
     G.layout = { targets }; G.clouds = placed;
-    ctx.save(); ctx.beginPath(); ctx.rect(0, listTop, W, cy - listTop); ctx.clip();
-    if (!placed.length) { ctx.fillStyle = '#fff'; ctx.font = `400 ${P['em.size']}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = '#000'; ctx.shadowBlur = K.shadowBlurFor(ctx, 8); const ls = P['em.text'].split('\n'); ls.forEach((l, i) => ctx.fillText(l, W / 2, (listTop + cy) / 2 + (i - (ls.length - 1) / 2) * P['em.size'] * 1.6)); ctx.shadowBlur = 0; }
-    for (const p of placed) {
-      if (p.y > cy || p.y + p.h < listTop - 100) continue;
-      drawCloud(ctx, p.x, p.y, p.w, p.h, p.formed, p.it.mine, strSeed(p.it.id), p.s.lines, p.s.textW, p.s.textH, p.s.inset);
-      if (P['cap.on']) { ctx.font = `400 ${P['cap.size']}px Roboto`; const tw = ctx.measureText(p.it.cap).width, pw = tw + 20, ph = P['cap.size'] * 1.3 + 8, px = p.x + p.w / 2 - pw / 2; ctx.fillStyle = rgba(P['cap.bg'], P['cap.alpha']); ctx.beginPath(); ctx.roundRect(px, p.capY, pw, ph, P['cap.round']); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.it.cap, px + pw / 2, p.capY + ph / 2); p.cap = { x: px, y: p.capY, w: pw, h: ph }; }
-    }
-    ctx.restore();
-    drawMist(ctx);
-    if (P['hd.on']) {
-      const ic = P['hd.icon'];
-      const icon = (path, x, s = 24) => { ctx.save(); ctx.translate(x + 12, hdTop + 2 + 12); ctx.scale(s / 24, s / 24); ctx.fillStyle = ic; ctx.fill(path); ctx.restore(); };
-      icon(BACK, 6); ctx.font = `${P['hd.weight']} ${P['hd.size']}px Roboto`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,0,0,.87)'; ctx.shadowBlur = K.shadowBlurFor(ctx, P['hd.shadow']); ctx.fillText(P['hd.title'], 6 + 48, hdTop + 2 + 24); ctx.shadowBlur = 0;
-      icon(ADD, W - 6 - 96 + 2, 21); icon(REFRESH, W - 6 - 48);
-      G.header = { x: 6, y: hdTop + 2, w: W - 12, h: 48 }; G.back = { x: 6, y: hdTop + 2, w: 48, h: 48 };
+    // header row (slides in and seats)
+    if (hdr) {
+      withReveal(ctx, pr, { x: 0, y: hdTop - 4, w: W, h: 54 }, P['con.hdBegin'], P['con.hdEnd'], P['con.hdLift'], -1, () => {
+        const ic = P['hd.icon'];
+        const icon = (path, x, s = 24) => { ctx.save(); ctx.translate(x + 12, hdTop + 12); ctx.scale(s / 24, s / 24); ctx.fillStyle = ic; ctx.fill(path); ctx.restore(); };
+        icon(BACK, 6); ctx.font = `${P['hd.weight']} ${P['hd.size']}px Roboto`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,0,0,.87)'; ctx.shadowBlur = K.shadowBlurFor(ctx, P['hd.shadow']); ctx.fillText(P['hd.title'], 6 + 48, hdTop + 24); ctx.shadowBlur = 0;
+        icon(ADD, W - 6 - 96 + 2, 21); icon(REFRESH, W - 6 - 48);
+      });
+      G.header = hdr; G.back = { x: 6, y: hdTop, w: 48, h: 48 };
     } else G.header = null;
-    // composer
-    ctx.fillStyle = rgba(P['cmp.fill'], P['cmp.fillAlpha']); ctx.beginPath(); ctx.roundRect(cx, cy, cw, boxH, P['cmp.round']); ctx.fill();
-    ctx.lineWidth = P['cmp.borderW']; ctx.strokeStyle = rgba(P['cmp.border'], P['cmp.borderAlpha']); ctx.stroke();
-    ctx.font = `${P['cmp.weight']} ${P['cmp.size']}px Roboto`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    const shown = ST.draft ? ST.draft.split('\n').slice(-1)[0] : P['cmp.hint']; ctx.fillStyle = ST.draft ? P['cmp.color'] : P['cmp.hintColor'];
-    ctx.save(); ctx.beginPath(); ctx.rect(cx + 17, cy, cw - 17 - 48, boxH); ctx.clip(); const tw = ctx.measureText(shown).width, maxw = cw - 17 - 48; ctx.fillText(shown, cx + 17 - Math.max(0, tw - maxw), cy + boxH / 2); ctx.restore();
-    ctx.save(); ctx.translate(cx + cw - 3 - 36, cy + boxH / 2 - 12); ctx.fillStyle = ST.draft.trim() ? P['cmp.send'] : P['cmp.sendOff']; ctx.fill(UP); ctx.restore();
+    // composer (rises in and seats)
+    withReveal(ctx, pr, { x: 0, y: cy - 6, w: W, h: boxH + 16 }, P['con.cmpBegin'], P['con.cmpEnd'], P['con.cmpLift'], 1, () => {
+      ctx.fillStyle = rgba(P['cmp.fill'], P['cmp.fillAlpha']); ctx.beginPath(); ctx.roundRect(cx, cy, cw, boxH, P['cmp.round']); ctx.fill();
+      ctx.lineWidth = P['cmp.borderW']; ctx.strokeStyle = rgba(P['cmp.border'], P['cmp.borderAlpha']); ctx.stroke();
+      ctx.font = `${P['cmp.weight']} ${P['cmp.size']}px Roboto`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      const shown = ST.draft ? ST.draft.split('\n').slice(-1)[0] : P['cmp.hint']; ctx.fillStyle = ST.draft ? P['cmp.color'] : P['cmp.hintColor'];
+      ctx.save(); ctx.beginPath(); ctx.rect(cx + 17, cy, cw - 17 - 48, boxH); ctx.clip(); const tw = ctx.measureText(shown).width, maxw = cw - 17 - 48; ctx.fillText(shown, cx + 17 - Math.max(0, tw - maxw), cy + boxH / 2); ctx.restore();
+      ctx.save(); ctx.translate(cx + cw - 3 - 36, cy + boxH / 2 - 12); ctx.fillStyle = ST.draft.trim() ? P['cmp.send'] : P['cmp.sendOff']; ctx.fill(UP); ctx.restore();
+    });
     if (studio) K.hl(ctx, now);
   },
   highlight(ctx, base, sub, H1) {
@@ -516,6 +734,8 @@ const sc = K.screen({
     else if (base === 'mist') (G.mist || []).forEach(m => H1(box(m, 2, 20)));
     else if (base === 'header' && G.header) H1(box(G.header));
     else if ((base === 'composer') && G.composer) H1(box(G.composer, 3, P['cmp.round'] + 3));
+    else if (base === 'construct') H1(() => { ctx.beginPath(); ctx.rect(4, 4, W - 8, H - 8); });
+    else if (base === 'construct.parts') { if (G.header) H1(box(G.header, 4, 14)); if (G.composer) H1(box(G.composer, 4, 26)); }
     else if (base === 'empty') H1(() => { ctx.beginPath(); ctx.rect(30, H * .4, W - 60, H * .15); });
   },
   bounds(base) {
@@ -524,6 +744,7 @@ const sc = K.screen({
     if (base === 'mist' && G.mist && G.mist.length) { const m = G.mist[G.mist.length - 1]; return sq(m.x + m.w / 2, m.y + m.h / 2, Math.max(m.w, m.h) * 2); }
     if (base === 'header' && G.header) return sq(W / 2, G.header.y + 24, W);
     if (base === 'composer' && G.composer) return sq(W / 2, G.composer.y + G.composer.h / 2, W);
+    if (base === 'construct.parts' && G.composer) return sq(W / 2, G.composer.y + G.composer.h / 2 - 30, W);
     return sq(W / 2, H / 2, W);
   },
   pick(p) {
@@ -532,7 +753,7 @@ const sc = K.screen({
     if (inR(G.composer)) return ['Composer', 'Box'];
     for (const c of G.clouds) { if (c.cap && inR(c.cap)) return ['Message clouds', 'Captions']; if (inR(c)) return ['Message clouds', 'Body']; }
     for (const m of G.mist || []) if (inR(m)) return ['Drifting clouds', 'Scene values'];
-    return ['Earth', 'Footage'];
+    return prog() < .96 ? ['Construction', 'Timing'] : ['Earth', 'Footage'];
   },
   pointer: {
     down(p) { },
@@ -544,5 +765,5 @@ const BACK = new Path2D('M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.
 const REFRESH = new Path2D('M17.65 6.35c-1.63-1.63-3.94-2.57-6.48-2.31-3.67.37-6.69 3.35-7.1 7.02C3.52 15.91 7.27 20 12 20c3.19 0 5.93-1.87 7.21-4.56.32-.67-.16-1.44-.9-1.44-.37 0-.72.2-.88.53-1.13 2.43-3.84 3.97-6.8 3.31-2.22-.49-4.01-2.3-4.48-4.52C5.31 9.44 8.26 6 12 6c1.66 0 3.14.69 4.22 1.78l-1.51 1.51c-.63.63-.19 1.71.7 1.71H19c.55 0 1-.45 1-1V6.41c0-.89-1.08-1.34-1.71-.71l-.64.65z');
 const ADD = new Path2D('M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z');
 const UP = new Path2D('M13 19V7.83l4.88 4.88c.39.39 1.03.39 1.42 0 .39-.39.39-1.02 0-1.41l-6.59-6.59c-.39-.39-1.02-.39-1.41 0l-6.6 6.58c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L11 7.83V19c0 .55.45 1 1 1s1-.45 1-1z');
-sc.ST = ST; sc.FILMS = FILMS;
+sc.ST = ST; sc.FILMS = FILMS; sc.videos = videos; sc.CLIPS = CLIPS; sc.dbg = () => ({ water: !!WATER, terr: !!TERR, idx: videos[vCur].dataset.idx, vCur, t: videos[vCur].currentTime, rs: videos[vCur].readyState, prog: prog(), targets: G.layout && G.layout.targets.length, mist: ST.mist.length, nextOff: ST.nextOff, active: ST.active });
 })();
