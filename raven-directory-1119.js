@@ -344,21 +344,22 @@ function drawChrome(ctx, g, people) {
 
 /* ---------- module ---------- */
 const sc = K.screen({
-  id: 'directory', title: 'Raven directory', docId: 'raven_directory',
-  crumb: 'Asgard › Raven page › Directory <small>· AsgardRaven Dart</small>',
+  id: 'directory', title: 'Sphere & black holes', docId: 'raven_directory',
+  crumb: 'Asgard › Raven › Sphere & black holes <small>· AsgardRaven Dart</small>',
   docMeta: { widget: 'AsgardRaven', part: 'Raven directory (sphere, busts, names, tabs)', source: 'FlutterFlow export 2026-11-19' },
-  startGroup: 'Busts', startSection: 'Path',
+  startGroup: 'Sphere', startSection: 'Move & size',
   spec(def) {
-    window.RavenEnvironment.controls(def);
+    // Keep basic placement first; light controls follow it.
     // Sphere
-    def('Sphere', 'Place', 'sphere', 'sphere.x', 'Left / right', 'num', .42, { min: .25, max: .65, step: .005, unit: 'of width', dart: 'sphereX .42' });
-    def('Sphere', 'Place', 'sphere', 'sphere.height', 'Up / down', 'num', -.17, { min: -.35, max: .15, step: .005, unit: 'of height', dart: 'sphereOffset -.17' });
-    def('Sphere', 'Place', 'sphere', 'sphere.scale', 'Sphere size', 'num', 1, { min: .5, max: 1.5, step: .01, unit: '×', info: 'Busts, path and tabs all scale with the sphere.' });
-    def('Sphere', 'Place', 'sphere', 'sphere.widthFrac', 'Max width share', 'num', .67, { min: .2, max: 1, step: .01, dart: '_rvSphereWidthFraction' });
-    def('Sphere', 'Place', 'sphere', 'sphere.heightFrac', 'Max height share', 'num', .20, { min: .05, max: .45, step: .005 });
-    def('Sphere', 'Place', 'sphere', 'sphere.size', 'Radius factor', 'num', .85, { min: .3, max: 1.5, step: .01 });
-    def('Sphere', 'Place', 'sphere', 'sphere.maxY', 'Lowest center', 'num', .66, { min: .3, max: .95, step: .005, unit: 'of height' });
-    def('Sphere', 'Place', 'sphere', 'sphere.bottomGap', 'Bottom clearance', 'num', 124, { min: 0, max: 400, step: 1, unit: 'px' });
+    def('Sphere', 'Move & size', 'sphere', 'sphere.x', 'Move left / right', 'num', .42, { min: .25, max: .65, step: .005, unit: 'of width', dart: 'sphereX .42' });
+    def('Sphere', 'Move & size', 'sphere', 'sphere.height', 'Move up / down', 'num', -.17, { min: -.35, max: .15, step: .005, unit: 'of height', dart: 'sphereOffset -.17' });
+    def('Sphere', 'Move & size', 'sphere', 'sphere.scale', 'Smaller / bigger', 'num', 1, { min: .5, max: 1.5, step: .01, unit: '×', info: 'Busts, path and tabs all scale with the sphere.' });
+    def('Sphere', 'Layout limits', 'sphere', 'sphere.widthFrac', 'Max width share', 'num', .67, { min: .2, max: 1, step: .01, dart: '_rvSphereWidthFraction' });
+    def('Sphere', 'Layout limits', 'sphere', 'sphere.heightFrac', 'Max height share', 'num', .20, { min: .05, max: .45, step: .005 });
+    def('Sphere', 'Layout limits', 'sphere', 'sphere.size', 'Radius factor', 'num', .85, { min: .3, max: 1.5, step: .01 });
+    def('Sphere', 'Layout limits', 'sphere', 'sphere.maxY', 'Lowest center', 'num', .66, { min: .3, max: .95, step: .005, unit: 'of height' });
+    def('Sphere', 'Layout limits', 'sphere', 'sphere.bottomGap', 'Bottom clearance', 'num', 124, { min: 0, max: 400, step: 1, unit: 'px' });
+    window.RavenEnvironment.controls(def);
     def('Sphere', 'Body', 'sphere', 'sb.on', 'Show the sphere', 'bool', true, { info: 'Your sphere from your earlier studio (your saved settings), with the app\'s lit runes on top.' });
     def('Sphere', 'Body', 'sphere', 'sb.texture', 'Surface', 'select', 'red', { opts: [['red', 'Your runes (red-gold)'], ['teal', 'Your runes (teal)']] });
     def('Sphere', 'Body', 'sphere', 'sb.repeat', 'Rune size (smaller = bigger)', 'num', 2, { min: 1, max: 6, step: .1 });
@@ -579,7 +580,7 @@ const sc = K.screen({
     for (const n of G.names) if (inR(n)) return ['Names', 'Text'];
     for (const t of G.tethers) if (inR(t)) return ['Tethers', 'Line'];
     for (let i = G.busts.length - 1; i >= 0; i--) if (inR(G.busts[i])) return ['Busts', 'Size'];
-    const g = G.g; if (g && Math.hypot(p.x - g.cx, p.y - g.cy) < g.radius) return ['Sphere', 'Runes'];
+    const g = G.g; if (g && Math.hypot(p.x - g.cx, p.y - g.cy) < g.radius) return ['Sphere', 'Move & size'];
     return ['Background', 'Mode'];
   },
   pointer: {
