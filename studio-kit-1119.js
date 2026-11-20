@@ -163,7 +163,7 @@ function buildChips() {
   const el = $('chips'); el.innerHTML = '';
   [...new Set(cur.SPEC.filter(s => s.group === cur.ui.group).map(s => s.section))].forEach(sec => {
     const b = document.createElement('button'); b.textContent = sec; b.className = sec === cur.ui.section ? 'on' : '';
-    const tgt = cur.SPEC.find(s => s.group === cur.ui.group && s.section === sec).target.split(':')[0];
+    const tgt = cur.SPEC.find(s => s.group === cur.ui.group && s.section === sec).target;
     b.onclick = () => openSection(cur.ui.group, sec);
     b.onpointerenter = () => { hover = tgt; hoverUntil = Infinity; }; b.onpointerleave = () => { hoverUntil = performance.now(); };
     el.appendChild(b);

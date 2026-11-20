@@ -26,7 +26,7 @@ const SHAPES = [
 ];
 
 const ST = { angle: 0, hi: 0, ready: true, armed: false, confirmed: false, grab: false, insideTap: false, didTurn: false, active: null, prevA: null, travel: 0, drift: 0, origin: { x: 0, y: 0 }, grabAngle: 0, grabMode: 0, wasReady: false, idle: true, spin: 0, amb: 0, wob: 0, lastDetent: 0, closing: false, rise: { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }, turn: { on: false, from: 0, to: 0, t0: 0 }, chose: null, dis: -1, disStay: false };
-let G = {};
+let G = { ty: 0 };
 function annulus(c, inner, outer) { const p = new Path2D(); p.arc(c.x, c.y, outer, 0, TAU); p.moveTo(c.x + inner, c.y); p.arc(c.x, c.y, inner, 0, TAU); return p; }
 /* ---------- geometry ---------- */
 function metrics() {
@@ -726,7 +726,7 @@ SHAPES.forEach((s, i) => {
   if (base === 'pointer.dot' && G.marker) return sq(G.marker.x, G.marker.y + G.ty, Math.max(70, th * 3.2));
   if (base === 'pointer.arrow' || base === 'pointer.grooves') { const p = ringPoint(c, r, 0, ST.angle); return sq(p.x, p.y, Math.max(80, th * 3.2)); }
   if (base.startsWith('text')) { const k = base.split('.')[1]; const b = G.text && (k === 'all' ? null : G.text[k]); if (b) return sq(b.x + b.w / 2, b.y + b.h / 2 + G.ty, Math.max(b.w * 1.4, 110)); return sq(c.x, c.y, r * 1.6); }
-  if (base === 'shape') { const s = m.st[+sub]; return sq(s.x, s.y + G.ty, s.size * 1.6); }
+  if (base === 'shape') { const s = m.st[+sub] || m.st[ST.hi]; return sq(s.x, s.y + G.ty, s.size * 1.6); }
   if (base === 'ring.markers' || base === 'pointer.ticks' || base === 'feel' || base === 'feel.inner' || base === 'ring.all') return sq(c.x, c.y, (r + th) * 2.3);
   if (base === 'ring.band' && sub != null && G.bands && G.bands[+sub]) { const bd = G.bands[+sub], p = ringPoint(c, bd.rr, 0, bd.start + bd.sweep * .5); return sq(p.x, p.y, r * 1.15); }
   { const p = ringPoint(c, r, 0, ST.angle + .55); return sq(p.x, p.y, r * 1.15); }

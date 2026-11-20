@@ -45,6 +45,7 @@ test('Actual dial registration wires all four controls and advances once per upd
   const context=vm.createContext({window:{StudioKit:K,RavenMotion:motion},Path2D:class{moveTo(){}lineTo(){}arc(){}closePath(){}bezierCurveTo(){}quadraticCurveTo(){}rect(){}},performance:{now:()=>0}});
   vm.runInContext(fs.readFileSync(path.join(root,'raven-dial-1119.js'),'utf8'),context);
   const dial=K.screens.dial;dial.onLoad();
+  for (const sub of [undefined,'0','1','2','3']) assert.ok(Object.values(dial.bounds('shape',sub)).every(Number.isFinite));
   for(let i=0;i<4;i++){assert.equal(dial.P[`s${i}.axis`],'y');assert.equal(dial.P[`s${i}.yaw`],0);assert.equal(dial.P[`s${i}.roll`],0);}
   dial.update(1/60,17);dial.P['s1.axis']='x';dial.onSet('s1.axis');dial.update(1/60,34);
   assert.ok(Number.isFinite(dial.ST.amb));
