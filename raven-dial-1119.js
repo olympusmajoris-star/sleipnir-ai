@@ -27,6 +27,18 @@ const SHAPES = [
 
 const ST = { angle: 0, hi: 0, ready: true, armed: false, confirmed: false, grab: false, insideTap: false, didTurn: false, active: null, prevA: null, travel: 0, drift: 0, origin: { x: 0, y: 0 }, grabAngle: 0, grabMode: 0, wasReady: false, idle: true, spin: 0, amb: 0, wob: 0, lastDetent: 0, closing: false, rise: { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }, turn: { on: false, from: 0, to: 0, t0: 0 }, chose: null, dis: -1, disStay: false };
 let G = { ty: 0 };
+const touch = { x: 0, y: 0, tx: 0, ty: 0, press: 0 };
+const layers = {};
+function layer(name,draw) {
+  const item=layers[name]||(layers[name]={canvas:document.createElement('canvas'),frame:-1});
+  const scale=Math.min(2,window.devicePixelRatio||1),w=Math.round(K.W*scale),h=Math.round(K.H*scale);
+  if(item.canvas.width!==w||item.canvas.height!==h){item.canvas.width=w;item.canvas.height=h;item.frame=-1;}
+  if(item.frame!==K.frameId()){
+    const x=item.canvas.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,w,h);x.setTransform(scale,0,0,scale,0,0);x.filter='none';x.globalAlpha=1;
+    draw(x);item.frame=K.frameId();
+  }
+  return item.canvas;
+}
 function annulus(c, inner, outer) { const p = new Path2D(); p.arc(c.x, c.y, outer, 0, TAU); p.moveTo(c.x + inner, c.y); p.arc(c.x, c.y, inner, 0, TAU); return p; }
 /* ---------- geometry ---------- */
 function metrics() {
@@ -67,8 +79,9 @@ function pose() {
 
 
 /* ---------- glass panel (_RvTropicalGlassPainter) ---------- */
-function drawGlass(ctx, m, t) {
+function drawGlass(ctx, m, t, entrance) {
   if (!P['glass.on']) return;
+  window.RavenGlass.surface(ctx, m, P, entrance, touch);
   const L = m.glassLeft, T = m.glassTop, R = m.glassRight, B = m.glassBottom, w = R - L;
   const pale = P['ring.pale'], blue = P['ring.blue'], e = P['glass.edge'];
   const g = ctx.createLinearGradient(L, T, R, B);
@@ -135,6 +148,7 @@ function drawRing(ctx, m, reveal) {
     A(c, radius - P['markers.inset'] * u, a - half, half * 2, P['markers.width'], P['s' + i + '.color'], P['markers.base'] + P['markers.boost'] * e);
   }
   if (P['grab.on'] && (ST.grab || P['grab.show'])) { const half = P['grab.len'] * D2R / 2; A(c, radius + P['grab.offset'] * u, phase - half, half * 2, P['grab.width'], pale, P['grab.opacity']); }
+  if(touch.press>.001&&P['feel.touchLight']>0){const a=Math.atan2(touch.y*K.H,touch.x*K.W);A(c,radius,a-.16,.32,P['feel.touchWidth'],pale,touch.press*P['feel.touchLight'],P['feel.touchGlow']);}
   G.bands = bands; G.phase = phase; G.rear = rear;
 }
 
@@ -285,7 +299,7 @@ function drawShape(ctx, i, ox, oy, size, e, phase) {
     lg.addColorStop(0, rgba('#F0FFFF', ed)); lg.addColorStop(.6, rgba(color, .83 * ed)); lg.addColorStop(1, rgba('#C8F8FF', ed));
     ctx.save(); ctx.lineWidth = 1.8 + e * .5; ctx.strokeStyle = lg; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.stroke(); ctx.restore();
     if (S('arc')) { ctx.save(); ctx.lineWidth = 2.3; ctx.lineCap = 'round'; ctx.strokeStyle = rgba(WHITE, .48); ctx.beginPath(); ctx.arc(c.x, c.y, r * .94, -Math.PI * .91, -Math.PI * .91 + Math.PI * .55); ctx.stroke(); ctx.restore(); }
-    if (S('glint')) { const gl = { x: c.x + Math.sin(phase) * r * .18 - r * .30, y: c.y - r * .49 }; ctx.save(); ctx.fillStyle = rgba(WHITE, .23); blur(ctx, r * .08); ctx.beginPath(); ctx.ellipse(gl.x, gl.y, r * .20, r * .08, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+    if (S('glint')) { const gl = { x: c.x + rot([0,0,1])[0] * r * .18 - r * .30, y: c.y - r * .49 }; ctx.save(); ctx.fillStyle = rgba(WHITE, .23); blur(ctx, r * .08); ctx.beginPath(); ctx.ellipse(gl.x, gl.y, r * .20, r * .08, 0, 0, TAU); ctx.fill(); ctx.restore(); }
     return;
   }
   const pale = mix(color, WHITE, .72), deep = mix(color, '#1D314A', .40);
@@ -343,15 +357,20 @@ function toRing(m, p) { const ps = G.pose || [1, 0, 0, 1], [a, b, c, d] = ps, de
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 function insideWheel(m, p) { return dist(p, { x: m.cx, y: m.cy }) < m.radius - m.thickness / 2; }
 function vib(ms) { if (P['feel.haptic']) K.vibrate(ms); }
-function unRise(p) { return { x: p.x, y: p.y - (G.ty || 0) }; }
+function unRise(p) {
+  const e = G.dialEntry || { x: 0, y: 0, scale: 1, rotation: 0 }, m = metrics();
+  const dx = p.x - e.x - m.cx, dy = p.y - e.y - m.cy, a = -(e.rotation || 0), s = Math.max(.001, e.scale);
+  return { x: m.cx + (dx * Math.cos(a) - dy * Math.sin(a)) / s, y: m.cy + (dx * Math.sin(a) + dy * Math.cos(a)) / s };
+}
 function pDown(p0, ev) {
   P = sc.P; const m = metrics(), raw = unRise(p0);
   if (ST.rise.mode === 'closed') { replay(); return; }
-  if (ST.closing || ST.active != null || ST.rise.v < 1) return;
+  if (ST.closing || ST.dis>=0 || ST.active != null || G.entering) return;
   const loc = toRing(m, raw), d = dist(loc, { x: m.cx, y: m.cy });
   const onMat = Math.abs(d - m.radius) <= m.thickness / 2;
   if (!onMat && !(ST.ready && !ST.turn.on && insideWheel(m, loc))) return;
   ST.active = ev.pointerId; ST.origin = loc; ST.drift = 0; ST.insideTap = !onMat;
+  touch.tx=(raw.x-m.cx)/K.W;touch.ty=(raw.y-m.cy)/K.H;
   if (!onMat) return;
   ST.wasReady = ST.ready && !ST.turn.on; ST.grabAngle = ST.angle; ST.grabMode = ST.hi; ST.armed = false; ST.turn.on = false;
   ST.prevA = Math.atan2(loc.y - m.cy, loc.x - m.cx); ST.travel = 0;
@@ -360,6 +379,7 @@ function pDown(p0, ev) {
 function pMove(p0, ev) {
   P = sc.P; if (ST.closing || ev.pointerId !== ST.active) return;
   const m = metrics(), loc = toRing(m, unRise(p0)); ST.drift = Math.max(ST.drift, dist(loc, ST.origin));
+  const raw=unRise(p0);touch.tx=(raw.x-m.cx)/K.W;touch.ty=(raw.y-m.cy)/K.H;
   if (!ST.grab) return;
   const dx = loc.x - m.cx, dy = loc.y - m.cy;
   if (Math.abs(Math.hypot(dx, dy) - m.radius) > m.thickness / 2 + P['feel.grabMargin'] * m.unit) { ST.prevA = null; return; }
@@ -385,9 +405,16 @@ function snap(m) {
   if (immediate) ST.angle = to; else ST.turn = { on: true, from, to, t0: performance.now() };
 }
 function doConfirm() {
-  if (!ST.ready || ST.turn.on || ST.closing) return; vib(15); ST.confirmed = true; ST.chose = P['label' + ST.hi];
-  if (ST.hi === 0 && K.screens.directory) { K.status('Chose ' + ST.chose + '. Opening the Raven directory (what the app does next)…'); if (P['dis.on']) { ST.dis = 0; ST.disStay = false; } else setTimeout(() => K.show('directory'), 650); }
-  else K.status('Chose ' + ST.chose + ' (in the app this opens that page). Turn the ring to choose again.');
+  if (!ST.ready || ST.turn.on || ST.closing || ST.dis>=0 || G.entering) return;
+  vib(15); ST.confirmed = true; ST.chose = P['label' + ST.hi]; ST.closing=true; ST.disStay=false; ST.navStarted=false;
+  ST.nextPage=['conversation','directory','calls','groups'][ST.hi];
+  if(P['dis.on'])ST.dis=0;else finishExit();
+}
+function finishExit() {
+  if(ST.disStay){ST.dis=-1;replay();return;}
+  if(ST.navStarted)return;ST.navStarted=true;
+  if(K.screens[ST.nextPage])K.show(ST.nextPage);
+  else K.status(ST.chose+' selected. That destination is not connected in this Studio. Press Replay to return to the dial.');
 }
 function drawDismantleLines(ctx, m, p) {
   const alpha = Math.sin(Math.PI * p) * P['dis.alpha'], sep = K.smooth(p) * P['dis.spread'] * m.unit; if (alpha <= 0) return;
@@ -406,9 +433,95 @@ function drawDismantleLines(ctx, m, p) {
   }
   ctx.restore();
 }
-function replay() { P = sc.P; const m = metrics(); ST.rise = { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }; ST.closing = false; ST.idle = true; ST.confirmed = false; ST.ready = true; ST.armed = false; ST.turn.on = false; ST.grab = false; ST.active = null; ST.angle = m.angles[ST.hi]; ST.chose = null; }
-function closeDial() { if (ST.rise.mode === 'closed') { replay(); return; } ST.closing = true; ST.rise = { v: ST.rise.v, mode: 'rev', t0: performance.now(), from: ST.rise.v }; }
+function replay() { P = sc.P; const m = metrics(); ST.rise = { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }; ST.dis=-1;ST.navStarted=false;ST.closing = false; ST.idle = true; ST.confirmed = false; ST.ready = true; ST.armed = false; ST.turn.on = false; ST.grab = false; ST.active = null; ST.angle = m.angles[ST.hi]; ST.chose = null; touch.press=0; }
+function closeDial() { if (ST.rise.mode === 'closed') { replay(); return; } const a=entranceState(performance.now()); ST.closing = true; ST.rise = { v: 1, mode: 'rev', t0: performance.now(), from: 1, entrance:a }; }
 
+function entranceState(now) {
+  const span = Math.max(P['anim.rise'], window.RavenGlass.delay(P,'glass') + window.RavenGlass.duration(P,'glass'), P['dial.entry.style']==='follow'?0:window.RavenGlass.delay(P,'dial') + window.RavenGlass.duration(P,'dial'));
+  const elapsed = P['anim.hold'] ? P['anim.at'] * span : Math.max(0, now - ST.rise.t0);
+  const closing = ST.rise.mode === 'rev' || ST.rise.mode === 'closed';
+  const close = closing ? ST.rise.v : null;
+  const rv = close == null ? clamp(elapsed / Math.max(1,P['anim.rise']),0,1) : close;
+  const glass = window.RavenGlass.entry(P,'glass',elapsed,K.W,K.H,close==null?null:close*(ST.rise.entrance?.glass.progress??1));
+  const dial = P['dial.entry.style'] === 'follow' ? { ...glass, style:'follow', progress:Math.min(glass.progress,rv), trace:rv } : window.RavenGlass.entry(P,'dial',elapsed,K.W,K.H,close==null?null:close*(ST.rise.entrance?.dial.progress??1));
+  if (dial.style !== 'follow') dial.y += P['glass.finalY'];
+  dial.rotation = (1-dial.t) * P['dial.entry.turn'] * D2R;
+  return { glass, dial, rv };
+}
+function applyEntrance(ctx,e,m) {
+  ctx.translate(e.x,e.y);ctx.translate(m.cx,m.cy);ctx.rotate(e.rotation||0);ctx.scale(e.scale,e.scale);ctx.translate(-m.cx,-m.cy);
+  ctx.globalAlpha *= e.alpha;
+  const light=e.style==='follow'?1:1+(P['dial.entry.brightness']-1)*(1-e.t);
+  ctx.filter = `brightness(${light}) blur(${e.blur*scaleOf(ctx)}px)`;
+}
+function entranceClip(ctx,e,box,m,part) {
+  if (e.scan<1) {
+    const direction=P[part+'.entry.direction'],w=box.r-box.l,h=box.b-box.t;ctx.beginPath();
+    if(direction==='left')ctx.rect(box.l,box.t,w*e.scan,h);
+    else if(direction==='right')ctx.rect(box.r-w*e.scan,box.t,w*e.scan,h);
+    else if(direction==='top')ctx.rect(box.l,box.t,w,h*e.scan);
+    else ctx.rect(box.l,box.b-h*e.scan,w,h*e.scan);
+    ctx.clip();
+  }
+  if (e.segments!=null && e.segments<1) {
+    const n=Math.max(4,Math.round(P['dial.entry.segments'])),radius=Math.hypot(K.W,K.H),path=new Path2D();
+    for(let i=0;i<n;i++){const amount=clamp(e.segments*n-i,0,1);if(amount<=0)continue;const a=-Math.PI/2+i*TAU/n;path.moveTo(m.cx,m.cy);path.arc(m.cx,m.cy,radius,a,a+TAU/n*amount);path.closePath();}ctx.clip(path);
+  }
+}
+// Construction uses the same projected vertices, shape proportions and ring
+// arcs as the finished controls. It never replaces the camera with a backdrop.
+function traceLine(ctx,points,amount) {
+  if(amount<=0||points.length<2)return;
+  const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y));
+  let remain=lengths.reduce((a,b)=>a+b,0)*clamp(amount,0,1);ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+  for(let i=0;i<lengths.length&&remain>0;i++){const t=Math.min(1,remain/Math.max(.0001,lengths[i])),a=points[i],b=points[i+1];ctx.lineTo(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t);remain-=lengths[i];}ctx.stroke();
+}
+function circlePoints(cx,cy,r,start=0,sweep=TAU) {return Array.from({length:73},(_,i)=>({x:cx+Math.cos(start+sweep*i/72)*r,y:cy+Math.sin(start+sweep*i/72)*r}));}
+function drawBlueprint(ctx,m,progress) {
+  const form=window.RavenGlass.formation(P,progress),fade=1-form.color;
+  if(progress<=0||fade<=0)return;
+  ctx.save();ctx.globalAlpha*=fade;ctx.strokeStyle=P['build.color'];ctx.lineWidth=P['build.width'];ctx.lineCap='round';ctx.lineJoin='round';
+  const u=m.thickness/32,spread=P['build.spread']*m.unit*(1-form.assemble),bands=bandList(m,ST.angle+ST.spin);
+  if(P['build.guides']&&form.guides>0){
+    ctx.save();ctx.globalAlpha*=form.guides*P['build.guideStrength'];ctx.lineWidth=.55;
+    traceLine(ctx,[{x:m.cx-m.radius-35,y:m.cy},{x:m.cx+m.radius+35,y:m.cy}],form.trace);
+    traceLine(ctx,[{x:m.cx,y:m.cy-m.radius-35},{x:m.cx,y:m.cy+m.radius+35}],form.trace);
+    traceLine(ctx,circlePoints(m.cx,m.cy,m.radius+m.thickness),form.trace);
+    ctx.restore();
+  }
+  const ps=G.pose||[1,0,0,1];ctx.save();ctx.translate(m.cx,m.cy);ctx.transform(...ps,0,0);ctx.translate(-m.cx,-m.cy);
+  bands.forEach((b,j)=>{
+    const cy=m.cy+(j-1)*spread;
+    for(const edge of [-1,1])traceLine(ctx,circlePoints(m.cx,cy,b.rr+edge*P['bands.width']*u/2,b.start,b.sweep),form.trace);
+    for(const a of [b.start,b.start+b.sweep])traceLine(ctx,[{x:m.cx+Math.cos(a)*(b.rr-P['bands.width']*u/2),y:cy+Math.sin(a)*(b.rr-P['bands.width']*u/2)},{x:m.cx+Math.cos(a)*(b.rr+P['bands.width']*u/2),y:cy+Math.sin(a)*(b.rr+P['bands.width']*u/2)}],form.trace);
+  });ctx.restore();
+  for(let i=0;i<4;i++){
+    const f=window.RavenGlass.formation(P,progress,i+1),s=m.st[i],S=k=>P['s'+i+'.'+k],sep=P['build.spread']/100*(1-f.assemble),rot=v=>window.RavenMotion.rotate(motionState(i),motionSettings(i),v);
+    const project=v=>{const r=rot(v),perspective=4/(4-r[2]);return{x:s.x+r[0]*s.size*.94*perspective,y:s.y+r[1]*s.size*.94*perspective};};
+    if(i===0){
+      const r=s.size*S('r');traceLine(ctx,circlePoints(s.x,s.y,r),f.trace);
+      for(const off of [0,Math.PI*.57])traceLine(ctx,Array.from({length:97},(_,k)=>{const a=k*TAU/96,rr=S('r');return project([rr*Math.cos(a)*Math.cos(off),rr*Math.sin(a),rr*Math.cos(a)*Math.sin(off)+sep*.25]);}),f.trace);
+    }else{
+      const vs=VERTS[i].map(v=>[v[0]*S('w'),v[1]*S('h'),v[2]*S('d')]);
+      for(let j=0;j<FACES[i].length;j++){
+        const face=FACES[i][j],center=[0,1,2].map(a=>face.reduce((sum,k)=>sum+vs[k][a],0)/face.length);
+        const points=face.map(k=>project(vs[k].map((v,a)=>v+center[a]*sep*2)));points.push(points[0]);traceLine(ctx,points,clamp(f.trace*1.18-j*.025,0,1));
+      }
+    }
+    if(S('iconOn')&&f.trace>.65){ctx.save();ctx.globalAlpha*=clamp((f.trace-.65)/.35,0,1);ctx.translate(s.x+S('iconX')*s.size,s.y+S('iconY')*s.size);ctx.scale(s.size*S('iconSize'),s.size*S('iconSize'));ctx.lineWidth=.027*S('iconLine');for(const icon of ICONS[i])ctx.stroke(icon);ctx.restore();}
+  }
+  ctx.restore();
+}
+function drawDialContents(ctx,m,reveal,buildProgress) {
+  const ps=pose();G.pose=ps;
+  const color=buildProgress==null?1:window.RavenGlass.formation(P,buildProgress).color;
+  if(buildProgress!=null)drawBlueprint(ctx,m,buildProgress);
+  ctx.save();ctx.globalAlpha*=color;
+  ctx.save();ctx.translate(m.cx,m.cy);ctx.transform(...ps,0,0);ctx.translate(-m.cx,-m.cy);drawRing(ctx,m,reveal);ctx.restore();
+  drawPointer(ctx,m);drawText(ctx,m,reveal);
+  for(let i=0;i<4;i++){const s=m.st[i],e=alignment(m,ST.angle,i)*(ST.confirmed?1:.7);drawShape(ctx,i,s.x-s.size/2,s.y-s.size/2,s.size,e,shapePhase(i));}
+  ctx.restore();
+}
 /* ---------- module ---------- */
 const sc = K.screen({
   id: 'dial', title: 'Raven dial', docId: 'raven_dial',
@@ -422,13 +535,52 @@ def('Dial', 'Size & place', 'ring.all', 'dial.thickness', 'Ring thickness', 'num
 def('Dial', 'Size & place', 'dial', 'dial.x', 'Left / right', 'num', -3.5, { min: -160, max: 160, step: .5, unit: 'px', dart: 'center.dx = width/2 - 3.5*unit' });
 def('Dial', 'Size & place', 'dial', 'dial.y', 'Up / down', 'num', 0, { min: -300, max: 300, step: 1, unit: 'px' });
 def('Dial', 'Glass panel', 'glass', 'glass.on', 'Glass panel', 'bool', true);
-def('Dial', 'Glass panel', 'glass', 'glass.top', 'Top edge', 'num', .25, { min: 0, max: .6, step: .005, unit: 'of screen', dart: 'glassTop = height * .25' });
+def('Dial', 'Glass panel', 'glass', 'glass.top', 'How high the glass reaches', 'num', .25, { min: 0, max: .8, step: .005, unit: 'from top', dart: 'glassTop = height * .25', info: 'Smaller values raise the top edge. This changes the settled panel height.' });
+def('Dial', 'Glass panel', 'glass', 'glass.finalY', 'Settled vertical offset', 'num', 0, { min: -300, max: 300, step: 1, unit: 'px' });
 def('Dial', 'Glass panel', 'glass', 'glass.side', 'Side margin', 'num', 10, { min: 0, max: 60, step: 1, unit: 'px' });
 def('Dial', 'Glass panel', 'glass', 'glass.round', 'Corner roundness', 'num', 16, { min: 0, max: 80, step: 1, unit: 'px' });
 def('Dial', 'Glass panel', 'glass', 'glass.width', 'Edge line width', 'num', .7, { min: .1, max: 4, step: .05, unit: 'px' });
 def('Dial', 'Glass panel', 'glass', 'glass.edge', 'Edge brightness', 'num', 1, { min: 0, max: 3, step: .05, unit: '×' });
 def('Dial', 'Glass panel', 'glass.shine', 'glass.shine', 'Top reflection', 'num', 1, { min: 0, max: 3, step: .05, unit: '×' });
 def('Dial', 'Glass panel', 'glass.shine', 'glass.shineLen', 'Reflection length', 'num', .43, { min: .05, max: 1, step: .01, unit: 'of width' });
+def('Dial', 'Glass material', 'glass', 'glass.tint', 'Tint color', 'color', '#9BDFF5');
+def('Dial', 'Glass material', 'glass', 'glass.tintStrength', 'Tint / glass opacity', 'num', .035, { min: 0, max: 1, step: .005, info: 'Zero is clear. Middle values tint the live view. One makes the glass fully opaque in your chosen color; reflections stay visible on its surface.' });
+def('Dial', 'Glass material', 'glass', 'glass.frost', 'Frosting / softness', 'num', .6, { min: 0, max: 20, step: .1, unit: 'px', info: 'Zero keeps the surroundings sharp. Higher values soften only what is behind the glass.' });
+def('Dial', 'Glass material', 'glass', 'glass.refract', 'Edge bending strength', 'num', .8, { min: 0, max: 3, step: .05, info: 'Displaces the actual camera image along the bevel.' });
+def('Dial', 'Glass material', 'glass', 'glass.bevel', 'Bevel width', 'num', 10, { min: 1, max: 40, step: .5, unit: 'px' });
+def('Dial', 'Glass material', 'glass', 'glass.dispersion', 'Edge color separation', 'num', .35, { min: 0, max: 3, step: .05, unit: 'px' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glare', 'Surroundings glare', 'num', .22, { min: 0, max: 1, step: .01, info: 'A softened reflection sampled from the live camera, so it changes as the surroundings change.' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glareSoftness', 'Glare softness', 'num', 8, { min: 0, max: 40, step: .5, unit: 'px' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glareAngle', 'Reflection angle', 'num', -28, { min: -180, max: 180, step: 1, unit: '°' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glareWidth', 'Reflection width', 'num', .30, { min: .05, max: 1.5, step: .01, unit: 'of width' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glareX', 'Reflection left / right', 'num', 0, { min: -1, max: 1, step: .01, unit: 'of width' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glareY', 'Reflection up / down', 'num', 0, { min: -1, max: 1, step: .01, unit: 'of height' });
+def('Dial', 'Glass reflections', 'glass', 'glass.glareMotion', 'Reflection follows touch', 'num', .1, { min: 0, max: .5, step: .01, info: 'Subtle movement of the simulated reflection while the dial is being touched.' });
+for (const part of ['glass', 'dial']) {
+  const section = part === 'glass' ? 'Glass entrance' : 'Dial entrance', prefix = part + '.entry.';
+  const opts = part === 'glass' ? [['slide','Slide into place'],['materialize','Materialize'],['scan','Scan into view'],['instant','Appear instantly']] : [['blueprint','Construct outlines, then color'],['follow','Arrive with glass'],['slide','Slide into place'],['materialize','Materialize from light'],['grow','Grow out of glass'],['scan','Scanning reveal'],['trace','Draw the ring in light'],['segments','Assemble in segments'],['instant','Appear instantly']];
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'style', 'Arrival style', 'select', part === 'glass' ? 'slide' : 'blueprint', { opts, info: 'Press Replay to see your entrance. These settings also play when this page opens.' });
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'direction', 'Arrives from', 'select', 'bottom', { opts: [['bottom','Bottom'],['top','Top'],['left','Left'],['right','Right']] });
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'distance', 'Travel distance', 'num', 1, { min: 0, max: 2, step: .01, unit: 'screens' });
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'duration', 'Arrival time', 'int', part === 'glass' ? 0 : 2600, { min: 0, max: 8000, step: 10, unit: 'ms', info: 'Zero uses Rise & close timing; a value sets an independent duration.' });
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'delay', 'Delay before arrival', 'int', 0, { min: 0, max: 6000, step: 10, unit: 'ms' });
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'ease', 'Movement feel', 'select', 'out', { opts: [['out','Smooth settle'],['soft','Gentle landing'],['smooth','Ease in and out'],['linear','Constant speed']] });
+  def('Dial', section, part === 'glass' ? 'glass' : 'dial', prefix + 'softness', 'Materializing softness', 'num', 14, { min: 0, max: 40, step: .5, unit: 'px' });
+}
+def('Dial', 'Dial entrance', 'dial', 'dial.entry.waitGlass', 'Start after glass settles', 'bool', true);
+def('Dial', 'Dial entrance', 'dial', 'dial.entry.startScale', 'Starting size when growing', 'num', .05, { min: .01, max: 1, step: .01, unit: '×' });
+def('Dial', 'Dial entrance', 'dial', 'dial.entry.turn', 'Turn while arriving', 'num', 0, { min: -720, max: 720, step: 5, unit: '°' });
+def('Dial', 'Dial entrance', 'dial', 'dial.entry.brightness', 'Arrival light intensity', 'num', 1, { min: .2, max: 4, step: .05, unit: '×' });
+def('Dial', 'Dial entrance', 'dial', 'dial.entry.segments', 'Assembly segments', 'int', 16, { min: 4, max: 48, step: 1 });
+def('Dial', 'Construction', 'dial', 'build.color', 'Construction line color', 'color', '#BCEBFF');
+def('Dial', 'Construction', 'dial', 'build.width', 'Construction line thickness', 'num', .8, { min: .2, max: 3, step: .05, unit: 'px' });
+def('Dial', 'Construction', 'dial', 'build.spread', 'Distance parts assemble from', 'num', 42, { min: 0, max: 160, step: 1, unit: 'px' });
+def('Dial', 'Construction', 'dial', 'build.colorAt', 'Color begins after', 'num', .72, { min: .4, max: .95, step: .01, unit: 'of entrance', info: 'All outlines finish assembling before the existing colors fill in. The remaining time controls the color fade.' });
+def('Dial', 'Construction', 'dial', 'build.stagger', 'Delay between shapes', 'num', .035, { min: 0, max: .12, step: .005, unit: 'of entrance' });
+def('Dial', 'Construction', 'dial', 'build.guides', 'Show construction guides', 'bool', true);
+def('Dial', 'Construction', 'dial', 'build.guideStrength', 'Guide brightness', 'num', .28, { min: 0, max: 1, step: .01 });
+def('Dial', 'Entrance preview', 'dial', 'anim.hold', 'Hold entrance at a moment', 'bool', false);
+def('Dial', 'Entrance preview', 'dial', 'anim.at', 'Entrance moment', 'num', .5, { min: 0, max: 1, step: .005 });
 def('Dial', 'Rise & close', 'dial', 'anim.rise', 'Rise-in time', 'int', 1600, { min: 100, max: 6000, step: 10, unit: 'ms', info: 'Press Replay to see it.' });
 def('Dial', 'Rise & close', 'dial', 'anim.slide', 'Slide-up share', 'num', .4, { min: .05, max: 1, step: .01, info: 'Part of the rise spent sliding up from the bottom. The ring then keeps sweeping in.' });
 def('Dial', 'Rise & close', 'dial', 'anim.close', 'Close time', 'int', 240, { min: 50, max: 3000, step: 10, unit: 'ms', info: 'Press Close to see it.' });
@@ -540,6 +692,11 @@ def('Pointer', 'Station ticks', 'pointer.ticks', 'pticks.opacity', 'Strength', '
 def('Pointer', 'Station ticks', 'pointer.ticks', 'pticks.boost', 'Lined-up boost', 'num', .40, { min: 0, max: 1, step: .01 });
 
 // Feel (behavior)
+def('Feel', 'Touch light', 'feel', 'feel.touchLight', 'Light under your finger', 'num', .28, { min: 0, max: 1, step: .01 });
+def('Feel', 'Touch light', 'feel', 'feel.touchWidth', 'Light width', 'num', 2.2, { min: .5, max: 12, step: .1, unit: 'px' });
+def('Feel', 'Touch light', 'feel', 'feel.touchGlow', 'Light softness', 'num', 5, { min: 0, max: 30, step: .5, unit: 'px' });
+def('Feel', 'Touch light', 'feel', 'feel.touchResponse', 'Light response time', 'num', .10, { min: .01, max: .6, step: .01, unit: 's' });
+def('Feel', 'Turning', 'feel', 'feel.snapEase', 'Settle motion', 'select', 'out', { opts: [['out','Smooth settle'],['soft','Soft settle'],['smooth','Ease in and out'],['linear','Constant speed']] });
 def('Feel', 'Turning', 'feel', 'feel.snap', 'Snap speed', 'int', 220, { min: 20, max: 2000, step: 10, unit: 'ms', info: 'How fast the ring settles onto the nearest shape after you let go.' });
 def('Feel', 'Turning', 'feel', 'feel.haptic', 'Click per shape (vibrate)', 'bool', true, { info: 'Phone buzz as you pass each shape. Works on Android Chrome.' });
 def('Feel', 'Turning', 'feel', 'feel.detentGap', 'Min time between clicks', 'int', 90, { min: 0, max: 500, step: 5, unit: 'ms' });
@@ -547,8 +704,9 @@ def('Feel', 'Turning', 'ring.markers', 'feel.alignZone', 'Lined-up zone', 'num',
 def('Feel', 'Turning', 'feel', 'feel.turnStart', 'Turn starts after', 'num', 1.03, { min: 0, max: 20, step: .05, unit: '°' });
 def('Feel', 'Turning', 'feel', 'feel.grabMargin', 'Grab margin', 'num', 4, { min: 0, max: 40, step: .5, unit: 'px', info: 'How far off the ring your finger can drift and keep turning it.' });
 def('Feel', 'Confirm', 'feel.inner', 'feel.tapTolerance', 'Tap wiggle allowed', 'num', 10, { min: 0, max: 60, step: .5, unit: 'px', info: 'A tap inside the ring confirms only if the finger moved less than this.' });
-def('Exit', 'Dismantle', 'exit', 'dis.on', 'Dismantle when Messages is chosen', 'bool', true, { info: 'Press "Play exit" to watch it without leaving.' });
-def('Exit', 'Dismantle', 'exit', 'dis.seconds', 'Duration', 'num', .78, { min: .2, max: 4, step: .02, unit: 's' });
+def('Exit', 'Dismantle', 'exit', 'dis.on', 'Animate after middle is confirmed', 'bool', true, { info: 'Press "Play exit" to watch it without leaving.' });
+def('Exit', 'Dismantle', 'exit', 'dis.style', 'Disappearance style', 'select', 'unbuild', { opts: [['unbuild','Color to outlines, then dismantle'],['fade','Dissolve smoothly'],['shrink','Contract into the glass'],['strips','Pull away in strips']] });
+def('Exit', 'Dismantle', 'exit', 'dis.seconds', 'Duration', 'num', 1.2, { min: .2, max: 4, step: .02, unit: 's' });
 def('Exit', 'Dismantle', 'exit', 'dis.strips', 'Strips', 'int', 18, { min: 2, max: 60, step: 1, info: 'The dial pulls away left in this many horizontal strips.' });
 def('Exit', 'Dismantle', 'exit', 'dis.stagger', 'Strip delay', 'num', .017, { min: 0, max: .06, step: .001 });
 def('Exit', 'Dismantle', 'exit', 'dis.sweep', 'Strip pull time', 'num', .40, { min: .05, max: 1, step: .01 });
@@ -644,7 +802,7 @@ SHAPES.forEach((s, i) => {
 
 
   },
-  toolbar: [{ label: 'Replay', title: 'Play the rise-in again', onclick: () => replay() }, { label: 'Close', title: 'Play the close animation', onclick: () => closeDial() }, { label: 'Play exit', title: 'Play the dismantle the app runs after Messages is chosen, then come back', onclick: () => { ST.dis = 0; ST.disStay = true; } }],
+  toolbar: [{ label: 'Replay', title: 'Play the rise-in again', onclick: () => replay() }, { label: 'Close', title: 'Play the close animation', onclick: () => closeDial() }, { label: 'Play exit', title: 'Preview the confirmed exit, then replay the entrance', onclick: () => { ST.dis = 0; ST.disStay = true; ST.closing=true; ST.navStarted=false; } }],
   onSet(k) { P = sc.P; const reset = /^s([0-3])\.start$/.exec(k); if (reset) shapeMotion[+reset[1]] = window.RavenMotion.create(motionSettings(+reset[1])); if (/^s\d\.(x|y)$/.test(k) && !ST.grab && !ST.turn.on) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
   onLoad() { P = sc.P; shapeMotion.length = 0; if (!ST.grab) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
   onShow() { ST.dis = -1; replay(); },
@@ -653,29 +811,43 @@ SHAPES.forEach((s, i) => {
     for (let i = 0; i < 4; i++) window.RavenMotion.advance(motionState(i), motionSettings(i), dt);
     if (ST.rise.mode === 'fwd') { ST.rise.v = clamp((now - ST.rise.t0) / P['anim.rise'], 0, 1); if (ST.rise.v >= 1) ST.rise.mode = 'done'; }
     else if (ST.rise.mode === 'rev') { ST.rise.v = Math.max(0, ST.rise.from - (now - ST.rise.t0) / P['anim.close']); if (ST.rise.v <= 0) { ST.rise.mode = 'closed'; K.status('Dial closed. Press Close again or tap the screen to open it.'); } }
-    if (ST.turn.on) { const p = clamp((now - ST.turn.t0) / P['feel.snap'], 0, 1); ST.angle = ST.turn.from + (ST.turn.to - ST.turn.from) * ease(p); if (p >= 1) { ST.turn.on = false; if (ST.armed && !ST.closing) { ST.armed = false; ST.ready = true; } } }
-    if (ST.dis >= 0) { ST.dis = Math.min(1, ST.dis + dt / Math.max(.05, P['dis.seconds'])); if (ST.dis >= 1) { ST.dis = -1; if (ST.disStay) replay(); else K.show('directory'); } }
+    if (ST.turn.on) { const p = clamp((now - ST.turn.t0) / P['feel.snap'], 0, 1); ST.angle = ST.turn.from + (ST.turn.to - ST.turn.from) * window.RavenGlass.ease(p,P['feel.snapEase']); if (p >= 1) { ST.turn.on = false; if (ST.armed && !ST.closing) { ST.armed = false; ST.ready = true; } } }
+    if (ST.dis >= 0) { ST.dis = Math.min(1, ST.dis + dt / Math.max(.05, P['dis.seconds'])); if (ST.dis >= 1) finishExit(); }
+    const response=1-Math.exp(-dt/Math.max(.01,P['feel.touchResponse']));touch.press+=((ST.active!=null?1:0)-touch.press)*response;touch.x+=(touch.tx-touch.x)*response;touch.y+=(touch.ty-touch.y)*response;
     ST.amb += dt; if (ST.active == null) ST.wob += dt * P['wobble.speed'];
     const motor = ST.idle || (P['ring.spinAfterGrab'] && !ST.grab);
     if (motor && P['ring.spinOn'] && ST.rise.v >= 1 && !ST.turn.on && !ST.closing) ST.spin += dt * TAU / Math.max(.5, P['ring.spinPeriod']) * P['ring.spinDir'];
   },
   draw(ctx, now, studio) {
-    P = sc.P; const m = metrics(), H = K.H;
-    const rv = ST.rise.v, t = ease(clamp(rv / Math.max(.01, P['anim.slide']), 0, 1));
-    const ty = H * (1 - t); G.ty = ty; sc.ty = ty;
-    const dp = ST.dis > 0 ? ST.dis : 0;
-    if (dp > 0) { const n = Math.max(1, Math.round(P['dis.strips'])), W = K.W, clip = new Path2D(); for (let i = 0; i < n; i++) { const local = K.smooth((dp - i * P['dis.stagger']) / Math.max(.01, P['dis.sweep'])); clip.rect(0, H * i / n, W * (1 - local), H / n + .2); } ctx.save(); ctx.clip(clip); ctx.globalAlpha *= 1 - K.smooth((dp - P['dis.fadeStart']) / Math.max(.01, P['dis.fadeLen'])); }
-    ctx.save(); ctx.translate(0, ty);
-    drawGlass(ctx, m, t);
-    const ps = pose(); G.pose = ps;
-    ctx.save(); ctx.translate(m.cx, m.cy); ctx.transform(ps[0], ps[1], ps[2], ps[3], 0, 0); ctx.translate(-m.cx, -m.cy);
-    drawRing(ctx, m, rv); ctx.restore();
-    drawPointer(ctx, m);
-    drawText(ctx, m, rv);
-    for (let i = 0; i < 4; i++) { const s = m.st[i], e = alignment(m, ST.angle, i) * (ST.confirmed ? 1 : .7); drawShape(ctx, i, s.x - s.size / 2, s.y - s.size / 2, s.size, e, shapePhase(i)); }
+    P=sc.P;const m=metrics(),arrival=entranceState(now),ge=arrival.glass,de=arrival.dial;
+    const reveal=de.style==='follow'?arrival.rv:de.trace;
+    G.glassEntry=ge;G.dialEntry=de;G.ty=de.y;sc.ty=de.y;G.entering=Math.min(ge.progress,de.progress)<1;
+    const dp=ST.dis>=0?ST.dis:0,exit=P['dis.style'],ep=window.RavenGlass.ease(dp,'smooth');
+    // The camera is drawn by StudioKit before these transparent layers. It
+    // remains live during the entire build, interaction, and confirmed exit.
+    const glassFade=1-window.RavenGlass.ease(clamp((dp-.76)/.24,0,1),'smooth');
+    if(ge.alpha>0&&glassFade>0&&P['glass.on']){
+      const material=layer('glass',x=>drawGlass(x,m,ge.t,ge));
+      ctx.save();ctx.translate(ge.x,ge.y);ctx.globalAlpha*=ge.alpha*glassFade;if(ge.blur>0)blur(ctx,ge.blur);
+      entranceClip(ctx,ge,{l:m.glassLeft,r:m.glassRight,t:m.glassTop,b:m.glassBottom},m,'glass');
+      ctx.drawImage(material,0,0,K.W,K.H);ctx.restore();
+    }
+    const build=dp>0&&exit==='unbuild'?1-ep:de.style==='blueprint'?de.progress:null;
+    const art=layer('dial',x=>drawDialContents(x,m,reveal,build));
+    ctx.save();applyEntrance(ctx,de,m);
+    entranceClip(ctx,de,{l:0,r:K.W,t:0,b:K.H},m,de.style==='follow'?'glass':'dial');
+    if(dp>0&&exit==='strips'){
+      const n=Math.max(1,Math.round(P['dis.strips'])),clip=new Path2D();
+      for(let i=0;i<n;i++){const local=K.smooth((dp-i*P['dis.stagger'])/Math.max(.01,P['dis.sweep']));clip.rect(0,K.H*i/n,K.W*(1-local),K.H/n+.2);}ctx.clip(clip);
+      ctx.globalAlpha*=1-K.smooth((dp-P['dis.fadeStart'])/Math.max(.01,P['dis.fadeLen']));
+    }else if(dp>0&&exit!=='unbuild'){
+      ctx.globalAlpha*=1-ep;
+      if(exit==='shrink'){ctx.translate(m.cx,m.cy);ctx.scale(1-ep*.95,1-ep*.95);ctx.translate(-m.cx,-m.cy);}
+    }
+    ctx.drawImage(art,0,0,K.W,K.H);
+    if(dp>0&&exit==='strips'&&P['dis.lines'])drawDismantleLines(ctx,m,dp);
     ctx.restore();
-    if (dp > 0) { ctx.restore(); if (P['dis.lines']) drawDismantleLines(ctx, m, dp); }
-    if (studio) { ctx.save(); ctx.translate(0, ty); K.hl(ctx, now); ctx.restore(); }
+    if(studio&&!G.entering&&ST.dis<0){ctx.save();const target=K.currentTarget?K.currentTarget():'';if(target.startsWith('glass'))ctx.translate(ge.x,ge.y);else if(!target.startsWith('bg'))applyEntrance(ctx,{...de,alpha:1,blur:0},m);K.hl(ctx,now);ctx.restore();}
   },
   highlight(ctx, base, sub, H1, now) {
     P = sc.P; const m = metrics(), W = K.W, H = K.H; const strong = true;
@@ -717,16 +889,17 @@ SHAPES.forEach((s, i) => {
   bounds(base, sub) {
     P = sc.P; const m = metrics(), W = K.W, H = K.H;
 
-  const c = { x: m.cx, y: m.cy + G.ty }, r = m.radius, th = m.thickness;
-  const sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
+  const c = { x: m.cx, y: m.cy }, r = m.radius, th = m.thickness;
+  const e = (base||'').startsWith('glass') ? G.glassEntry : G.dialEntry;
+  const sq = (x, y, s) => { const a=e?.rotation||0,z=e?.scale??1,dx=(x-m.cx)*z,dy=(y-m.cy)*z,cx=m.cx+dx*Math.cos(a)-dy*Math.sin(a)+(e?.x||0),cy=m.cy+dx*Math.sin(a)+dy*Math.cos(a)+(e?.y||0);s*=z;return {x:cx-s/2,y:cy-s/2,s}; };
   if (!base) return sq(c.x, c.y, (r + th) * 2.6);
   if (base === 'bg') return { x: 0, y: (H - W) / 2, s: W };
   if (base === 'glass' || base === 'dial') return sq(c.x, c.y, Math.max(r * 3.4, 200));
-  if (base === 'glass.shine') return sq(m.glassLeft + (m.glassRight - m.glassLeft) * .25, m.glassTop + G.ty, Math.max(120, (m.glassRight - m.glassLeft) * .55));
-  if (base === 'pointer.dot' && G.marker) return sq(G.marker.x, G.marker.y + G.ty, Math.max(70, th * 3.2));
+  if (base === 'glass.shine') return sq(m.glassLeft + (m.glassRight - m.glassLeft) * .25, m.glassTop, Math.max(120, (m.glassRight - m.glassLeft) * .55));
+  if (base === 'pointer.dot' && G.marker) return sq(G.marker.x, G.marker.y, Math.max(70, th * 3.2));
   if (base === 'pointer.arrow' || base === 'pointer.grooves') { const p = ringPoint(c, r, 0, ST.angle); return sq(p.x, p.y, Math.max(80, th * 3.2)); }
-  if (base.startsWith('text')) { const k = base.split('.')[1]; const b = G.text && (k === 'all' ? null : G.text[k]); if (b) return sq(b.x + b.w / 2, b.y + b.h / 2 + G.ty, Math.max(b.w * 1.4, 110)); return sq(c.x, c.y, r * 1.6); }
-  if (base === 'shape') { const s = m.st[+sub] || m.st[ST.hi]; return sq(s.x, s.y + G.ty, s.size * 1.6); }
+  if (base.startsWith('text')) { const k = base.split('.')[1]; const b = G.text && (k === 'all' ? null : G.text[k]); if (b) return sq(b.x + b.w / 2, b.y + b.h / 2, Math.max(b.w * 1.4, 110)); return sq(c.x, c.y, r * 1.6); }
+  if (base === 'shape') { const s = m.st[+sub] || m.st[ST.hi]; return sq(s.x, s.y, s.size * 1.6); }
   if (base === 'ring.markers' || base === 'pointer.ticks' || base === 'feel' || base === 'feel.inner' || base === 'ring.all') return sq(c.x, c.y, (r + th) * 2.3);
   if (base === 'ring.band' && sub != null && G.bands && G.bands[+sub]) { const bd = G.bands[+sub], p = ringPoint(c, bd.rr, 0, bd.start + bd.sweep * .5); return sq(p.x, p.y, r * 1.15); }
   { const p = ringPoint(c, r, 0, ST.angle + .55); return sq(p.x, p.y, r * 1.15); }

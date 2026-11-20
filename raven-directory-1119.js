@@ -31,6 +31,7 @@ in vec2 a; out vec2 v; void main(){ v=a; gl_Position=vec4(a,0.,1.); }`;
     const fs = `#version 300 es
 precision highp float; in vec2 v; out vec4 o;
 uniform sampler2D T; uniform float uSpin, uTilt, uRepeat, uAmb, uTint, uRim, uLimb, uBody; uniform vec3 uTintC, uRimC; uniform vec4 uTop; uniform vec3 uTopC;
+uniform vec3 uEnvC,uEnvD; uniform float uEnvDiffuse;
 void main(){
   vec2 p = vec2(v.x, -v.y); float r2 = dot(p,p); if(r2>1.){ o=vec4(0); return; }
   vec3 n = vec3(p.x, -p.y, sqrt(1.-r2));
@@ -41,6 +42,7 @@ void main(){
   if(uTint > 0.5){ float l = dot(tex, vec3(.3,.59,.11)); tex = uTintC * l * 1.6; }
   vec3 light = vec3(uAmb);
   { vec3 ld = normalize(vec3(uTop.w, 1., uTop.z)); float t = max(dot(n, ld), 0.); light += uTopC * pow(t, uTop.y) * uTop.x; }
+  light += uEnvC * max(dot(n,uEnvD),0.) * uEnvDiffuse;
   float limb = mix(1., pow(n.z, .6), uLimb);
   vec3 col = tex * light * limb;
   float rim = pow(1.-n.z, 3.) * uRim; col += uRimC * rim;
@@ -52,7 +54,7 @@ void main(){
     const pr = this.p = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
     const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const l = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
-    this.u = {}; for (const k of ['T', 'uSpin', 'uTilt', 'uRepeat', 'uAmb', 'uTint', 'uRim', 'uLimb', 'uBody', 'uTintC', 'uRimC', 'uTop', 'uTopC']) this.u[k] = gl.getUniformLocation(pr, k);
+    this.u = {}; for (const k of ['T', 'uSpin', 'uTilt', 'uRepeat', 'uAmb', 'uTint', 'uRim', 'uLimb', 'uBody', 'uTintC', 'uRimC', 'uTop', 'uTopC','uEnvC','uEnvD','uEnvDiffuse']) this.u[k] = gl.getUniformLocation(pr, k);
     this.t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, this.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
   }
@@ -63,7 +65,8 @@ void main(){
     const h3 = c => { const v = rgb(c); return [v[0] / 255, v[1] / 255, v[2] / 255]; };
     gl.uniform1f(this.u.uSpin, time * P['sb.spin'] * .6); gl.uniform1f(this.u.uTilt, P['sb.tilt'] * D2R); gl.uniform1f(this.u.uRepeat, P['sb.repeat']); gl.uniform1f(this.u.uAmb, P['sb.ambient']);
     gl.uniform1f(this.u.uTint, P['sb.tint'] ? 1 : 0); gl.uniform3fv(this.u.uTintC, h3(P['sb.tintColor'])); gl.uniform1f(this.u.uRim, P['sb.rimLight']); gl.uniform3fv(this.u.uRimC, h3(P['sb.rim'])); gl.uniform1f(this.u.uLimb, P['sb.limb']); gl.uniform1f(this.u.uBody, P['sb.body']);
-    gl.uniform4f(this.u.uTop, P['sb.topLight'], P['sb.topSharp'], P['sb.topToward'], P['sb.topSide']); gl.uniform3fv(this.u.uTopC, h3(P['sb.topColor']));
+    gl.uniform4f(this.u.uTop, P['sb.topOn']===false?0:P['sb.topLight'], P['sb.topSharp'], P['sb.topToward'], P['sb.topSide']); gl.uniform3fv(this.u.uTopC, h3(P['sb.topColor']));
+    const env=window.RavenEnvironment.frame(P,time);gl.uniform3fv(this.u.uEnvC,env.color);gl.uniform3fv(this.u.uEnvD,env.direction);gl.uniform1f(this.u.uEnvDiffuse,P['env.on']?P['env.diffuse']:0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return this.c;
   }
 }
@@ -73,6 +76,8 @@ function drawSphereBody(ctx, g) {
   if (!P['sb.on']) return; if (!SPH) { try { SPH = new SphereGL(); } catch (e) { console.warn(e); SPH = { render: () => null, setTexture() {} }; } }
   const tex = SPH_TEX[P['sb.texture']] || SPH_TEX.red; if (tex.complete && tex.naturalWidth) SPH.setTexture(tex);
   const cv = SPH.render(2 * g.radius * Math.min(2.5, scaleOf(ctx)), ST.time); if (cv) ctx.drawImage(cv, g.cx - g.radius, g.cy - g.radius, g.radius * 2, g.radius * 2);
+  else if(P['sb.body']>0){ctx.save();ctx.fillStyle=rgba('#000000',P['sb.body']);ctx.beginPath();ctx.arc(g.cx,g.cy,g.radius,0,TAU);ctx.fill();ctx.restore();}
+  window.RavenEnvironment.sphereOverlay(ctx,g,P,ST.time,!cv);
 }
 
 /* ---------- STREAMER BLACK HOLES UP TOP (_RvCosmicHeader, sphere view) bending the see-through background ---------- */
@@ -155,16 +160,19 @@ function geometry() {
   const cy = Math.min(H * P['sphere.maxY'], H - P['sphere.bottomGap'] - 0 - base * 1.25) + H * P['sphere.height'];
   return { W, H, radius, cx, cy };
 }
+function pathPoint(g,t) {
+  const a=P['path.curve']*t,sn=Math.sin(a),cs=Math.cos(a),px=g.radius*P['path.radius']*(-P['path.bulge']*cs+P['path.lean']*sn+P['path.flare']*Math.pow(Math.abs(sn),4))*(P['path.mirror']?-1:1),py=-g.radius*P['path.radius']*sn,angle=P['path.rotate']*D2R;
+  return {x:g.cx+px*Math.cos(angle)-py*Math.sin(angle)+P['path.offsetX'],y:g.cy+px*Math.sin(angle)+py*Math.cos(angle)+P['path.offsetY']};
+}
 function place(g, people, scroll) {
   if (!people.length) return [];
   const out = [], middle = Math.floor(scroll), step = P['path.step'], limit = P['path.limit'];
-  for (let i = Math.max(0, middle - 1); i < Math.min(people.length, middle + 6); i++) {
+  for (let i = Math.max(0, middle - 1); i < Math.min(people.length, middle + Math.round(P['path.count']) - 1); i++) {
     const t = P['path.start'] - (i - scroll) * step;
     if (Math.abs(t) > limit) continue;
     const u = clamp(Math.abs(t) / limit, 0, 1);
     const theta = P['path.curve'] * t, sn = Math.sin(theta), cs = Math.cos(theta);
-    const x = g.cx + g.radius * (-P['path.bulge'] * cs + P['path.lean'] * sn + P['path.flare'] * Math.pow(Math.abs(sn), 4));
-    const y = g.cy - g.radius * sn;
+    const {x,y}=pathPoint(g,t);
     const depth = clamp(cs, 0, 1);
     const scale = clamp(1 - P['bust.shrink'] * Math.pow(u, P['bust.shrinkCurve']), P['bust.min'], 1);
     out.push({ person: people[i], index: i, t, cx: x, cy: y, width: g.radius * P['bust.width'] * scale, depth, yaw: clamp(-P['bust.yaw'] * t / limit, -P['bust.yaw'], P['bust.yaw']), tip: -P['bust.tip'] * Math.sign(t) * Math.pow(u, 2) });
@@ -341,6 +349,7 @@ const sc = K.screen({
   docMeta: { widget: 'AsgardRaven', part: 'Raven directory (sphere, busts, names, tabs)', source: 'FlutterFlow export 2026-11-19' },
   startGroup: 'Busts', startSection: 'Path',
   spec(def) {
+    window.RavenEnvironment.controls(def);
     // Sphere
     def('Sphere', 'Place', 'sphere', 'sphere.x', 'Left / right', 'num', .42, { min: .25, max: .65, step: .005, unit: 'of width', dart: 'sphereX .42' });
     def('Sphere', 'Place', 'sphere', 'sphere.height', 'Up / down', 'num', -.17, { min: -.35, max: .15, step: .005, unit: 'of height', dart: 'sphereOffset -.17' });
@@ -359,6 +368,7 @@ const sc = K.screen({
     def('Sphere', 'Body', 'sphere', 'sb.ambient', 'How much shows with no light', 'num', 0, { min: 0, max: 1, step: .005 });
     def('Sphere', 'Body', 'sphere', 'sb.limb', 'Darken toward the edge', 'num', .34, { min: 0, max: 1, step: .01 });
     def('Sphere', 'Body light', 'sphere', 'sb.topLight', 'Light from above', 'num', 1.2, { min: 0, max: 4, step: .05 });
+    def('Sphere', 'Body light', 'sphere', 'sb.topOn', 'Use body light', 'bool', true);
     def('Sphere', 'Body light', 'sphere', 'sb.topSharp', 'Light sharpness', 'num', 3, { min: .5, max: 20, step: .1 });
     def('Sphere', 'Body light', 'sphere', 'sb.topToward', 'Light toward you', 'num', .6, { min: -1, max: 2, step: .01 });
     def('Sphere', 'Body light', 'sphere', 'sb.topSide', 'Light from the side', 'num', 0, { min: -2, max: 2, step: .01 });
@@ -393,6 +403,7 @@ const sc = K.screen({
     def('Sphere', 'Runes', 'sphere', 'sphere.edgeFade', 'Edge fade', 'num', .22, { min: .01, max: 1, step: .01, info: 'How soon the runes fade toward the sphere edge.' });
     def('Sphere', 'Runes', 'sphere', 'sphere.maxLight', 'Max brightness', 'num', .85, { min: 0, max: 1, step: .01 });
     def('Sphere', 'Light from tabs', 'sphere.light', 'light.reachX', 'Light spread sideways', 'num', .32, { min: .01, max: 2, step: .01 });
+    def('Sphere', 'Light from tabs', 'sphere.light', 'light.on', 'Message tabs light the sphere', 'bool', true);
     def('Sphere', 'Light from tabs', 'sphere.light', 'light.reachY', 'Light spread up/down', 'num', .075, { min: .005, max: 1, step: .005 });
     def('Sphere', 'Light from tabs', 'sphere.light', 'light.cap', 'Light cap', 'num', .65, { min: 0, max: 1, step: .01 });
     def('Sphere', 'Light from tabs', 'sphere.light', 'light.first', 'Near-edge lamp', 'num', .42, { min: 0, max: 2, step: .01 });
@@ -402,6 +413,12 @@ const sc = K.screen({
     def('Sphere', 'Light from tabs', 'sphere.light', 'light.read', 'Read strength', 'num', .62, { min: 0, max: 2, step: .01 });
     def('Sphere', 'Light from tabs', 'sphere.light', 'light.reveal', 'Reveal brightness', 'num', 1, { min: 0, max: 4, step: .05, dart: 'revealBrightness' });
     // Busts
+    def('Busts', 'Path', 'busts.path', 'path.count', 'People considered along path', 'int', 7, { min: 2, max: 15, step: 1 });
+    def('Busts', 'Path', 'busts.path', 'path.radius', 'Path distance from sphere', 'num', 1, { min: .3, max: 2.5, step: .01 });
+    def('Busts', 'Path', 'busts.path', 'path.mirror', 'Mirror path to other side', 'bool', false);
+    def('Busts', 'Path', 'busts.path', 'path.rotate', 'Rotate the whole path', 'num', 0, { min: -180, max: 180, step: 1, unit: '°' });
+    def('Busts', 'Path', 'busts.path', 'path.offsetX', 'Path left / right', 'num', 0, { min: -200, max: 200, step: 1, unit: 'px' });
+    def('Busts', 'Path', 'busts.path', 'path.offsetY', 'Path up / down', 'num', 0, { min: -300, max: 300, step: 1, unit: 'px' });
     def('Busts', 'Path', 'busts.path', 'path.step', 'Spacing', 'num', .58, { min: .2, max: 1.5, step: .01, dart: '_rvStep' });
     def('Busts', 'Path', 'busts.path', 'path.limit', 'Path length', 'num', 1.45, { min: .5, max: 3, step: .01, dart: '_rvPathLimit' });
     def('Busts', 'Path', 'busts.path', 'path.start', 'Lead position', 'num', 1.05, { min: -1.5, max: 2.5, step: .01 });
@@ -475,6 +492,10 @@ const sc = K.screen({
     def('Message tabs', 'Message text', 'tabs.text', 'tabs.textGlowBlur', 'Glow blur', 'num', 4, { min: 0, max: 20, step: .5, unit: 'px' });
     def('Message tabs', 'Message text', 'tabs.text', 'tabs.empty', 'No-message text', 'text', 'Start a conversation');
     // Motion
+    def('Motion', 'Scroll', 'busts.path', 'motion.direction', 'Swipe direction', 'select', 1, { opts: [[1,'Follow swipe'],[-1,'Reverse swipe']] });
+    def('Motion', 'Scroll', 'busts.path', 'motion.swipe', 'Swipe sensitivity', 'num', 1, { min: .1, max: 4, step: .05 });
+    def('Motion', 'Scroll', 'busts.path', 'motion.inertia', 'Coast after release', 'bool', true);
+    def('Motion', 'Scroll', 'busts.path', 'motion.maxSpeed', 'Maximum fling speed', 'num', 9, { min: .1, max: 25, step: .1, unit: 'slots / s' });
     def('Motion', 'Scroll', 'busts.path', 'motion.entry', 'Entry time', 'num', .90, { min: .05, max: 5, step: .05, unit: 's', info: 'Press Replay entry to see it.' });
     def('Motion', 'Scroll', 'busts.path', 'motion.entryTravel', 'Entry travel', 'num', 4.6, { min: 0, max: 15, step: .1, unit: 'slots' });
     def('Motion', 'Scroll', 'busts.path', 'motion.friction', 'Fling glide', 'num', .46, { min: .05, max: 3, step: .01, unit: 's' });
@@ -514,7 +535,7 @@ const sc = K.screen({
     // tab lamps light the runes
     const lamps = [];
     for (const it of items) {
-      const cov = covered(it); if (cov >= .65 || P['tabs.glow'] <= 0) continue;
+      const cov = covered(it); if (cov >= .65 || P['tabs.glow'] <= 0 || P['light.on']===false) continue;
       const r = tabRect(g, it), str = [P['light.new'], P['light.unread'], P['light.read']][it.person.group] * (1 - cov) * P['tabs.glow'] * P['light.reveal'];
       for (let j = 0; j < 3; j++) lamps.push({ x: (r.x + r.w * j / 3 - g.cx) / g.radius, y: (r.y + r.h / 2 - g.cy) / g.radius, p: str * (j === 0 ? P['light.first'] : P['light.other']) });
     }
@@ -532,7 +553,7 @@ const sc = K.screen({
     if (base === 'sphere' || base === 'sphere.light') { H1(() => { ctx.beginPath(); ctx.arc(g.cx, g.cy, g.radius + 3, 0, TAU); }); if (base === 'sphere.light') for (const l of G.lamps) H1(() => { ctx.beginPath(); ctx.arc(g.cx + l.x * g.radius, g.cy + l.y * g.radius, 4, 0, TAU); }); }
     else if (base === 'holes') (G.holes || []).forEach(h => H1(() => { ctx.beginPath(); ctx.arc(h.c[0], h.c[1], h.r + 6, 0, TAU); }));
     else if (base === 'busts') G.busts.forEach(b => H1(box(b, 2)));
-    else if (base === 'busts.path') { H1(() => { ctx.beginPath(); const lim = P['path.limit']; for (let k = 0; k <= 60; k++) { const t = -lim + 2 * lim * k / 60, th = P['path.curve'] * t, sn = Math.sin(th), cs = Math.cos(th); const x = g.cx + g.radius * (-P['path.bulge'] * cs + P['path.lean'] * sn + P['path.flare'] * Math.pow(Math.abs(sn), 4)), y = g.cy - g.radius * sn; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } }); G.busts.forEach(b => H1(() => { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 3, 0, TAU); })); }
+    else if (base === 'busts.path') { H1(() => { ctx.beginPath(); const lim = P['path.limit']; for (let k = 0; k <= 60; k++) { const t = -lim + 2 * lim * k / 60, th = P['path.curve'] * t, sn = Math.sin(th), cs = Math.cos(th); const {x,y}=pathPoint(g,t); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } }); G.busts.forEach(b => H1(() => { ctx.beginPath(); ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 3, 0, TAU); })); }
     else if (base === 'names') G.names.forEach(b => H1(box(b)));
     else if (base === 'tethers') G.tethers.forEach(b => H1(box(b, 1)));
     else if (base === 'tabs' || base === 'tabs.text') G.tabs.forEach(b => H1(box(b, base === 'tabs' ? 3 : -2)));
@@ -566,14 +587,14 @@ const sc = K.screen({
     move(p, ev) {
       if (!ST.down || ev.pointerId !== ST.down.id) return;
       const g = G.g || geometry(), slot = g.radius * P['path.step'], dy = p.y - ST.lastY, now = performance.now();
-      ST.moved += Math.abs(dy); ST.scroll = clamp(ST.scroll - dy / slot, 0, PEOPLE.length - 1);
+      ST.moved += Math.abs(dy); ST.scroll = clamp(ST.scroll - dy / slot * P['motion.swipe'] * P['motion.direction'], 0, PEOPLE.length - 1);
       const dtm = Math.max(1, now - ST.lastT); ST.vy = ST.vy * .6 + (dy / dtm * 1000) * .4; ST.lastY = p.y; ST.lastT = now;
     },
     up(p, ev) {
       if (!ST.down || ev.pointerId !== ST.down.id) return;
       const g = G.g || geometry(), slot = g.radius * P['path.step'];
       ST.dragging = false; const tap = ST.moved < 8; ST.down = null;
-      if (!tap) { ST.velocity = clamp(-ST.vy / slot, -9, 9); return; }
+      if (!tap) { ST.velocity = P['motion.inertia'] ? clamp(-ST.vy / slot * P['motion.swipe'] * P['motion.direction'], -P['motion.maxSpeed'], P['motion.maxSpeed']) : 0; return; }
       const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       if (inR(G.back)) { K.show('dial'); return; }
       if (inR(G.refresh)) { ST.entry = 0; K.status('Refresh: in the app this reloads your conversations.'); return; }

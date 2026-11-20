@@ -36,6 +36,8 @@ function bgSpec(def) {
   def('Background', 'Mode', 'bg', 'bg.mode', 'Background', 'select', 'camera', { opts: [['camera', 'Live camera (see-through)'], ['tilt', 'Tilt backdrop (moves with phone)'], ['plain', 'Plain black']], info: 'What shows behind the page. Live camera = see-through. Tilt backdrop = one of your bg images that shifts as you tilt the phone (mouse on PC).' });
   def('Background', 'Mode', 'bg', 'bg.facing', 'Camera', 'select', 'environment', { opts: [['environment', 'Back camera'], ['user', 'Front camera']] });
   def('Background', 'Mode', 'bg', 'bg.image', 'Backdrop image', 'select', 'bg02', { opts: BG_LIST.map(b => [b, b]), info: 'Your images from the studio bg folder, used by Tilt backdrop.' });
+  def('Background', 'Camera & backdrop', 'bg', 'bg.overlay', 'Add backdrop over camera', 'bool', false, { info: 'Keep Live camera selected, then blend your chosen backdrop over it. The camera keeps running behind it.' });
+  def('Background', 'Camera & backdrop', 'bg', 'bg.overlayOpacity', 'Backdrop opacity', 'num', .5, { min: 0, max: 1, step: .01, info: '0 = camera only. Between = both. 1 = fully opaque backdrop. Glass controls are independent.' });
   def('Background', 'Tilt', 'bg', 'bg.tilt', 'Tilt travel', 'num', 40, { min: 0, max: 160, step: 1, unit: 'px' });
   def('Background', 'Tilt', 'bg', 'bg.zoom', 'Backdrop zoom', 'num', 1.25, { min: 1, max: 2.5, step: .01, unit: '×' });
   def('Background', 'Tilt', 'bg', 'bg.smooth', 'Tilt smoothing', 'num', .85, { min: 0, max: .97, step: .01 });
@@ -86,7 +88,7 @@ let camState = 'off', camFacing = null, camStream = null; const bgImg = new Imag
 const tilt = { tx: 0, ty: 0, x: 0, y: 0 }; K.tilt = tilt;
 async function ensureCamera() {
   const P = cur.P;
-  if (P['bg.mode'] !== 'camera') { stopCamera(); return; }
+  if (P['bg.mode'] !== 'camera' && !(P['env.on'] && P['env.source'] === 'camera')) { stopCamera(); return; }
   if (camState === 'on' && camFacing === P['bg.facing']) return;
   if (camState === 'starting') return;
   stopCamera(); camState = 'starting';
@@ -104,12 +106,17 @@ function drawBackground(ctx, P) {
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
   if (P['bg.blur'] > 0) blur(ctx, P['bg.blur']);
   if (P['bg.mode'] === 'camera' && camState === 'on' && cam.videoWidth) cover(ctx, cam, cam.videoWidth, cam.videoHeight, 1, 0, 0, P['bg.facing'] === 'user');
-  else if (P['bg.mode'] === 'tilt') { const f = 'bg/' + P['bg.image'] + '.jpg'; if (bgLoaded !== f) { bgLoaded = f; bgImg.src = f; } if (bgImg.complete && bgImg.naturalWidth) cover(ctx, bgImg, bgImg.naturalWidth, bgImg.naturalHeight, P['bg.zoom'], tilt.x * P['bg.tilt'], tilt.y * P['bg.tilt'], false); }
+  if (P['bg.mode'] === 'tilt' || (P['bg.mode'] === 'camera' && P['bg.overlay'])) { const f = 'bg/' + P['bg.image'] + '.jpg'; if (bgLoaded !== f) { bgLoaded = f; bgImg.src = f; } if (bgImg.complete && bgImg.naturalWidth) { ctx.save(); ctx.globalAlpha *= P['bg.mode'] === 'camera' ? clamp(P['bg.overlayOpacity'] ?? .5, 0, 1) : 1; cover(ctx, bgImg, bgImg.naturalWidth, bgImg.naturalHeight, P['bg.zoom'], tilt.x * P['bg.tilt'], tilt.y * P['bg.tilt'], false); ctx.restore(); } }
   ctx.restore();
   if (P['bg.dim'] > 0) { ctx.fillStyle = rgba(P['bg.dimColor'], P['bg.dim']); ctx.fillRect(0, 0, W, H); }
 }
 
 K.drawBackground = (ctx, P) => drawBackground(ctx, P);
+K.drawEnvironment = (ctx, P, source) => drawBackground(ctx, {
+  ...P, 'bg.dim': 0, 'bg.blur': 0,
+  'bg.mode': source === 'camera' ? 'camera' : source === 'backdrop' ? 'tilt' : P['bg.mode'],
+  'bg.overlay': source === 'camera' ? false : P['bg.overlay']
+});
 /* ---------- highlight ---------- */
 function activeTarget() { if (hover && (hoverUntil === Infinity || performance.now() < hoverUntil)) return hover; return null; }
 function sectionTarget() { const s = cur.SPEC.find(x => x.group === cur.ui.group && x.section === cur.ui.section); return s ? s.target.split(':')[0] : null; }
@@ -240,7 +247,7 @@ function makeRow(s) {
 function setVal(k, v, refreshRow = true) {
   cur.P[k] = v; cur.dirty = true;
   if (cur.onSet) cur.onSet(k, v);
-  if (k === 'bg.mode' || k === 'bg.facing') ensureCamera();
+  if (k === 'bg.mode' || k === 'bg.facing' || k === 'env.source' || k === 'env.on') ensureCamera();
   if (refreshRow && rowRefs[k]) rowRefs[k]();
 }
 K.setVal = setVal;
@@ -324,6 +331,7 @@ K.renderNow = () => render(performance.now());
 K.freeze = on => { frozen = on; };
 K.showHighlights = on => { showHL = on; };
 K.setHover = t => { hover = t; hoverUntil = t ? Infinity : 0; };
+K.currentTarget = () => activeTarget() || sectionTarget() || '';
 K.save = () => save(cur, false);
 K.frameId = () => frame;
 // Read an existing design without changing it or the current screen's values.
