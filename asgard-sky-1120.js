@@ -345,6 +345,111 @@ function drawBar(ctx, now) {
   }
 }
 
+/* ---------- black-hole flight (_enterPortal / _flightScene / _AsFlightDustPainter / _AsWormPainter / _AsWormStreakPainter / _portalRoom) ---------- */
+const easeOut = v => { const t = clamp(v, 0, 1); return 1 - Math.pow(1 - t, 3); };
+const wormCenter = (u, W, H) => [W / 2 + Math.sin(u * Math.PI * 2.3) * W * .09, H / 2 + Math.cos(u * Math.PI * 1.7) * H * .05];
+const wormRoll = u => Math.PI * 3 * u + .35 * Math.sin(u * Math.PI * 6);
+const hermite = (p0, p1, m0, m1, t, dt) => { const t2 = t * t, t3 = t2 * t; return (2 * t3 - 3 * t2 + 1) * p0 + (t3 - 2 * t2 + t) * m0 * dt + (-2 * t3 + 3 * t2) * p1 + (t3 - t2) * m1 * dt; };
+function spline(ts, vs, endSlope, q) { const n = ts.length, ms = new Array(n).fill(0); for (let k = 1; k < n - 1; k++) ms[k] = (vs[k + 1] - vs[k - 1]) / (ts[k + 1] - ts[k - 1]); ms[n - 1] = endSlope; let seg = 0; while (seg < n - 2 && q > ts[seg + 1]) seg++; const dt = ts[seg + 1] - ts[seg], t = clamp((q - ts[seg]) / dt, 0, 1); return hermite(vs[seg], vs[seg + 1], ms[seg], ms[seg + 1], t, dt); }
+DartRandom.prototype.nextBool = function () { return this.nextInt(2) === 0; };
+const DUST = (() => { const hz = new DartRandom(321), clouds = []; for (let i = 0; i < 5; i++) clouds.push([hz.nextDouble() * 2 - 1, hz.nextDouble() * 2 - 1, hz.nextDouble(), hz.nextInt(3)]);
+  const r = new DartRandom(9091), fine = []; for (let i = 0; i < 110; i++) fine.push([r.nextDouble() * 2.3 - 1.15, r.nextDouble() * 2.3 - 1.15, r.nextDouble(), .7 + r.nextDouble() * .6, r.nextDouble() < .18, .45 + r.nextDouble() * .55]);
+  const db = new DartRandom(7310), deb = []; for (let i = 0; i < 9; i++) { const sx = db.nextBool() ? 1 : -1, sy = db.nextBool() ? 1 : -1, ux = sx * (.3 + db.nextDouble() * .9), uy = sy * (.25 + db.nextDouble() * .9), z0 = db.nextDouble(), spd = .45 + db.nextDouble() * .35, base = 1.6 + db.nextDouble() * 2, spin = db.nextDouble() * TAU, jit = []; for (let j = 0; j < 7; j++) jit.push(.6 + db.nextDouble() * .55); deb.push({ ux, uy, z0, spd, base, spin, jit }); }
+  return { clouds, fine, deb }; })();
+const WORM = (() => { const r = new DartRandom(5521), neb = []; for (let i = 0; i < 16; i++) { const a = r.nextDouble() * TAU, spd = .6 + r.nextDouble() * .8, z0 = r.nextDouble(), tone = r.nextInt(4), st = .04 + .08 * r.nextDouble(); neb.push([a, spd, z0, tone, st]); }
+  const sp = new DartRandom(777), dust = []; for (let i = 0; i < 240; i++) dust.push([sp.nextDouble() * TAU, 1.4 + sp.nextDouble() * 3, sp.nextDouble(), sp.nextDouble() < .14]);
+  const st = new DartRandom(31), streaks = []; for (let i = 0; i < 60; i++) streaks.push([st.nextDouble() * TAU, 1.6 + st.nextDouble() * 2.4, st.nextDouble()]);
+  return { neb, dust, streaks }; })();
+function flightCam(F, q, W, H) {
+  const diag = Math.hypot(W, H), sceneH = Math.min(P['strip.max'], H * P['strip.share']), postTop = sceneH - 26, postH = Math.max(80, H - postTop), tg = F.target;
+  const p1 = [W * .5, postTop + postH / 6], p2 = [W * .5 + (tg[0] - W * .5) * .6, postTop - Math.min(60, sceneH * .25)], holeD = Math.max(24, F.holeD), lsEnd = Math.log(Math.max(6, diag * 1.25 / holeD));
+  const ts = [0, .30, .52, 1], xs = [W * .5, p1[0], p2[0], tg[0]], ys = [H * .5, p1[1], p2[1], tg[1]], ls = [0, Math.log(2.6), Math.log(1.9), lsEnd];
+  return { c: [spline(ts, xs, (xs[3] - xs[2]) / .48 * 1.2, q), spline(ts, ys, (ys[3] - ys[2]) / .48 * 1.2, q)], s: Math.exp(spline(ts, ls, (ls[3] - ls[2]) / .48 * 2.2, q)) };
+}
+function flightWorld(ctx, F, cam, rot, W, H, holeOp, alpha) {
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(W / 2, H / 2); ctx.rotate(rot); ctx.scale(cam.s, cam.s); ctx.translate(-cam.c[0], -cam.c[1]);
+  if (F.snap) ctx.drawImage(F.snap, 0, 0, W, H); else { ctx.fillStyle = '#02050A'; ctx.fillRect(0, 0, W, H); }
+  if (F.orb && holeOp > .01) { ctx.globalAlpha *= holeOp; const o = F.orb, top = F.top; ctx.save(); ctx.beginPath(); ctx.arc(o.x, o.y + top, o.d / 2, 0, TAU); ctx.clip(); const pic = o.person.pic; if (pic && pic.complete && pic.naturalWidth) { const s = Math.max(o.d / pic.naturalWidth, o.d / pic.naturalHeight); ctx.drawImage(pic, o.x - pic.naturalWidth * s / 2, o.y + top - pic.naturalHeight * s / 2, pic.naturalWidth * s, pic.naturalHeight * s); } ctx.restore(); if (o.live) drawHole(ctx, o, top); }
+  ctx.restore();
+}
+function flightScene(ctx, F, q, W, H) {
+  const diag = Math.hypot(W, H), cam = flightCam(F, q, W, H), prev = flightCam(F, Math.max(0, q - .02), W, H);
+  const vel = [(cam.c[0] - prev.c[0]) * cam.s, (cam.c[1] - prev.c[1]) * cam.s]; let speed = clamp(Math.hypot(vel[0], vel[1]) / (diag * .12), 0, 1); speed = Math.max(speed, clamp(((cam.s / prev.s) - 1) * 3, 0, 1));
+  const rot = clamp(-vel[0] / (diag * .9), -.07, .07) * (1 - smooth((q - .8) / .2)) * P['fl.bank'];
+  const rel = [(F.target[0] - cam.c[0]) * cam.s, (F.target[1] - cam.c[1]) * cam.s], focus = [W / 2 + rel[0] * Math.cos(rot) - rel[1] * Math.sin(rot), H / 2 + rel[0] * Math.sin(rot) + rel[1] * Math.cos(rot)];
+  const spaceIn = clamp((q - .42) / .58, 0, 1), travel = 2.4 * Math.pow(spaceIn, 1.7), black = smooth((q - .84) / .16);
+  flightWorld(ctx, F, cam, rot, W, H, smooth((q - .4) / .25), 1);
+  if (P['fl.blur'] && speed > .12 && q > .02) for (let g = 1; g <= 2; g++) flightWorld(ctx, F, flightCam(F, Math.max(0, q - .016 * g), W, H), rot, W, H, 0, clamp((g === 1 ? .2 : .1) * speed, 0, 1));
+  const alpha = smooth((q - .42) / .22) * (1 - black) * P['fl.dust'];
+  if (alpha > .01) {
+    for (const [ux, uy, z0, ci] of DUST.clouds) { const z = .15 + .85 * ((((z0 - travel * .35) % 1) + 1) % 1), k = .25 / z, px = focus[0] + ux * W * .55 * k, py = focus[1] + uy * H * .55 * k, rad = Math.min(W * 1.2, W * .30 * k), tint = ['#7A8794', '#8C7360', '#5E7392'][ci], al = clamp(alpha * .08 * smooth((1 - z) / .4), 0, 1); if (al <= .003) continue; const g = ctx.createRadialGradient(px, py, 0, px, py, rad); g.addColorStop(0, rgba(tint, al)); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, rad, 0, TAU); ctx.fill(); }
+    ctx.lineCap = 'round';
+    for (const [ux, uy, z0, spd, warm, bright] of DUST.fine) { const z = .07 + .93 * ((((z0 - travel * spd) % 1) + 1) % 1), k = .2 / z, px = focus[0] + ux * W * .55 * k, py = focus[1] + uy * H * .55 * k; if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue; const a = clamp(alpha * bright * smooth((1 - z) / .45), 0, 1); if (a <= .01) continue; const tone = warm ? '#FFE2BF' : '#DDE9F7', tr = .03 + .11 * speed; ctx.lineWidth = .5 + 1.5 * (1 - z); ctx.strokeStyle = rgba(tone, a * .8); ctx.beginPath(); ctx.moveTo(px - (px - focus[0]) * tr, py - (py - focus[1]) * tr); ctx.lineTo(px, py); ctx.stroke(); ctx.fillStyle = rgba(tone, a); ctx.beginPath(); ctx.arc(px, py, .45 + 1.1 * (1 - z), 0, TAU); ctx.fill(); }
+    for (const d of DUST.deb) { const z = .06 + .94 * ((((d.z0 - travel * d.spd) % 1) + 1) % 1), k = .24 / z, px = focus[0] + d.ux * W * .55 * k, py = focus[1] + d.uy * H * .55 * k, sz = d.base * (.9 / z); if (px < -sz || py < -sz || px > W + sz || py > H + sz) continue; const a = clamp(alpha * smooth((1 - z) / .5), 0, 1); if (a <= .01) continue; ctx.beginPath(); for (let j = 0; j < 7; j++) { const aa = d.spin + travel * 3 + j * TAU / 7, x = px + Math.cos(aa) * sz * d.jit[j], y = py + Math.sin(aa) * sz * d.jit[j]; j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fillStyle = `rgba(23,19,15,${a * .96})`; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = `rgba(192,144,96,${a * .5})`; ctx.stroke(); const tx = focus[0] - px, ty = focus[1] - py, dl = Math.hypot(tx, ty); if (dl > 1) { ctx.fillStyle = `rgba(255,201,138,${a * .4})`; ctx.beginPath(); ctx.arc(px + tx / dl * sz * .4, py + ty / dl * sz * .4, sz * .18, 0, TAU); ctx.fill(); } }
+  }
+  const vg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, .9 * Math.min(W, H)); vg.addColorStop(.55, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${clamp((.22 + .45 * speed) * P['fl.vignette'], 0, 1)})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = `rgba(0,0,0,${black})`; ctx.fillRect(0, 0, W, H);
+}
+const WTONES = ['#4A78A8', '#6A5AA0', '#B98443', '#3F8F9A'];
+function wormhole(ctx, F, u, v, W, H, alpha) {
+  const diag = Math.hypot(W, H), [cx, cy] = wormCenter(u, W, H), roll = wormRoll(u);
+  ctx.save(); ctx.globalAlpha *= alpha;
+  ctx.fillStyle = '#010307'; ctx.fillRect(0, 0, W, H);
+  const gr = diag * (.10 + .34 * smooth(u)); let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, gr); g.addColorStop(0, rgba(P['wh.light'], .20 + .30 * smooth(u))); g.addColorStop(.35, 'rgba(63,106,150,.12)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, gr, 0, TAU); ctx.fill();
+  if (P['wh.nebula']) for (const [a0, spd, z0, ti, st] of WORM.neb) { const a = a0 + roll * .8, z = (z0 + u * spd * 1.4) % 1, rr = diag * .75 * Math.pow(z, 2.2), px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr, rad = diag * (.05 + .45 * Math.pow(z, 1.6)), al = clamp(st * Math.sin(Math.PI * z) * P['wh.nebulaAlpha'], 0, 1); g = ctx.createRadialGradient(px, py, 0, px, py, rad); g.addColorStop(0, rgba(WTONES[ti], al)); g.addColorStop(1, rgba(WTONES[ti], 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, rad, 0, TAU); ctx.fill(); }
+  ctx.lineCap = 'round';
+  const nd = Math.round(P['wh.dust']); for (let i = 0; i < nd; i++) { const [a0, spd, z0, warm] = WORM.dust[i], a = a0 + roll, z = (z0 + u * spd) % 1, r = diag * .72 * Math.pow(z, 2.5) + 3, len = 4 + r * .22, dx = Math.cos(a), dy = Math.sin(a), rIn = Math.max(0, r - len); ctx.lineWidth = .4 + z * 1.2; ctx.strokeStyle = rgba(warm ? '#E0BCA0' : '#B4CEE8', clamp(.05 + .5 * z, 0, 1)); ctx.beginPath(); ctx.moveTo(cx + dx * rIn, cy + dy * rIn); ctx.lineTo(cx + dx * r, cy + dy * r); ctx.stroke(); }
+  if (v > 0) { const open = diag * 1.45 * easeOut(v); g = ctx.createRadialGradient(cx, cy, 0, cx, cy, open); g.addColorStop(0, '#05080F'); g.addColorStop(.82, '#05080F'); g.addColorStop(1, 'rgba(5,8,15,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, open, 0, TAU); ctx.fill(); }
+  g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, .95 * Math.min(W, H)); g.addColorStop(.45, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.8)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // their pictures on the tunnel walls
+  if (P['wh.tiles'] && F.walls.length) {
+    const n = F.walls.length, wlen = .55, tiles = [];
+    for (let i = 0; i < n; i++) { const start = n <= 1 ? .2 : i / (n - 1) * (1 - wlen), z = (u - start) / wlen; if (z <= .01 || z >= .995) continue; const a = i * 2.39996 + roll, r = 4 + Math.pow(z, 2.3) * diag * .8, sz = (12 + Math.pow(z, 1.9) * diag * .36) * P['wh.tileSize'], x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; if (x < -sz || y < -sz || x > W + sz || y > H + sz) continue; let o = 1; if (z < .1) o = z / .1; if (z > .88) o = (1 - z) / .12; if (o <= .02) continue; tiles.push({ z, a, sz, x, y, o, im: F.walls[i] }); }
+    tiles.sort((p, q) => p.z - q.z);
+    for (const t of tiles) { const stretch = 1 + 1.5 * Math.pow(t.z, 3); ctx.save(); ctx.globalAlpha *= clamp(t.o * .95, 0, 1); ctx.translate(t.x, t.y - t.sz * .375 + t.sz * .375); ctx.rotate(t.a + Math.PI / 2); ctx.scale(1, stretch); const w = t.sz, h = t.sz * .75; ctx.shadowColor = 'rgba(109,145,178,.3)'; ctx.shadowBlur = K.shadowBlurFor(ctx, 10); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 3); ctx.fill(); ctx.shadowBlur = 0; ctx.save(); ctx.clip(); const im = t.im; if (im && im.complete && im.naturalWidth) { const s = Math.max(w / im.naturalWidth, h / im.naturalHeight); ctx.drawImage(im, -im.naturalWidth * s / 2, -im.naturalHeight * s / 2, im.naturalWidth * s, im.naturalHeight * s); } ctx.restore(); ctx.lineWidth = .6; ctx.strokeStyle = 'rgba(180,206,232,.22)'; ctx.stroke(); ctx.restore(); }
+  }
+  if (P['wh.streaks']) { ctx.lineCap = 'round'; for (const [a0, spd, z0] of WORM.streaks) { const a = a0 + roll, z = (z0 + u * spd * 1.6) % 1, r = diag * .9 * Math.pow(z, 3.2), len = r * .35 + 6, dx = Math.cos(a), dy = Math.sin(a); ctx.lineWidth = .5 + z * 1.6; ctx.strokeStyle = `rgba(207,224,245,${clamp(.5 * z, 0, 1)})`; ctx.beginPath(); ctx.moveTo(cx + dx * Math.max(0, r - len), cy + dy * Math.max(0, r - len)); ctx.lineTo(cx + dx * r, cy + dy * r); ctx.stroke(); } }
+  ctx.restore();
+}
+function portalRoom(ctx, F, W, H, alpha, scale) {
+  const person = F.orb.person, live = person.is_live === true;
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(W / 2, H / 2); ctx.scale(scale, scale); ctx.translate(-W / 2, -H / 2);
+  ctx.fillStyle = '#03060B'; ctx.fillRect(0, 0, W, H);
+  const pic = person.pic; if (pic && pic.complete && pic.naturalWidth) { ctx.save(); ctx.globalAlpha *= P['room.bgAlpha']; const s = Math.max(W / pic.naturalWidth, H / pic.naturalHeight); ctx.drawImage(pic, (W - pic.naturalWidth * s) / 2, (H - pic.naturalHeight * s) / 2, pic.naturalWidth * s, pic.naturalHeight * s); ctx.restore(); }
+  let g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 1.2 * Math.min(W, H)); g.addColorStop(0, 'rgba(26,43,66,.17)'); g.addColorStop(1, 'rgba(3,6,11,.94)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  icon(ctx, new Path2D('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'), 12 + 12, 8 + 12, 24, '#DAE5F0');
+  ctx.font = '400 11px Roboto'; ctx.fillStyle = '#ACC0D2'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; spaced(ctx, 'ASGARD', 12 + 48 + 4, 8 + 24, 3);
+  const fs = P['room.face'], blockH = fs + 22 + 13 + 8 + 35 + 13 + (live ? 0 : 0) + 28 + 48, top = 8 + 48 + 5 + Math.max(0, (H - 8 - 48 - 5 - 28 - 48 - 28 - blockH) / 2), fx = W / 2, fy = top + fs / 2;
+  ctx.save(); ctx.shadowColor = 'rgba(39,71,104,.27)'; ctx.shadowBlur = K.shadowBlurFor(ctx, 46); ctx.fillStyle = '#03060B'; ctx.beginPath(); ctx.arc(fx, fy, fs / 2, 0, TAU); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = 'rgba(139,159,183,.45)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(fx, fy, fs / 2 - .5, 0, TAU); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.arc(fx, fy, fs / 2 - 3, 0, TAU); ctx.clip(); if (pic && pic.complete && pic.naturalWidth) { const s = Math.max((fs - 6) / pic.naturalWidth, (fs - 6) / pic.naturalHeight); ctx.drawImage(pic, fx - pic.naturalWidth * s / 2, fy - pic.naturalHeight * s / 2, pic.naturalWidth * s, pic.naturalHeight * s); } ctx.restore();
+  let y = top + fs + 22; ctx.textAlign = 'left'; ctx.font = '400 10px Roboto'; ctx.fillStyle = '#8EA7BB'; const lab = live ? P['room.liveLabel'] : 'ASGARD PROFILE'; ctx.save(); ctx.textBaseline = 'top'; const lw = (() => { let w = 0; for (const c of lab) w += ctx.measureText(c).width + 2.2; return w - 2.2; })(); spaced(ctx, lab, W / 2 - lw / 2, y, 2.2); ctx.restore();
+  y += 13 + 8; ctx.font = `400 ${P['room.nameSize']}px Georgia, serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(person.name, W / 2, y); y += P['room.nameSize'] * 1.2 + 13 + 28;
+  ctx.font = '500 14px Roboto'; const bt = P['room.button'], bw = ctx.measureText(bt).width + 56, bh = 48; ctx.strokeStyle = '#5F7890'; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(W / 2 - bw / 2, y, bw, bh, 4); ctx.stroke(); ctx.fillStyle = '#E2E8EE'; ctx.textBaseline = 'middle'; ctx.fillText(bt, W / 2, y + bh / 2); F.btn = { x: W / 2 - bw / 2, y, w: bw, h: bh };
+  ctx.font = '500 14px Roboto'; ctx.fillStyle = '#9DB2C5'; ctx.fillText(P['room.return'], W / 2, H - 28 - 24); F.ret = { x: W / 2 - 140, y: H - 28 - 48, w: 280, h: 48 };
+  ctx.restore();
+}
+function drawFlight(ctx, now) {
+  const F = ST.flight, W = K.W, H = K.H, t = F.t, a = F.flyEnd, b = F.tunnelEnd;
+  const u = t <= a ? 0 : clamp((t - a) / (b - a), 0, 1), v = t <= b ? 0 : clamp((t - b) / (1 - b), 0, 1);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  if (t < a + .02) flightScene(ctx, F, clamp(t / a, 0, 1), W, H);
+  if (t >= a) wormhole(ctx, F, u, v, W, H, smooth(u / .14));
+  if (v > 0) portalRoom(ctx, F, W, H, smooth((v - .1) / .7), 1.5 - .5 * easeOut(v));
+  if (F.dir !== 0) { ctx.font = '400 12px Roboto'; ctx.fillStyle = '#C7D5E2'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('Skip effect', W - 12 - 8, 10 + 14); }
+}
+function startFlight(o) {
+  const W = K.W, H = K.H, top = G.top || 48;
+  // freeze exactly what is on screen (the flight starts from it)
+  const snap = document.createElement('canvas'); snap.width = Math.round(W * 2.5); snap.height = Math.round(H * 2.5); const sx = snap.getContext('2d'); sx.scale(2.5, 2.5);
+  const keepHL = true; ST.flight = null; sc.draw(sx, performance.now(), false);
+  const posts = Math.round(P['fl.posts']), ms = clamp(Math.round(1500 + 1500 * Math.min(1, posts / 1000)), 1500, 3000) * P['fl.speed'];
+  const slots = Math.round(ms / 1000 * 14), walls = POSTS.map(p => p.pic0 || p.pic).filter(Boolean).slice(0, slots); walls.push(o.person.pic);
+  const flyMs = Math.min(1000, Math.max(650, ms * .42)), tailMs = Math.min(600, Math.max(320, ms * .22));
+  ST.flight = { orb: Object.assign({}, o), top, target: [o.x, o.y + top], holeD: o.d, snap, walls, ms, flyEnd: flyMs / ms, tunnelEnd: 1 - tailMs / ms, t: 0, dir: 1 };
+  K.status('Flying into ' + o.person.name + '’s black hole. Tap "Return through the black hole" to come back.');
+}
+
 /* ---------- labels ---------- */
 const PLACE = new Path2D('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zM7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.88-2.88 7.19-5 9.88C9.92 16.21 7 11.85 7 9zm5 2.5c1.38 0 2.5-1.12 2.5-2.5S13.38 6.5 12 6.5 9.5 7.62 9.5 9s1.12 2.5 2.5 2.5z');
 function spaced(ctx, text, x, y, spacing) { let cx = x; for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; } return cx - x; }
@@ -482,6 +587,25 @@ const sc = K.screen({
     def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.hornGlow', 'Horn bursting (a saga was sent to you)', 'bool', false);
     def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.hornDot', 'Dot (follow request waiting)', 'bool', false);
     def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.dotColor', 'Dot color', 'color', '#FFC72C');
+    def('Black-hole flight', 'Trip', 'flight', 'fl.posts', 'Their post count (sets trip length)', 'int', 40, { min: 0, max: 1000, step: 10, info: '1.5 s at few posts, 3 s at 1,000 posts. Tap a black hole, or press "Fly into a hole".' });
+    def('Black-hole flight', 'Trip', 'flight', 'fl.speed', 'Slow motion', 'num', 1, { min: 1, max: 6, step: .25, unit: '×', info: 'Studio only: stretch the trip to study it.' });
+    def('Black-hole flight', 'Trip', 'flight', 'fl.bank', 'Camera bank', 'num', 1, { min: 0, max: 4, step: .05 });
+    def('Black-hole flight', 'Trip', 'flight', 'fl.blur', 'Motion blur', 'bool', true);
+    def('Black-hole flight', 'Trip', 'flight', 'fl.dust', 'Space dust', 'num', 1, { min: 0, max: 3, step: .05 });
+    def('Black-hole flight', 'Trip', 'flight', 'fl.vignette', 'Dark edges at speed', 'num', 1, { min: 0, max: 2, step: .05 });
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.light', 'Light at the far end', 'color', '#BFD7F0');
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.nebula', 'Nebula light on the walls', 'bool', true);
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.nebulaAlpha', 'Nebula strength', 'num', 1, { min: 0, max: 4, step: .05 });
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.dust', 'Rushing dust', 'int', 240, { min: 0, max: 240, step: 10 });
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.streaks', 'Near streaks', 'bool', true);
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.tiles', 'Their pictures on the walls', 'bool', true);
+    def('Black-hole flight', 'Wormhole', 'flight', 'wh.tileSize', 'Picture size', 'num', 1, { min: .3, max: 3, step: .05 });
+    def('Black-hole flight', 'Arrival', 'flight', 'room.face', 'Face size', 'num', 178, { min: 60, max: 320, step: 1, unit: 'px' });
+    def('Black-hole flight', 'Arrival', 'flight', 'room.bgAlpha', 'Face behind everything', 'num', .18, { min: 0, max: 1, step: .01 });
+    def('Black-hole flight', 'Arrival', 'flight', 'room.nameSize', 'Name size', 'num', 29, { min: 12, max: 60, step: .5, unit: 'px' });
+    def('Black-hole flight', 'Arrival', 'flight', 'room.liveLabel', 'Live label', 'text', 'LIVE CREATOR');
+    def('Black-hole flight', 'Arrival', 'flight', 'room.button', 'Button', 'text', 'Enter live stream');
+    def('Black-hole flight', 'Arrival', 'flight', 'room.return', 'Return line', 'text', 'Return through the black hole');
     def('Test people', 'Live test accounts', 'holes', 'test.count', 'How many streaming', 'int', 12, { min: 0, max: 12, step: 1, info: 'Baldr, Saga, Tyr, Vidar… from live_streams, most viewers first.' });
     def('Test people', 'Live test accounts', 'holes', 'test.viewers', 'Viewers ×', 'num', 1, { min: .01, max: 20, step: .01, info: 'Scale everyone\'s viewers to watch holes change stage.' });
     def('Test people', 'Live test accounts', 'holes', 'test.live', 'They are live', 'bool', true);
@@ -489,11 +613,14 @@ const sc = K.screen({
   toolbar: [
     { label: 'Pause drift', title: 'Stop / start the drift', onclick: () => { ST.paused = !ST.paused; K.status(ST.paused ? 'Drift paused. Drag the strip sideways to move it.' : 'Drift running.'); } },
     { label: 'Re-center', title: 'Clear the swipe offset', onclick: () => { ST.swipe = 0; } },
+    { label: 'Fly into a hole', title: 'Play the black-hole flight into the hole nearest the middle', onclick: () => { if (ST.flight) { ST.flight = null; return; } const o = G.orbs.slice().sort((a, b) => Math.abs(a.x - K.W / 2) - Math.abs(b.x - K.W / 2))[0]; if (o) startFlight(o); } },
   ],
   onShow() { P = sc.P; },
-  update(dt) { P = sc.P; if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
+  update(dt) { P = sc.P; if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
   draw(ctx, now, studio) {
-    P = sc.P; sc.ty = 0; const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
+    P = sc.P; sc.ty = 0;
+    if (ST.flight) { drawFlight(ctx, now); if (studio) K.hl(ctx, now); return; }
+    const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
     G.strip = { x: 0, y: 0, w: W, h: sh };
     if (P['feed.bg']) { ctx.fillStyle = P['post.bg']; ctx.fillRect(0, 0, W, H); }
     const feedTop = sh - P['strip.fade'], pageH = H - feedTop; G.feedTop = feedTop; G.pageH = pageH; G.maxScroll = Math.max(0, POSTS.length * pageH + footprint() - pageH);
@@ -558,15 +685,19 @@ const sc = K.screen({
     return ['Background', null];
   },
   pointer: {
-    down(p) { const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, v: 0 }; } },
+    down(p) { if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, v: 0 }; } },
     move(p) { const d = ST.drag; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
     up(p) {
       const d = ST.drag; ST.drag = null; if (!d) return;
+      if (d.mode === 'flight') { const F = ST.flight; if (!F) return; const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+        if (F.dir !== 0 && p.y < 60 && p.x > K.W - 120) { F.t = F.dir > 0 ? 1 : 0; if (F.dir > 0) F.dir = 0; else ST.flight = null; return; }
+        if (F.dir === 0 && (inR(F.ret) || (p.y < 60 && p.x < 60))) { F.dir = -1; return; }
+        if (F.dir === 0 && inR(F.btn)) { K.status('In the app this enters ' + F.orb.person.name + '’s live stream.'); } return; }
       if (d.mode === 'feed') {
         if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { K.status(b.label + ': opens its page in the app.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; } return; }
         ST.vel = clamp(d.v, -4000, 4000); return;
       }
-      if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) K.status('Tapped ' + hit.person.name + ': in the app this opens the black-hole flight into their live room.'); return; }
+      if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) startFlight(hit); return; }
       ST.swipe += clamp(d.v, -650, 650) * .14;
     },
     cancel() { ST.drag = null; },
