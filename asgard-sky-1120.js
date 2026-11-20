@@ -1,0 +1,457 @@
+/* =====================================================================
+   ASGARD — LIVE DISCOVERY STRIP (the black holes). Screen module for
+   studio-kit-1119. Port of the Asgard custom widget (FlutterFlow export
+   2026-11-19): _scene(), _orbLayout(), _orbLayer(), _diskLayer(), _asTint(),
+   AsgardDeepSpacePainter, _AsSkyPainter + _AsLensPainter (gravitational
+   lensing of the Webb deep field), _AsSpacePainter rims, _AsLinkPainter.
+   The stars use Dart's own Random algorithm and seeds, so they land where
+   they do in the app. People = the live_streams test accounts.
+   ===================================================================== */
+(() => {
+'use strict';
+const K = window.StudioKit;
+const { TAU, clamp, rgba, scaleOf } = K;
+let P = {};
+const smooth = v => { const t = clamp(v, 0, 1); return t * t * (3 - 2 * t); };
+
+/* ---------- Dart's math.Random (VM: multiply-with-carry, Wang seed mix) ---------- */
+class DartRandom {
+  constructor(seed) {
+    const M = (1n << 64n) - 1n, s64 = v => BigInt.asIntN(64, v);
+    let s = BigInt(seed);
+    s = s64((~s) + (s << 21n)); s = s64(s ^ (s >> 24n)); s = s64((s + (s << 3n)) + (s << 8n)); s = s64(s ^ (s >> 14n));
+    s = s64((s + (s << 2n)) + (s << 4n)); s = s64(s ^ (s >> 28n)); s = s64(s + (s << 31n)); if (s === 0n) s = 0x5a17n;
+    const u = s & M; this.lo = u & 0xFFFFFFFFn; this.hi = (u >> 32n) & 0xFFFFFFFFn;
+    for (let i = 0; i < 4; i++) this.next();
+  }
+  next() { const st = 0xFFFFDA61n * this.lo + this.hi; this.lo = st & 0xFFFFFFFFn; this.hi = (st >> 32n) & 0xFFFFFFFFn; }
+  nextInt(max) {
+    if ((max & -max) === max) { this.next(); return Number(this.lo & BigInt(max - 1)); }
+    let r, res; do { this.next(); r = Number(this.lo); res = r % max; } while (r - res + max > 4294967296); return res;
+  }
+  nextDouble() { return (this.nextInt(1 << 26) * 134217728 + this.nextInt(1 << 27)) / 9007199254740992; }
+}
+
+/* ---------- assets ---------- */
+const img = src => { const i = new Image(); if (/^https?:/.test(src)) { i.crossOrigin = 'anonymous'; i.onerror = () => { if (i.crossOrigin) { i.onerror = null; i.removeAttribute('crossorigin'); i.src = src + (src.includes('?') ? '&' : '?') + 'nc=1'; } }; } i.src = src; return i; };
+const KIND_IMG = ['blue', 'yellow', 'orange', 'grey', 'face', 'disk'].map(n => img('asgard/' + n + '.webp'));
+const KINDS = [[264, 264, 90], [576, 236, 90], [902, 246, 90], [340, 338, 60], [404, 402, 70], [460, 250, 60]];
+const SKY = img('asgard/sky.jpeg');
+// live_streams rows for the test accounts (top 12 by viewers, as the app takes them)
+const LIVE = [['ad58d4a8', 6, 'Baldr', 'https://i.pravatar.cc/300?img=47', 2500, 1200000], ['c629bbfb', 17, 'Saga', 'asgard/avatars/a17.jpg', 520, 210000], ['8d57245d', 5, 'Tyr', 'https://i.pravatar.cc/300?img=32', 300, 450000], ['e6ed49e6', 12, 'Vidar', 'asgard/avatars/a12.jpg', 160, 88000], ['44816937', 4, 'Sif', 'https://i.pravatar.cc/300?img=20', 120, 90000], ['6bbd8f09', 8, 'Idun', 'https://i.pravatar.cc/300?img=64', 80, 1000000], ['ca4514c3', 14, 'Skadi', 'asgard/avatars/a14.jpg', 60, 25000], ['d773845e', 3, 'Loki', 'https://i.pravatar.cc/300?img=16', 45, 18000], ['4cd96483', 11, 'Ullr', 'asgard/avatars/a11.jpg', 30, 12000], ['4c6c8946', 16, 'Eir', 'asgard/avatars/a16.jpg', 18, 5200], ['44d9f07d', 2, 'Freya', 'https://i.pravatar.cc/300?img=9', 12, 2500], ['b7db81e2', 10, 'Bragi', 'asgard/avatars/a10.jpg', 12, 3400]]
+  .map(([sid, n, name, url, viewers, followers]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + String(n).padStart(2, '0'), stream_id: sid, orb_key: 'stream:' + sid, name, url, viewer_count: viewers, follower_count: followers, is_live: true, pic: img(url) }));
+
+/* ---------- state ---------- */
+const ST = { motion: .18, swipe: 0, drag: null, links: [], orbs: [] };
+let G = { orbs: [], strip: null, labels: {} };
+const asHash = key => { let h = 7; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) & 0x7fffffff; return h; };
+const asHeat = (v, lo, hi) => { const l = Math.log(lo), h = Math.log(hi), x = Math.log(Math.max(1, v)); return clamp((x - l) / (h - l), 0, 1); };
+const massScale = f => { if (f < P['size.growStart']) return 1; const g = asHeat(f, P['size.growStart'], P['size.growMax']); return 1 + P['size.growBy'] * Math.pow(g, P['size.growCurve']); };
+function people() {
+  const n = clamp(Math.round(P['test.count']), 0, LIVE.length);
+  return LIVE.slice(0, n).map(p => Object.assign({}, p, { viewer_count: Math.round(p.viewer_count * P['test.viewers']), is_live: P['test.live'] }));
+}
+
+/* ---------- _orbLayout ---------- */
+function orbLayout(w, h) {
+  const ppl = people(); const n = ppl.length; if (!n) { ST.links = []; return []; }
+  const base = clamp(w * P['size.base'], P['size.min'], P['size.max']), motion = ST.motion;
+  const keys = ppl.map(p => p.orb_key || p.id), views = ppl.map(p => Math.max(0, p.viewer_count | 0));
+  const liveIdx = []; for (let i = 0; i < n; i++) if (ppl[i].is_live) liveIdx.push(i);
+  liveIdx.sort((a, b) => (views[b] - views[a]) || (asHash(keys[a]) - asHash(keys[b])));
+  let litKey = '', litScore = -1;
+  for (const i of liveIdx) { if (views[i] < P['th.lit'] && ppl[i].is_exceptional !== true) continue; const score = (ppl[i].is_exceptional ? 1e9 : 0) + views[i]; if (score > litScore) { litScore = score; litKey = keys[i]; } }
+  const fireSlots = Math.max(1, Math.round(liveIdx.length * P['mix.fire'])), glowSlots = Math.max(1, Math.round(liveIdx.length * P['mix.glow']));
+  let fireUsed = 0, glowUsed = 0; const stage = new Array(n).fill(0), kind = new Array(n).fill(3), heat = new Array(n).fill(0), warm = new Array(n).fill(0);
+  for (const i of liveIdx) {
+    const v = views[i];
+    if (litKey && keys[i] === litKey && P['look.lit']) { stage[i] = 4; kind[i] = 5; heat[i] = 1; }
+    else if (v >= P['th.disk'] && fireUsed < fireSlots) { fireUsed++; stage[i] = v >= P['th.mid'] ? 3 : 2; kind[i] = [1, 2, 4][asHash(keys[i]) % 3]; heat[i] = asHeat(v, P['th.disk'], P['th.lit']); }
+    else if (v >= P['th.glow'] && glowUsed < glowSlots) { glowUsed++; stage[i] = 1; kind[i] = 0; warm[i] = P['look.warmBase'] + P['look.warmRange'] * asHeat(v, P['th.glow'], P['th.disk']); heat[i] = asHeat(v, P['th.glow'], P['th.disk']); }
+    else if (v >= P['th.glow']) { stage[i] = 0; kind[i] = 0; }
+    else { stage[i] = 0; kind[i] = 3; }
+  }
+  const yellowTilt = [-.5, -.28, 0, .3, .55, 1.0, -1.0], sideTilt = [0, .18, -.18, .4, 1.35, -1.35, -.4], gargTilt = [-.2, .12, .42, -.45, .9, -.8], hues = [0, 0, -30, 40, 160, 215, 290];
+  const dia = [], tilts = [], flips = [], hueList = [], exts = [];
+  for (let i = 0; i < n; i++) {
+    const diameter = base * massScale(Math.max(0, ppl[i].follower_count | 0)), hs = asHash(keys[i]); let t;
+    switch (kind[i]) { case 1: t = yellowTilt[Math.floor(hs / 3) % yellowTilt.length]; break; case 2: t = sideTilt[Math.floor(hs / 3) % sideTilt.length]; break; case 5: t = gargTilt[Math.floor(hs / 3) % gargTilt.length]; break; default: t = (Math.floor(hs / 3) % 12) * .5236; }
+    dia.push(diameter); tilts.push(t * P['look.tilt']); flips.push(Math.floor(hs / 7) % 2 === 0);
+    const disk = stage[i] >= 2 && kind[i] !== 5; hueList.push(disk && P['look.hues'] ? hues[Math.floor(hs / 11) % hues.length] * Math.PI / 180 : 0);
+    let f; if (stage[i] === 4) f = 1.55; else if (kind[i] === 0) f = .78; else if (kind[i] === 3) f = .95; else if (kind[i] === 1) f = stage[i] === 3 ? 1.35 : 1.05; else if (kind[i] === 2) f = stage[i] === 3 ? 1.55 : 1.25; else f = stage[i] === 3 ? 1.2 : .95;
+    exts.push(diameter * f);
+  }
+  let bigD = 0; for (const d of dia) bigD = Math.max(bigD, d);
+  const fitD = Math.max(24, h - 79);
+  if (bigD > fitD) { const b0 = Math.min(base, fitD * .55), g = Math.log(fitD / b0) / Math.max(1e-6, Math.log(bigD / base)); for (let i = 0; i < n; i++) { const nd = b0 * Math.pow(Math.max(1, dia[i] / base), g), k = nd / dia[i]; dia[i] = nd; exts[i] *= k; } }
+  let maxExt = 0, total = 0; for (const e of exts) { maxExt = Math.max(maxExt, e); total += e * 2 + P['move.gap']; }
+  const span = Math.max(total, w + maxExt * 2 + 24), xs = [], ys = []; let cursor = 0;
+  const sw = clamp(ST.swipe, -w * .16, w * .16);
+  for (let i = 0; i < n; i++) {
+    const slot = exts[i] * 2 + P['move.gap'], c0 = cursor + slot / 2; cursor += slot;
+    const x = n === 1 ? w * .5 + Math.sin(motion * TAU) * w * .24 + sw : n === 2 ? w * (i === 0 ? .28 : .72) + Math.sin(motion * TAU + i * 2.8) * w * .12 + sw : (((c0 - motion * span + ST.swipe + span * 10 + maxExt) % span) + span) % span - maxExt;
+    xs.push(x);
+    const yr = dia[i] / 2 + 3, y0 = h * P['move.row'] + Math.sin(i * 2.24) * P['move.rowVary'] + Math.sin(motion * TAU + i) * 3, yLo = yr - 44, yHi = h + 3 - yr;
+    ys.push(yLo > yHi ? (yLo + yHi) / 2 : clamp(y0, yLo, yHi));
+  }
+  if (n >= 3) for (let i = 0; i < n; i++) { const hs = asHash(keys[i]), f1 = 3 + hs % 4, ph = (hs % 628) / 100; xs[i] += Math.sin(motion * TAU * f1 + ph) * exts[i] * P['move.wander']; }
+  const px = new Array(n).fill(0), py = new Array(n).fill(0), tw = new Array(n).fill(0), pairs = [];
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const ddx = xs[j] - xs[i], ddy = ys[j] - ys[i], dist = Math.hypot(ddx, ddy) + 1e-6, sum = exts[i] + exts[j], reach = sum * P['pair.reach'] + 24;
+    if (dist >= reach) continue; const s = smooth(1 - dist / reach); if (s <= .01) continue;
+    const mi = dia[i] * dia[i], mj = dia[j] * dia[j], wi = mj / (mi + mj), wj = mi / (mi + mj), ux = ddx / dist, uy = ddy / dist;
+    const pull = Math.min(P['pair.pull'], Math.max(0, dist - sum * .85) * .3) * s;
+    px[i] += ux * pull * wi; py[i] += uy * pull * wi; px[j] -= ux * pull * wj; py[j] -= uy * pull * wj;
+    const dir = ((asHash(keys[i]) ^ asHash(keys[j])) % 2 === 0) ? 1 : -1, a = P['pair.swing'] * s * dir;
+    const cx = (xs[i] * mi + xs[j] * mj) / (mi + mj), cy = (ys[i] * mi + ys[j] * mj) / (mi + mj), ca = Math.cos(a), sa = Math.sin(a);
+    const ix = xs[i] - cx, iy = ys[i] - cy; px[i] += (ix * ca - iy * sa) - ix; py[i] += ((ix * sa + iy * ca) - iy) * .6;
+    const jx = xs[j] - cx, jy = ys[j] - cy; px[j] += (jx * ca - jy * sa) - jx; py[j] += ((jx * sa + jy * ca) - jy) * .6;
+    const ang = Math.atan2(uy, ux); tw[i] += Math.sin(ang * 2) * .22 * s * wi + .18 * s * dir * wi; tw[j] += Math.sin(ang * 2) * .22 * s * wj - .18 * s * dir * wj;
+    pairs.push([i, j, s]);
+  }
+  for (let i = 0; i < n; i++) { xs[i] += px[i]; ys[i] += py[i]; tilts[i] += tw[i]; }
+  for (let pass = 0; pass < 2; pass++) for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const ddx = xs[j] - xs[i], ddy = ys[j] - ys[i], dist = Math.hypot(ddx, ddy) + 1e-6, minSep = (exts[i] + exts[j]) * P['pair.minSep']; if (dist >= minSep) continue;
+    const push = minSep - dist, ux = dist < 1e-3 ? 1 : ddx / dist, uy = dist < 1e-3 ? 0 : ddy / dist;
+    if (dia[i] >= dia[j]) { xs[j] += ux * push; ys[j] += uy * push * .5; } else { xs[i] -= ux * push; ys[i] -= uy * push * .5; }
+  }
+  const finalY = [], shown = [];
+  for (let i = 0; i < n; i++) { const minY = dia[i] / 2 + 25, maxY = Math.max(minY, h - dia[i] / 2 - 52); finalY[i] = clamp(ys[i], minY, maxY); if (xs[i] + exts[i] >= 0 && xs[i] - exts[i] <= w) shown.push(i); }
+  shown.sort((a, b) => Math.abs(xs[a] - w / 2) - Math.abs(xs[b] - w / 2));
+  const keep = shown.slice(0, Math.round(P['move.keep']));
+  const result = keep.map(i => ({ person: ppl[i], x: xs[i], y: finalY[i], d: dia[i], stage: stage[i], kind: kind[i], heat: heat[i], warm: warm[i], tilt: tilts[i], flip: flips[i], hue: hueList[i], live: ppl[i].is_live === true, strength: kind[i] === 3 ? P['lens.grey'] : kind[i] === 0 ? P['lens.blue'] : kind[i] === 5 ? P['lens.lit'] : P['lens.disk'] }));
+  ST.links = pairs.filter(([i, j]) => keep.includes(i) && keep.includes(j)).map(([i, j, s]) => [xs[i], finalY[i], dia[i] / 2, xs[j], finalY[j], dia[j] / 2, s]);
+  return result;
+}
+
+/* ---------- AsgardDeepSpacePainter (cached; Dart Random seeds) ---------- */
+const deepCache = new Map();
+function deepSpace(w, h, k) {
+  const key = [w, h, k, P['deep.band'], P['deep.stars'], P['deep.bright'], P['deep.grains'], P['deep.bandTilt']].join('|'); let c = deepCache.get(key); if (c) return c;
+  c = document.createElement('canvas'); c.width = Math.ceil(w * k); c.height = Math.ceil(h * k); const x = c.getContext('2d'); x.scale(k, k);
+  const g = x.createLinearGradient(0, 0, 0, h); [[0, '#02050A'], [.24, '#050A12'], [.55, '#040912'], [.80, '#03060C'], [1, '#010307']].forEach(([s, col]) => g.addColorStop(s, col)); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  const tones = ['#E5F0FF', '#D2E3F7', '#FFF6DD', '#FFDFB2', '#E8C6B5'], soft = '#A9B8C7', bandY = xn => .65 - .39 * xn;
+  x.save(); x.translate(w * .51, h * .45); x.rotate(P['deep.bandTilt']);
+  const veil = (y, hh, tone, alpha) => { alpha *= P['deep.band']; const cx = 0, cy = y * h, rx = w * 1.75 / 2, ry = hh * h / 2; x.save(); x.translate(cx, cy); x.scale(1, ry / rx); const gr = x.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, rgba(tone, alpha)); gr.addColorStop(.45, rgba(tone, alpha * .55)); gr.addColorStop(1, rgba(tone, 0)); x.fillStyle = gr; x.beginPath(); x.arc(0, 0, rx, 0, TAU); x.fill(); x.restore(); };
+  veil(0, .44, '#8798A5', .088); veil(-.035, .27, '#C1C6C5', .036); veil(.072, .19, '#5B7180', .048); veil(.008, .060, '#795B43', .024); veil(.068, .043, '#69513E', .018); x.restore();
+  const gr = new DartRandom(8201623);
+  for (let i = 0; i < 1600; i++) {
+    const px = gr.nextDouble() * w, lineY = bandY(px / w) * h, off = (gr.nextDouble() + gr.nextDouble() - 1) * h * .16, y = lineY + off;
+    if (y < 0 || y > h * .81) continue; const fade = clamp(1 - Math.abs(off) / (h * .17), 0, 1); if (fade < .06) continue;
+    const warmS = gr.nextDouble() < .085, a = (.013 + gr.nextDouble() * .044) * fade, r = .30 + gr.nextDouble() * 1.35;
+    if (i >= P['deep.grains']) continue; x.fillStyle = rgba(warmS ? '#A18C78' : soft, a * P['deep.band']); x.beginPath(); x.arc(px, y, r, 0, TAU); x.fill();
+  }
+  const rng = new DartRandom(10801920);
+  for (let i = 0; i < 4700; i++) {
+    const inBand = i >= 3550, px = rng.nextDouble() * w; let y = rng.nextDouble() * h;
+    if (inBand) { const a = rng.nextDouble() + rng.nextDouble() - 1; y = bandY(px / w) * h + a * h * .105; }
+    if (y < 0 || y >= h) continue; if (y > .80 * h && rng.nextDouble() < .64) continue;
+    const p = rng.nextDouble(), r = p < .86 ? .13 + rng.nextDouble() * .25 : .39 + rng.nextDouble() * .44, strength = (inBand ? .29 : .20) + rng.nextDouble() * .58, dim = y > h * .8 ? .48 : 1;
+    const tone = tones[rng.nextInt(100) < 71 ? rng.nextInt(2) : 2 + rng.nextInt(3)];
+    if (i >= P['deep.stars']) continue; x.fillStyle = rgba(tone, clamp(strength * dim * P['deep.starAlpha'], 0, 1)); x.beginPath(); x.arc(px, y, r, 0, TAU); x.fill();
+  }
+  const br = new DartRandom(402026);
+  for (let i = 0; i < 25; i++) {
+    const px = w * (.035 + br.nextDouble() * .93), y = h * (.035 + br.nextDouble() * .76);
+    const color = i < 11 ? tones[br.nextInt(2)] : i < 18 ? tones[2] : i < 23 ? tones[3] : tones[4], r = .62 + br.nextDouble() * .82;
+    if (i >= P['deep.bright']) continue;
+    const halo = x.createRadialGradient(px, y, 0, px, y, r * 5.6); halo.addColorStop(0, rgba(color, .20)); halo.addColorStop(.28, rgba(color, .052)); halo.addColorStop(1, rgba(color, 0)); x.fillStyle = halo; x.beginPath(); x.arc(px, y, r * 5.6, 0, TAU); x.fill();
+    if (i % 7 === 0) { const len = r * 4.5; x.strokeStyle = rgba(color, .17); x.lineWidth = .42; x.lineCap = 'round'; x.beginPath(); x.moveTo(px - len, y); x.lineTo(px + len, y); x.moveTo(px, y - len); x.lineTo(px, y + len); x.stroke(); }
+    x.fillStyle = rgba(color, .36); x.beginPath(); x.arc(px, y, r * 1.43, 0, TAU); x.fill(); x.fillStyle = rgba(color, .95); x.beginPath(); x.arc(px, y, r * .70, 0, TAU); x.fill();
+  }
+  deepCache.set(key, c); if (deepCache.size > 8) deepCache.delete(deepCache.keys().next().value); return c;
+}
+
+/* ---------- sky snapshot (Webb deep field, cover-fit, dark veil) ---------- */
+const PR = 2; let skyCanvas = null, skyKey = '';
+function skySnap(w, h) {
+  if (!SKY.complete || !SKY.naturalWidth) return null; const key = w + '|' + h + '|' + P['sky.dark'];
+  if (skyKey === key) return skyCanvas;
+  const c = document.createElement('canvas'); c.width = Math.round(w * PR); c.height = Math.round(h * PR); const x = c.getContext('2d');
+  const iw = SKY.naturalWidth, ih = SKY.naturalHeight, k = Math.max(w / iw, h / ih), sw = w / k, sh = h / k;
+  x.scale(PR, PR); x.imageSmoothingQuality = 'high'; x.drawImage(SKY, (iw - sw) / 2, (ih - sh) / 2, sw, sh, 0, 0, w, h); x.fillStyle = `rgba(0,0,6,${P['sky.dark']})`; x.fillRect(0, 0, w, h);
+  skyCanvas = c; skyKey = key; lensTexDirty = true; return c;
+}
+
+/* ---------- _AsLensPainter as a WebGL shader (same lens equation, per pixel) ---------- */
+let gl = null, glc = null, prog = null, tex = null, lensTexDirty = true, glFail = false;
+function initGL() {
+  glc = document.createElement('canvas'); gl = glc.getContext('webgl', { premultipliedAlpha: true, alpha: true }); if (!gl) { glFail = true; return; }
+  const vs = 'attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+  const fs = `precision highp float;varying vec2 v;uniform sampler2D sky;uniform vec2 size;uniform int n;uniform vec4 L[7];uniform float reach,swirl,pw;
+  void main(){vec2 q=v*size;vec4 col=vec4(0.);
+  for(int i=0;i<7;i++){if(i>=n)break;vec2 c=L[i].xy;float r=L[i].z;if(r<4.)continue;vec2 d=q-c;float rho=length(d);float ro=r*reach;
+   if(rho>=r&&rho<=ro){float u=(rho-r)/(ro-r);float fade=1.-u*u*(3.-2.*u);float te=r*L[i].w;float beta=rho-(te*te/rho)*fade;float ang=atan(d.y,d.x);float tw=swirl*fade*min(1.,te/rho);
+    vec2 s=c+vec2(cos(ang+tw),sin(ang+tw))*beta;vec2 uv=s/size;uv=1.-abs(1.-mod(uv,2.));col=vec4(texture2D(sky,uv).rgb,1.);}}
+  gl_FragColor=col;}`;
+  const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  try { prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(prog); gl.useProgram(prog); } catch (e) { console.warn(e); glFail = true; return; }
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+let lensFrame = -1, lensOut = null;
+function lensLayer(w, h, lenses, sky) {
+  if (glFail || !sky) return null; if (!gl) initGL(); if (glFail) return null;
+  const fr = K.frameId ? K.frameId() : performance.now(); if (lensFrame === fr && lensOut) return lensOut; lensFrame = fr;
+  const W = Math.round(w * PR), H = Math.round(h * PR); if (glc.width !== W || glc.height !== H) { glc.width = W; glc.height = H; }
+  gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  if (lensTexDirty) { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sky); lensTexDirty = false; }
+  const arr = new Float32Array(28); const ls = lenses.slice(0, 7); ls.forEach((l, i) => arr.set([l.x, l.y, l.r, l.s], i * 4));
+  gl.uniform4fv(gl.getUniformLocation(prog, 'L'), arr); gl.uniform1i(gl.getUniformLocation(prog, 'n'), ls.length); gl.uniform2f(gl.getUniformLocation(prog, 'size'), w, h);
+  gl.uniform1f(gl.getUniformLocation(prog, 'reach'), P['lens.reach']); gl.uniform1f(gl.getUniformLocation(prog, 'swirl'), P['lens.swirl']);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); lensOut = glc; return glc;
+}
+// Note: in the app every frame recomputes the lens; here the stage and the zoom window share one result per frame.
+
+/* ---------- black hole image with tint + disk thinning (_diskLayer / _asTint) ---------- */
+const tintCache = new Map();
+function tinted(kindIdx, o) {
+  const im = KIND_IMG[kindIdx]; if (!im.complete || !im.naturalWidth) return null;
+  let mat = null; const warmT = clamp(o.warm, 0, 1);
+  if (o.kind === 0 && o.warm > 0 && P['look.warmOn']) { const a = 1 - warmT; mat = [a, 0, warmT, 0, 1, 0, warmT * .8, 0, a]; }
+  else if (o.hue !== 0) { const c = Math.cos(o.hue), s = Math.sin(o.hue); mat = [.213 + c * .787 - s * .213, .715 - c * .715 - s * .715, .072 - c * .072 + s * .928, .213 - c * .213 + s * .143, .715 + c * .285 + s * .140, .072 - c * .072 - s * .283, .213 - c * .213 - s * .787, .715 - c * .715 + s * .715, .072 + c * .928 + s * .072]; }
+  const key = kindIdx + '|' + (mat ? mat.map(v => v.toFixed(3)).join(',') : 'none'); let c = tintCache.get(key); if (c) return c;
+  c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  if (mat) { const d = x.getImageData(0, 0, c.width, c.height), p = d.data; for (let i = 0; i < p.length; i += 4) { const r = p[i], g = p[i + 1], b = p[i + 2]; p[i] = mat[0] * r + mat[1] * g + mat[2] * b; p[i + 1] = mat[3] * r + mat[4] * g + mat[5] * b; p[i + 2] = mat[6] * r + mat[7] * g + mat[8] * b; } x.putImageData(d, 0, 0); }
+  tintCache.set(key, c); if (tintCache.size > 60) tintCache.delete(tintCache.keys().next().value); return c;
+}
+const maskCanvas = document.createElement('canvas');
+function drawHole(ctx, o, oy) {
+  const k = KINDS[o.kind], sc = o.d / (2 * k[2]), dw = k[0] * sc, dh = k[1] * sc;
+  const pulse = 1 - P['look.pulse'] + P['look.pulse'] * Math.sin(ST.motion * Math.PI * P['look.pulseSpeed']);
+  const op = o.stage >= 4 ? pulse : o.stage === 3 ? (P['op.mid'] + .16 * o.heat) * pulse : o.stage === 2 ? (P['op.thin'] + .32 * o.heat) * pulse : o.stage === 1 ? P['op.glow'] : P['op.quiet'];
+  let src = tinted(o.kind, o); if (!src) return;
+  if (o.stage === 2 || o.stage === 3) {
+    const half = dw / 2, floor = o.d * .64 / half, solid = Math.max(o.stage === 3 ? P['mask.midSolid'] : P['mask.thinSolid'], floor), zero = Math.max(o.stage === 3 ? P['mask.midFade'] : P['mask.thinFade'], solid + .12);
+    const kk = scaleOf(ctx), MW = Math.max(2, Math.ceil(dw * kk)), MH = Math.max(2, Math.ceil(dh * kk)); if (maskCanvas.width < MW || maskCanvas.height < MH) { maskCanvas.width = Math.max(maskCanvas.width, MW); maskCanvas.height = Math.max(maskCanvas.height, MH); }
+    const x = maskCanvas.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, MW, MH); x.drawImage(src, 0, 0, MW, MH);
+    x.globalCompositeOperation = 'destination-in'; const g = x.createRadialGradient(MW / 2, MH / 2, 0, MW / 2, MH / 2, MW / 2); g.addColorStop(0, '#fff'); g.addColorStop(clamp(solid, 0, .95), '#fff'); g.addColorStop(clamp(zero, 0, 1), 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, MW, MH); x.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.globalAlpha = clamp(op, 0, 1); ctx.translate(o.x, o.y + oy); ctx.rotate(o.tilt); ctx.scale(o.flip ? -1 : 1, 1); ctx.drawImage(maskCanvas, 0, 0, MW, MH, -dw / 2, -dh / 2, dw, dh); ctx.restore(); return;
+  }
+  ctx.save(); ctx.globalAlpha = clamp(op, 0, 1); ctx.translate(o.x, o.y + oy); ctx.rotate(o.tilt); ctx.scale(o.flip ? -1 : 1, 1); ctx.drawImage(src, -dw / 2, -dh / 2, dw, dh); ctx.restore();
+}
+
+/* ---------- avatar + name (orb layer) ---------- */
+function drawOrb(ctx, o, oy) {
+  const d = o.d, cx = o.x, cy = o.y + oy, r = (d - 4) / 2;
+  if (!o.live) { ctx.save(); ctx.shadowColor = rgba(P['orb.glow'], P['orb.glowAlpha']); ctx.shadowBlur = K.shadowBlurFor(ctx, 11); ctx.fillStyle = 'rgba(0,0,0,0.01)'; ctx.beginPath(); ctx.arc(cx, cy, d / 2 + 2, 0, TAU); ctx.fill(); ctx.restore(); }
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.clip();
+  const pic = o.person.pic;
+  if (pic && pic.complete && pic.naturalWidth) { const s = Math.max(2 * r / pic.naturalWidth, 2 * r / pic.naturalHeight), w = pic.naturalWidth * s, h = pic.naturalHeight * s; ctx.drawImage(pic, cx - w / 2, cy - h / 2, w, h); }
+  else { ctx.fillStyle = '#3A4350'; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r); ctx.fillStyle = '#fff'; ctx.font = `800 ${r * .9}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText((o.person.name || '?').slice(0, 1).toUpperCase(), cx, cy); }
+  if (o.live && P['orb.vignette'] > 0) { const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.58, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${.5 * P['orb.vignette']})`); ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r); }
+  ctx.restore();
+  if (!o.live) { ctx.strokeStyle = P['orb.border']; ctx.lineWidth = 1.15; ctx.beginPath(); ctx.arc(cx, cy, d / 2 - .575, 0, TAU); ctx.stroke(); }
+}
+function drawName(ctx, o, oy) {
+  if (!P['name.on']) return; const top = o.y + oy + o.d / 2 + P['name.gap'], boxW = o.d + 24;
+  ctx.font = `700 ${P['name.size']}px Roboto`; const name = o.person.name || ''; let badgeW = 0;
+  if (o.live && P['badge.on']) { ctx.font = `700 ${P['badge.size']}px Roboto`; badgeW = ctx.measureText(P['badge.text']).width + 6 + 4; ctx.font = `700 ${P['name.size']}px Roboto`; }
+  let txt = name, tw = ctx.measureText(txt).width; const room = boxW - badgeW; while (tw > room && txt.length > 1) { txt = txt.slice(0, -1); tw = ctx.measureText(txt + '…').width; if (tw <= room) { txt += '…'; break; } }
+  tw = ctx.measureText(txt).width; const total = badgeW + tw, lh = P['name.size'] * 1.17; let x = o.x - total / 2;
+  if (badgeW) { const bh = P['badge.size'] * 1.17 + 2; ctx.fillStyle = P['badge.color']; ctx.beginPath(); ctx.roundRect(x, top + (lh - bh) / 2, badgeW - 4, bh, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `700 ${P['badge.size']}px Roboto`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(P['badge.text'], x + 3, top + lh / 2); x += badgeW; ctx.font = `700 ${P['name.size']}px Roboto`; }
+  ctx.fillStyle = P['name.color']; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, top + lh / 2);
+  o.nameBox = { x: o.x - total / 2, y: top, w: total, h: lh };
+}
+
+/* ---------- _AsSpacePainter rims and _AsLinkPainter ---------- */
+function drawRims(ctx, lenses) {
+  if (!P['rim.on']) return; ctx.save(); ctx.lineWidth = .7;
+  for (const l of lenses.slice(0, 5)) { ctx.strokeStyle = rgba(P['rim.color1'], P['rim.alpha1']); ctx.beginPath(); ctx.arc(l.x, l.y, l.r * 1.055, -.8, -.8 + 2.5); ctx.stroke(); ctx.strokeStyle = rgba(P['rim.color2'], P['rim.alpha2']); ctx.beginPath(); ctx.arc(l.x, l.y, l.r * 1.09, 2.1, 2.1 + 1.1); ctx.stroke(); }
+  ctx.restore();
+}
+function drawLinks(ctx, dy) {
+  if (!P['link.on']) return; const k = scaleOf(ctx);
+  for (const l of ST.links) {
+    const p1 = [l[0], l[1] + dy], r1 = l[2], p2 = [l[3], l[4] + dy], r2 = l[5], s = clamp(l[6], 0, 1); if (s < .03) continue;
+    const dx = p2[0] - p1[0], dyy = p2[1] - p1[1], dist = Math.hypot(dx, dyy); if (dist < 1) continue;
+    const ux = dx / dist, uy = dyy / dist, nx = -uy, ny = ux, big1 = r1 >= r2;
+    const a = big1 ? [p2[0] - ux * r2 * .95, p2[1] - uy * r2 * .95] : [p1[0] + ux * r1 * .95, p1[1] + uy * r1 * .95];
+    const b = big1 ? [p1[0] + ux * r1 * .95, p1[1] + uy * r1 * .95] : [p2[0] - ux * r2 * .95, p2[1] - uy * r2 * .95];
+    const bend = P['link.bend'] * (big1 ? 1 : -1), c = [(a[0] + b[0]) / 2 + nx * dist * bend, (a[1] + b[1]) / 2 + ny * dist * bend];
+    const path = () => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo(c[0], c[1], b[0], b[1]); };
+    ctx.save(); ctx.lineCap = 'round'; ctx.filter = `blur(${(5 * k).toFixed(2)}px)`; ctx.lineWidth = 2 + 5 * s; ctx.strokeStyle = rgba(P['link.glow'], clamp(.24 * s * P['link.strength'], 0, 1)); path(); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineWidth = .9 + .8 * s; ctx.strokeStyle = rgba(P['link.core'], clamp(.62 * s * P['link.strength'], 0, 1)); path(); ctx.stroke(); ctx.restore();
+    const beads = Math.round(P['link.beads']);
+    for (let i = 0; i < beads; i++) { const q = ((i / beads + ST.motion * P['link.speed']) % 1 + 1) % 1, m1 = [a[0] + (c[0] - a[0]) * q, a[1] + (c[1] - a[1]) * q], m2 = [c[0] + (b[0] - c[0]) * q, c[1] + (b[1] - c[1]) * q], pt = [m1[0] + (m2[0] - m1[0]) * q, m1[1] + (m2[1] - m1[1]) * q];
+      ctx.save(); ctx.filter = `blur(${(1.2 * k).toFixed(2)}px)`; ctx.fillStyle = `rgba(255,255,255,${clamp(.75 * s * P['link.strength'], 0, 1)})`; ctx.beginPath(); ctx.arc(pt[0], pt[1], 1.1 + 1.2 * s * (1 - Math.abs(q - .5)), 0, TAU); ctx.fill(); ctx.restore(); }
+    const bendArc = (p, r, to) => { const ang = Math.atan2(to[1] - p[1], to[0] - p[0]); ctx.save(); ctx.filter = `blur(${(1.6 * k).toFixed(2)}px)`; ctx.lineWidth = 1.3; ctx.strokeStyle = rgba(P['link.arc'], clamp(.42 * s * P['link.strength'], 0, 1)); ctx.beginPath(); ctx.arc(p[0], p[1], r * 1.28, ang - .75, ang + .75); ctx.stroke(); ctx.restore(); };
+    bendArc(p1, r1, p2); bendArc(p2, r2, p1);
+  }
+}
+
+/* ---------- labels ---------- */
+const PLACE = new Path2D('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zM7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.88-2.88 7.19-5 9.88C9.92 16.21 7 11.85 7 9zm5 2.5c1.38 0 2.5-1.12 2.5-2.5S13.38 6.5 12 6.5 9.5 7.62 9.5 9s1.12 2.5 2.5 2.5z');
+function spaced(ctx, text, x, y, spacing) { let cx = x; for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; } return cx - x; }
+
+/* ---------- module ---------- */
+const sc = K.screen({
+  id: 'sky', title: 'Live discovery (black holes)', docId: 'asgard_sky',
+  crumb: 'Asgard › Feed › Live discovery strip <small>· Asgard Dart</small>',
+  docMeta: { widget: 'Asgard', part: 'Live discovery strip (black holes)', source: 'FlutterFlow export 2026-11-19 + live_streams test accounts' },
+  startGroup: 'Black holes', startSection: 'Look',
+  spec(def) {
+    def('Strip', 'Size', 'strip', 'strip.max', 'Tallest strip', 'num', 229, { min: 120, max: 400, step: 1, unit: 'px' });
+    def('Strip', 'Size', 'strip', 'strip.share', 'Share of screen height', 'num', .3375, { min: .15, max: .6, step: .0025 });
+    def('Strip', 'Size', 'strip', 'strip.fade', 'Fade into the feed', 'num', 26, { min: 0, max: 100, step: 1, unit: 'px' });
+    def('Strip', 'Size', 'strip', 'strip.orbTop', 'Holes start below', 'num', 48, { min: 0, max: 120, step: 1, unit: 'px' });
+    def('Strip', 'Deep space', 'strip', 'deep.band', 'Milky Way band strength', 'num', 1, { min: 0, max: 4, step: .05, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Deep space', 'strip', 'deep.bandTilt', 'Band angle', 'num', -.52, { min: -1.6, max: 1.6, step: .01, unit: 'rad', info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Deep space', 'strip', 'deep.stars', 'Small stars', 'int', 4700, { min: 0, max: 4700, step: 50, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Deep space', 'strip', 'deep.starAlpha', 'Star brightness', 'num', 1, { min: 0, max: 2, step: .05, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Deep space', 'strip', 'deep.bright', 'Bright stars', 'int', 25, { min: 0, max: 25, step: 1, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Deep space', 'strip', 'deep.grains', 'Dust specks', 'int', 1600, { min: 0, max: 1600, step: 50, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
+    def('Strip', 'Photo sky', 'strip', 'sky.on', 'Webb deep-field photo', 'bool', true);
+    def('Strip', 'Photo sky', 'strip', 'sky.dark', 'Darken photo', 'num', .30, { min: 0, max: 1, step: .01 });
+    def('Strip', 'Labels', 'labels', 'lab.title', 'Top label', 'text', 'A S G A R D');
+    def('Strip', 'Labels', 'labels', 'lab.titleSize', 'Top label size', 'num', 10, { min: 6, max: 24, step: .5, unit: 'px' });
+    def('Strip', 'Labels', 'labels', 'lab.titleColor', 'Top label color', 'color', '#D1DAE7');
+    def('Strip', 'Labels', 'labels', 'lab.live', 'Live label', 'text', 'L I V E   D I S C O V E R Y');
+    def('Strip', 'Labels', 'labels', 'lab.liveSize', 'Live label size', 'num', 9, { min: 6, max: 20, step: .5, unit: 'px' });
+    def('Strip', 'Labels', 'labels', 'lab.liveColor', 'Live label color', 'color', '#93A4B7');
+    def('Strip', 'Labels', 'labels', 'lab.area', 'Area', 'text', 'Flagler, FL');
+    def('Strip', 'Labels', 'labels', 'lab.areaColor', 'Area color', 'color', '#9DAABA');
+    def('Black holes', 'Look', 'holes', 'op.quiet', 'Quiet hole strength', 'num', .92, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Look', 'holes', 'op.glow', 'Glowing ring strength', 'num', .96, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Look', 'holes', 'op.thin', 'Thin disk strength', 'num', .62, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Look', 'holes', 'op.mid', 'Mid disk strength', 'num', .82, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Look', 'holes', 'look.pulse', 'Pulse amount', 'num', .03, { min: 0, max: .5, step: .005 });
+    def('Black holes', 'Look', 'holes', 'look.pulseSpeed', 'Pulses per loop', 'num', 12, { min: 0, max: 60, step: 1 });
+    def('Black holes', 'Look', 'holes', 'look.tilt', 'Tilt amount', 'num', 1, { min: 0, max: 2, step: .05 });
+    def('Black holes', 'Look', 'holes', 'look.hues', 'Own color per disk', 'bool', true);
+    def('Black holes', 'Look', 'holes', 'look.warmOn', 'Blue ring warms to gold', 'bool', true);
+    def('Black holes', 'Look', 'holes', 'look.warmBase', 'Warmth at 10 viewers', 'num', .4, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Look', 'holes', 'look.warmRange', 'Extra warmth to 150 viewers', 'num', .55, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Look', 'holes', 'look.lit', 'One lit hole (Gargantua)', 'bool', true);
+    def('Black holes', 'Disk thinning', 'holes.disk', 'mask.thinSolid', 'Thin disk: solid to', 'num', .38, { min: 0, max: .95, step: .01 });
+    def('Black holes', 'Disk thinning', 'holes.disk', 'mask.thinFade', 'Thin disk: gone at', 'num', .66, { min: .05, max: 1, step: .01 });
+    def('Black holes', 'Disk thinning', 'holes.disk', 'mask.midSolid', 'Mid disk: solid to', 'num', .55, { min: 0, max: .95, step: .01 });
+    def('Black holes', 'Disk thinning', 'holes.disk', 'mask.midFade', 'Mid disk: gone at', 'num', .84, { min: .05, max: 1, step: .01 });
+    def('Black holes', 'Who gets what', 'holes', 'th.glow', 'Glow starts at viewers', 'int', 10, { min: 1, max: 1000, step: 1 });
+    def('Black holes', 'Who gets what', 'holes', 'th.disk', 'Thin disk at viewers', 'int', 150, { min: 2, max: 5000, step: 5 });
+    def('Black holes', 'Who gets what', 'holes', 'th.mid', 'Mid disk at viewers', 'int', 500, { min: 2, max: 10000, step: 10 });
+    def('Black holes', 'Who gets what', 'holes', 'th.lit', 'Lit hole at viewers', 'int', 2000, { min: 10, max: 50000, step: 50 });
+    def('Black holes', 'Who gets what', 'holes', 'mix.fire', 'Share with disks', 'num', .12, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Who gets what', 'holes', 'mix.glow', 'Share with glowing rings', 'num', .28, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Size', 'holes', 'size.base', 'Normal size (share of width)', 'num', .151, { min: .05, max: .4, step: .001 });
+    def('Black holes', 'Size', 'holes', 'size.min', 'Smallest normal size', 'num', 56, { min: 20, max: 120, step: 1, unit: 'px' });
+    def('Black holes', 'Size', 'holes', 'size.max', 'Largest normal size', 'num', 66, { min: 20, max: 160, step: 1, unit: 'px' });
+    def('Black holes', 'Size', 'holes', 'size.growStart', 'Grows after followers', 'int', 1000, { min: 1, max: 100000, step: 100 });
+    def('Black holes', 'Size', 'holes', 'size.growMax', 'Full size at followers', 'int', 1000000, { min: 1000, max: 10000000, step: 10000 });
+    def('Black holes', 'Size', 'holes', 'size.growBy', 'Extra size at full', 'num', 2, { min: 0, max: 5, step: .05, unit: '×' });
+    def('Black holes', 'Size', 'holes', 'size.growCurve', 'Growth curve', 'num', 1.6, { min: .3, max: 4, step: .05 });
+    def('Black holes', 'Bending light', 'lens', 'lens.on', 'Bend the sky around holes', 'bool', true);
+    def('Black holes', 'Bending light', 'lens', 'lens.reach', 'Bend reach', 'num', 5.4, { min: 1.2, max: 10, step: .1, unit: '× hole' });
+    def('Black holes', 'Bending light', 'lens', 'lens.swirl', 'Swirl', 'num', .5, { min: 0, max: 3, step: .02 });
+    def('Black holes', 'Bending light', 'lens', 'lens.grey', 'Grey hole bend', 'num', 1.75, { min: 0, max: 3, step: .01 });
+    def('Black holes', 'Bending light', 'lens', 'lens.blue', 'Blue ring bend', 'num', 1.45, { min: 0, max: 3, step: .01 });
+    def('Black holes', 'Bending light', 'lens', 'lens.disk', 'Disk bend', 'num', 1.38, { min: 0, max: 3, step: .01 });
+    def('Black holes', 'Bending light', 'lens', 'lens.lit', 'Lit hole bend', 'num', 1.55, { min: 0, max: 3, step: .01 });
+    def('Black holes', 'Rim arcs', 'lens', 'rim.on', 'Thin rim arcs', 'bool', true);
+    def('Black holes', 'Rim arcs', 'lens', 'rim.color1', 'Arc 1 color', 'color', '#7997B8');
+    def('Black holes', 'Rim arcs', 'lens', 'rim.alpha1', 'Arc 1 strength', 'num', .13, { min: 0, max: 1, step: .01 });
+    def('Black holes', 'Rim arcs', 'lens', 'rim.color2', 'Arc 2 color', 'color', '#B1C7DE');
+    def('Black holes', 'Rim arcs', 'lens', 'rim.alpha2', 'Arc 2 strength', 'num', .09, { min: 0, max: 1, step: .01 });
+    def('Motion', 'Drift', 'holes', 'move.loop', 'One full drift loop', 'num', 90, { min: 10, max: 600, step: 1, unit: 's' });
+    def('Motion', 'Drift', 'holes', 'move.gap', 'Gap between holes', 'num', 12, { min: 0, max: 80, step: 1, unit: 'px' });
+    def('Motion', 'Drift', 'holes', 'move.row', 'Row height', 'num', .48, { min: .1, max: .9, step: .01 });
+    def('Motion', 'Drift', 'holes', 'move.rowVary', 'Up/down spread', 'num', 23, { min: 0, max: 80, step: 1, unit: 'px' });
+    def('Motion', 'Drift', 'holes', 'move.wander', 'Wander', 'num', .55, { min: 0, max: 2, step: .01 });
+    def('Motion', 'Drift', 'holes', 'move.keep', 'Most holes shown', 'int', 6, { min: 1, max: 12, step: 1 });
+    def('Motion', 'Pairs', 'links', 'pair.reach', 'Pair reach', 'num', 1.5, { min: .5, max: 4, step: .05 });
+    def('Motion', 'Pairs', 'links', 'pair.pull', 'Pull together (max)', 'num', 22, { min: 0, max: 80, step: 1, unit: 'px' });
+    def('Motion', 'Pairs', 'links', 'pair.swing', 'Swing around each other', 'num', .5, { min: 0, max: 2, step: .01 });
+    def('Motion', 'Pairs', 'links', 'pair.minSep', 'Closest allowed', 'num', .78, { min: .2, max: 2, step: .01 });
+    def('Motion', 'Matter stream', 'links', 'link.on', 'Stream between close pairs', 'bool', true);
+    def('Motion', 'Matter stream', 'links', 'link.strength', 'Stream strength', 'num', 1, { min: 0, max: 3, step: .05 });
+    def('Motion', 'Matter stream', 'links', 'link.bend', 'Stream curve', 'num', .22, { min: -1, max: 1, step: .01 });
+    def('Motion', 'Matter stream', 'links', 'link.glow', 'Glow color', 'color', '#FFB866');
+    def('Motion', 'Matter stream', 'links', 'link.core', 'Core color', 'color', '#FFE2B0');
+    def('Motion', 'Matter stream', 'links', 'link.arc', 'Bent-light arc color', 'color', '#DDEBFF');
+    def('Motion', 'Matter stream', 'links', 'link.beads', 'Glowing beads', 'int', 7, { min: 0, max: 30, step: 1 });
+    def('Motion', 'Matter stream', 'links', 'link.speed', 'Bead speed', 'num', 36, { min: 0, max: 200, step: 1 });
+    def('Faces and names', 'Face', 'faces', 'orb.vignette', 'Dark edge on live faces', 'num', 1, { min: 0, max: 2, step: .05 });
+    def('Faces and names', 'Face', 'faces', 'orb.border', 'Ring color (not live)', 'color', '#8099AE', { info: 'Only people who are not live get this. Test people › They are live = off to see it.' });
+    def('Faces and names', 'Face', 'faces', 'orb.glow', 'Glow color (not live)', 'color', '#547894', { info: 'Only people who are not live get this. Test people › They are live = off to see it.' });
+    def('Faces and names', 'Face', 'faces', 'orb.glowAlpha', 'Glow strength (not live)', 'num', .27, { min: 0, max: 1, step: .01, info: 'Only people who are not live get this.' });
+    def('Faces and names', 'Name', 'names', 'name.on', 'Show names', 'bool', true);
+    def('Faces and names', 'Name', 'names', 'name.size', 'Name size', 'num', 12, { min: 6, max: 24, step: .5, unit: 'px' });
+    def('Faces and names', 'Name', 'names', 'name.color', 'Name color', 'color', '#E5EAF1');
+    def('Faces and names', 'Name', 'names', 'name.gap', 'Gap under face', 'num', 7, { min: 0, max: 30, step: .5, unit: 'px' });
+    def('Faces and names', 'Live badge', 'names', 'badge.on', 'Live badge', 'bool', true);
+    def('Faces and names', 'Live badge', 'names', 'badge.text', 'Badge word', 'text', 'ALIVE');
+    def('Faces and names', 'Live badge', 'names', 'badge.size', 'Badge text size', 'num', 7, { min: 4, max: 16, step: .5, unit: 'px' });
+    def('Faces and names', 'Live badge', 'names', 'badge.color', 'Badge color', 'color', '#8F383E');
+    def('Test people', 'Live test accounts', 'holes', 'test.count', 'How many streaming', 'int', 12, { min: 0, max: 12, step: 1, info: 'Baldr, Saga, Tyr, Vidar… from live_streams, most viewers first.' });
+    def('Test people', 'Live test accounts', 'holes', 'test.viewers', 'Viewers ×', 'num', 1, { min: .01, max: 20, step: .01, info: 'Scale everyone\'s viewers to watch holes change stage.' });
+    def('Test people', 'Live test accounts', 'holes', 'test.live', 'They are live', 'bool', true);
+  },
+  toolbar: [
+    { label: 'Pause drift', title: 'Stop / start the drift', onclick: () => { ST.paused = !ST.paused; K.status(ST.paused ? 'Drift paused. Drag the strip sideways to move it.' : 'Drift running.'); } },
+    { label: 'Re-center', title: 'Clear the swipe offset', onclick: () => { ST.swipe = 0; } },
+  ],
+  onShow() { P = sc.P; },
+  update(dt) { P = sc.P; if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.fling) { ST.swipe += ST.fling * dt * 6; ST.fling *= Math.pow(.02, dt); if (Math.abs(ST.fling) < 1) ST.fling = 0; } },
+  draw(ctx, now, studio) {
+    P = sc.P; sc.ty = 0; const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
+    G.strip = { x: 0, y: 0, w: W, h: sh };
+    const orbs = orbLayout(W, lh); G.orbs = orbs;
+    // strip layer (faded into the feed at the bottom)
+    const k = scaleOf(ctx), Lw = Math.ceil(W * k), Lh = Math.ceil(sh * k);
+    const L = sc._layer || (sc._layer = document.createElement('canvas')); if (L.width !== Lw || L.height !== Lh) { L.width = Lw; L.height = Lh; }
+    const x = L.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.filter = 'none'; x.clearRect(0, 0, Lw, Lh); x.scale(k, k);
+    x.drawImage(deepSpace(W, sh, Math.min(3, k)), 0, 0, W, sh);
+    const sky = P['sky.on'] ? skySnap(W, sh) : null; if (sky) x.drawImage(sky, 0, 0, W, sh);
+    const lensesLive = orbs.filter(o => o.live).map(o => ({ x: o.x, y: o.y + top, r: o.d / 2, s: o.strength }));
+    if (P['lens.on'] && sky && lensesLive.length) { const out = lensLayer(W, sh, lensesLive, sky); if (out) x.drawImage(out, 0, 0, W, sh); }
+    drawRims(x, orbs.map(o => ({ x: o.x, y: o.y + top, r: o.d / 2 })));
+    drawLinks(x, top);
+    for (const o of orbs) { drawOrb(x, o, top); drawName(x, o, top); }
+    for (const o of orbs) if (o.live) drawHole(x, o, top);
+    // labels
+    x.textBaseline = 'top'; x.textAlign = 'left';
+    x.font = `700 ${P['lab.titleSize']}px Roboto`; x.fillStyle = P['lab.titleColor']; const tw = spaced(x, P['lab.title'], 18, 16, 1.6); G.labels.title = { x: 18, y: 16, w: tw, h: P['lab.titleSize'] * 1.2 };
+    x.font = `400 ${P['lab.liveSize']}px Roboto`; x.fillStyle = P['lab.liveColor']; const lw = spaced(x, P['lab.live'], 18, 53, 1.0); G.labels.live = { x: 18, y: 53, w: lw, h: P['lab.liveSize'] * 1.2 };
+    x.font = `400 10px Roboto`; const aw = x.measureText(P['lab.area']).width, ax = W - 12 - aw; x.fillStyle = P['lab.areaColor']; x.fillText(P['lab.area'], ax, 12 + 1); x.save(); x.translate(ax - 3 - 13, 12); x.scale(13 / 24, 13 / 24); x.fillStyle = '#8A9BAD'; x.fill(PLACE); x.restore(); G.labels.area = { x: ax - 16, y: 12, w: aw + 16, h: 14 };
+    if (P['strip.fade'] > 0) { x.globalCompositeOperation = 'destination-in'; const g = x.createLinearGradient(0, 0, 0, sh); g.addColorStop(0, '#fff'); g.addColorStop(clamp((sh - P['strip.fade']) / sh, 0, 1), '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, sh); x.globalCompositeOperation = 'source-over'; }
+    ctx.drawImage(L, 0, 0, Lw, Lh, 0, 0, W, sh);
+    G.top = top;
+    if (studio) K.hl(ctx, now);
+  },
+  highlight(ctx, base, sub, H1) {
+    const W = K.W, top = G.top || 48, box = (b, pad = 3, r = 6) => () => { ctx.beginPath(); ctx.roundRect(b.x - pad, b.y - pad, b.w + pad * 2, b.h + pad * 2, r); };
+    if (base === 'strip' && G.strip) H1(box(G.strip, -3, 8));
+    else if (base === 'labels') Object.values(G.labels).forEach(b => H1(box(b, 3, 4)));
+    else if (base === 'holes' || base === 'holes.disk' || base === 'lens') G.orbs.filter(o => base !== 'holes.disk' || o.stage === 2 || o.stage === 3).forEach(o => H1(() => { ctx.beginPath(); ctx.arc(o.x, o.y + top, (base === 'lens' ? o.d / 2 * Math.min(P['lens.reach'], 2.2) : o.d / 2 + 6), 0, TAU); }));
+    else if (base === 'links') { ST.links.forEach(l => H1(() => { ctx.beginPath(); ctx.moveTo(l[0], l[1] + top); ctx.lineTo(l[3], l[4] + top); })); if (!ST.links.length) G.orbs.forEach(o => H1(() => { ctx.beginPath(); ctx.arc(o.x, o.y + top, o.d / 2 + 6, 0, TAU); })); }
+    else if (base === 'faces') G.orbs.forEach(o => H1(() => { ctx.beginPath(); ctx.arc(o.x, o.y + top, o.d / 2 + 3, 0, TAU); }));
+    else if (base === 'names') G.orbs.forEach(o => o.nameBox && H1(box(o.nameBox, 2, 4)));
+  },
+  bounds(base) {
+    const W = K.W, sh = G.strip ? G.strip.h : 229, top = G.top || 48, sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
+    const center = G.orbs.slice().sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0];
+    if (base === 'labels') return sq(W / 2, 40, W * .7);
+    if (center && (base === 'holes' || base === 'holes.disk' || base === 'faces' || base === 'names' || base === 'lens' || base === 'links')) return sq(center.x, center.y + top + 8, Math.max(center.d * 2.6, 150));
+    return sq(W / 2, sh / 2, W);
+  },
+  pick(p) {
+    const top = G.top || 48;
+    for (const o of G.orbs) { if (o.nameBox && p.x >= o.nameBox.x && p.x <= o.nameBox.x + o.nameBox.w && p.y >= o.nameBox.y && p.y <= o.nameBox.y + o.nameBox.h) return ['Faces and names', 'Name']; if (Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2) return ['Faces and names', 'Face']; if (Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d * 1.2) return ['Black holes', 'Look']; }
+    if (G.strip && p.y < 70) return ['Strip', 'Labels'];
+    if (G.strip && p.y < G.strip.h) return ['Strip', 'Deep space'];
+    return ['Background', null];
+  },
+  pointer: {
+    down(p) { if (G.strip && p.y < G.strip.h) ST.drag = { x: p.x, x0: p.x, t: performance.now(), v: 0 }; },
+    move(p) { const d = ST.drag; if (!d) return; const now = performance.now(), dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; d.t = now; },
+    up(p) {
+      const d = ST.drag; ST.drag = null; if (!d) return;
+      if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) K.status('Tapped ' + hit.person.name + ': in the app this opens the black-hole flight into their live room.'); return; }
+      ST.swipe += clamp(d.v, -650, 650) * .14;
+    },
+    cancel() { ST.drag = null; },
+  },
+});
+sc.ST = ST; sc.G = () => G; sc.DartRandom = DartRandom;
+})();
