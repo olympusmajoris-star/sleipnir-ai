@@ -89,6 +89,13 @@ let camState = 'off', camFacing = null, camDevice = '', camStream = null, camReq
 const bgImg = new Image(); let bgLoaded = '';
 const tilt = { tx: 0, ty: 0, x: 0, y: 0 }; K.tilt = tilt;
 function cameraInfo(message) { if ($('cameraInfo')) $('cameraInfo').textContent = message; }
+function cameraEnabled() {
+  const saved = localGet('cameraEnabled');
+  if (typeof saved === 'boolean') return saved;
+  // Desktop camera drivers can send a phone/lock slate as valid video. Keep
+  // that feed out of the editor until enabled, without changing phone designs.
+  return !!navigator.userAgentData?.mobile || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
 async function refreshCameraDevices() {
   const select = $('selCamera'); if (!select) return;
   const selected = localGet('cameraDevice') || '';
@@ -106,7 +113,17 @@ async function refreshCameraDevices() {
 async function ensureCamera(force = false) {
   const P = cur.P, needed = P['bg.mode'] === 'camera' || (P['env.on'] && P['env.source'] === 'camera');
   $('cameraTools').hidden = !needed;
-  if (!needed) { stopCamera(); return; }
+  const enabled = cameraEnabled(), toggle = $('bCameraToggle');
+  if (toggle) {
+    toggle.hidden = !needed; toggle.textContent = enabled ? 'Camera on' : 'Camera off';
+    toggle.classList.toggle('on', enabled); toggle.setAttribute('aria-pressed', String(enabled));
+    toggle.title = enabled ? 'Turn off the camera on this device' : 'Turn on the camera on this device';
+  }
+  if (!needed || !enabled) {
+    stopCamera();
+    if (needed) cameraInfo('Camera is off on this device. Click Camera off to turn it on.');
+    return;
+  }
   const device = localGet('cameraDevice') || '';
   if (!force && camState === 'on' && camFacing === P['bg.facing'] && camDevice === device) return;
   if (!force && camState === 'starting') return;
@@ -118,6 +135,7 @@ async function ensureCamera(force = false) {
     const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
     if (request !== camRequest) { stream.getTracks().forEach(t => t.stop()); return; }
     camStream = stream; cam.srcObject = stream; await cam.play().catch(() => {});
+    if (request !== camRequest) { stream.getTracks().forEach(t => t.stop()); return; }
     camState = 'on'; camFacing = P['bg.facing']; camDevice = device;
     const track = stream.getVideoTracks()[0];
     cameraInfo('Receiving video from ' + (track?.label || 'the selected camera') + '.');
@@ -397,8 +415,11 @@ K.start = async function ({ title, first }) {
   $('bHl').onclick = () => { showHL = !showHL; $('bHl').classList.toggle('on', showHL); };
   $('bSave').onclick = () => save(cur, false);
   $('mCtl').onclick = () => $('side').classList.toggle('open');
-  $('selCamera').onchange = () => { localSet('cameraDevice', $('selCamera').value); ensureCamera(true); };
-  $('bCameraReconnect').onclick = () => ensureCamera(true);
+  const cameraToggle = document.createElement('button'); cameraToggle.id = 'bCameraToggle';
+  $('bar').appendChild(cameraToggle);
+  cameraToggle.onclick = () => { localSet('cameraEnabled', !cameraEnabled()); ensureCamera(true); };
+  $('selCamera').onchange = () => { localSet('cameraDevice', $('selCamera').value); localSet('cameraEnabled', true); ensureCamera(true); };
+  $('bCameraReconnect').onclick = () => { localSet('cameraEnabled', true); ensureCamera(true); };
   $('bCameraPreview').onclick = () => { const panel = $('cameraPreview'); panel.hidden = !panel.hidden; $('bCameraPreview').textContent = panel.hidden ? 'Show original feed' : 'Hide original feed'; };
   if (navigator.mediaDevices?.addEventListener) navigator.mediaDevices.addEventListener('devicechange', refreshCameraDevices);
   const phoneUrl = new URL(location.href); phoneUrl.searchParams.delete('edit'); phoneUrl.hash = '';
