@@ -308,7 +308,7 @@ function drawPost(ctx, p, x, y, w, h, clipTop) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#fff'; ctx.font = `800 ${P['post.nameSize']}px Roboto`; shadowText(ctx, p.name, ax + ar + 10, ay - 3, 4);
   ctx.font = `400 ${P['post.subSize']}px Roboto`; ctx.fillStyle = `rgba(255,255,255,${P['post.subAlpha']})`; shadowText(ctx, '@' + p.handle + '  ·  ' + ago(p.at) + '  ·  ' + p.county + ', ' + p.state, ax + ar + 10, ay + P['post.subSize'] + 1, 4);
   icon(ctx, MI.more, x + w - 4 - 36, ay - 12, 24, '#fff');
-  p.headBox = { x, y, w, h: hh };
+  p.headBox = { x, y, w, h: hh }; p.authorBox = { x, y: y + 4, w: w - 60, h: 48 }; p.moreBox = { x: x + w - 56, y: y + 4, w: 52, h: 48 };
   // bottom block that rides above the floating icons (_AsLift)
   const bh = bottomBlockH(ctx, p, w), bottom = y + h, barTop = K.H - footprint(), cap = Math.max(footprint(), K.H * .5);
   const lift = P['post.lift'] ? clamp(bottom - barTop, 0, cap) : 0, rowBottom = bottom - lift - 8, show = P['post.lift'] ? clamp(1 - (rowBottom - barTop) / 24, 0, 1) : 1;
@@ -739,6 +739,120 @@ function sharePointer(kind, p) {
   }
 }
 
+/* ---------- profile + marketplace (_openProfile / _profileView / _stat / _marketView / _postCard / _saleBar / _tag / _chip / _postMenu) ---------- */
+const PGI = { place: new Path2D('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'), sell: new Path2D('M21.41 11.41l-8.83-8.83c-.37-.37-.88-.58-1.41-.58H4c-1.1 0-2 .9-2 2v7.17c0 .53.21 1.04.59 1.41l8.83 8.83c.78.78 2.05.78 2.83 0l7.17-7.17c.78-.78.78-2.04-.01-2.83zM6.5 8C5.67 8 5 7.33 5 6.5S5.67 5 6.5 5 8 5.67 8 6.5 7.33 8 6.5 8z'), tag: new Path2D('M20 10V8h-4V4h-2v4h-4V4H8v4H4v2h4v4H4v2h4v4h2v-4h4v4h2v-4h4v-2h-4v-4h4zm-6 4h-4v-4h4v4z'), edit: new Path2D('M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z') };
+const ME_ID = '8de1337c-ed44-4c6a-b68e-beae6b51893f', IDUN_ID = 'aaaaaaaa-0000-4000-8000-000000000008', THOR_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
+// real rows: social_profiles, social_follows counts, live_streams.follower_count, and the 20 newest posts (like/comment counts as stored)
+const mkPosts = (who, name, av, data) => data.split(' ').map((s, i) => { const [lc, rest] = s.split('/'), [cc, at] = rest.split('@'); return { id: who + (i + 1), author: who === 'idun' ? IDUN_ID : THOR_ID, name, handle: 'test_' + who, avatar: av, county: 'Flagler', state: 'FL', body: 'Test saga ' + (i + 1) + ' from ' + name, imgs: [img('https://picsum.photos/seed/' + who + (i + 1) + '/600/800')], topic: 'general', kind: 'post', likes: +lc, comments: +cc, at: new Date(at), liked: false }; });
+const AV = { idun: img('https://i.pravatar.cc/300?img=64'), thor: img('https://i.pravatar.cc/300?img=5'), me: img('https://afnihsdxtisneuyehatw.supabase.co/storage/v1/object/public/asgard/8de1337c-ed44-4c6a-b68e-beae6b51893f/avatar_1792767885871.jpg') };
+const PROFILES = {
+  [ME_ID]: { id: ME_ID, handle: 'swad30991', name: 'swad30991', county: 'Flagler', state: 'FL', bio: '', avatar: AV.me, fers: 1, fing: 8, posts: [], follow: 'me' },
+  [IDUN_ID]: { id: IDUN_ID, handle: 'test_idun', name: 'Idun', county: 'Flagler', state: 'FL', bio: 'Asgard test account', avatar: AV.idun, fers: 1000000, fing: 0, follow: 'following', posts: mkPosts('idun', 'Idun', AV.idun, '259/7@2026-10-25T19:08:30Z 65/23@2026-10-25T17:56:37Z 31/12@2026-10-25T16:58:46Z 152/28@2026-10-25T15:33:26Z 50/28@2026-10-25T14:49:31Z 377/26@2026-10-25T13:47:22Z 391/1@2026-10-25T12:48:24Z 133/22@2026-10-25T11:37:27Z 277/17@2026-10-25T10:30:46Z 63/28@2026-10-25T09:57:57Z 147/27@2026-10-25T08:23:14Z 286/15@2026-10-25T08:04:21Z 254/8@2026-10-25T06:29:01Z 146/15@2026-10-25T06:00:10Z 172/15@2026-10-25T04:56:32Z 391/8@2026-10-25T03:34:23Z 390/15@2026-10-25T02:22:02Z 346/18@2026-10-25T01:44:13Z 378/8@2026-10-25T00:23:36Z 194/23@2026-10-24T23:25:41Z') },
+  [THOR_ID]: { id: THOR_ID, handle: 'test_thor', name: 'Thor', county: 'Flagler', state: 'FL', bio: 'Asgard test account', avatar: AV.thor, fers: 120, fing: 1, follow: 'following', posts: mkPosts('thor', 'Thor', AV.thor, '203/27@2026-10-25T18:55:44Z 208/9@2026-10-25T17:21:35Z 390/28@2026-10-25T16:56:38Z 71/26@2026-10-25T15:42:09Z 389/11@2026-10-25T14:29:25Z 119/16@2026-10-25T13:27:32Z 333/0@2026-10-25T13:05:48Z 97/18@2026-10-25T11:44:30Z 66/7@2026-10-25T10:55:02Z 248/11@2026-10-25T10:08:02Z 96/24@2026-10-25T08:50:56Z 356/10@2026-10-25T07:33:24Z') },
+};
+POSTS.forEach(p => { p.author = p.handle === 'test_idun' ? IDUN_ID : THOR_ID; });
+// No sale posts exist yet; these studio-only listings (from the test accounts) exercise the sale bar states.
+const LISTINGS = [[THOR_ID, 'Test listing 1 from Thor', 18000, 'truck', 'Palm Coast', ''], [IDUN_ID, 'Test listing 2 from Idun', 4500, 'car', 'Bunnell', ''], [THOR_ID, 'Test listing 3 from Thor', 32050, 'freight', '', ''], [IDUN_ID, 'Test listing 4 from Idun', 1200, 'car', 'Flagler Beach', 'sold']]
+  .map(([a, body, cents, size, town, st], i) => { const pr = PROFILES[a]; return { id: 'sale' + i, author: a, name: pr.name, handle: pr.handle, avatar: pr.avatar, county: 'Flagler', state: 'FL', body, imgs: [img('https://picsum.photos/seed/sale' + (i + 1) + '/600/600')], topic: 'general', kind: 'sale', cents, size, town, status: st, likes: 0, comments: 0, at: new Date(Date.now() - (i + 1) * 3.6e6 * 5), liked: false }; });
+const VS = { profile: 0, market: 0 };
+function openProfile(id) { ST.view = 'profile'; ST.profile = id; VS.profile = 0; ST.vel = 0; ST.menu = null; }
+function goMarket() { ST.view = 'market'; VS.market = 0; ST.vel = 0; ST.menu = null; }
+function goFeed() { ST.view = 'feed'; ST.vel = 0; ST.menu = null; }
+const money = c => c % 100 === 0 ? '$' + (c / 100).toFixed(0) : '$' + (c / 100).toFixed(2);
+function cover(ctx, im, x, y, w, h, r) { ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.clip(); if (ready(im)) { const s = Math.max(w / im.naturalWidth, h / im.naturalHeight), dw = im.naturalWidth * s, dh = im.naturalHeight * s; ctx.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); } else { ctx.fillStyle = 'rgba(0,0,0,.26)'; ctx.fillRect(x, y, w, h); } ctx.restore(); }
+function btn(ctx, x, y, label, kind, color) { // Material 3 button: stadium, 40 high, 24 side padding
+  ctx.font = '500 14px Roboto'; const w = ctx.measureText(label).width + 48, h = 40;
+  ctx.save(); if (kind === 'filled') { ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = K.shadowBlurFor(ctx, 2); ctx.shadowOffsetY = 1; ctx.fillStyle = color.bg; ctx.beginPath(); ctx.roundRect(x, y, w, h, 20); ctx.fill(); } else { ctx.strokeStyle = color.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(x + .5, y + .5, w - 1, h - 1, 20); ctx.stroke(); } ctx.restore();
+  ctx.fillStyle = color.fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x + w / 2, y + h / 2 + .5); return w;
+}
+const hit = (x, y, w, h, fn, tag) => { G.hits.push({ x, y, w, h, fn, tag }); };
+function postMenu(x, y, p) { const mine = p.author === ME_ID; ST.menu = { x, y, items: mine ? [['Delete', '#FF7A7A', () => K.status('In the app this deletes your post.')]] : [['Report', '#FFFFFF', () => K.status('In the app this opens the report reasons for this post.')], ['Block user', '#FF7A7A', () => K.status('In the app this blocks @' + p.handle + '.')]] }; }
+// _postCard (+ _saleBar, _tag)
+function drawCard(ctx, p, x, y, w) {
+  const pad = P['cd.pad'], iw = w - pad * 2, muted = P['cd.muted'], bs = P['cd.bodySize'], lh = bs * 1.35;
+  ctx.font = `400 ${bs}px Roboto`; const lines = p.body ? (p.body.split('\n').flatMap(l => wrapText(ctx, l, iw, 60))) : [];
+  const n = p.imgs.length, imgH = n ? (n === 1 ? P['cd.imgOne'] : P['cd.imgMany']) : 0, tags = []; if (p.topic && p.topic !== 'general') tags.push([p.topic, PGI.tag]); if (p.store) tags.push([p.store, PGI.sell]);
+  const sale = p.kind === 'sale', saleH = sale ? 10 + 12 + Math.max(P['mk.priceSize'] * 1.17 + 2 + 14, 40) + 12 : 0;
+  const h = pad + 48 + (lines.length ? 10 + lines.length * lh : 0) + (n ? 10 + imgH : 0) + 10 + (tags.length ? 24 : 0) + saleH + 6 + 22 + pad;
+  if (y > K.H || y + h < 0) return h;
+  ctx.fillStyle = P['cd.color']; ctx.beginPath(); ctx.roundRect(x, y, w, h, P['cd.radius']); ctx.fill();
+  let cy = y + pad; avatarCircle(ctx, p.avatar, p.name, x + pad + 18, cy + 24, 18);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `800 ${P['cd.nameSize']}px Roboto`; ctx.fillStyle = '#fff'; ctx.fillText(p.name, x + pad + 46, cy + 7, iw - 46 - 48);
+  ctx.font = `400 ${P['cd.subSize']}px Roboto`; ctx.fillStyle = muted; ctx.fillText('@' + p.handle + '  ·  ' + ago(p.at) + '  ·  ' + p.county + ', ' + p.state, x + pad + 46, cy + 7 + P['cd.nameSize'] * 1.35, iw - 46 - 48);
+  icon(ctx, MI.more, x + w - pad - 36, cy + 12, 24, muted);
+  hit(x + pad, cy, iw - 48, 48, () => openProfile(p.author), 'cards'); hit(x + w - pad - 48, cy, 48, 48, () => postMenu(x + w - pad, cy + 40, p), 'cards');
+  cy += 48;
+  if (lines.length) { cy += 10; ctx.font = `400 ${bs}px Roboto`; ctx.fillStyle = '#fff'; for (const l of lines) { ctx.fillText(l, x + pad, cy + (lh - bs * 1.17) / 2); cy += lh; } }
+  if (n) { cy += 10; const iwid = n === 1 ? K.W - 56 : 200; ctx.save(); ctx.beginPath(); ctx.rect(x + pad, cy, iw, imgH); ctx.clip(); p.imgs.forEach((im, i) => { const ix = x + pad + i * (iwid + 8); cover(ctx, im, ix, cy, iwid, imgH, P['cd.imgRadius']); hit(ix, cy, Math.min(iwid, x + w - pad - ix), imgH, () => { ST.viewer = im; }, 'cards.img'); }); ctx.restore(); cy += imgH; }
+  cy += 10; if (tags.length) { let tx = x + pad; for (const [t, ic] of tags) { ctx.font = '700 12px Roboto'; const tw = ctx.measureText(t).width + 8 + 13 + 4 + 8; ctx.fillStyle = '#11151C'; ctx.beginPath(); ctx.roundRect(tx, cy, tw, 24, 10); ctx.fill(); icon(ctx, ic, tx + 8, cy + 5.5, 13, YEL); ctx.fillStyle = YEL; ctx.textBaseline = 'middle'; ctx.fillText(t, tx + 8 + 13 + 4, cy + 12); tx += tw + 8; } cy += 24; }
+  if (sale) { // _saleBar
+    cy += 10; const bh = saleH - 10, sizeText = p.size === 'truck' ? 'Needs a pickup truck' : p.size === 'freight' ? 'Goes by freight' : 'Fits in a car', mine = p.author === ME_ID;
+    let label = P['mk.btnLabel'], can = true; if (p.status === 'sold') { label = 'Sold'; can = false; } else if (p.status === 'held') { label = mine ? 'Valkyrie on the way' : 'Taken'; can = false; } else if (mine) { label = 'Your listing'; can = false; } else if (!P['mk.p2p']) { label = 'Opens soon'; can = false; } else if (p.size === 'freight') label = 'Freight delivery';
+    ctx.fillStyle = '#11151C'; ctx.beginPath(); ctx.roundRect(x + pad, cy, iw, bh, 12); ctx.fill();
+    ctx.font = '800 14px Roboto'; const bw = ctx.measureText(label).width + 32, bx = x + pad + iw - 12 - bw, by = cy + (bh - 40) / 2;
+    ctx.fillStyle = can ? YEL : 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, 40, 12); ctx.fill(); ctx.fillStyle = can ? '#000' : 'rgba(255,255,255,.38)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, bx + bw / 2, by + 20);
+    if (can) hit(bx, by, bw, 40, () => K.status(p.size === 'freight' ? 'In the app this opens freight delivery (b2ppage).' : 'In the app this puts it in your bag and opens Checkout.'), 'mk.sale');
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = YEL; ctx.font = `900 ${P['mk.priceSize']}px Roboto`; const ty = cy + (bh - (P['mk.priceSize'] * 1.17 + 2 + 14)) / 2; ctx.fillText(money(p.cents), x + pad + 12, ty);
+    ctx.font = '400 12px Roboto'; ctx.fillStyle = muted; ctx.fillText(p.town ? sizeText + '  ·  Pickup in ' + p.town : sizeText, x + pad + 12, ty + P['mk.priceSize'] * 1.17 + 2, bx - x - pad - 20); cy += bh;
+  }
+  cy += 6; const ic = P['cd.icon']; icon(ctx, p.liked ? MI.heart : MI.heartO, x + pad, cy + (22 - ic) / 2, ic, p.liked ? P['cd.liked'] : muted); ctx.font = '400 13px Roboto'; ctx.fillStyle = muted; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; const lt = String(p.likes); ctx.fillText(lt, x + pad + ic + 4, cy + 11);
+  const lw = ic + 4 + ctx.measureText(lt).width; hit(x + pad, cy - 6, lw, 34, () => { p.liked = !p.liked; p.likes += p.liked ? 1 : -1; }, 'cards');
+  const cx2 = x + pad + lw + 22; icon(ctx, MI.chat, cx2, cy + .5, 21, muted); ctx.fillText(String(p.comments), cx2 + 25, cy + 11); hit(cx2, cy - 6, 25 + ctx.measureText(String(p.comments)).width, 34, () => K.status('Comments are not built in the studio yet.'), 'cards');
+  return h;
+}
+function listTop(view) { return view === 'market' ? 8 + 48 + 4 : 6 + 48; }
+function drawProfile(ctx, W, H) {
+  const pr = PROFILES[ST.profile] || PROFILES[IDUN_ID], mine = pr.id === ME_ID, top = listTop('profile'), sy = VS.profile; ctx.fillStyle = '#11151C'; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, top, W, H - top); ctx.clip();
+  let y = top + 4 - sy; const x = 12, w = W - 24, A = P['pf.avatar'];
+  // panel
+  ctx.font = `400 ${P['pf.bioSize']}px Roboto`; const bio = pr.bio ? wrapText(ctx, pr.bio, w - 32, 10) : [];
+  const ph = 16 + A * 2 + (mine ? 4 + 13 : 0) + 10 + P['pf.nameSize'] * 1.17 + P['pf.subSize'] * 1.17 + (bio.length ? 8 + bio.length * P['pf.bioSize'] * 1.17 : 0) + 12 + P['pf.statSize'] * 1.17 + P['pf.statLabel'] * 1.17 + 12 + 40 + 16;
+  ctx.fillStyle = P['pf.panel']; ctx.beginPath(); ctx.roundRect(x, y, w, ph, 14); ctx.fill(); G.profCard = { x, y, w, h: ph };
+  let cy = y + 16; avatarCircle(ctx, pr.avatar, pr.name, W / 2, cy + A, A); if (mine) hit(W / 2 - A, cy, A * 2, A * 2, () => K.status('In the app this lets you pick a new photo.'), 'prof.card'); cy += A * 2;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  if (mine) { cy += 4; ctx.font = '400 11px Roboto'; ctx.fillStyle = P['cd.muted']; ctx.fillText('Tap photo to change', W / 2, cy); cy += 13; }
+  cy += 10; ctx.font = `900 ${P['pf.nameSize']}px Roboto`; ctx.fillStyle = '#fff'; ctx.fillText(pr.name, W / 2, cy); cy += P['pf.nameSize'] * 1.17;
+  ctx.font = `400 ${P['pf.subSize']}px Roboto`; ctx.fillStyle = P['cd.muted']; ctx.fillText('@' + pr.handle + '  ·  ' + pr.county + ', ' + pr.state, W / 2, cy); cy += P['pf.subSize'] * 1.17;
+  if (bio.length) { cy += 8; ctx.font = `400 ${P['pf.bioSize']}px Roboto`; ctx.fillStyle = '#fff'; for (const l of bio) { ctx.fillText(l, W / 2, cy); cy += P['pf.bioSize'] * 1.17; } }
+  cy += 12; const stats = [[String(pr.posts.length), 'Posts'], [String(pr.fers), 'Followers'], [String(pr.fing), 'Following']];
+  ctx.font = `900 ${P['pf.statSize']}px Roboto`; const sw = stats.map(s => { ctx.font = `900 ${P['pf.statSize']}px Roboto`; const a = ctx.measureText(s[0]).width; ctx.font = `400 ${P['pf.statLabel']}px Roboto`; return Math.max(a, ctx.measureText(s[1]).width); }), free = (w - 32 - sw.reduce((a, b) => a + b, 0)) / 4;
+  let sx = x + 16 + free; stats.forEach((s, i) => { const c = sx + sw[i] / 2; ctx.font = `900 ${P['pf.statSize']}px Roboto`; ctx.fillStyle = '#fff'; ctx.fillText(s[0], c, cy); ctx.font = `400 ${P['pf.statLabel']}px Roboto`; ctx.fillStyle = P['cd.muted']; ctx.fillText(s[1], c, cy + P['pf.statSize'] * 1.17); sx += sw[i] + free; });
+  cy += P['pf.statSize'] * 1.17 + P['pf.statLabel'] * 1.17 + 12;
+  const yel = P['pf.yellow'], btns = mine ? [[P['pf.edit'], 'outline', { line: yel, fg: yel }, () => K.status('In the app this opens Edit profile.')], [P['pf.fig'], 'outline', { line: yel, fg: yel }, () => K.status('In the app this opens "Your figure" (front and back photo for your 3D figure).')]]
+    : [[pr.follow === 'following' ? 'Following' : pr.follow === 'pending' ? 'Requested' : 'Follow', 'filled', pr.follow ? { bg: '#11151C', fg: '#fff' } : { bg: yel, fg: '#000' }, () => { if (pr.follow === 'following') { pr.follow = null; pr.fers = Math.max(0, pr.fers - 1); } else if (pr.follow === 'pending') pr.follow = null; else { pr.follow = 'pending'; K.status('Follow request sent.'); } }], ['Options', 'outline', { line: 'rgba(255,255,255,.38)', fg: '#fff' }, () => K.status('In the app this opens the options for ' + pr.name + ' (message, favorite, 360, block).')]];
+  ctx.font = '500 14px Roboto'; const bws = btns.map(b => ctx.measureText(b[0]).width + 48), tw = bws.reduce((a, b) => a + b, 0) + 10 * (btns.length - 1); let bx = W / 2 - tw / 2;
+  btns.forEach((b, i) => { btn(ctx, bx, cy, b[0], b[1], b[2]); hit(bx, cy, bws[i], 40, b[3], 'prof.btns'); bx += bws[i] + 10; });
+  y += ph + 12;
+  if (!pr.posts.length) { ctx.font = '400 14px Roboto'; ctx.fillStyle = P['cd.muted']; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('No posts yet.', W / 2, y + 24); y += 24 + 17 + 24; }
+  G.cards = []; for (const p of pr.posts) { const h = drawCard(ctx, p, x, y, w); G.cards.push({ x, y, w, h }); y += h + P['cd.gap']; }
+  ctx.restore();
+  G.vMax = Math.max(0, y + sy + 90 - P['cd.gap'] - H);
+  // header
+  icon(ctx, SI.back, 6 + 12, 6 + 12, 24, '#fff'); hit(6, 6, 48, 48, goFeed, 'prof.head');
+  ctx.font = `800 ${P['pf.titleSize']}px Roboto`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(P['pf.title'], 6 + 48, 6 + 24); G.profHead = { x: 6, y: 6, w: W - 12, h: 48 };
+  if (!mine) { icon(ctx, MI.more, W - 6 - 36, 6 + 12, 24, '#fff'); hit(W - 54, 6, 48, 48, () => { ST.menu = { x: W - 6, y: 46, items: [['Report', '#FFFFFF', () => K.status('In the app this opens the report reasons for this profile.')], ['Block user', '#FF7A7A', () => K.status('In the app this blocks @' + pr.handle + '.')]] }; }, 'prof.head'); }
+  if (mine) { const fx0 = W - 16 - 56, fy0 = H - 16 - footprint() - 56; ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = K.shadowBlurFor(ctx, 6); ctx.shadowOffsetY = 3; ctx.fillStyle = YEL; ctx.beginPath(); ctx.roundRect(fx0, fy0, 56, 56, 16); ctx.fill(); ctx.restore(); icon(ctx, PGI.edit, fx0 + 16, fy0 + 16, 24, '#000'); hit(fx0, fy0, 56, 56, () => K.status('In the app this opens the composer (post a saga).'), 'prof.btns'); }
+}
+function chip(ctx, x, y, ic, label, color) { ctx.font = '800 12px Roboto'; const w = 10 + 15 + (label ? 4 + ctx.measureText(label).width : 0) + 10, h = 27; ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 18); ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke(); icon(ctx, ic, x + 10, y + 6, 15, color); if (label) { ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x + 10 + 15 + 4, y + h / 2); } return w; }
+function drawMarket(ctx, W, H) {
+  const top = listTop('market'), sy = VS.market, list = P['mk.test'] ? LISTINGS : []; ctx.fillStyle = '#11151C'; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, top, W, H - top); ctx.clip(); let y = top + 8 - sy; G.cards = [];
+  if (!list.length) { ctx.font = '400 15px Roboto'; ctx.fillStyle = P['cd.muted']; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; wrapText(ctx, P['mk.empty'], W - 48, 4).forEach((l, i) => ctx.fillText(l, W / 2, top + 80 + 24 + i * 15 * 1.17)); y = top; }
+  for (const p of list) { const h = drawCard(ctx, p, 12, y, W - 24); G.cards.push({ x: 12, y, w: W - 24, h }); y += h + P['cd.gap']; }
+  ctx.restore(); G.vMax = Math.max(0, y + sy + 30 - P['cd.gap'] - H);
+  icon(ctx, SI.back, 6 + 12, 8 + 12, 24, '#fff'); hit(6, 8, 48, 48, goFeed, 'mk.head');
+  const c = P['mk.chip']; ctx.font = '800 12px Roboto'; const sellW = 10 + 15 + 4 + ctx.measureText('Sell').width + 10, areaW = 10 + 15 + 4 + ctx.measureText(P['lab.area']).width + 10, sx = W - 10 - sellW, ax = sx - 8 - areaW, cy = 8 + 24 - 13.5;
+  ctx.font = `900 ${P['mk.titleSize']}px Roboto`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(P['mk.title'], 6 + 48, 8 + 24, ax - 6 - 48 - 4);
+  chip(ctx, ax, cy, PGI.place, P['lab.area'], c); hit(ax, cy, areaW, 27, () => K.status('In the app this picks your area (county / state / everywhere).'), 'mk.head');
+  chip(ctx, sx, cy, PGI.sell, 'Sell', c); hit(sx, cy, sellW, 27, () => K.status('In the app this opens the composer for a sale listing.'), 'mk.head'); G.mkHead = { x: 6, y: 8, w: W - 16, h: 48 };
+}
+function drawMenu(ctx) { const m = ST.menu; if (!m) return; ctx.font = '400 16px Roboto'; const w = Math.max(112, ...m.items.map(i => ctx.measureText(i[0]).width + 32)), h = m.items.length * 48 + 16, x = clamp(m.x - w, 8, K.W - w - 8), y = clamp(m.y, 8, K.H - h - 8);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = K.shadowBlurFor(ctx, 8); ctx.shadowOffsetY = 3; ctx.fillStyle = '#202630'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill(); ctx.restore();
+  m.boxes = m.items.map((it, i) => { const iy = y + 8 + i * 48; ctx.fillStyle = it[1]; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(it[0], x + 16, iy + 24); return { x, y: iy, w, h: 48, fn: it[2] }; }); }
+function drawViewer(ctx) { const im = ST.viewer; if (!im) return; ctx.fillStyle = 'rgba(0,0,0,.54)'; ctx.fillRect(0, 0, K.W, K.H); ctx.fillStyle = '#000'; ctx.fillRect(8, 8, K.W - 16, K.H - 16); if (ready(im)) { const s = Math.min((K.W - 16) / im.naturalWidth, (K.H - 16) / im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s; ctx.drawImage(im, K.W / 2 - w / 2, K.H / 2 - h / 2, w, h); } }
+function drawPage(ctx, now) { G.hits = []; const W = K.W, H = K.H; if (ST.view === 'profile') drawProfile(ctx, W, H); else drawMarket(ctx, W, H); drawBar(ctx, now); }
+
 /* ---------- labels ---------- */
 const PLACE = new Path2D('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zM7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.88-2.88 7.19-5 9.88C9.92 16.21 7 11.85 7 9zm5 2.5c1.38 0 2.5-1.12 2.5-2.5S13.38 6.5 12 6.5 9.5 7.62 9.5 9s1.12 2.5 2.5 2.5z');
 function spaced(ctx, text, x, y, spacing) { let cx = x; for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; } return cx - x; }
@@ -973,6 +1087,40 @@ const sc = K.screen({
     def('Share', 'TV off', 'share', 'sh.tvMs', 'Switch-off time', 'int', 700, { min: 100, max: 3000, step: 50, unit: 'ms', info: 'Plays after you tap a panel to send.' });
     def('Share', 'TV off', 'share', 'sh.tvColor', 'Line glow color', 'color', '#5FD8FF');
     def('Share', 'Return button', 'share.ret', 'sh.retText', 'Word', 'text', 'RETURN');
+    def('Profile page', 'Who', 'prof.card', 'pf.who', 'Profile to show (studio test)', 'select', 'idun', { opts: [['idun', 'Idun (test account, 1,000,000 followers)'], ['thor', 'Thor (test account)'], ['me', 'You (swad30991)']], info: 'In the app: tap a name on a post, or the A S G A R D label for your own.' });
+    def('Profile page', 'Header', 'prof.head', 'pf.title', 'Title', 'text', 'Profile');
+    def('Profile page', 'Header', 'prof.head', 'pf.titleSize', 'Title size', 'num', 20, { min: 10, max: 36, step: .5, unit: 'px' });
+    def('Profile page', 'Card', 'prof.card', 'pf.panel', 'Card color', 'color', '#202630');
+    def('Profile page', 'Card', 'prof.card', 'pf.avatar', 'Photo size (radius)', 'num', 38, { min: 16, max: 80, step: .5, unit: 'px' });
+    def('Profile page', 'Card', 'prof.card', 'pf.nameSize', 'Name size', 'num', 20, { min: 10, max: 40, step: .5, unit: 'px' });
+    def('Profile page', 'Card', 'prof.card', 'pf.subSize', 'Handle line size', 'num', 13, { min: 8, max: 24, step: .5, unit: 'px' });
+    def('Profile page', 'Card', 'prof.card', 'pf.bioSize', 'Bio size', 'num', 14, { min: 8, max: 28, step: .5, unit: 'px' });
+    def('Profile page', 'Card', 'prof.card', 'pf.statSize', 'Count size', 'num', 18, { min: 8, max: 36, step: .5, unit: 'px' });
+    def('Profile page', 'Card', 'prof.card', 'pf.statLabel', 'Count label size', 'num', 12, { min: 6, max: 24, step: .5, unit: 'px' });
+    def('Profile page', 'Buttons', 'prof.btns', 'pf.yellow', 'Button gold', 'color', '#FFC72C');
+    def('Profile page', 'Buttons', 'prof.btns', 'pf.edit', 'Edit button (yours)', 'text', 'Edit profile', { info: 'Shows on your own profile: Profile to show = You.' });
+    def('Profile page', 'Buttons', 'prof.btns', 'pf.fig', 'Figure button (yours)', 'text', 'My figure', { info: 'Shows on your own profile: Profile to show = You.' });
+    def('Post cards', 'Card', 'cards', 'cd.color', 'Card color', 'color', '#202630', { info: 'The cards on profiles and in the Marketplace.' });
+    def('Post cards', 'Card', 'cards', 'cd.radius', 'Corner round', 'num', 14, { min: 0, max: 40, step: .5, unit: 'px' });
+    def('Post cards', 'Card', 'cards', 'cd.pad', 'Inside padding', 'num', 12, { min: 4, max: 32, step: .5, unit: 'px' });
+    def('Post cards', 'Card', 'cards', 'cd.gap', 'Gap between cards', 'num', 12, { min: 0, max: 40, step: .5, unit: 'px' });
+    def('Post cards', 'Text', 'cards', 'cd.nameSize', 'Name size', 'num', 14, { min: 8, max: 28, step: .5, unit: 'px' });
+    def('Post cards', 'Text', 'cards', 'cd.subSize', 'Handle line size', 'num', 11, { min: 6, max: 20, step: .5, unit: 'px' });
+    def('Post cards', 'Text', 'cards', 'cd.bodySize', 'Text size', 'num', 15, { min: 8, max: 30, step: .5, unit: 'px' });
+    def('Post cards', 'Text', 'cards', 'cd.muted', 'Grey text color', 'color', '#B8C0CB');
+    def('Post cards', 'Pictures', 'cards.img', 'cd.imgOne', 'One picture: height', 'num', 260, { min: 80, max: 600, step: 1, unit: 'px', info: 'Tap a picture to open it full screen.' });
+    def('Post cards', 'Pictures', 'cards.img', 'cd.imgMany', 'Several pictures: height', 'num', 170, { min: 60, max: 400, step: 1, unit: 'px', info: 'For posts with more than one picture (none of the test posts have that yet).' });
+    def('Post cards', 'Pictures', 'cards.img', 'cd.imgRadius', 'Picture corner round', 'num', 12, { min: 0, max: 40, step: .5, unit: 'px' });
+    def('Post cards', 'Likes', 'cards', 'cd.icon', 'Heart size', 'num', 22, { min: 12, max: 40, step: .5, unit: 'px' });
+    def('Post cards', 'Likes', 'cards', 'cd.liked', 'Liked heart color', 'color', '#FF7A7A', { info: 'Tap a heart to see it.' });
+    def('Marketplace', 'Header', 'mk.head', 'mk.title', 'Title', 'text', 'Marketplace', { info: 'In the app: swipe left on the feed. Swipe right (or the arrow) to go back.' });
+    def('Marketplace', 'Header', 'mk.head', 'mk.titleSize', 'Title size', 'num', 22, { min: 10, max: 40, step: .5, unit: 'px' });
+    def('Marketplace', 'Header', 'mk.head', 'mk.chip', 'Chip color', 'color', '#FFC72C');
+    def('Marketplace', 'Listings', 'mk.list', 'mk.test', 'Test listings (studio only)', 'bool', true, { info: 'Nobody has listed anything yet, so the studio shows 4 test listings from Thor and Idun. Off = what the app shows today.' });
+    def('Marketplace', 'Listings', 'mk.list', 'mk.empty', 'Nothing-for-sale text', 'text', 'Nothing for sale nearby yet. Tap Sell to list something.');
+    def('Marketplace', 'Sale bar', 'mk.sale', 'mk.p2p', 'Selling is open (p2p_live)', 'bool', false, { info: 'Off today (delivery_fee_rules p2p_live = 0), so buttons say "Opens soon".' });
+    def('Marketplace', 'Sale bar', 'mk.sale', 'mk.priceSize', 'Price size', 'num', 22, { min: 10, max: 40, step: .5, unit: 'px' });
+    def('Marketplace', 'Sale bar', 'mk.sale', 'mk.btnLabel', 'Buy button', 'text', 'Get it now');
     def('Test people', 'Live test accounts', 'holes', 'test.count', 'How many streaming', 'int', 12, { min: 0, max: 12, step: 1, info: 'Baldr, Saga, Tyr, Vidar… from live_streams, most viewers first.' });
     def('Test people', 'Live test accounts', 'holes', 'test.viewers', 'Viewers ×', 'num', 1, { min: .01, max: 20, step: .01, info: 'Scale everyone\'s viewers to watch holes change stage.' });
     def('Test people', 'Live test accounts', 'holes', 'test.live', 'They are live', 'bool', true);
@@ -981,15 +1129,24 @@ const sc = K.screen({
     { label: 'Pause drift', title: 'Stop / start the drift', onclick: () => { ST.paused = !ST.paused; K.status(ST.paused ? 'Drift paused. Drag the strip sideways to move it.' : 'Drift running.'); } },
     { label: 'Re-center', title: 'Clear the swipe offset', onclick: () => { ST.swipe = 0; } },
     { label: 'Share a post', title: 'Play the share animation on the post in view (press again to return)', onclick: () => { if (SH) { closeShare(); return; } const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
+    { label: 'Profile', title: 'Open the test profile (Profile page › Who)', onclick: () => { if (ST.view === 'profile') goFeed(); else openProfile({ idun: IDUN_ID, thor: THOR_ID, me: ME_ID }[sc.P['pf.who']] || IDUN_ID); } },
+    { label: 'Marketplace', title: 'Open the Marketplace (swipe left on the feed in the app)', onclick: () => { if (ST.view === 'market') goFeed(); else goMarket(); } },
     { label: 'Fly into a hole', title: 'Play the black-hole flight into the hole nearest the middle', onclick: () => { if (ST.flight) { ST.flight = null; return; } const o = G.orbs.slice().sort((a, b) => Math.abs(a.x - K.W / 2) - Math.abs(b.x - K.W / 2))[0]; if (o) startFlight(o); } },
   ],
   onShow() { P = sc.P; },
-  onSet(k) { P = sc.P; if (k.startsWith('sh.') && !SH && !ST.flight) { const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
-  update(dt) { P = sc.P; shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
+  onSet(k) { P = sc.P; if (SH && !k.startsWith('sh.')) SH = null;
+    if (k.startsWith('pf.') && (k === 'pf.who' || ST.view !== 'profile')) openProfile({ idun: IDUN_ID, thor: THOR_ID, me: ME_ID }[sc.P['pf.who']] || IDUN_ID);
+    if (k === 'pf.edit' || k === 'pf.fig') openProfile(ME_ID);
+    if (k.startsWith('cd.') && ST.view === 'feed') openProfile(IDUN_ID); if (k.startsWith('cd.') && !ST.view) openProfile(IDUN_ID);
+    if (k.startsWith('mk.') && ST.view !== 'market') goMarket();
+    if (!k.startsWith('pf.') && !k.startsWith('cd.') && !k.startsWith('mk.') && ST.view && ST.view !== 'feed' && !k.startsWith('bar.') && !k.startsWith('bg.')) goFeed();
+    if (k.startsWith('sh.') && !SH && !ST.flight) { const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
+  update(dt) { P = sc.P; shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (ST.view && ST.view !== 'feed') { if (!ST.drag && ST.vel) { VS[ST.view] = clamp(VS[ST.view] + ST.vel * dt, 0, G.vMax || 0); ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } return; } if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
   draw(ctx, now, studio) {
     P = sc.P; sc.ty = 0;
     if (ST.flight) { drawFlight(ctx, now); if (studio) K.hl(ctx, now); return; }
     if (SH && SH.tv <= 0) { drawShare(ctx, now); if (studio) K.hl(ctx, now); return; }
+    if (ST.view && ST.view !== 'feed') { drawPage(ctx, now); drawMenu(ctx); drawViewer(ctx); if (studio) K.hl(ctx, now); return; }
     const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
     G.strip = { x: 0, y: 0, w: W, h: sh };
     if (P['feed.bg']) { const y0 = P['sky.mode'] === 'through' ? sh - P['strip.fade'] : 0; ctx.fillStyle = P['post.bg']; ctx.fillRect(0, y0, W, H - y0); }
@@ -1007,10 +1164,12 @@ const sc = K.screen({
     G.top = top;
     drawBar(ctx, now);
     if (SH) drawShare(ctx, now);
+    drawMenu(ctx); drawViewer(ctx);
     if (studio) K.hl(ctx, now);
   },
   highlight(ctx, base, sub, H1) {
     const W = K.W, top = G.top || 48, box = (b, pad = 3, r = 6) => () => { ctx.beginPath(); ctx.roundRect(b.x - pad, b.y - pad, b.w + pad * 2, b.h + pad * 2, r); };
+    if (/^(prof|cards|mk)/.test(base)) { if (base === 'prof.card' && G.profCard) H1(box(G.profCard, -2, 14)); else if (base === 'prof.head' && G.profHead) H1(box(G.profHead, 0, 10)); else if (base === 'mk.head' && G.mkHead) H1(box(G.mkHead, 0, 10)); else if ((base === 'cards' || base === 'mk.list') && G.cards) G.cards.forEach(c => H1(box(c, -2, 14))); else (G.hits || []).filter(h => h.tag === base).forEach(h => H1(box(h, 2, 8))); return; }
     if (base.startsWith('share')) { const S = SH; if (!S) return; const F = S.floor;
       if (base === 'share.floor' && F) H1(() => { const pl = F.plane, a = fx(F.M, pl.x, pl.y), b = fx(F.M, pl.x + pl.w, pl.y), c = fx(F.M, pl.x + pl.w, pl.y + pl.h), d = fx(F.M, pl.x, pl.y + pl.h); ctx.beginPath(); ctx.moveTo(a[0] + 3, a[1] + 3); ctx.lineTo(b[0] - 3, b[1] + 3); ctx.lineTo(c[0] - 3, c[1] - 3); ctx.lineTo(d[0] + 3, d[1] - 3); ctx.closePath(); });
       else if (base === 'share.sky' && F) { H1(() => { ctx.beginPath(); ctx.rect(4, 4, W - 8, F.hz - 8); }); }
@@ -1034,6 +1193,7 @@ const sc = K.screen({
     else if (base === 'bar.labels' && G.barBtns) G.barBtns.forEach(b => H1(box({ x: b.x + 4, y: b.icon.y + b.icon.h + 2, w: b.w - 8, h: P['bar.labelSize'] * 1.3 + 4 }, 1, 4)));
   },
   bounds(base) {
+    if (base && /^(prof|cards|mk)/.test(base)) { const W = K.W, sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s }); const first = (G.hits || []).find(h => h.tag === base && h.y > 0 && h.y < K.H); if ((base === 'prof.head' || base === 'mk.head')) return sq(W / 2, 40, W); if (base === 'prof.card' && G.profCard) return sq(W / 2, Math.max(G.profCard.y + 120, W / 2), W); const c = (G.cards || []).find(c => c.y + c.h > 60 && c.y < K.H); if (first && base !== 'cards' && base !== 'mk.list') return sq(first.x + first.w / 2, first.y + first.h / 2, Math.max(W * .6, first.w + 40)); if (c) return sq(W / 2, Math.min(c.y + c.h / 2, K.H - W / 2), W); return sq(W / 2, K.H / 2, W); }
     if (base && base.startsWith('share') && SH) { const W = K.W, H = K.H, S = SH, sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
       if (base === 'share.ret' && S.ret) return sq(S.ret.x + S.ret.w / 2 + 40, S.ret.y + 40, 200);
       if (base === 'share.sheet' && S.sheetTop != null) return sq(W / 2, Math.max(S.sheetTop + 60, H - W / 2), W);
@@ -1051,6 +1211,8 @@ const sc = K.screen({
     return sq(W / 2, sh / 2, W);
   },
   pick(p) {
+    if (ST.view === 'profile' || ST.view === 'market') { const h = (G.hits || []).slice().reverse().find(h => p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h); const map = { 'prof.head': ['Profile page', 'Header'], 'prof.card': ['Profile page', 'Card'], 'prof.btns': ['Profile page', 'Buttons'], 'cards': ['Post cards', 'Card'], 'cards.img': ['Post cards', 'Pictures'], 'mk.head': ['Marketplace', 'Header'], 'mk.sale': ['Marketplace', 'Sale bar'] };
+      if (G.bar && p.y >= G.bar.y) return ['Bottom icons', 'Layout']; if (h && map[h.tag]) return map[h.tag]; if (p.y < 60) return ST.view === 'market' ? ['Marketplace', 'Header'] : ['Profile page', 'Header']; if (G.profCard && ST.view === 'profile' && p.y >= G.profCard.y && p.y <= G.profCard.y + G.profCard.h) return ['Profile page', 'Card']; return ['Post cards', 'Card']; }
     if (SH) { const S = SH, inR = r => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
       if (inR(S.ret)) return ['Share', 'Return button']; if ((S.boxes || []).some(inR)) return ['Share', 'Send panels']; if (S.sheetTop != null && p.y >= S.sheetTop) return ['Share', 'Pick list'];
       if ((S.figBoxes || []).some(inR)) return ['Share', 'Figures']; if (S.floor && p.y < S.floor.hz) return ['Share', 'Sky']; return ['Share', 'Floor']; }
@@ -1063,11 +1225,19 @@ const sc = K.screen({
     return ['Background', null];
   },
   pointer: {
-    down(p) { if (SH) { sharePointer('down', p); return; } if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, v: 0 }; } },
-    move(p) { if (SH) { sharePointer('move', p); return; } const d = ST.drag; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
+    down(p) { if (SH) { sharePointer('down', p); return; } if (ST.viewer || ST.menu) { ST.drag = { mode: ST.viewer ? 'viewer' : 'menu', x0: p.x, y0: p.y }; return; } if (ST.view && ST.view !== 'feed') { ST.vel = 0; ST.drag = { mode: 'page', y: p.y, x0: p.x, y0: p.y, t: performance.now(), t0: performance.now(), v: 0 }; return; } if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, t0: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, t0: now, v: 0 }; } },
+    move(p) { if (SH) { sharePointer('move', p); return; } const d = ST.drag; if (d && d.mode === 'page') { const now = performance.now(), dy = p.y - d.y; VS[ST.view] = clamp(VS[ST.view] - dy, 0, G.vMax || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; d.t = now; return; } if (d && (d.mode === 'viewer' || d.mode === 'menu')) return; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
     up(p) {
       if (SH) { sharePointer('up', p); return; }
       const d = ST.drag; ST.drag = null; if (!d) return;
+      const tap = Math.hypot(p.x - d.x0, p.y - d.y0) < 6, inB = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+      const swipeX = () => { const dx = p.x - d.x0, dy = p.y - d.y0; return (performance.now() - (d.t0 || d.t || 0) < 800 && Math.abs(dx) > 110 && Math.abs(dx) > Math.abs(dy) * 2.5) ? dx : 0; };
+      if (d.mode === 'viewer') { if (tap) ST.viewer = null; return; }
+      if (d.mode === 'menu') { const m = ST.menu; ST.menu = null; if (tap && m && m.boxes) { const b = m.boxes.find(inB); if (b) b.fn(); } return; }
+      if (d.mode === 'page') { if (tap) { const h = (G.hits || []).slice().reverse().find(inB); if (h) h.fn(); return; } const sx = swipeX(); if (sx > 0 && ST.view === 'market') { goFeed(); return; } ST.vel = clamp(d.v, -4000, 4000); return; }
+      if (d.mode === 'feed' && !tap) { const sx = swipeX(); if (sx < 0) { goMarket(); return; } if (sx > 0) { K.go('home', { href: 'sleipnir-studio-1120.html#home' }); return; } }
+      if (d.mode === 'feed' && tap) { const a = (G.posts || []).find(q => inB(q.moreBox) && p.y > (G.feedTop || 0)); if (a) { postMenu(a.moreBox.x + a.moreBox.w, a.moreBox.y + 40, a); return; } const b = (G.posts || []).find(q => inB(q.authorBox) && p.y > (G.feedTop || 0)); if (b) { openProfile(b.author); return; } }
+      if (d.mode === 'strip' && tap && inB(G.labels.title && { x: G.labels.title.x - 6, y: G.labels.title.y - 8, w: G.labels.title.w + 12, h: G.labels.title.h + 16 })) { openProfile(ME_ID); return; }
       if (d.mode === 'flight') { const F = ST.flight; if (!F) return; const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
         if (F.dir !== 0 && p.y < (K.isMobile ? 100 : 60) && p.y > (K.isMobile ? 50 : 0) && p.x > K.W - 120) { F.t = F.dir > 0 ? 1 : 0; if (F.dir > 0) F.dir = 0; else ST.flight = null; return; }
         if (F.dir === 0 && (inR(F.ret) || (p.y < 60 && p.x < 60))) { F.dir = -1; return; }
