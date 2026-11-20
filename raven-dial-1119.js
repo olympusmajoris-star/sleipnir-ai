@@ -19,7 +19,7 @@ const SHAPES = [
   { tab: 'Groups', kind: 'Hexagon', pos: [-126.5, 147.5], color: '#FFAC78', period: 23, start: -8.594, icon: .84, iconY: 0 },
 ];
 
-const ST = { angle: 0, hi: 0, ready: true, armed: false, confirmed: false, grab: false, insideTap: false, didTurn: false, active: null, prevA: null, travel: 0, drift: 0, origin: { x: 0, y: 0 }, grabAngle: 0, grabMode: 0, wasReady: false, idle: true, spin: 0, amb: 0, wob: 0, lastDetent: 0, closing: false, rise: { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }, turn: { on: false, from: 0, to: 0, t0: 0 }, chose: null };
+const ST = { angle: 0, hi: 0, ready: true, armed: false, confirmed: false, grab: false, insideTap: false, didTurn: false, active: null, prevA: null, travel: 0, drift: 0, origin: { x: 0, y: 0 }, grabAngle: 0, grabMode: 0, wasReady: false, idle: true, spin: 0, amb: 0, wob: 0, lastDetent: 0, closing: false, rise: { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }, turn: { on: false, from: 0, to: 0, t0: 0 }, chose: null, dis: -1, disStay: false };
 let G = {};
 function annulus(c, inner, outer) { const p = new Path2D(); p.arc(c.x, c.y, outer, 0, TAU); p.moveTo(c.x + inner, c.y); p.arc(c.x, c.y, inner, 0, TAU); return p; }
 /* ---------- geometry ---------- */
@@ -379,8 +379,25 @@ function snap(m) {
 }
 function doConfirm() {
   if (!ST.ready || ST.turn.on || ST.closing) return; vib(15); ST.confirmed = true; ST.chose = P['label' + ST.hi];
-  if (ST.hi === 0 && K.screens.directory) { K.status('Chose ' + ST.chose + '. Opening the Raven directory (what the app does next)…'); setTimeout(() => K.show('directory'), 650); }
+  if (ST.hi === 0 && K.screens.directory) { K.status('Chose ' + ST.chose + '. Opening the Raven directory (what the app does next)…'); if (P['dis.on']) { ST.dis = 0; ST.disStay = false; } else setTimeout(() => K.show('directory'), 650); }
   else K.status('Chose ' + ST.chose + ' (in the app this opens that page). Turn the ring to choose again.');
+}
+function drawDismantleLines(ctx, m, p) {
+  const alpha = Math.sin(Math.PI * p) * P['dis.alpha'], sep = K.smooth(p) * P['dis.spread'] * m.unit; if (alpha <= 0) return;
+  ctx.save(); ctx.lineWidth = P['dis.width']; ctx.strokeStyle = rgba(P['dis.color'], alpha);
+  for (let j = 0; j < 3; j++) {
+    const cx = m.cx, cy = m.cy + (j - 1) * sep, r = Math.max(1, m.radius + (j - 1) * P['dis.ringGap'] * m.unit), start = p * 1.4 + j, sweep = TAU * (1 - K.smooth((p - .28) / .72));
+    ctx.beginPath(); ctx.arc(cx, cy, r, start, start + sweep); ctx.stroke();
+    const n = Math.round(P['dis.ticks']); ctx.beginPath();
+    for (let i = 0; i < n; i++) { if (i / n > 1 - p) continue; const a = i * TAU / n + p * .6, vx = Math.cos(a), vy = Math.sin(a); ctx.moveTo(cx + vx * (r - 5), cy + vy * (r - 5)); ctx.lineTo(cx + vx * (r + 5), cy + vy * (r + 5)); }
+    ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    const s = m.st[i], r = s.size * (1 - K.smooth(p)) * .44; if (r <= 0) continue;
+    ctx.strokeStyle = rgba(P['dis.color'], alpha); ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = rgba(P['dis.pull'], alpha * .4); ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + (m.cx - s.x) * (1 - p), s.y + (m.cy - s.y) * (1 - p)); ctx.stroke();
+  }
+  ctx.restore();
 }
 function replay() { P = sc.P; const m = metrics(); ST.rise = { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }; ST.closing = false; ST.idle = true; ST.confirmed = false; ST.ready = true; ST.armed = false; ST.turn.on = false; ST.grab = false; ST.active = null; ST.angle = m.angles[ST.hi]; ST.chose = null; }
 function closeDial() { if (ST.rise.mode === 'closed') { replay(); return; } ST.closing = true; ST.rise = { v: ST.rise.v, mode: 'rev', t0: performance.now(), from: ST.rise.v }; }
@@ -523,6 +540,21 @@ def('Feel', 'Turning', 'ring.markers', 'feel.alignZone', 'Lined-up zone', 'num',
 def('Feel', 'Turning', 'feel', 'feel.turnStart', 'Turn starts after', 'num', 1.03, { min: 0, max: 20, step: .05, unit: '°' });
 def('Feel', 'Turning', 'feel', 'feel.grabMargin', 'Grab margin', 'num', 4, { min: 0, max: 40, step: .5, unit: 'px', info: 'How far off the ring your finger can drift and keep turning it.' });
 def('Feel', 'Confirm', 'feel.inner', 'feel.tapTolerance', 'Tap wiggle allowed', 'num', 10, { min: 0, max: 60, step: .5, unit: 'px', info: 'A tap inside the ring confirms only if the finger moved less than this.' });
+def('Exit', 'Dismantle', 'exit', 'dis.on', 'Dismantle when Messages is chosen', 'bool', true, { info: 'Press "Play exit" to watch it without leaving.' });
+def('Exit', 'Dismantle', 'exit', 'dis.seconds', 'Duration', 'num', .78, { min: .2, max: 4, step: .02, unit: 's' });
+def('Exit', 'Dismantle', 'exit', 'dis.strips', 'Strips', 'int', 18, { min: 2, max: 60, step: 1, info: 'The dial pulls away left in this many horizontal strips.' });
+def('Exit', 'Dismantle', 'exit', 'dis.stagger', 'Strip delay', 'num', .017, { min: 0, max: .06, step: .001 });
+def('Exit', 'Dismantle', 'exit', 'dis.sweep', 'Strip pull time', 'num', .40, { min: .05, max: 1, step: .01 });
+def('Exit', 'Dismantle', 'exit', 'dis.fadeStart', 'Fade starts at', 'num', .12, { min: 0, max: .9, step: .01 });
+def('Exit', 'Dismantle', 'exit', 'dis.fadeLen', 'Fade length', 'num', .65, { min: .05, max: 1, step: .01 });
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.lines', 'Show blueprint lines', 'bool', true);
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.color', 'Line color', 'color', '#BCEBFF');
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.pull', 'Pull-line color', 'color', '#008BFF');
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.alpha', 'Line strength', 'num', .66, { min: 0, max: 1, step: .01 });
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.width', 'Line width', 'num', .65, { min: .2, max: 3, step: .05, unit: 'px' });
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.spread', 'Rings spread apart', 'num', 25, { min: 0, max: 80, step: 1, unit: 'px' });
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.ringGap', 'Ring size step', 'num', 13, { min: 0, max: 50, step: 1, unit: 'px' });
+def('Exit', 'Blueprint lines', 'exit.lines', 'dis.ticks', 'Tick marks per ring', 'int', 12, { min: 0, max: 48, step: 1 });
 
 // Center text
 def('Text', 'RAVEN label', 'text.raven', 'raven.on', 'Show', 'bool', true);
@@ -600,15 +632,16 @@ SHAPES.forEach((s, i) => {
 
 
   },
-  toolbar: [{ label: 'Replay', title: 'Play the rise-in again', onclick: () => replay() }, { label: 'Close', title: 'Play the close animation', onclick: () => closeDial() }],
+  toolbar: [{ label: 'Replay', title: 'Play the rise-in again', onclick: () => replay() }, { label: 'Close', title: 'Play the close animation', onclick: () => closeDial() }, { label: 'Play exit', title: 'Play the dismantle the app runs after Messages is chosen, then come back', onclick: () => { ST.dis = 0; ST.disStay = true; } }],
   onSet(k) { P = sc.P; if (/^s\d\.(x|y)$/.test(k) && !ST.grab && !ST.turn.on) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
   onLoad() { P = sc.P; if (!ST.grab) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
-  onShow() { replay(); },
+  onShow() { ST.dis = -1; replay(); },
   update(dt, now) {
     P = sc.P;
     if (ST.rise.mode === 'fwd') { ST.rise.v = clamp((now - ST.rise.t0) / P['anim.rise'], 0, 1); if (ST.rise.v >= 1) ST.rise.mode = 'done'; }
     else if (ST.rise.mode === 'rev') { ST.rise.v = Math.max(0, ST.rise.from - (now - ST.rise.t0) / P['anim.close']); if (ST.rise.v <= 0) { ST.rise.mode = 'closed'; K.status('Dial closed. Press Close again or tap the screen to open it.'); } }
     if (ST.turn.on) { const p = clamp((now - ST.turn.t0) / P['feel.snap'], 0, 1); ST.angle = ST.turn.from + (ST.turn.to - ST.turn.from) * ease(p); if (p >= 1) { ST.turn.on = false; if (ST.armed && !ST.closing) { ST.armed = false; ST.ready = true; } } }
+    if (ST.dis >= 0) { ST.dis = Math.min(1, ST.dis + dt / Math.max(.05, P['dis.seconds'])); if (ST.dis >= 1) { ST.dis = -1; if (ST.disStay) replay(); else K.show('directory'); } }
     ST.amb += dt; if (ST.active == null) ST.wob += dt * P['wobble.speed'];
     const motor = ST.idle || (P['ring.spinAfterGrab'] && !ST.grab);
     if (motor && P['ring.spinOn'] && ST.rise.v >= 1 && !ST.turn.on && !ST.closing) ST.spin += dt * TAU / Math.max(.5, P['ring.spinPeriod']) * P['ring.spinDir'];
@@ -617,6 +650,8 @@ SHAPES.forEach((s, i) => {
     P = sc.P; const m = metrics(), H = K.H;
     const rv = ST.rise.v, t = ease(clamp(rv / Math.max(.01, P['anim.slide']), 0, 1));
     const ty = H * (1 - t); G.ty = ty; sc.ty = ty;
+    const dp = ST.dis > 0 ? ST.dis : 0;
+    if (dp > 0) { const n = Math.max(1, Math.round(P['dis.strips'])), W = K.W, clip = new Path2D(); for (let i = 0; i < n; i++) { const local = K.smooth((dp - i * P['dis.stagger']) / Math.max(.01, P['dis.sweep'])); clip.rect(0, H * i / n, W * (1 - local), H / n + .2); } ctx.save(); ctx.clip(clip); ctx.globalAlpha *= 1 - K.smooth((dp - P['dis.fadeStart']) / Math.max(.01, P['dis.fadeLen'])); }
     ctx.save(); ctx.translate(0, ty);
     drawGlass(ctx, m, t);
     const ps = pose(); G.pose = ps;
@@ -625,8 +660,9 @@ SHAPES.forEach((s, i) => {
     drawPointer(ctx, m);
     drawText(ctx, m, rv);
     for (let i = 0; i < 4; i++) { const s = m.st[i], e = alignment(m, ST.angle, i) * (ST.confirmed ? 1 : .7); drawShape(ctx, i, s.x - s.size / 2, s.y - s.size / 2, s.size, e, shapePhase(i)); }
-    if (studio) K.hl(ctx, now);
     ctx.restore();
+    if (dp > 0) { ctx.restore(); if (P['dis.lines']) drawDismantleLines(ctx, m, dp); }
+    if (studio) { ctx.save(); ctx.translate(0, ty); K.hl(ctx, now); ctx.restore(); }
   },
   highlight(ctx, base, sub, H1, now) {
     P = sc.P; const m = metrics(), W = K.W, H = K.H; const strong = true;
@@ -638,6 +674,7 @@ SHAPES.forEach((s, i) => {
   const bands = G.bands || [];
   switch (base) {
     case 'bg': H1(() => { ctx.beginPath(); ctx.rect(3, 3 - G.ty, W - 6, H - 6); }); break;
+    case 'exit': case 'exit.lines': H1(circ(r + th / 2 + 6)); for (let i = 0; i < 4; i++) { const st = m.st[i]; H1(() => { ctx.beginPath(); ctx.arc(st.x, st.y, st.size / 2 + 4, 0, TAU); }); } break;
     case 'dial': { let R = r + th; m.st.forEach(s => R = Math.max(R, Math.hypot(s.x - c.x, s.y - c.y) + s.size / 2)); H1(circ(R + 6)); break; }
     case 'glass': H1(() => { ctx.beginPath(); ctx.roundRect(m.glassLeft - 3, m.glassTop - 3, m.glassRight - m.glassLeft + 6, m.glassBottom - m.glassTop + 6, P['glass.round'] + 3); }); break;
     case 'glass.shine': H1(() => { ctx.beginPath(); ctx.roundRect(m.glassLeft + 18, m.glassTop - 5, (m.glassRight - m.glassLeft) * P['glass.shineLen'] - 14, 12, 4); }); break;
