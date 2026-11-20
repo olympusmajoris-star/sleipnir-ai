@@ -163,14 +163,14 @@ function deepSpace(w, h, k) {
 }
 
 /* ---------- sky snapshot (Webb deep field, cover-fit, dark veil) ---------- */
-const PR = 2; let skyCanvas = null, skyKey = '';
+const PR = 2; const skyCache = new Map();
 function skySnap(w, h) {
   if (!SKY.complete || !SKY.naturalWidth) return null; const key = w + '|' + h + '|' + P['sky.dark'];
-  if (skyKey === key) return skyCanvas;
+  if (skyCache.has(key)) return skyCache.get(key);
   const c = document.createElement('canvas'); c.width = Math.round(w * PR); c.height = Math.round(h * PR); const x = c.getContext('2d');
   const iw = SKY.naturalWidth, ih = SKY.naturalHeight, k = Math.max(w / iw, h / ih), sw = w / k, sh = h / k;
   x.scale(PR, PR); x.imageSmoothingQuality = 'high'; x.drawImage(SKY, (iw - sw) / 2, (ih - sh) / 2, sw, sh, 0, 0, w, h); x.fillStyle = `rgba(0,0,6,${P['sky.dark']})`; x.fillRect(0, 0, w, h);
-  skyCanvas = c; skyKey = key; lensTexDirty = true; return c;
+  skyCache.set(key, c); if (skyCache.size > 3) skyCache.delete(skyCache.keys().next().value); lensTexDirty = true; return c;
 }
 
 /* ---------- see-through sky: the live background, snapshotted each frame for the lens ---------- */
@@ -197,7 +197,7 @@ function initGL() {
 let lensFrame = -1, lensOut = null, lensTexSrc = null;
 function lensLayer(w, h, lenses, sky) {
   if (glFail || !sky) return null; if (!gl) initGL(); if (glFail) return null;
-  const fr = K.frameId ? K.frameId() : performance.now(); if (lensFrame === fr && lensOut) return lensOut; lensFrame = fr;
+  const fr = (K.frameId ? K.frameId() : performance.now()) + '|' + w + '|' + h + '|' + lenses.map(l => l.x.toFixed(1)).join(','); if (lensFrame === fr && lensOut && lensTexSrc === sky) return lensOut; lensFrame = fr;
   const W = Math.round(w * PR), H = Math.round(h * PR); if (glc.width !== W || glc.height !== H) { glc.width = W; glc.height = H; }
   gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
   if (lensTexDirty || lensTexSrc !== sky) { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sky); lensTexDirty = false; lensTexSrc = sky; }
@@ -319,8 +319,8 @@ function drawPost(ctx, p, x, y, w, h, clipTop) {
   cy += 6; cy += 6;
   const rowY = cy, mid = rowY + 13; ctx.textBaseline = 'middle'; ctx.font = `400 ${P['post.countSize']}px Roboto`;
   let ix = x + 12; icon(ctx, p.liked ? MI.heart : MI.heartO, ix, mid - P['post.likeIcon'] / 2, P['post.likeIcon'], p.liked ? P['post.liked'] : '#fff'); ix += P['post.likeIcon'] + 4; ctx.fillStyle = '#fff'; ctx.fillText(String(p.likes), ix, mid); ix += ctx.measureText(String(p.likes)).width + P['post.gap'];
-  icon(ctx, MI.chat, ix, mid - 12.5, 25, '#fff'); ix += 25 + 4; ctx.fillText(String(p.comments), ix, mid); ix += ctx.measureText(String(p.comments)).width + P['post.gap'];
-  icon(ctx, MI.send, ix, mid - 12, 24, '#fff');
+  p.chatBox = { x: ix - 8, y: mid - 20, w: 41 + 8, h: 40 }; icon(ctx, MI.chat, ix, mid - 12.5, 25, '#fff'); ix += 25 + 4; ctx.fillText(String(p.comments), ix, mid); ix += ctx.measureText(String(p.comments)).width + P['post.gap'];
+  p.sendBox = { x: ix - 10, y: mid - 20, w: 44, h: 40 }; icon(ctx, MI.send, ix, mid - 12, 24, '#fff');
   ctx.restore(); p.bottomBox = { x, y: by, w, h: bh }; p.likeBox = { x: x + 12, y: rowY, w: P['post.likeIcon'] + 40, h: 26 };
   ctx.restore();
 }
@@ -454,9 +454,314 @@ function startFlight(o) {
   K.status('Flying into ' + o.person.name + '’s black hole. Tap "Return through the black hole" to come back.');
 }
 
+/* ---------- share: the post lays down as a floor under the night sky and the favs beam down onto it
+   (_openShare / _shareLayer / _floorMatrix / _figSlots / _figGeom / _figU / _figModes / _figArt / _figureWidget /
+   _shareSheet / _shareDeck / _bust / _tvWrap, _AsFloorPainter / _AsHorizonPainter / _AsSnapPainter /
+   _AsFigurePainter / _AsBeamPainter / _AsBustPainter / _AsTvLinePainter) ---------- */
+['6515e1f4-8d26-44c4-80d9-3a8ce2d1472c', '8a626efb-7ea8-42be-aaa7-343db8cf1b4f', '2c8538fd-10ba-4ce2-a8f7-a4236c52d350', '21ceb19f-9065-45b1-8a7c-76ddf1e26da0', 'eb0b6a18-37a2-4ec0-8b68-69fbfc64cb39', '5820cd29-8784-4f18-8f76-e3d5e6851f85'].forEach((id, i) => { POSTS[i].id = id; });
+// Danny's favs (asgard_my_favs, oldest first) and their real figures from the figures bucket. Only Freya allows 360.
+const FAVS = [['02', 'test_freya', 'Freya', 9, 'freya', true, null], ['03', 'test_loki', 'Loki', 16, 'loki', false, 6], ['04', 'test_sif', 'Sif', 20, 'sif', false, 18], ['05', 'test_tyr', 'Tyr', 32, 'tyr', true, null], ['06', 'test_baldr', 'Baldr', 47, 'baldr', true, null], ['07', 'test_hel', 'Hel', 49, 'hel', false, 9]]
+  .map(([n, handle, name, av, key, hasSpin, avFrame]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + n, handle, name, avUrl: 'https://i.pravatar.cc/300?img=' + av, key, hasSpin, allow360: key === 'freya', avFrame, spin: null, prof: null, avatar: null }));
+// asgard_share_targets for Danny (people he follows or who follow him), sorted by name
+const TARGETS = [['06', 'test_baldr', 'Baldr', 47, true], ['02', 'test_freya', 'Freya', 9, true], ['07', 'test_hel', 'Hel', 49, true], ['08', 'test_idun', 'Idun', 64, false], ['03', 'test_loki', 'Loki', 16, true], ['04', 'test_sif', 'Sif', 20, true], ['01', 'test_thor', 'Thor', 5, false], ['05', 'test_tyr', 'Tyr', 32, true]]
+  .map(([n, handle, name, av, fav]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + n, handle, name, avUrl: 'https://i.pravatar.cc/300?img=' + av, fav, avatar: null }));
+const CY = '#5FD8FF', YEL = '#FFC72C';
+const SI = { check: new Path2D('M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'), star: new Path2D('M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z'), add: new Path2D('M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'), back: new Path2D('M17.77 3.77 16 2 6 12l10 10 1.77-1.77L9.54 12z') };
+const dartShuffle = (a, r) => { let n = a.length; while (n > 1) { const pos = r.nextInt(n); n -= 1; const t = a[n]; a[n] = a[pos]; a[pos] = t; } return a; };
+const easeIn = x => { // Curves.easeIn = Cubic(.42, 0, 1, 1)
+  let lo = 0, hi = 1; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2, bx = 3 * .42 * m * (1 - m) * (1 - m) + 3 * m * m * (1 - m) + m * m * m; if (bx < x) lo = m; else hi = m; } const t = (lo + hi) / 2; return 3 * t * t * (1 - t) + t * t * t; };
+const easeOutCubic = v => 1 - Math.pow(1 - clamp(v, 0, 1), 3);
+let SH = null;
+function loadFigs() { for (const f of FAVS) { if (!f.prof) f.prof = img('asgard/figs/' + f.key + '_profile.webp'); if (f.hasSpin && !f.spin) f.spin = img('asgard/figs/' + f.key + '_spin.webp'); if (!f.avatar) f.avatar = img(f.avUrl); } for (const t of TARGETS) if (!t.avatar) t.avatar = (FAVS.find(f => f.id === t.id) || {}).avatar || img(t.avUrl); }
+const ready = im => im && im.complete && im.naturalWidth > 0;
+function figArtOf(f) { const spin = f.hasSpin && (f.allow360 || P['sh.all360']); const im = spin ? f.spin : f.prof; if (!ready(im)) return null; return { im, kind: spin ? 'spin' : 'profile', frames: spin ? 48 : 25 }; }
+function shareFigs() { return FAVS.slice(0, clamp(Math.round(P['sh.count']), 0, 6)); }
+function openShare(post) {
+  if (SH || ST.flight || !post) return; loadFigs();
+  const W = K.W, H = K.H, snap = document.createElement('canvas'); snap.width = Math.round(W * 2); snap.height = Math.round(H * 2); const sx = snap.getContext('2d'); sx.scale(2, 2); sc.draw(sx, performance.now(), false);
+  SH = { post, snap, t: 0, dir: 1, cT: 0, from: 0, closing: false, pick: [], deck: 0, deckDir: 0, sending: false, mode: '', tv: 0, tvDir: 0, sheet: P['sh.sheet'], scroll: 0, figBoxes: [], rows: [] };
+}
+function closeShare() { const S = SH; if (!S || S.closing) return; S.closing = true; S.deck = 0; S.deckDir = 0; S.dir = -1; S.cT = 0; S.from = S.t; }
+function togglePick(id) { const S = SH; if (!S || S.sending || !id) return; const i = S.pick.indexOf(id); if (i >= 0) S.pick.splice(i, 1); else S.pick.push(id); }
+function deckSend(group) {
+  const S = SH; if (!S || S.sending || !S.pick.length) return; const n = S.pick.length; S.sending = true; S.mode = group ? 'hall' : 'each';
+  setTimeout(() => { if (SH !== S) return; K.status(group && n >= 2 ? 'Sent to Mead Hall with ' + n + '.' : (n === 1 ? 'Raven sent.' : 'Ravens sent to ' + n + '.')); S.tvDir = 1; }, 450);
+}
+function shareUpdate(dt) {
+  const S = SH; if (!S) return; const slow = P['sh.slow'];
+  if (P['sh.hold'] && !S.closing && !S.tvDir) { S.t = clamp(P['sh.at'], 0, 1); S.dir = 0; }
+  else if (S.dir > 0) { S.t = Math.min(1, S.t + dt * 1000 / (P['sh.ms'] * slow)); if (S.t >= 1) S.dir = 0; }
+  else if (S.dir < 0) { S.cT += dt * 1000 / (P['sh.closeMs'] * slow); S.t = S.from * (1 - easeIn(clamp(S.cT, 0, 1))); if (S.cT >= 1) { SH = null; return; } }
+  if (S.deckDir) { S.deck = clamp(S.deck + S.deckDir * dt * 1000 / (P['sh.deckMs'] * slow), 0, 1); if (S.deck >= 1 || S.deck <= 0) S.deckDir = 0; }
+  if (S.tvDir) { S.tv += dt * 1000 / (P['sh.tvMs'] * slow); if (S.tv >= 1) SH = null; }
+}
+// _floorMatrix: tips the post back about its near edge, stretched so its far edge lands on the horizon
+function floorM(q, plane, horizonY) {
+  const thMax = P['sh.tilt'] * Math.PI / 180, pMax = P['sh.persp'], a0 = Math.max(40, plane.h), bottom = plane.y + plane.h, rise = Math.max(60, bottom - horizonY);
+  const c = Math.cos(thMax), s = Math.sin(thMax), den = Math.max(.04, c - rise * pMax * s), syMax = clamp(rise / den / a0, 1, 12), th = thMax * q;
+  return { pvx: plane.x + plane.w / 2, pvy: bottom, cos: Math.cos(th), sin: Math.sin(th), sx: 1 + P['sh.widen'] * q, sy: 1 + (syMax - 1) * q, p: pMax * q };
+}
+const fx = (M, x, y) => { const Y = M.sy * (y - M.pvy), w = M.p * -M.sin * Y + 1; return [M.pvx + M.sx * (x - M.pvx) / w, M.pvy + M.cos * Y / w]; };
+function figSlots(n, seed, w, horizonY, nearY) {
+  const rng = new DartRandom(asHash(seed || 'share')), farY = horizonY + (nearY - horizonY) * P['sh.far'];
+  const depths = dartShuffle(Array.from({ length: n }, (_, k) => n === 1 ? .4 : k / (n - 1)), rng), step = w / Math.max(n, 3), out = [];
+  for (let i = 0; i < n; i++) { const x = w / 2 + (i - (n - 1) / 2) * step + (rng.nextDouble() - .5) * step * P['sh.jitter']; const d = clamp(depths[i] + (rng.nextDouble() - .5) * .08, 0, 1); out.push([x, nearY - (nearY - farY) * d]); }
+  return out;
+}
+function figGeom(feet, M, plane, w) {
+  const cx = plane.x + plane.w / 2, yAt = py => fx(M, cx, py)[1]; let lo = plane.y, hi = plane.y + plane.h + plane.h;
+  for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (yAt(mid) < feet[1]) lo = mid; else hi = mid; }
+  const py = (lo + hi) / 2, a = fx(M, cx - 20, py), b = fx(M, cx + 20, py), a0 = fx(M, cx - 20, plane.y + plane.h), b0 = fx(M, cx + 20, plane.y + plane.h);
+  const near = Math.max(1e-3, Math.abs(b0[0] - a0[0])), rel = clamp(Math.abs(b[0] - a[0]) / near, P['sh.minScale'], 1), fw = w * P['sh.size'] * rel, fh = fw * P['sh.tall'];
+  return { x: feet[0] - fw / 2, y: feet[1] - fh, w: fw, h: fh };
+}
+function figU(i, n, el, seed) {
+  const order = dartShuffle(Array.from({ length: n }, (_, k) => k), new DartRandom(asHash('beam' + seed))), k = order.indexOf(i), r = new DartRandom(asHash('bt' + seed + i));
+  const st = P['sh.beamStart'] + k * P['sh.beamGap'] + r.nextDouble() * .08, dur = P['sh.beamDur'] + r.nextDouble() * .38; return clamp((el - st) / dur, 0, 1);
+}
+function figModes(figs, seed) {
+  const n = figs.length, rng = new DartRandom(asHash('modes' + seed)), modes = new Array(n).fill(1), order = dartShuffle(Array.from({ length: n }, (_, i) => i), rng);
+  const pref = i => /freya|tyr/.test(figs[i].handle.toLowerCase()); order.sort((a, b) => (pref(b) ? 1 : 0) - (pref(a) ? 1 : 0));
+  let spins = n >= 3 ? Math.round(P['sh.spins']) : 0; for (const i of order) { if (spins <= 0) break; const art = figArtOf(figs[i]); if (art && art.kind === 'spin') { modes[i] = 2; spins--; } }
+  if (n >= 4 && P['sh.still']) { const rest = order.filter(i => modes[i] === 1); if (rest.length) modes[rest[rng.nextInt(rest.length)]] = 0; }
+  return modes;
+}
+// scratch canvases for the figure painter
+const FT = { b: document.createElement('canvas'), s: document.createElement('canvas'), o: document.createElement('canvas'), w: document.createElement('canvas') };
+const fit = (c, w, h) => { if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); } const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.filter = 'none'; x.clearRect(0, 0, c.width, c.height); return x; };
+function tint(dst, src, w, h, color) { const x = fit(dst, w, h); x.drawImage(src, 0, 0, w, h, 0, 0, w, h); x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.fillRect(0, 0, w, h); x.globalCompositeOperation = 'source-over'; return dst; }
+// _AsFigurePainter (holo): real colours, a thin blue outline, filling in from the feet up
+function figPaint(ctx, art, frame, frame2, mix, bx, by, bw, bh, bright, glow, edge, reveal) {
+  const im = art.im, n = Math.max(1, art.frames), fw = im.naturalWidth / n, ih = im.naturalHeight, availH = bh / 1.14, kk = Math.min(bw / fw, availH / ih), dw = fw * kk, dh = ih * kk;
+  const dx = bx + (bw - dw) / 2, dy = by + availH - dh, feetY = by + availH, cx = bx + bw / 2, k = scaleOf(ctx), Mg = 10, CW = Math.max(2, Math.ceil((dw + Mg * 2) * k)), CH = Math.max(2, Math.ceil((dh + Mg * 2) * k));
+  const src = f => [fw * clamp(f, 0, n - 1), 0, fw, ih], put = (x, f, a) => { x.globalAlpha = a; x.drawImage(im, ...src(f), Mg * k, Mg * k, dw * k, dh * k); x.globalAlpha = 1; };
+  let g = ctx.createRadialGradient(cx, feetY, 0, cx, feetY, dw * .39); g.addColorStop(0, `rgba(0,0,0,${clamp(.55 * reveal, 0, 1)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.save(); ctx.translate(cx, feetY); ctx.scale(1, Math.max(5, dh * .05) / (dw * .78)); ctx.translate(-cx, -feetY); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, feetY, dw * .39, 0, TAU); ctx.fill(); ctx.restore();
+  if (edge > 0) { ctx.save(); ctx.filter = `blur(${(.8 * k).toFixed(2)}px)`; ctx.lineWidth = 1; ctx.strokeStyle = rgba(P['sh.outline'], clamp(.5 * edge, 0, 1)); ctx.beginPath(); ctx.ellipse(cx, feetY, dw * .475, Math.max(6, dh * .06) / 2, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
+  const B = FT.b, bx2 = fit(B, CW, CH); put(bx2, frame, 1); if (frame2 >= 0 && frame2 !== frame && mix > .002) put(bx2, frame2, mix);
+  const ox = dx - Mg, oy = dy - Mg, drawC = (c, a, filter, sx = 0, sy = 0) => { ctx.save(); ctx.globalAlpha = a; if (filter) ctx.filter = filter; ctx.drawImage(c, 0, 0, CW, CH, ox + sx, oy + sy, CW / k, CH / k); ctx.restore(); };
+  if (glow > 0) { const x = fit(FT.w, CW, CH); put(x, frame, 1); x.globalCompositeOperation = 'source-in'; x.fillStyle = P['sh.glowColor']; x.fillRect(0, 0, CW, CH); x.globalCompositeOperation = 'source-over'; ctx.save(); ctx.globalAlpha = clamp(.95 * glow * reveal, 0, 1); ctx.filter = `blur(${(12 * k).toFixed(2)}px)`; const sxk = (dw + 10) / dw, syk = (dh + 10) / dh; ctx.translate(dx + dw / 2, dy + dh / 2); ctx.scale(sxk, syk); ctx.drawImage(FT.w, 0, 0, CW, CH, -dw / 2 - Mg, -dh / 2 - Mg, CW / k, CH / k); ctx.restore(); }
+  const S = tint(FT.s, B, CW, CH, P['sh.outline']);
+  if (edge > 0) {
+    const e = clamp(edge * bright, 0, 1), O = fit(FT.o, CW, CH), o = 1.2 * k;
+    O.globalAlpha = .5 * e; O.filter = `blur(${(2.6 * k).toFixed(2)}px)`; O.drawImage(S, 0, 0); O.filter = 'none'; O.globalAlpha = .95 * e;
+    for (const [sx, sy] of [[o, 0], [-o, 0], [0, o], [0, -o]]) O.drawImage(S, sx, sy);
+    O.globalAlpha = 1; O.globalCompositeOperation = 'destination-out'; O.drawImage(B, 0, 0); O.globalCompositeOperation = 'source-over'; drawC(FT.o, 1);
+  }
+  if (reveal > 0) {
+    const cut = dy + dh - dh * reveal, b = 1 + .3 * glow; ctx.save(); ctx.beginPath(); ctx.rect(bx - 20, cut, bw + 40, by + bh - cut + 20); ctx.clip(); drawC(B, 1, b !== 1 ? `brightness(${b})` : null); ctx.restore();
+    if (reveal < 1) { tint(FT.w, B, CW, CH, '#E8FBFF'); ctx.save(); ctx.beginPath(); ctx.rect(bx - 20, cut - 2.5, bw + 40, 4); ctx.clip(); drawC(FT.w, 1); ctx.restore(); }
+  }
+  if (reveal < 1 && edge > 0) { const cut = dy + dh - dh * reveal; ctx.save(); ctx.beginPath(); ctx.rect(bx - 20, by - 20, bw + 40, cut - by + 20); ctx.clip(); drawC(S, .12 * edge); ctx.restore(); }
+}
+function avatarCircle(ctx, im, name, cx, cy, r) {
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fillStyle = '#3A4350'; ctx.fill(); ctx.clip();
+  if (ready(im)) { const s = Math.max(2 * r / im.naturalWidth, 2 * r / im.naturalHeight); ctx.drawImage(im, cx - im.naturalWidth * s / 2, cy - im.naturalHeight * s / 2, im.naturalWidth * s, im.naturalHeight * s); }
+  else { ctx.fillStyle = '#fff'; ctx.font = `800 ${r * .9}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText((name || '?').slice(0, 1).toUpperCase(), cx, cy); }
+  ctx.restore();
+}
+const spacedW = (ctx, t, sp) => { let w = 0; for (const ch of t) w += ctx.measureText(ch).width + sp; return w; };
+function centerSpaced(ctx, t, cx, y, sp) { const w = spacedW(ctx, t, sp); ctx.textAlign = 'left'; spaced(ctx, t, cx - w / 2, y, sp); return w; }
+// _figureWidget + _figArt
+function drawFigure(ctx, f, g, i, u, flick, mode, secs, seed) {
+  const S = SH, fw = g.w, fh = g.h, edge = smooth((u - .28) / .22), reveal = smooth((u - .42) / .5), picked = S.pick.includes(f.id), glow = picked ? P['sh.pickGlow'] : 0;
+  const ph = flick * TAU * 6 + i * 1.7; let fl = .9 + .1 * Math.sin(ph) * Math.sin(ph * 2.3 + 1); if (((flick * 37 + i * .31) % 1) < .02) fl *= .7; if (!P['sh.flicker']) fl = 1;
+  const rng = new DartRandom(asHash('mv' + seed + f.id)), phase = rng.nextDouble(); let ang = 0;
+  if (mode === 1) { const period = P['sh.swingMin'] + rng.nextDouble() * 2.4; ang = P['sh.swing'] * Math.sin(TAU * (secs / period + phase)); }
+  else if (mode === 2) { const period = P['sh.spinMin'] + rng.nextDouble() * 3; ang = 360 * ((secs / period + phase) % 1); }
+  const boxH = fh * 1.14, art = figArtOf(f);
+  if (art) {
+    let frame = 0, frame2 = -1, mix = 0;
+    if (art.kind === 'spin') { const pos = ang / 360 * art.frames, f0 = Math.floor(pos); frame = ((f0 % art.frames) + art.frames) % art.frames; frame2 = (frame + 1) % art.frames; mix = pos - f0; }
+    else { const mid = Math.floor(art.frames / 2), a = clamp(ang, -60, 60), pos = clamp(mid + a / 60 * mid, 0, art.frames - 1); frame = Math.floor(pos); frame2 = Math.min(frame + 1, art.frames - 1); mix = pos - frame; }
+    figPaint(ctx, art, frame, frame2, mix, g.x, g.y, fw, boxH, fl, glow, edge, reveal);
+  } else {
+    const r = fw * .42; ctx.save(); ctx.globalAlpha = clamp(reveal, 0, 1); const cx = g.x + fw / 2, cy = g.y + boxH * (1 + .62) / 2;
+    if (glow > 0) { ctx.shadowColor = rgba(P['sh.glowColor'], .9 * glow); ctx.shadowBlur = K.shadowBlurFor(ctx, 22); }
+    ctx.strokeStyle = CY; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, r + 1.5, 0, TAU); ctx.stroke(); ctx.shadowBlur = 0; avatarCircle(ctx, f.avatar, f.name, cx, cy, r); ctx.restore();
+  }
+  // name tag under the feet
+  const name = (picked ? '✓ ' : '') + f.name; ctx.save(); ctx.globalAlpha = clamp(reveal, 0, 1); ctx.font = `800 ${P['sh.nameSize']}px Roboto`;
+  const tw = Math.min(ctx.measureText(name).width, fw + 60 - 14), th = P['sh.nameSize'] * 1.17 + 4, tx = g.x + fw / 2 - tw / 2 - 7, ty = g.y + fh * 1.02;
+  ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.beginPath(); ctx.roundRect(tx, ty, tw + 14, th, 9); ctx.fill(); ctx.lineWidth = picked ? 1.2 : .8; ctx.strokeStyle = picked ? YEL : 'rgba(95,216,255,.4)'; ctx.stroke();
+  ctx.fillStyle = picked ? YEL : P['sh.nameColor']; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(name, g.x + fw / 2, ty + th / 2, fw + 60 - 14); ctx.restore();
+  S.figBoxes.push({ f, x: g.x, y: g.y, w: fw, h: boxH + 16, tap: reveal > .5 });
+}
+// _AsBeamPainter: thin columns of light drop one by one, flash on impact, then fade as the figure forms
+function drawBeams(ctx, beams) {
+  const k = scaleOf(ctx), c = P['sh.beamColor'];
+  for (const [x, fy, u, bw] of beams) {
+    if (u <= 0 || u >= 1) continue; const drop = smooth(u / .26), head = fy * drop, fade = 1 - smooth((u - .5) / .38); if (fade <= 0) continue; const widen = smooth((u - .24) / .2);
+    if (head > 2) {
+      const gw = 8 + bw * .12 * widen; let g = ctx.createLinearGradient(0, 0, 0, head); g.addColorStop(0, rgba(c, 0)); g.addColorStop(.5, rgba(c, .2 * fade)); g.addColorStop(1, rgba(c, .4 * fade));
+      ctx.save(); ctx.filter = `blur(${(7 * k).toFixed(2)}px)`; ctx.fillStyle = g; ctx.fillRect(x - gw, 0, gw * 2, head); ctx.restore();
+      const cw = 1.3 + 1.7 * widen; g = ctx.createLinearGradient(0, 0, 0, head); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.5, `rgba(255,255,255,${.8 * fade})`); g.addColorStop(1, `rgba(255,255,255,${fade})`); ctx.fillStyle = g; ctx.fillRect(x - cw / 2, 0, cw, head);
+    }
+    if (drop < 1) { ctx.save(); ctx.filter = `blur(${(3 * k).toFixed(2)}px)`; ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.beginPath(); ctx.arc(x, head, 3.5, 0, TAU); ctx.fill(); ctx.restore(); }
+    if (u > .24) {
+      const kk = smooth((u - .24) / .5), rw = bw * (.3 + 1.1 * kk);
+      ctx.save(); ctx.filter = `blur(${(1.5 * k).toFixed(2)}px)`; ctx.lineWidth = 1.4; ctx.strokeStyle = rgba(c, clamp(.85 * (1 - kk), 0, 1)); ctx.beginPath(); ctx.ellipse(x, fy, rw / 2, rw * .1, 0, 0, TAU); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.translate(x, fy); ctx.scale(1, .16 / .9); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, bw * .45); g.addColorStop(0, `rgba(255,255,255,${clamp(.55 * (1 - kk), 0, 1)})`); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, bw * .45, 0, TAU); ctx.fill(); ctx.restore();
+    }
+  }
+}
+// _AsFloorPainter, drawn through the floor matrix row by row (the tilt is about a horizontal axis, so each row stays straight)
+const FLOOR = document.createElement('canvas');
+function drawFloor(ctx, snap, plane, q, M) {
+  const k = Math.min(scaleOf(ctx), 3), FW = Math.ceil(plane.w * k), FH = Math.ceil(plane.h * k), x = fit(FLOOR, FW, FH), sk = snap.width / K.W;
+  const dim = 1 - P['sh.dim'] * q; x.filter = `brightness(${dim})`; x.drawImage(snap, plane.x * sk, plane.y * sk, plane.w * sk, plane.h * sk, 0, 0, FW, FH); x.filter = 'none';
+  if (q > 0) {
+    x.globalCompositeOperation = 'lighter'; x.fillStyle = `rgb(0,${Math.round(P['sh.tintG'] * q)},${Math.round(P['sh.tintB'] * q)})`; x.fillRect(0, 0, FW, FH);
+    const edgeA = clamp(1 - q, 0, 1); x.globalCompositeOperation = 'destination-in'; let g = x.createLinearGradient(0, 0, 0, FH); g.addColorStop(0, `rgba(255,255,255,${edgeA})`); g.addColorStop(Math.max(.01, P['sh.farFade'] * q), '#fff'); g.addColorStop(1, '#fff'); x.fillStyle = g; x.fillRect(0, 0, FW, FH);
+    g = x.createLinearGradient(0, 0, FW, 0); g.addColorStop(0, `rgba(255,255,255,${edgeA})`); g.addColorStop(P['sh.sideFade'], '#fff'); g.addColorStop(1 - P['sh.sideFade'], '#fff'); g.addColorStop(1, `rgba(255,255,255,${edgeA})`); x.fillStyle = g; x.fillRect(0, 0, FW, FH); x.globalCompositeOperation = 'source-over';
+  }
+  const N = 160; for (let i = 0; i < N; i++) {
+    const s0 = plane.y + plane.h * i / N, s1 = plane.y + plane.h * (i + 1) / N, a = fx(M, plane.x, s0), b = fx(M, plane.x + plane.w, s1), a2 = fx(M, plane.x, s1), b2 = fx(M, plane.x + plane.w, s0);
+    const y0 = a[1], y1 = a2[1]; if (y1 - y0 <= 0) continue; const l = (a[0] + a2[0]) / 2, r = (b[0] + b2[0]) / 2;
+    ctx.drawImage(FLOOR, 0, FH * i / N, FW, FH / N, l, y0, r - l, y1 - y0 + .6);
+  }
+}
+function drawHorizon(ctx, y, a, W) {
+  if (a <= .01) return; const k = scaleOf(ctx), c = P['sh.horizonGlow'];
+  let g = ctx.createLinearGradient(0, y - 60, 0, y); g.addColorStop(0, rgba(c, 0)); g.addColorStop(1, rgba(c, .07 * a)); ctx.fillStyle = g; ctx.fillRect(0, y - 60, W, 60);
+  ctx.save(); ctx.filter = `blur(${(6 * k).toFixed(2)}px)`; g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, rgba(c, 0)); g.addColorStop(.25, rgba(c, .22 * a)); g.addColorStop(.75, rgba(c, .22 * a)); g.addColorStop(1, rgba(c, 0)); ctx.fillStyle = g; ctx.fillRect(0, y - 10, W, 20); ctx.restore();
+  const lc = P['sh.horizonLine']; g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, rgba(lc, 0)); g.addColorStop(.2, rgba(lc, P['sh.lineAlpha'] * a)); g.addColorStop(.8, rgba(lc, P['sh.lineAlpha'] * a)); g.addColorStop(1, rgba(lc, 0)); ctx.fillStyle = g; ctx.fillRect(0, y - .6, W, 1.2);
+}
+// _AsBustPainter: a still, chest-up hologram bust for the send panels
+const bustCache = new Map();
+function bustArt(f) {
+  const art = figArtOf(f); if (!art) return null; const fr = art.kind === 'spin' ? 0 : clamp(f.avFrame == null ? Math.floor(art.frames / 2) : f.avFrame, 0, art.frames - 1), key = f.id + '|' + art.kind; let c = bustCache.get(key); if (c) return c;
+  const fw = art.im.naturalWidth / art.frames, ih = art.im.naturalHeight, crop = [fw * fr, ih * .015, fw, ih * .4], cw = Math.round(crop[2]), chh = Math.round(crop[3]);
+  const raw = document.createElement('canvas'); raw.width = cw; raw.height = chh; raw.getContext('2d').drawImage(art.im, ...crop, 0, 0, cw, chh);
+  const holo = document.createElement('canvas'); holo.width = cw; holo.height = chh; const hx = holo.getContext('2d'); hx.drawImage(raw, 0, 0); const d = hx.getImageData(0, 0, cw, chh), p = d.data;
+  for (let i = 0; i < p.length; i += 4) { const r = p[i], g = p[i + 1], b = p[i + 2]; p[i] = .383 * r + .187 * g + .037 * b; p[i + 1] = .22 * r + .718 * g + .084 * b + 4; p[i + 2] = .258 * r + .506 * g + .386 * b + 14; p[i + 3] *= .88; } hx.putImageData(d, 0, 0);
+  const sil = c2 => { const s = document.createElement('canvas'); s.width = cw; s.height = chh; const x = s.getContext('2d'); x.drawImage(raw, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = c2; x.fillRect(0, 0, cw, chh); return s; };
+  c = { raw, holo, cy: sil(CY), mg: sil('#FF4FD8'), w: cw, h: chh }; bustCache.set(key, c); return c;
+}
+function drawBust(ctx, f, t, hall, x0, y0, W, H) {
+  const seed = (asHash(f.id + (hall ? 'h' : 'e')) % 1000) / 1000, b = bustArt(f), k = scaleOf(ctx);
+  if (!b) { const glitch = ((t * .9 + seed * 7) % 1) < .09, r = W * .36; ctx.save(); ctx.globalAlpha = glitch ? .6 : .9; const cx = x0 + W / 2 + (glitch ? 3 : 0), cy = y0 + H / 2; ctx.shadowColor = 'rgba(95,216,255,.4)'; ctx.shadowBlur = K.shadowBlurFor(ctx, 14); ctx.strokeStyle = CY; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, r + 1.5, 0, TAU); ctx.stroke(); ctx.shadowBlur = 0; ctx.filter = 'grayscale(.6) sepia(.3) hue-rotate(160deg)'; avatarCircle(ctx, f.avatar, f.name, cx, cy, r); ctx.restore(); return; }
+  const kk = Math.min(W / b.w, H * .9 / b.h), dw = b.w * kk, dh = b.h * kk, dx = x0 + (W - dw) / 2, dy = y0 + H * .9 - dh, baseY = y0 + H * .97, cxm = x0 + W / 2;
+  let g = ctx.createLinearGradient(0, baseY, 0, dy); g.addColorStop(0, rgba(CY, .22)); g.addColorStop(1, rgba(CY, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(cxm - W * .16, baseY); ctx.lineTo(dx + dw * .1, dy + dh * .2); ctx.lineTo(dx + dw - dw * .1, dy + dh * .2); ctx.lineTo(cxm + W * .16, baseY); ctx.closePath(); ctx.fill();
+  ctx.save(); ctx.translate(cxm, baseY); ctx.scale(1, 7 / (W * .5)); g = ctx.createRadialGradient(0, 0, 0, 0, 0, W * .25); g.addColorStop(0, 'rgba(255,255,255,.7)'); g.addColorStop(.5, rgba(CY, .35)); g.addColorStop(1, rgba(CY, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, W * .25, 0, TAU); ctx.fill(); ctx.restore();
+  const glitch = ((t * .9 + seed * 7) % 1) < .09; let fa = .86 + .08 * Math.sin(t * 23 + seed * 40); if (glitch) fa *= .75;
+  const Mg = 8, LW = Math.ceil((dw + Mg * 2) * k), LH = Math.ceil((dh + Mg * 2) * k), fadeB = x => { x.globalCompositeOperation = 'destination-in'; const gg = x.createLinearGradient(0, Mg * k, 0, (Mg + dh) * k); gg.addColorStop(0, '#fff'); gg.addColorStop(.74, '#fff'); gg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gg; x.fillRect(0, 0, LW, LH); x.globalCompositeOperation = 'source-over'; };
+  const at = (x, c, sx = 0, a = 1, filter) => { x.globalAlpha = a; if (filter) x.filter = filter; x.drawImage(c, 0, 0, b.w, b.h, Mg * k + sx * k, Mg * k, dw * k, dh * k); x.filter = 'none'; x.globalAlpha = 1; };
+  let O = fit(FT.o, LW, LH); at(O, b.cy, 0, .45, `blur(${(2.4 * k).toFixed(2)}px)`); for (const s of [1.1, -1.1]) at(O, b.cy, s); O.drawImage(b.cy, 0, 0, b.w, b.h, Mg * k, (Mg + 1.1) * k, dw * k, dh * k); O.drawImage(b.cy, 0, 0, b.w, b.h, Mg * k, (Mg - 1.1) * k, dw * k, dh * k);
+  O.globalCompositeOperation = 'destination-out'; at(O, b.raw); O.globalCompositeOperation = 'source-over'; fadeB(O); ctx.drawImage(FT.o, 0, 0, LW, LH, dx - Mg, dy - Mg, LW / k, LH / k);
+  O = fit(FT.w, LW, LH); at(O, b.holo); fadeB(O); O.globalCompositeOperation = 'destination-out'; O.fillStyle = 'rgba(0,0,0,.24)'; for (let y = Mg + (t * 12) % 3; y < Mg + dh; y += 3) O.fillRect(0, y * k, LW, k); O.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.globalAlpha = fa; ctx.drawImage(FT.w, 0, 0, LW, LH, dx - Mg, dy - Mg, LW / k, LH / k); ctx.restore();
+  if (glitch) { const r = new DartRandom(Math.floor(t * 30) + Math.floor(seed * 1000)); for (let j = 0; j < 3; j++) { const y = dy + r.nextDouble() * dh * .85, bh = 3 + r.nextDouble() * 9, ddx = (r.nextDouble() - .5) * 16; ctx.save(); ctx.beginPath(); ctx.rect(x0 - 20, y, W + 40, bh); ctx.clip(); ctx.globalAlpha = .7 * .85; ctx.drawImage(b.cy, dx + ddx, dy, dw, dh); ctx.globalAlpha = .35 * .5; ctx.drawImage(b.mg, dx - ddx * .6, dy, dw, dh); ctx.restore(); } }
+}
+// _shareSheet: PICK WHO GETS IT
+function sheetLayout(H) { const S = SH, sh = S.sheet * H, top = H - sh, head = 42, rowH = 72, maxScroll = Math.max(0, head + TARGETS.length * rowH + 24 - sh); return { top, sh, head, rowH, maxScroll }; }
+function drawSheet(ctx, W, H) {
+  const S = SH, L = sheetLayout(H); S.scroll = clamp(S.scroll, 0, L.maxScroll); S.rows = [];
+  ctx.save(); ctx.beginPath(); ctx.roundRect(0, L.top, W, L.sh + 20, [18, 18, 0, 0]); ctx.fillStyle = rgba(P['sh.sheetColor'], .94); ctx.fill(); ctx.clip();
+  let y = L.top - S.scroll; ctx.fillStyle = 'rgba(255,255,255,.24)'; ctx.beginPath(); ctx.roundRect(W / 2 - 20, y + 8, 40, 4, 2); ctx.fill();
+  ctx.font = '800 12px Roboto'; ctx.fillStyle = '#E5E8EF'; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; spaced(ctx, P['sh.sheetTitle'], 16, y + 22, 1.5); y += L.head;
+  for (const u of TARGETS) {
+    const picked = S.pick.includes(u.id), mid = y + L.rowH / 2; avatarCircle(ctx, u.avatar, u.name, 16 + 18, mid, 18);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = '700 16px Roboto'; ctx.fillStyle = picked ? YEL : '#fff'; ctx.fillText(u.name, 68, mid - 2); ctx.font = '400 12px Roboto'; ctx.fillStyle = '#9EAFBF'; ctx.fillText('@' + u.handle, 68, mid + 15);
+    icon(ctx, picked ? SI.check : u.fav ? SI.star : SI.add, W - 16 - 24, mid - 12, 24, picked ? YEL : 'rgba(255,255,255,.7)');
+    S.rows.push({ u, y0: y, y1: y + L.rowH }); y += L.rowH;
+  }
+  ctx.restore(); S.sheetTop = L.top;
+}
+// _shareDeck: Mead Hall (one group) and Loose the Ravens (each their own)
+function drawDeck(ctx, W, H, top, secs, layer) {
+  const S = SH, v = S.deck; S.boxes = []; if (v <= 0) return; const e = easeOutCubic(v), k = scaleOf(ctx);
+  if (P['sh.deckBlur'] > 0) { ctx.save(); ctx.filter = `blur(${(P['sh.deckBlur'] * e * k).toFixed(2)}px)`; ctx.drawImage(layer, 0, 0, layer.width, layer.height, 0, 0, W, H); ctx.restore(); }
+  ctx.fillStyle = `rgba(2,8,18,${.32 * e})`; ctx.fillRect(0, 0, W, H);
+  const ids = S.pick.slice(), group = ids.length >= 2, gap = 14, boxTop = top + 64, boxH = Math.min(H * .56, 440), bw = group ? (W - gap * 3) / 2 : W * .66, bob = Math.sin(secs * 1.2) * 3;
+  const totalW = group ? bw * 2 + gap : bw; let x = (W - totalW) / 2 + (1 - e) * W; const y = boxTop + bob, c = P['sh.panelColor'];
+  ctx.save(); ctx.globalAlpha = e;
+  for (const hall of group ? [true, false] : [false]) {
+    const sending = S.sending && S.mode === (hall ? 'hall' : 'each');
+    ctx.save(); ctx.shadowColor = rgba(c, sending ? .5 : .24); ctx.shadowBlur = K.shadowBlurFor(ctx, sending ? 30 : 18); ctx.fillStyle = rgba(c, sending ? .22 : .1); ctx.beginPath(); ctx.roundRect(x, y, bw, boxH, 16); ctx.fill(); ctx.restore();
+    ctx.strokeStyle = rgba(c, sending ? .95 : .55); ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(x + .5, y + .5, bw - 1, boxH - 1, 16); ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, bw, boxH, 16); ctx.clip();
+    ctx.fillStyle = '#E8FBFF'; ctx.font = '800 12.5px Roboto'; ctx.textBaseline = 'top'; centerSpaced(ctx, hall ? P['sh.hallTitle'] : P['sh.eachTitle'], x + bw / 2, y + 12, 2);
+    ctx.fillStyle = '#9FDDF2'; ctx.font = '400 10.5px Roboto'; ctx.textAlign = 'center'; ctx.fillText(hall ? 'one group thread' : 'each gets their own', x + bw / 2, y + 12 + 15 + 2);
+    const cols = ids.length <= 1 ? 1 : ids.length <= 6 ? 2 : 3, innerW = bw - 20, cellW = innerW / cols, bustW = Math.min(cellW - 8, 104), bustH = bustW * 1.1; let gy = y + 12 + 15 + 2 + 13 + 10;
+    for (let r = 0; r * cols < ids.length; r++) { const row = ids.slice(r * cols, r * cols + cols), rx = x + 10 + (innerW - row.length * cellW) / 2;
+      row.forEach((id, j) => { const f = FAVS.find(q => q.id === id) || TARGETS.find(q => q.id === id), cx = rx + j * cellW + cellW / 2; drawBust(ctx, f, secs, hall, cx - bustW / 2, gy, bustW, bustH); ctx.fillStyle = '#DDF6FF'; ctx.font = '700 12.5px Roboto'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(f.name, cx, gy + bustH + 3, cellW); });
+      gy += bustH + 3 + 17 + 8; }
+    ctx.restore(); S.boxes.push({ hall, x, y, w: bw, h: boxH }); x += bw + gap;
+  }
+  ctx.restore();
+}
+function drawReturn(ctx, top) { const S = SH; ctx.font = '800 12px Roboto'; const tw = spacedW(ctx, P['sh.retText'], 1.4), w = 10 + 13 + 6 + tw + 14, h = 27, x = 10, y = top + 8; ctx.fillStyle = 'rgba(16,23,32,.8)'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 18); ctx.fill(); ctx.strokeStyle = YEL; ctx.lineWidth = 1; ctx.stroke(); icon(ctx, SI.back, x + 10, y + h / 2 - 6.5, 13, YEL); ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; spaced(ctx, P['sh.retText'], x + 10 + 13 + 6, y + h / 2 + 1, 1.4); S.ret = { x, y, w, h }; }
+function drawTvLine(ctx, a, b, c, W, H) {
+  if (a < .55 || c >= 1) return; const k = scaleOf(ctx), cx = W / 2, cy = H / 2, fade = clamp(1 - c, 0, 1), lw = W * (1 - b);
+  if (lw > 2) { ctx.save(); ctx.filter = `blur(${(6 * k).toFixed(2)}px)`; ctx.fillStyle = rgba(P['sh.tvColor'], .45 * fade); ctx.fillRect(cx - lw / 2 - 5, cy - 1.1 - 5, lw + 10, 12.2); ctx.restore(); ctx.fillStyle = `rgba(255,255,255,${fade})`; ctx.fillRect(cx - lw / 2, cy - 1.1, lw, 2.2); }
+  const dotR = 2.5 + 3 * b; ctx.save(); ctx.filter = `blur(${(8 * k).toFixed(2)}px)`; ctx.fillStyle = rgba(P['sh.tvColor'], .5 * fade * b); ctx.beginPath(); ctx.arc(cx, cy, dotR * 2.4, 0, TAU); ctx.fill(); ctx.restore();
+  ctx.fillStyle = `rgba(255,255,255,${fade * b})`; ctx.beginPath(); ctx.arc(cx, cy, dotR, 0, TAU); ctx.fill();
+}
+const LAYERS = new WeakMap();
+function drawShare(ctx, now) {
+  const S = SH, W = K.W, H = K.H, k = scaleOf(ctx), top = 0, el = S.t * 2.6, secs = now / 1000, flick = (secs / 4) % 1, seed = S.post.id || 'share';
+  const sceneH = Math.min(P['strip.max'], H * P['strip.share']), postTop = top + sceneH - 26, foot = footprint();
+  const plane = { x: 0, y: postTop + 56, w: W, h: Math.max(postTop + 176, H - foot) - (postTop + 56) }, horizonY = H * P['sh.horizon'], skyH = Math.min(H, horizonY + H * P['sh.skyExtra']);
+  const figs = shareFigs(), sheetTop = H * (1 - (figs.length ? P['sh.sheet'] : .5)), nearY = Math.min(sheetTop - 26, H * .8);
+  const LW = Math.ceil(W * k), LH = Math.ceil(H * k); let L = LAYERS.get(ctx.canvas); if (!L) { L = document.createElement('canvas'); LAYERS.set(ctx.canvas, L); } if (L.width !== LW || L.height !== LH) { L.width = LW; L.height = LH; }
+  const x = L.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.filter = 'none'; x.clearRect(0, 0, LW, LH); x.scale(k, k);
+  x.fillStyle = P['sh.bg']; x.fillRect(0, 0, W, H);
+  x.save(); x.beginPath(); x.rect(0, 0, W, skyH); x.clip(); drawScene(x, W, skyH, 'share'); x.restore();
+  const q = smooth(el / P['sh.tiltSecs']), M = floorM(q, plane, horizonY), hz = fx(M, W / 2, plane.y)[1]; S.floor = { M, plane, hz };
+  drawFloor(x, S.snap, plane, q, M); drawHorizon(x, hz, q, W);
+  const snapA = 1 - smooth(el / P['sh.snapFade']); if (snapA > .002) { x.save(); x.globalAlpha = clamp(snapA, 0, 1); x.drawImage(S.snap, 0, 0, W, H); x.restore(); }
+  const n = figs.length, slots = figSlots(n, seed, W, Math.max(hz, horizonY), nearY), modes = figModes(figs, seed), order = slots.map((_, i) => i).sort((a, b) => slots[a][1] - slots[b][1]), beams = []; S.figBoxes = []; S.geoms = [];
+  for (const i of order) { const g = figGeom(slots[i], M, plane, W), u = figU(i, n, el, seed); beams.push([g.x + g.w / 2, g.y + g.h, u, g.w * .5]); S.geoms.push(g); if (u > 0) drawFigure(x, figs[i], g, i, u, flick, modes[i], secs, seed); }
+  S.beams = beams; drawBeams(x, beams);
+  if (S.pick.length && S.deck === 0) { x.save(); x.globalAlpha = .55 + .45 * Math.abs(Math.sin(secs * 3)); x.font = '700 12.5px Roboto'; x.fillStyle = P['sh.hintColor']; x.textBaseline = 'top'; x.shadowColor = '#000'; x.shadowBlur = K.shadowBlurFor(x, 6); centerSpaced(x, P['sh.hint'] + '  ›  ' + S.pick.length + ' picked', W / 2, sheetTop - 22, 1.2); x.restore(); }
+  drawSheet(x, W, H);
+  // tvWrap around everything (sheet, deck and return button included)
+  const v = S.tv, a = smooth(v / .45), b = smooth((v - .42) / .28), c = smooth((v - .7) / .3);
+  if (v > 0) { ctx.fillStyle = `rgba(0,0,0,${1 - c})`; ctx.fillRect(0, 0, W, H); if (b >= 1) { drawTvLine(ctx, a, b, c, W, H); return; } ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(Math.max(.002, 1 - b), Math.max(.004, 1 - a)); ctx.translate(-W / 2, -H / 2); }
+  ctx.drawImage(L, 0, 0, LW, LH, 0, 0, W, H); drawDeck(ctx, W, H, top, secs, L); drawReturn(ctx, top);
+  if (v > 0) { ctx.fillStyle = `rgba(255,255,255,${clamp(.55 * a, 0, 1)})`; ctx.fillRect(0, 0, W, H); ctx.restore(); drawTvLine(ctx, a, b, c, W, H); }
+}
+function sharePointer(kind, p) {
+  const S = SH; if (!S) return; const now = performance.now();
+  if (kind === 'down') { const inR = r => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h; let mode = 'layer'; if (S.tv > 0 || S.closing) mode = 'none'; else if (inR(S.ret)) mode = 'ret'; else if (S.deck > 0) mode = 'deck'; else if (S.sheetTop != null && p.y >= S.sheetTop) mode = 'sheet'; S.drag = { mode, x0: p.x, y0: p.y, x: p.x, y: p.y, t: now, t0: now, vx: 0 }; return; }
+  const d = S.drag; if (!d) return;
+  if (kind === 'move') { const dy = p.y - d.y, dt = Math.max(1, now - d.t); d.vx = (p.x - d.x) / dt * 1000;
+    if (d.mode === 'sheet') { const H = K.H, mx = P['sh.sheetMax']; if (dy < 0) { const take = Math.min(Math.max(0, (mx - S.sheet) * H), -dy); S.sheet += take / H; S.scroll += -dy - take; } else { const s = Math.min(S.scroll, dy); S.scroll -= s; S.sheet = Math.max(.1, S.sheet - (dy - s) / H); } }
+    d.x = p.x; d.y = p.y; d.t = now; return; }
+  if (kind === 'up') {
+    S.drag = null; const mdx = p.x - d.x0, mdy = p.y - d.y0, moved = Math.hypot(mdx, mdy) > 6, inR = r => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+    const vx = Math.abs(d.vx) > 1 ? d.vx : mdx / Math.max(1, now - d.t0) * 1000, horiz = Math.abs(mdx) > Math.abs(mdy) && Math.abs(mdx) > 18;
+    if (d.mode === 'ret') { if (!moved && inR(S.ret)) closeShare(); return; }
+    if (d.mode === 'deck') { if (moved && horiz && vx > 250 && !S.sending) S.deckDir = -1; else if (!moved) { const bx = (S.boxes || []).find(inR); if (bx) deckSend(bx.hall); } return; }
+    if (d.mode === 'layer') { if (moved && horiz && Math.abs(vx) > 250 && S.pick.length && !S.sending) S.deckDir = 1; else if (!moved) { const hit = S.figBoxes.slice().reverse().find(b => b.tap && inR(b)); if (hit) togglePick(hit.f.id); } return; }
+    if (d.mode === 'sheet' && !moved) { const r = (S.rows || []).find(r => p.y >= r.y0 && p.y < r.y1); if (r) togglePick(r.u.id); }
+  }
+}
+
 /* ---------- labels ---------- */
 const PLACE = new Path2D('M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zM7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.88-2.88 7.19-5 9.88C9.92 16.21 7 11.85 7 9zm5 2.5c1.38 0 2.5-1.12 2.5-2.5S13.38 6.5 12 6.5 9.5 7.62 9.5 9s1.12 2.5 2.5 2.5z');
 function spaced(ctx, text, x, y, spacing) { let cx = x; for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; } return cx - x; }
+
+
+/* ---------- _scene(): deep space, Webb sky, bent light, rims, streams, faces, holes, labels ---------- */
+function drawScene(x, W, sh, mode) {
+  const top = P['strip.orbTop'], lh = sh - top - 5, orbs = orbLayout(W, lh), k = scaleOf(x), through = mode === 'strip' && P['sky.mode'] === 'through';
+  if (!through) x.drawImage(deepSpace(W, sh, Math.min(3, k)), 0, 0, W, sh);
+  const sky = through ? throughSnap(W, sh) : P['sky.on'] ? skySnap(W, sh) : null; if (sky && !through) x.drawImage(sky, 0, 0, W, sh);
+  const lensesLive = orbs.filter(o => o.live).map(o => ({ x: o.x, y: o.y + top, r: o.d / 2, s: o.strength }));
+  if (P['lens.on'] && sky && lensesLive.length) { const out = lensLayer(W, sh, lensesLive, sky); if (out) x.drawImage(out, 0, 0, W, sh); }
+  drawRims(x, orbs.map(o => ({ x: o.x, y: o.y + top, r: o.d / 2 })));
+  drawLinks(x, top);
+  for (const o of orbs) { drawOrb(x, o, top); drawName(x, o, top); }
+  for (const o of orbs) if (o.live) drawHole(x, o, top);
+  const lab = mode === 'strip' ? G.labels : {};
+  x.textBaseline = 'top'; x.textAlign = 'left';
+  x.font = `700 ${P['lab.titleSize']}px Roboto`; x.fillStyle = P['lab.titleColor']; const tw = spaced(x, P['lab.title'], 18, 16, 1.6); lab.title = { x: 18, y: 16, w: tw, h: P['lab.titleSize'] * 1.2 };
+  x.font = `400 ${P['lab.liveSize']}px Roboto`; x.fillStyle = P['lab.liveColor']; const lw = spaced(x, P['lab.live'], 18, 53, 1.0); lab.live = { x: 18, y: 53, w: lw, h: P['lab.liveSize'] * 1.2 };
+  x.font = `400 10px Roboto`; const aw = x.measureText(P['lab.area']).width, ax = W - 12 - aw; x.fillStyle = P['lab.areaColor']; x.fillText(P['lab.area'], ax, 12 + 1); x.save(); x.translate(ax - 3 - 13, 12); x.scale(13 / 24, 13 / 24); x.fillStyle = '#8A9BAD'; x.fill(PLACE); x.restore(); lab.area = { x: ax - 16, y: 12, w: aw + 16, h: 14 };
+  return orbs;
+}
 
 /* ---------- module ---------- */
 const sc = K.screen({
@@ -611,6 +916,63 @@ const sc = K.screen({
     def('Black-hole flight', 'Arrival', 'flight', 'room.liveLabel', 'Live label', 'text', 'LIVE CREATOR');
     def('Black-hole flight', 'Arrival', 'flight', 'room.button', 'Button', 'text', 'Enter live stream');
     def('Black-hole flight', 'Arrival', 'flight', 'room.return', 'Return line', 'text', 'Return through the black hole');
+    def('Share', 'Play', 'share', 'sh.ms', 'Whole animation', 'int', 2600, { min: 800, max: 8000, step: 50, unit: 'ms', info: 'Tap the paper-plane on a post (or "Share a post") to play it. RETURN goes back.' });
+    def('Share', 'Play', 'share', 'sh.slow', 'Slow motion', 'num', 1, { min: 1, max: 8, step: .25, unit: '×', info: 'Studio only: stretch everything to study it.' });
+    def('Share', 'Play', 'share', 'sh.hold', 'Hold at a moment', 'bool', false);
+    def('Share', 'Play', 'share', 'sh.at', 'Moment', 'num', 1, { min: 0, max: 1, step: .005, info: 'Turn on "Hold at a moment" first. 0 = the tap, 1 = everyone has landed.' });
+    def('Share', 'Play', 'share', 'sh.closeMs', 'Return animation', 'int', 700, { min: 100, max: 3000, step: 50, unit: 'ms' });
+    def('Share', 'Floor', 'share.floor', 'sh.tilt', 'Lay-down angle', 'num', 66, { min: 20, max: 85, step: .5, unit: '°', dart: '_floorMatrix thMax' });
+    def('Share', 'Floor', 'share.floor', 'sh.persp', 'Perspective', 'num', .0007, { min: 0, max: .002, step: .00005 });
+    def('Share', 'Floor', 'share.floor', 'sh.widen', 'Widen as it lays down', 'num', .9, { min: 0, max: 3, step: .05 });
+    def('Share', 'Floor', 'share.floor', 'sh.tiltSecs', 'Lay-down time', 'num', .75, { min: .1, max: 2.6, step: .05, unit: 's' });
+    def('Share', 'Floor', 'share.floor', 'sh.snapFade', 'Screen dissolves in', 'num', .45, { min: .05, max: 2.6, step: .05, unit: 's' });
+    def('Share', 'Floor', 'share.floor', 'sh.dim', 'Darken the floor', 'num', .3, { min: 0, max: 1, step: .01 });
+    def('Share', 'Floor', 'share.floor', 'sh.tintG', 'Green lift', 'num', 2, { min: 0, max: 80, step: 1 });
+    def('Share', 'Floor', 'share.floor', 'sh.tintB', 'Blue lift', 'num', 8, { min: 0, max: 80, step: 1 });
+    def('Share', 'Floor', 'share.floor', 'sh.farFade', 'Far edge melts into space', 'num', .42, { min: 0, max: 1, step: .01 });
+    def('Share', 'Floor', 'share.floor', 'sh.sideFade', 'Sides melt', 'num', .16, { min: .01, max: .45, step: .01 });
+    def('Share', 'Sky', 'share.sky', 'sh.horizon', 'Horizon height', 'num', .46, { min: .2, max: .8, step: .005, unit: 'of screen' });
+    def('Share', 'Sky', 'share.sky', 'sh.skyExtra', 'Stars reach below the horizon', 'num', .22, { min: 0, max: .6, step: .01, unit: 'of screen' });
+    def('Share', 'Sky', 'share.sky', 'sh.bg', 'Night below the stars', 'color', '#02040A');
+    def('Share', 'Sky', 'share.sky', 'sh.horizonLine', 'Horizon line color', 'color', '#E8FBFF');
+    def('Share', 'Sky', 'share.sky', 'sh.lineAlpha', 'Horizon line strength', 'num', .6, { min: 0, max: 1, step: .01 });
+    def('Share', 'Sky', 'share.sky', 'sh.horizonGlow', 'Horizon glow color', 'color', '#5FD8FF');
+    def('Share', 'Figures', 'share.figs', 'sh.count', 'How many favs', 'int', 6, { min: 0, max: 6, step: 1, info: 'Your 6 favs: Freya, Loki, Sif, Tyr, Baldr, Hel (their real figures).' });
+    def('Share', 'Figures', 'share.figs', 'sh.size', 'Body size', 'num', .32, { min: .1, max: .6, step: .005, unit: 'of width' });
+    def('Share', 'Figures', 'share.figs', 'sh.tall', 'Height to width', 'num', 2.05, { min: 1, max: 3.5, step: .01 });
+    def('Share', 'Figures', 'share.figs', 'sh.minScale', 'Smallest far body', 'num', .45, { min: .2, max: 1, step: .01 });
+    def('Share', 'Figures', 'share.figs', 'sh.far', 'How far back they stand', 'num', .18, { min: 0, max: 1, step: .01 });
+    def('Share', 'Figures', 'share.figs', 'sh.jitter', 'Side scatter', 'num', .18, { min: 0, max: 1, step: .01 });
+    def('Share', 'Figures', 'share.figs', 'sh.outline', 'Hologram outline color', 'color', '#5FD8FF');
+    def('Share', 'Figures', 'share.figs', 'sh.flicker', 'Hologram flicker', 'bool', true);
+    def('Share', 'Figures', 'share.figs', 'sh.pickGlow', 'Picked glow', 'num', .75, { min: 0, max: 1, step: .01, info: 'Tap a figure to pick them.' });
+    def('Share', 'Figures', 'share.figs', 'sh.glowColor', 'Picked glow color', 'color', '#FFE7A0');
+    def('Share', 'Figures', 'share.figs', 'sh.nameSize', 'Name size', 'num', 13.5, { min: 8, max: 24, step: .5, unit: 'px' });
+    def('Share', 'Figures', 'share.figs', 'sh.nameColor', 'Name color', 'color', '#FFFFFF');
+    def('Share', 'Turning', 'share.figs', 'sh.spins', 'Most spinning 360', 'int', 2, { min: 0, max: 6, step: 1, info: 'Only people who allow you 360 can spin (Freya). The rest swing.' });
+    def('Share', 'Turning', 'share.figs', 'sh.all360', 'Test: everyone with a back photo spins', 'bool', false, { info: 'Studio test: Tyr and Baldr have back photos but have not allowed you 360.' });
+    def('Share', 'Turning', 'share.figs', 'sh.still', 'One stands still', 'bool', true);
+    def('Share', 'Turning', 'share.figs', 'sh.swing', 'Swing angle', 'num', 60, { min: 0, max: 60, step: 1, unit: '°' });
+    def('Share', 'Turning', 'share.figs', 'sh.swingMin', 'One swing takes', 'num', 5.5, { min: 1, max: 20, step: .1, unit: 's' });
+    def('Share', 'Turning', 'share.figs', 'sh.spinMin', 'One full turn takes', 'num', 9, { min: 2, max: 30, step: .1, unit: 's' });
+    def('Share', 'Beams', 'share.beams', 'sh.beamStart', 'First beam drops at', 'num', .55, { min: 0, max: 2, step: .01, unit: 's' });
+    def('Share', 'Beams', 'share.beams', 'sh.beamGap', 'Next beam after', 'num', .17, { min: 0, max: 1, step: .01, unit: 's' });
+    def('Share', 'Beams', 'share.beams', 'sh.beamDur', 'Beam lasts', 'num', .5, { min: .1, max: 2, step: .01, unit: 's' });
+    def('Share', 'Beams', 'share.beams', 'sh.beamColor', 'Beam color', 'color', '#5FD8FF');
+    def('Share', 'Pick list', 'share.sheet', 'sh.sheet', 'Starts this tall', 'num', .13, { min: .1, max: .75, step: .01, unit: 'of screen' });
+    def('Share', 'Pick list', 'share.sheet', 'sh.sheetMax', 'Pulls up to', 'num', .75, { min: .1, max: 1, step: .01, unit: 'of screen' });
+    def('Share', 'Pick list', 'share.sheet', 'sh.sheetColor', 'Color', 'color', '#101720');
+    def('Share', 'Pick list', 'share.sheet', 'sh.sheetTitle', 'Title', 'text', 'PICK WHO GETS IT');
+    def('Share', 'Pick list', 'share.sheet', 'sh.hint', 'Swipe hint', 'text', 'swipe to send');
+    def('Share', 'Pick list', 'share.sheet', 'sh.hintColor', 'Swipe hint color', 'color', '#BFEFFF');
+    def('Share', 'Send panels', 'share.deck', 'sh.deckMs', 'Slide-in time', 'int', 520, { min: 100, max: 2000, step: 20, unit: 'ms', info: 'Pick people, then swipe sideways.' });
+    def('Share', 'Send panels', 'share.deck', 'sh.deckBlur', 'Blur behind', 'num', 12, { min: 0, max: 40, step: .5, unit: 'px' });
+    def('Share', 'Send panels', 'share.deck', 'sh.panelColor', 'Panel color', 'color', '#5FD8FF');
+    def('Share', 'Send panels', 'share.deck', 'sh.hallTitle', 'Group panel', 'text', 'MEAD HALL');
+    def('Share', 'Send panels', 'share.deck', 'sh.eachTitle', 'One-by-one panel', 'text', 'LOOSE THE RAVENS');
+    def('Share', 'TV off', 'share', 'sh.tvMs', 'Switch-off time', 'int', 700, { min: 100, max: 3000, step: 50, unit: 'ms', info: 'Plays after you tap a panel to send.' });
+    def('Share', 'TV off', 'share', 'sh.tvColor', 'Line glow color', 'color', '#5FD8FF');
+    def('Share', 'Return button', 'share.ret', 'sh.retText', 'Word', 'text', 'RETURN');
     def('Test people', 'Live test accounts', 'holes', 'test.count', 'How many streaming', 'int', 12, { min: 0, max: 12, step: 1, info: 'Baldr, Saga, Tyr, Vidar… from live_streams, most viewers first.' });
     def('Test people', 'Live test accounts', 'holes', 'test.viewers', 'Viewers ×', 'num', 1, { min: .01, max: 20, step: .01, info: 'Scale everyone\'s viewers to watch holes change stage.' });
     def('Test people', 'Live test accounts', 'holes', 'test.live', 'They are live', 'bool', true);
@@ -618,13 +980,16 @@ const sc = K.screen({
   toolbar: [
     { label: 'Pause drift', title: 'Stop / start the drift', onclick: () => { ST.paused = !ST.paused; K.status(ST.paused ? 'Drift paused. Drag the strip sideways to move it.' : 'Drift running.'); } },
     { label: 'Re-center', title: 'Clear the swipe offset', onclick: () => { ST.swipe = 0; } },
+    { label: 'Share a post', title: 'Play the share animation on the post in view (press again to return)', onclick: () => { if (SH) { closeShare(); return; } const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
     { label: 'Fly into a hole', title: 'Play the black-hole flight into the hole nearest the middle', onclick: () => { if (ST.flight) { ST.flight = null; return; } const o = G.orbs.slice().sort((a, b) => Math.abs(a.x - K.W / 2) - Math.abs(b.x - K.W / 2))[0]; if (o) startFlight(o); } },
   ],
   onShow() { P = sc.P; },
-  update(dt) { P = sc.P; if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
+  onSet(k) { P = sc.P; if (k.startsWith('sh.') && !SH && !ST.flight) { const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
+  update(dt) { P = sc.P; shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
   draw(ctx, now, studio) {
     P = sc.P; sc.ty = 0;
     if (ST.flight) { drawFlight(ctx, now); if (studio) K.hl(ctx, now); return; }
+    if (SH && SH.tv <= 0) { drawShare(ctx, now); if (studio) K.hl(ctx, now); return; }
     const W = K.W, H = K.H, sh = Math.min(P['strip.max'], H * P['strip.share']), top = P['strip.orbTop'], lh = sh - top - 5;
     G.strip = { x: 0, y: 0, w: W, h: sh };
     if (P['feed.bg']) { const y0 = P['sky.mode'] === 'through' ? sh - P['strip.fade'] : 0; ctx.fillStyle = P['post.bg']; ctx.fillRect(0, y0, W, H - y0); }
@@ -632,33 +997,30 @@ const sc = K.screen({
     POSTS[0].pic0 = POSTS[0].pic0 || POSTS[0].pic; POSTS[0].pic = P['test.textOnly'] ? null : POSTS[0].pic0;
     G.posts = [];
     for (let i = 0; i < POSTS.length; i++) { const y = feedTop + i * pageH - ST.scroll; if (y > H || y + pageH < feedTop) continue; drawPost(ctx, POSTS[i], 0, y, W, pageH, feedTop); G.posts.push(POSTS[i]); }
-    const orbs = orbLayout(W, lh); G.orbs = orbs;
     // strip layer (faded into the feed at the bottom)
     const k = scaleOf(ctx), Lw = Math.ceil(W * k), Lh = Math.ceil(sh * k);
     const L = sc._layer || (sc._layer = document.createElement('canvas')); if (L.width !== Lw || L.height !== Lh) { L.width = Lw; L.height = Lh; }
     const x = L.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.filter = 'none'; x.clearRect(0, 0, Lw, Lh); x.scale(k, k);
-    const through = P['sky.mode'] === 'through';
-    if (!through) x.drawImage(deepSpace(W, sh, Math.min(3, k)), 0, 0, W, sh);
-    const sky = through ? throughSnap(W, sh) : P['sky.on'] ? skySnap(W, sh) : null; if (sky && !through) x.drawImage(sky, 0, 0, W, sh);
-    const lensesLive = orbs.filter(o => o.live).map(o => ({ x: o.x, y: o.y + top, r: o.d / 2, s: o.strength }));
-    if (P['lens.on'] && sky && lensesLive.length) { const out = lensLayer(W, sh, lensesLive, sky); if (out) x.drawImage(out, 0, 0, W, sh); }
-    drawRims(x, orbs.map(o => ({ x: o.x, y: o.y + top, r: o.d / 2 })));
-    drawLinks(x, top);
-    for (const o of orbs) { drawOrb(x, o, top); drawName(x, o, top); }
-    for (const o of orbs) if (o.live) drawHole(x, o, top);
-    // labels
-    x.textBaseline = 'top'; x.textAlign = 'left';
-    x.font = `700 ${P['lab.titleSize']}px Roboto`; x.fillStyle = P['lab.titleColor']; const tw = spaced(x, P['lab.title'], 18, 16, 1.6); G.labels.title = { x: 18, y: 16, w: tw, h: P['lab.titleSize'] * 1.2 };
-    x.font = `400 ${P['lab.liveSize']}px Roboto`; x.fillStyle = P['lab.liveColor']; const lw = spaced(x, P['lab.live'], 18, 53, 1.0); G.labels.live = { x: 18, y: 53, w: lw, h: P['lab.liveSize'] * 1.2 };
-    x.font = `400 10px Roboto`; const aw = x.measureText(P['lab.area']).width, ax = W - 12 - aw; x.fillStyle = P['lab.areaColor']; x.fillText(P['lab.area'], ax, 12 + 1); x.save(); x.translate(ax - 3 - 13, 12); x.scale(13 / 24, 13 / 24); x.fillStyle = '#8A9BAD'; x.fill(PLACE); x.restore(); G.labels.area = { x: ax - 16, y: 12, w: aw + 16, h: 14 };
+    G.orbs = drawScene(x, W, sh, 'strip');
     if (P['strip.fade'] > 0) { x.globalCompositeOperation = 'destination-in'; const g = x.createLinearGradient(0, 0, 0, sh); g.addColorStop(0, '#fff'); g.addColorStop(clamp((sh - P['strip.fade']) / sh, 0, 1), '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, sh); x.globalCompositeOperation = 'source-over'; }
     ctx.drawImage(L, 0, 0, Lw, Lh, 0, 0, W, sh);
     G.top = top;
     drawBar(ctx, now);
+    if (SH) drawShare(ctx, now);
     if (studio) K.hl(ctx, now);
   },
   highlight(ctx, base, sub, H1) {
     const W = K.W, top = G.top || 48, box = (b, pad = 3, r = 6) => () => { ctx.beginPath(); ctx.roundRect(b.x - pad, b.y - pad, b.w + pad * 2, b.h + pad * 2, r); };
+    if (base.startsWith('share')) { const S = SH; if (!S) return; const F = S.floor;
+      if (base === 'share.floor' && F) H1(() => { const pl = F.plane, a = fx(F.M, pl.x, pl.y), b = fx(F.M, pl.x + pl.w, pl.y), c = fx(F.M, pl.x + pl.w, pl.y + pl.h), d = fx(F.M, pl.x, pl.y + pl.h); ctx.beginPath(); ctx.moveTo(a[0] + 3, a[1] + 3); ctx.lineTo(b[0] - 3, b[1] + 3); ctx.lineTo(c[0] - 3, c[1] - 3); ctx.lineTo(d[0] + 3, d[1] - 3); ctx.closePath(); });
+      else if (base === 'share.sky' && F) { H1(() => { ctx.beginPath(); ctx.rect(4, 4, W - 8, F.hz - 8); }); }
+      else if (base === 'share.figs') (S.figBoxes || []).forEach(b => H1(box(b, 2, 8)));
+      else if (base === 'share.beams') (S.beams || []).forEach(b => H1(() => { ctx.beginPath(); ctx.moveTo(b[0], 4); ctx.lineTo(b[0], b[1]); }));
+      else if (base === 'share.sheet' && S.sheetTop != null) H1(box({ x: 0, y: S.sheetTop, w: W, h: K.H - S.sheetTop }, -3, 16));
+      else if (base === 'share.deck') { if ((S.boxes || []).length) S.boxes.forEach(b => H1(box(b, 3, 16))); else (S.figBoxes || []).forEach(b => H1(box(b, 2, 8))); }
+      else if (base === 'share.ret' && S.ret) H1(box(S.ret, 3, 18));
+      else H1(box({ x: 0, y: 0, w: W, h: K.H }, -4, 8));
+      return; }
     if (base === 'strip' && G.strip) H1(box(G.strip, -3, 8));
     else if (base === 'labels') Object.values(G.labels).forEach(b => H1(box(b, 3, 4)));
     else if (base === 'holes' || base === 'holes.disk' || base === 'lens') G.orbs.filter(o => base !== 'holes.disk' || o.stage === 2 || o.stage === 3).forEach(o => H1(() => { ctx.beginPath(); ctx.arc(o.x, o.y + top, (base === 'lens' ? o.d / 2 * Math.min(P['lens.reach'], 2.2) : o.d / 2 + 6), 0, TAU); }));
@@ -672,6 +1034,13 @@ const sc = K.screen({
     else if (base === 'bar.labels' && G.barBtns) G.barBtns.forEach(b => H1(box({ x: b.x + 4, y: b.icon.y + b.icon.h + 2, w: b.w - 8, h: P['bar.labelSize'] * 1.3 + 4 }, 1, 4)));
   },
   bounds(base) {
+    if (base && base.startsWith('share') && SH) { const W = K.W, H = K.H, S = SH, sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
+      if (base === 'share.ret' && S.ret) return sq(S.ret.x + S.ret.w / 2 + 40, S.ret.y + 40, 200);
+      if (base === 'share.sheet' && S.sheetTop != null) return sq(W / 2, Math.max(S.sheetTop + 60, H - W / 2), W);
+      if (base === 'share.deck' && (S.boxes || []).length) return sq(W / 2, S.boxes[0].y + S.boxes[0].h / 2, Math.max(W, S.boxes[0].h + 20));
+      if ((base === 'share.figs' || base === 'share.beams') && (S.figBoxes || []).length) { const b = S.figBoxes[S.figBoxes.length - 1]; return sq(b.x + b.w / 2, b.y + b.h / 2, Math.max(b.h * 1.3, 200)); }
+      if (base === 'share.sky' && S.floor) return sq(W / 2, S.floor.hz / 2, W);
+      return sq(W / 2, H / 2, H); }
     const W = K.W, sh = G.strip ? G.strip.h : 229, top = G.top || 48, sq = (x, y, s) => ({ x: x - s / 2, y: y - s / 2, s });
     const center = G.orbs.slice().sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0];
     if (base === 'labels') return sq(W / 2, 40, W * .7);
@@ -682,6 +1051,9 @@ const sc = K.screen({
     return sq(W / 2, sh / 2, W);
   },
   pick(p) {
+    if (SH) { const S = SH, inR = r => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+      if (inR(S.ret)) return ['Share', 'Return button']; if ((S.boxes || []).some(inR)) return ['Share', 'Send panels']; if (S.sheetTop != null && p.y >= S.sheetTop) return ['Share', 'Pick list'];
+      if ((S.figBoxes || []).some(inR)) return ['Share', 'Figures']; if (S.floor && p.y < S.floor.hz) return ['Share', 'Sky']; return ['Share', 'Floor']; }
     const top = G.top || 48;
     for (const o of G.orbs) { if (o.nameBox && p.x >= o.nameBox.x && p.x <= o.nameBox.x + o.nameBox.w && p.y >= o.nameBox.y && p.y <= o.nameBox.y + o.nameBox.h) return ['Faces and names', 'Name']; if (Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2) return ['Faces and names', 'Face']; if (Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d * 1.2) return ['Black holes', 'Look']; }
     if (G.bar && p.y >= G.bar.y && p.y <= G.bar.y + G.bar.h) return ['Bottom icons', 'Layout'];
@@ -691,22 +1063,23 @@ const sc = K.screen({
     return ['Background', null];
   },
   pointer: {
-    down(p) { if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, v: 0 }; } },
-    move(p) { const d = ST.drag; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
+    down(p) { if (SH) { sharePointer('down', p); return; } if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, v: 0 }; } },
+    move(p) { if (SH) { sharePointer('move', p); return; } const d = ST.drag; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
     up(p) {
+      if (SH) { sharePointer('up', p); return; }
       const d = ST.drag; ST.drag = null; if (!d) return;
       if (d.mode === 'flight') { const F = ST.flight; if (!F) return; const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
         if (F.dir !== 0 && p.y < (K.isMobile ? 100 : 60) && p.y > (K.isMobile ? 50 : 0) && p.x > K.W - 120) { F.t = F.dir > 0 ? 1 : 0; if (F.dir > 0) F.dir = 0; else ST.flight = null; return; }
         if (F.dir === 0 && (inR(F.ret) || (p.y < 60 && p.x < 60))) { F.dir = -1; return; }
         if (F.dir === 0 && inR(F.btn)) { K.status('In the app this enters ' + F.orb.person.name + '’s live stream.'); } return; }
       if (d.mode === 'feed') {
-        if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { const i = G.barBtns.indexOf(b); if (i === 0) K.go('way'); else if (i === 2) K.go('horn'); else if (i === 3) K.go('dial', { href: 'sleipnir-studio-1120.html#dial' }); else K.status('Carve a Saga (Post a Saga / Be Alive menu) is not built in the studio yet.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; return; } const r = (G.posts || []).find(q => q.bottomBox && p.y >= q.bottomBox.y + q.bottomBox.h - 40 && p.y <= q.bottomBox.y + q.bottomBox.h); if (r && p.x > 12 + P['post.likeIcon'] + 40 + P['post.gap'] + 40) K.status(p.x > 12 + P['post.likeIcon'] + 40 + P['post.gap'] * 2 + 70 ? 'Share: the share animation is the next thing I am building.' : 'Comments are not built in the studio yet.'); return; }
+        if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { const i = G.barBtns.indexOf(b); if (i === 0) K.go('way'); else if (i === 2) K.go('horn'); else if (i === 3) K.go('dial', { href: 'sleipnir-studio-1120.html#dial' }); else K.status('Carve a Saga (Post a Saga / Be Alive menu) is not built in the studio yet.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; return; } const inB = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h; const s = (G.posts || []).find(q => inB(q.sendBox)); if (s) { openShare(s); return; } if ((G.posts || []).some(q => inB(q.chatBox))) K.status('Comments are not built in the studio yet.'); return; }
         ST.vel = clamp(d.v, -4000, 4000); return;
       }
       if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) startFlight(hit); return; }
       ST.swipe += clamp(d.v, -650, 650) * .14;
     },
-    cancel() { ST.drag = null; },
+    cancel() { ST.drag = null; if (SH) SH.drag = null; },
   },
 });
 sc.ST = ST; sc.G = () => G; sc.DartRandom = DartRandom;
