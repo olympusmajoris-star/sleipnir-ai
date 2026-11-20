@@ -475,7 +475,7 @@ const sc = K.screen({
     def('Strip', 'Deep space', 'strip', 'deep.starAlpha', 'Star brightness', 'num', 1, { min: 0, max: 2, step: .05, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
     def('Strip', 'Deep space', 'strip', 'deep.bright', 'Bright stars', 'int', 25, { min: 0, max: 25, step: 1, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
     def('Strip', 'Deep space', 'strip', 'deep.grains', 'Dust specks', 'int', 1600, { min: 0, max: 1600, step: 50, info: 'The painted star sky sits under the Webb photo; turn the photo off (Photo sky) to see these.' });
-    def('Strip', 'Photo sky', 'strip', 'sky.mode', 'Sky behind the black holes', 'select', 'space', { opts: [['space', 'Space (Webb photo, as in the app)'], ['through', 'See-through: your camera / tilt background']], info: 'See-through: the black holes bend whatever is behind the phone, live. Pick the camera or tilt picture in the Background tab.' });
+    def('Strip', 'Photo sky', 'strip', 'sky.mode', 'Sky behind the black holes', 'select', 'through', { opts: [['space', 'Space (Webb photo, as in the app)'], ['through', 'See-through: your camera / tilt background']], info: 'See-through: the black holes bend whatever is behind the phone, live. Pick the camera or tilt picture in the Background tab.' });
     def('Strip', 'Photo sky', 'strip', 'sky.on', 'Webb deep-field photo', 'bool', true);
     def('Strip', 'Photo sky', 'strip', 'sky.dark', 'Darken photo', 'num', .30, { min: 0, max: 1, step: .01 });
     def('Strip', 'Labels', 'labels', 'lab.title', 'Top label', 'text', 'A S G A R D');
