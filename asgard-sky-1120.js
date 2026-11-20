@@ -294,7 +294,7 @@ function icon(ctx, path, x, y, size, color) { ctx.save(); ctx.translate(x, y); c
 function ago(d) { const m = (Date.now() - d.getTime()) / 60000; if (m < 1) return 'now'; if (m < 60) return Math.floor(m) + 'm'; if (m < 1440) return Math.floor(m / 60) + 'h'; if (m < 10080) return Math.floor(m / 1440) + 'd'; return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear(); }
 function shadowText(ctx, t, x, y, blur1, blur2) { ctx.save(); ctx.shadowColor = '#000'; ctx.shadowBlur = K.shadowBlurFor(ctx, blur1); ctx.fillText(t, x, y); if (blur2) { ctx.shadowBlur = K.shadowBlurFor(ctx, blur2); ctx.fillText(t, x, y); } ctx.restore(); }
 function wrapText(ctx, text, maxW, maxLines) { const words = text.split(/\s+/), lines = []; let line = ''; for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; } if (line) lines.push(line); if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (ctx.measureText(l + '…').width > maxW && l.length) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; } return lines; }
-const footprint = () => P['bar.height'] + P['bar.bottom'];
+const footprint = () => K.rockNav?.has(sc) ? K.rockNav.footprint(sc) : P['bar.height'] + P['bar.bottom'];
 function bottomBlockH(ctx, p, w) { ctx.font = `400 ${P['post.capSize']}px Roboto`; const cap = (p.pic && p.body) ? wrapText(ctx, p.body, w - 24, 3).length * P['post.capSize'] * 1.3 : 0; const tags = (p.topic !== 'general' || p.store) ? 6 + 24 : 6; return 26 + cap + tags + 6 + 26 + 8; }
 function drawPost(ctx, p, x, y, w, h, clipTop) {
   ctx.save(); ctx.beginPath(); ctx.rect(x, Math.max(y, clipTop), w, y + h - Math.max(y, clipTop)); ctx.clip();
@@ -332,6 +332,7 @@ function hornGlow(ctx, cx, cy, size, t) {
     g = ctx.createRadialGradient(cx, cy, 0, cx, cy, len); g.addColorStop(0, 'rgba(255,244,204,.75)'); g.addColorStop(.5, 'rgba(255,196,77,.25)'); g.addColorStop(1, 'rgba(255,176,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0 - wd) * base * .22, cy + Math.sin(a0 - wd) * base * .22); ctx.lineTo(cx + Math.cos(a0) * len, cy + Math.sin(a0) * len); ctx.lineTo(cx + Math.cos(a0 + wd) * base * .22, cy + Math.sin(a0 + wd) * base * .22); ctx.closePath(); ctx.fill(); }
 }
 function drawBar(ctx, now) {
+  if (K.rockNav?.has(sc)) { G.bar = null; G.barBtns = []; return; }
   if (!P['bar.on']) { G.bar = null; return; }
   const W = K.W, H = K.H, bh = P['bar.height'], top = H - P['bar.bottom'] - bh, left = P['bar.side'], cw = (W - P['bar.side'] * 2) / 4, size = P['bar.icon'], k = scaleOf(ctx);
   const labels = [P['bar.l1'], P['bar.l2'], P['bar.l3'], P['bar.l4']]; G.bar = { x: left, y: top, w: W - P['bar.side'] * 2, h: bh }; G.barBtns = [];
@@ -880,6 +881,16 @@ function drawScene(x, W, sh, mode) {
 /* ---------- module ---------- */
 const sc = K.screen({
   id: 'sky', title: 'Asgard feed', docId: 'asgard_sky',
+  rockContext() { return { page: SH ? 'share' : ST.view === 'market' ? 'swap' : 'home' }; },
+  rockNavigate(target) {
+    ST.drag = null; ST.viewer = null; ST.menu = null; ST.flight = null;
+    if (target === 'market') { SH = null; goMarket(); }
+    else if (target === 'share-post') {
+      if (SH) return;
+      const post = (G.posts || []).find(p => p.bottomBox && p.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0];
+      goFeed(); if (post) openShare(post);
+    } else { SH = null; goFeed(); }
+  },
   crumb: 'Asgard › Feed (black holes, posts, floating icons) <small>· Asgard Dart</small>',
   docMeta: { widget: 'Asgard', part: 'Live discovery strip (black holes)', source: 'FlutterFlow export 2026-11-19 + live_streams test accounts' },
   startGroup: 'Black holes', startSection: 'Look',

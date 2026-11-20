@@ -279,6 +279,9 @@ function makeRow(s) {
     c.oninput = () => setVal(s.k, c.value.toUpperCase()); c.onchange = () => commit();
     tx.onchange = () => { const v = tx.value.trim(); if (/^#?[0-9a-f]{6}$/i.test(v)) { setVal(s.k, ('#' + v.replace('#', '')).toUpperCase()); commit(); } else refresh(); };
     ctl.append(c, tx);
+  } else if (s.type === 'action') {
+    const b = document.createElement('button'); b.textContent = s.label;
+    b.onclick = () => s.onclick?.(); ctl.append(b); refresh = () => {}; rst.hidden = true;
   } else if (s.type === 'select') {
     const sel = document.createElement('select'); s.opts.forEach(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; sel.appendChild(o); });
     refresh = () => { sel.value = String(cur.P[s.k]); }; sel.onchange = () => { setVal(s.k, typeof s.def === 'number' ? +sel.value : sel.value); commit(); }; ctl.append(sel);

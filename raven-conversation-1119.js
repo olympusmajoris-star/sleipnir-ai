@@ -702,7 +702,8 @@ const sc = K.screen({
   draw(ctx, now, studio) {
     P = sc.P; sc.ty = 0; const W = K.W, H = K.H, pr = prog(), cells = meshCells(W, H);
     const hdTop = P['hd.top'], hdr = P['hd.on'] ? { x: 6, y: hdTop, w: W - 12, h: 48 } : null;
-    const lh = P['cmp.size'] * P['cmp.line'], boxH = Math.max(48, lh + 24) + 2, cx = P['cmp.side'], cy = H - P['cmp.bottom'] - boxH, cw = W - P['cmp.side'] * 2;
+    const navSpace = K.rockNav?.footprint(sc) || 0;
+    const lh = P['cmp.size'] * P['cmp.line'], boxH = Math.max(48, lh + 24) + 2, cx = P['cmp.side'], cy = H - navSpace - P['cmp.bottom'] - boxH, cw = W - P['cmp.side'] * 2;
     G.composer = { x: cx, y: cy, w: cw, h: boxH };
     // paper + Earth (Earth is cut out block by block while the page builds)
     ctx.fillStyle = P['earth.paper']; ctx.globalAlpha = P['bg.mode'] === 'plain' ? 1 : 0; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;

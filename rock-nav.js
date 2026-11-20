@@ -11,6 +11,47 @@ const PATHS={
  track:[[-.3,-.48,-.3,.48],[-.3,-.48,.26,-.3],[.26,-.3,.26,-.02],[.26,-.02,-.3,.12],[-.3,.12,.34,.48]],
  share:[[-.28,-.48,-.28,.48],[-.28,-.48,.3,-.22],[.3,-.22,-.28,.08]]
 };
+// The Raven is a carved, editable mark, using the same groove/emission layers
+// as the runes. Curves follow the chosen spread-wing bird, without its border.
+function ravenPaths(){
+ const out=[];
+ const line=(...pts)=>{for(let i=1;i<pts.length;i++)out.push([...pts[i-1],...pts[i]]);};
+ const curve=(a,b,c,d)=>{let p=a;for(let i=1;i<=8;i++){const t=i/8,u=1-t,q=[u*u*u*a[0]+3*u*u*t*b[0]+3*u*t*t*c[0]+t*t*t*d[0],u*u*u*a[1]+3*u*u*t*b[1]+3*u*t*t*c[1]+t*t*t*d[1]];line(p,q);p=q;}};
+ line([-.075,-.25],[-.085,-.49],[-.015,-.54],[.065,-.5]);
+ curve([.065,-.5],[.18,-.47],[.17,-.34],[.065,-.32]);
+ line([.065,-.32],[.13,-.29],[.025,-.265],[.018,-.23]);
+ curve([-.075,-.25],[-.045,-.2],[.015,-.19],[.06,-.25]);
+ curve([-.04,-.45],[.035,-.46],[.095,-.4],[.02,-.37]);
+ line([.02,-.37],[.015,-.32]);
+ line([.035,-.425],[.048,-.418]);
+ for(const side of [-1,1])for(let i=0;i<3;i++){
+  const start=[side*(.075+i*.035),-.16+i*.085];
+  curve(start,[side*(.35-i*.04),-.46+i*.045],[side*(.56-i*.09),-.22+i*.06],[side*(.47-i*.095),.29+i*.035]);
+  curve([side*(.47-i*.095),.29+i*.035],[side*(.445-i*.095),.40],[side*(.44-i*.12),.42],[side*(.40-i*.13),.46]);
+ }
+ for(let i=0;i<3;i++)curve([-.10,-.12+i*.065],[-.055,-.08+i*.065],[.055,-.08+i*.065],[.10,-.12+i*.065]);
+ for(let i=-2;i<=2;i++)line([i*.031,.105],[i*.092,.49]);
+ curve([-.184,.49],[-.10,.55],[.10,.55],[.184,.49]);
+ return out;
+}
+const RAVEN_PATHS=ravenPaths();
+let ravenField;
+function ravenDistance(x,y){
+ const N=128,step=1.6/(N-1);
+ if(!ravenField){
+  const field=new Float32Array(N*N),segments=RAVEN_PATHS.map(s=>({x:s[0],y:s[1],dx:s[2]-s[0],dy:s[3]-s[1],len:(s[2]-s[0])**2+(s[3]-s[1])**2}));
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+   const px=i*step-.8,py=j*step-.8;let best=9;
+   for(const s of segments){const t=Math.max(0,Math.min(1,((px-s.x)*s.dx+(py-s.y)*s.dy)/(s.len||1))),dx=px-s.x-t*s.dx,dy=py-s.y-t*s.dy,d=dx*dx+dy*dy;if(d<best)best=d;}
+   field[j*N+i]=Math.sqrt(best);
+  }
+  ravenField=field;
+ }
+ const fx=Math.max(0,Math.min(N-1.001,(x+.8)/step)),fy=Math.max(0,Math.min(N-1.001,(y+.8)/step)),ix=Math.floor(fx),iy=Math.floor(fy),u=fx-ix,v=fy-iy;
+ const a=ravenField[iy*N+ix],b=ravenField[iy*N+ix+1],c=ravenField[(iy+1)*N+ix],d=ravenField[(iy+1)*N+ix+1];
+ const gx=((b-a)*(1-v)+(d-c)*v)/step,gy=((c-a)*(1-u)+(d-b)*u)/step,len=Math.hypot(gx,gy)||1;
+ return [a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v,gx/len,gy/len];
+}
 const clone=x=>JSON.parse(JSON.stringify(x)), clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const seed=n=>{const v=Math.sin(n*127.17+91.79)*43758.5453;return v-Math.floor(v);};
 function noise(x,y){const a=Math.floor(x),b=Math.floor(y);let u=x-a,v=y-b;u=u*u*(3-2*u);v=v*v*(3-2*v);return (seed(a+b*71)*(1-u)+seed(a+1+b*71)*u)*(1-v)+(seed(a+(b+1)*71)*(1-u)+seed(a+1+(b+1)*71)*u)*v;}
@@ -23,7 +64,7 @@ function get(o,p){return p.split('.').reduce((v,k)=>v?.[k],o);}
 function set(o,p,v){const keys=p.split('.');if(keys.some(k=>['__proto__','prototype','constructor'].includes(k)))return;let a=o;for(const k of keys.slice(0,-1))a=a[k]??(a[k]={});a[keys.at(-1)]=v;}
 function patch(base,edits){const out=clone(base);for(const [p,v]of edits)set(out,p,clone(v));return out;}
 function distance(x,y,s){const dx=s[2]-s[0],dy=s[3]-s[1],t=clamp(((x-s[0])*dx+(y-s[1])*dy)/(dx*dx+dy*dy),0,1);return Math.hypot(x-s[0]-t*dx,y-s[1]-t*dy);}
-const API={IDS,META,PATHS,defaults,visible,activeId,merge,patch,distance};
+const API={IDS,META,PATHS,RAVEN_PATHS,defaults,visible,activeId,merge,patch,distance};
 if(typeof module!=='undefined')module.exports=API;
 if(typeof document==='undefined')return;
 const make=(w,h=w)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
@@ -32,16 +73,17 @@ const tint=(src,color)=>{const c=make(src.width,src.height),x=c.getContext('2d')
 class RockTexture{
  constructor(id,url){this.id=id;this.ready=false;this.error=false;this.img=new Image();this.img.crossOrigin='anonymous';this.img.onload=()=>{this.base=make(512);const c=this.base.getContext('2d',{willReadFrequently:true});c.drawImage(this.img,0,0,512,512);this.data=c.getImageData(0,0,512,512);this.emission=make(512);const e=this.emission.getContext('2d'),d=e.createImageData(512,512);for(let p=0;p<d.data.length;p+=4){const a=this.data.data;const m=clamp((Math.max(a[p+1],a[p+2])-a[p]*1.25-12)/140,0,1)*clamp((a[p+1]+a[p+2]-75)/260,0,1);d.data[p]=a[p];d.data[p+1]=a[p+1];d.data[p+2]=a[p+2];d.data[p+3]=a[p+3]*m;}e.putImageData(d,0,0);this.ready=true;};this.img.onerror=()=>this.error=true;this.img.src=url;}
  sample(u,v){const x=clamp(Math.round(u*511),0,511),y=clamp(Math.round(v*511),0,511),p=(y*512+x)*4,d=this.data.data;return (d[p]*.21+d[p+1]*.72+d[p+2]*.07)/255;}
- build(S){if(!this.ready)return;const r=S.rune,k=JSON.stringify([r.x,r.y,r.size,r.angle,r.slant,r.height,r.width,r.depth,r.roughness,r.follow,r.color,S.cracks.intensity,S.cracks.recolor,S.cracks.color]);if(k===this.key)return;this.key=k;
+ build(S){if(!this.ready)return;const r=S.rune,k=JSON.stringify([r.symbol,r.x,r.y,r.size,r.angle,r.slant,r.height,r.width,r.depth,r.roughness,r.follow,r.color,S.cracks.intensity,S.cracks.recolor,S.cracks.color]);if(k===this.key)return;this.key=k;
   this.groove=make(512);this.light=make(512);this.body=make(512);const gx=this.groove.getContext('2d'),lx=this.light.getContext('2d'),bx=this.body.getContext('2d');const gd=gx.createImageData(512,512),ld=lx.createImageData(512,512),bd=new ImageData(new Uint8ClampedArray(this.data.data),512,512);const col=rgb(r.color),cr=rgb(S.cracks.color),em=this.emission.getContext('2d').getImageData(0,0,512,512).data,ang=-r.angle*Math.PI/180,ca=Math.cos(ang),sa=Math.sin(ang);
-  const width=Math.max(.003,r.width),size=Math.max(.08,r.size),hei=Math.max(.25,r.height);
+  const raven=r.symbol==='raven',paths=raven?RAVEN_PATHS:PATHS[this.id];
+  const width=Math.max(.003,r.width*(raven?.32:1)),size=Math.max(.08,r.size),hei=Math.max(.25,r.height);
   for(let y=0;y<512;y++)for(let x=0;x<512;x++){const p=(y*512+x)*4,a=this.data.data[p+3]/255;if(a<.01)continue;const u=x/512,v=y/512,lum=this.sample(u,v),m=em[p+3]/255;for(let j=0;j<3;j++){const base=bd.data[p+j],original=em[p+j]*m;bd.data[p+j]=clamp(base-original+(S.cracks.recolor?cr[j]*m:original)*S.cracks.intensity,0,255);}
    let qx=(u-r.x)/size,qy=(v-r.y)/size;const rx=qx*ca-qy*sa,ry=(qx*sa+qy*ca)/hei;qx=rx-ry*r.slant;qy=ry;
    if(Math.abs(qx)>.75||Math.abs(qy)>.75)continue;
    const n=noise(u*57+3,v*57+9),n2=noise(u*173,v*173),ridge=(this.sample(u+.004,v)-this.sample(u-.004,v));
    qx+=(noise(u*24,v*29)-.5)*.035*r.roughness+ridge*.11*r.follow;
    qy+=(noise(u*29+31,v*24)-.5)*.025*r.roughness+(lum-this.sample(u,v+.008))*.10*r.follow;
-   let d=9,nx=0,ny=0;for(const seg of PATHS[this.id]){const dx=seg[2]-seg[0],dy=seg[3]-seg[1],q=clamp(((qx-seg[0])*dx+(qy-seg[1])*dy)/(dx*dx+dy*dy),0,1),vx=qx-seg[0]-q*dx,vy=qy-seg[1]-q*dy,nd=Math.hypot(vx,vy);if(nd<d){d=nd;nx=vx/(nd||1);ny=vy/(nd||1);}}
+   let d=9,nx=0,ny=0;if(raven){[d,nx,ny]=ravenDistance(qx,qy);}else for(const seg of paths){const dx=seg[2]-seg[0],dy=seg[3]-seg[1],q=clamp(((qx-seg[0])*dx+(qy-seg[1])*dy)/(dx*dx+dy*dy||1),0,1),vx=qx-seg[0]-q*dx,vy=qy-seg[1]-q*dy,nd=Math.hypot(vx,vy);if(nd<d){d=nd;nx=vx/(nd||1);ny=vy/(nd||1);}}
    const w=width*(1+(n-.5)*.9*r.roughness+(n2-.5)*.5*r.roughness),edge=1-clamp((d-w*2.25)/.010,0,1);if(edge<=0)continue;
    const inner=1-clamp((d-w*.27)/(w*.72),0,1),bevel=clamp(1-Math.abs(d-w*1.75)/(w*.46),0,1);const ledge=(.3+.7*n)*bevel*r.depth*clamp(-nx*.6-ny*.8,0,1);
    for(let j=0;j<3;j++){gd.data[p+j]=clamp(this.data.data[p+j]*(.20+.8*(1-r.depth))+(j===0?52:64)*ledge,0,255);ld.data[p+j]=Math.min(255,col[j]*(.77+.23*n2)+(1-clamp(d/(w*.25),0,1))*25);}
