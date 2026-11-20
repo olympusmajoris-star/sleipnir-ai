@@ -25,7 +25,7 @@ const SHAPES = [
   { tab: 'Groups', kind: 'Hexagon', pos: [-126.5, 147.5], color: '#FFAC78', period: 23, start: -8.594, icon: .84, iconY: 0 },
 ];
 
-const ST = { angle: 0, hi: 0, ready: true, armed: false, confirmed: false, grab: false, insideTap: false, didTurn: false, active: null, prevA: null, travel: 0, drift: 0, origin: { x: 0, y: 0 }, grabAngle: 0, grabMode: 0, wasReady: false, idle: true, spin: 0, amb: 0, wob: 0, lastDetent: 0, closing: false, rise: { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }, turn: { on: false, from: 0, to: 0, t0: 0 }, chose: null, dis: -1, disStay: false };
+const ST = { own: {}, angle: 0, hi: 0, ready: true, armed: false, confirmed: false, grab: false, insideTap: false, didTurn: false, active: null, prevA: null, travel: 0, drift: 0, origin: { x: 0, y: 0 }, grabAngle: 0, grabMode: 0, wasReady: false, idle: true, spin: 0, amb: 0, wob: 0, lastDetent: 0, closing: false, rise: { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }, turn: { on: false, from: 0, to: 0, t0: 0 }, chose: null, dis: -1, disStay: false };
 let G = { ty: 0 };
 const touch = { x: 0, y: 0, tx: 0, ty: 0, press: 0 };
 const layers = {};
@@ -93,10 +93,40 @@ function drawGlass(ctx, m, t, entrance) {
 }
 
 /* ---------- ring (_RvDialRingPainter) ---------- */
+// Per-ring motion (studio addition 1120). 'follow' = the Dart behaviour:
+// the ring moves with the main idle spin and with your finger.
+const RING_MOTION = ['band1', 'band2', 'band3', 'ticks', 'contours', 'inner'];
+function ringPhase(m, k, phase) {
+  const mode = P[k + '.mode'] || 'follow';
+  if (mode === 'follow') return phase;
+  const ref = P[k + '.turnWith'] ? ST.angle : (m.angles[0] || 0);
+  return ref + (mode === 'own' ? (ST.own[k] || 0) : 0);
+}
 function bandList(m, phase) {
   const u = m.thickness / 32, out = [];
-  for (let k = 0; k < 3; k++) out.push({ rr: m.radius + (k - 1) * P['bands.gap'] * u, start: phase + P['bands.start' + (k + 1)] * D2R, sweep: P['bands.len' + (k + 1)] * D2R });
+  for (let k = 0; k < 3; k++) out.push({ rr: m.radius + (k - 1) * P['bands.gap'] * u, start: ringPhase(m, 'band' + (k + 1), phase) + P['bands.start' + (k + 1)] * D2R, sweep: P['bands.len' + (k + 1)] * D2R });
   return out;
+}
+function drawInnerCircle(ctx, c, m, phase, u, t) {
+  if (!P['inner.on'] || t <= 0) return;
+  const rr = m.radius - P['inner.inset'] * u; if (rr <= 1) return;
+  const n = Math.max(3, Math.round(P['inner.count'])), step = TAU / n, a0 = ringPhase(m, 'inner', phase);
+  const alpha = P['inner.opacity'] * t, col = P['inner.color'];
+  const pass = (glow, a) => {
+    if (a <= 0) return;
+    ctx.save(); if (glow > 0) blur(ctx, glow * u);
+    if (P['inner.style'] === 'dashes') {
+      const len = step * clamp(P['inner.dashLen'], .02, .98);
+      ctx.lineWidth = Math.max(.1, P['inner.width'] * u); ctx.lineCap = P['inner.round'] ? 'round' : 'butt'; ctx.strokeStyle = rgba(col, a);
+      ctx.beginPath(); for (let i = 0; i < n; i++) { const s = a0 + i * step - len / 2; ctx.moveTo(c.x + Math.cos(s) * rr, c.y + Math.sin(s) * rr); ctx.arc(c.x, c.y, rr, s, s + len); } ctx.stroke();
+    } else {
+      const d = Math.max(.1, P['inner.dot'] * u); ctx.fillStyle = rgba(col, a);
+      ctx.beginPath(); for (let i = 0; i < n; i++) { const s = a0 + i * step, x = c.x + Math.cos(s) * rr, y = c.y + Math.sin(s) * rr; ctx.moveTo(x + d, y); ctx.arc(x, y, d, 0, TAU); } ctx.fill();
+    }
+    ctx.restore();
+  };
+  pass(P['inner.glow'], alpha * P['inner.glowStrength']);
+  pass(0, alpha);
 }
 function drawRing(ctx, m, reveal) {
   const u = m.thickness / 32, t = ease(clamp(reveal, 0, 1)); if (t <= 0) return;
@@ -107,7 +137,7 @@ function drawRing(ctx, m, reveal) {
   const A = (p, r, s, sw, w, col, a, glow) => arc(ctx, p, r, s, sw * t, w * u, col, a * t, (glow || 0) * u);
   if (P['contours.on']) for (const d of [-1, 1]) {
     const rr = radius + d * P['contours.offset'] * u, gap = P['contours.backGap'] * D2R;
-    A(rear, rr, phase + gap / 2, TAU - gap, P['contours.backWidth'], blue, P['contours.backOpacity']);
+    A(rear, rr, ringPhase(m, 'contours', phase) + gap / 2, TAU - gap, P['contours.backWidth'], blue, P['contours.backOpacity']);
     A(c, rr, 0, TAU, P['contours.frontWidth'], blue, P['contours.frontOpacity']);
   }
   const bands = bandList(m, phase);
@@ -130,9 +160,10 @@ function drawRing(ctx, m, reveal) {
     }
   }
   if (P['bearing.on']) A(c, radius - P['bearing.inset'] * u, 0, TAU, P['bearing.width'], blue, P['bearing.opacity']);
+  drawInnerCircle(ctx, c, m, phase, u, t);
   if (P['ticks.on']) {
     const n = Math.max(1, Math.round(P['ticks.count'])), every = Math.max(1, Math.round(P['ticks.majorEvery'])), rr = radius + P['ticks.offset'] * u;
-    const tp = P['ticks.turn'] ? phase : 0;
+    const tp = (P['ticks.mode'] || 'follow') === 'follow' ? (P['ticks.turn'] ? phase : 0) : ringPhase(m, 'ticks', phase);
     ctx.save();
     for (let i = 0; i < n; i++) {
       const a = tp + i * TAU / n, vx = Math.cos(a), vy = Math.sin(a), major = i % every === 0;
@@ -597,6 +628,15 @@ def('Ring', 'Spin', 'ring.spin', 'ring.spinDir', 'Direction', 'select', 1, { opt
 def('Ring', 'Spin', 'ring.spin', 'ring.spinAfterGrab', 'Keep spinning after a turn', 'bool', false, { info: 'In the Dart the idle spin stops for good once you grab the ring.' });
 def('Ring', 'Colors', 'ring.all', 'ring.blue', 'Main blue', 'color', '#008BFF', { info: 'Shared blue. Also used by the glass edge and the pointer ticks.' });
 def('Ring', 'Colors', 'ring.all', 'ring.pale', 'Main pale', 'color', '#BCEBFF', { info: 'Shared pale blue. Also used by the glass edge, arrow and hint text color default.' });
+// Per-ring spin controls (studio addition 1120, not in the Dart yet).
+const motionDefs = (section, target, k, name, d) => {
+  const NEW = 'New in the studio. Not in the Dart yet.';
+  def('Ring', section, target, k + '.mode', name + ' · motion', 'select', d.mode, { opts: [['follow', 'Spin with the main ring'], ['own', 'Its own spin'], ['still', 'Does not spin']], info: '"Spin with the main ring" is how it works now (Ring › Spin). "Its own spin" uses the direction and speed below. ' + NEW });
+  def('Ring', section, target, k + '.dir', name + ' · direction', 'select', d.dir, { opts: [[1, 'Clockwise'], [-1, 'Counter-clockwise']], info: 'Used when motion is "Its own spin".' });
+  def('Ring', section, target, k + '.period', name + ' · seconds per turn', 'num', d.period, { min: 2, max: 240, step: .5, unit: 's', info: 'Used when motion is "Its own spin". Lower = faster.' });
+  def('Ring', section, target, k + '.keep', name + ' · keeps spinning', 'bool', d.keep, { info: 'On = never stops, even while you turn the dial. Off = stops for good once you grab the ring, like the main spin.' });
+  def('Ring', section, target, k + '.turnWith', name + ' · moves when you turn the dial', 'bool', d.turnWith, { info: 'On = your finger carries it around with the dial. Off = it ignores your finger and only does its own motion.' });
+};
 def('Ring', 'Light bands', 'ring.band', 'bands.on', 'Light bands', 'bool', true, { info: 'The 3 broad glowing partial rings.' });
 def('Ring', 'Light bands', 'ring.band', 'bands.gap', 'Spacing', 'num', 12, { min: 0, max: 40, step: .5, unit: 'px' });
 def('Ring', 'Light bands', 'ring.band', 'bands.width', 'Glow width', 'num', 9, { min: 0, max: 40, step: .5, unit: 'px' });
@@ -635,6 +675,7 @@ def('Ring', 'Outline rings', 'ring.contours:front', 'contours.frontOpacity', 'Fr
 def('Ring', 'Outline rings', 'ring.contours:back', 'contours.backWidth', 'Back width', 'num', 1, { min: 0, max: 6, step: .05, unit: 'px' });
 def('Ring', 'Outline rings', 'ring.contours:back', 'contours.backOpacity', 'Back strength', 'num', .32, { min: 0, max: 1, step: .01 });
 def('Ring', 'Outline rings', 'ring.contours:back', 'contours.backGap', 'Back ring gap', 'num', 11.46, { min: 0, max: 180, step: .5, unit: '°' });
+motionDefs('Outline rings', 'ring.contours:back', 'contours', 'Back rings', { mode: 'follow', dir: 1, period: 36, keep: false, turnWith: true });
 def('Ring', 'Bearing', 'ring.bearing', 'bearing.on', 'Inner bearing line', 'bool', true);
 def('Ring', 'Bearing', 'ring.bearing', 'bearing.inset', 'Distance inside', 'num', 22, { min: -40, max: 80, step: .5, unit: 'px' });
 def('Ring', 'Bearing', 'ring.bearing', 'bearing.width', 'Width', 'num', .7, { min: 0, max: 6, step: .05, unit: 'px' });
@@ -650,6 +691,7 @@ def('Ring', 'Tick marks', 'ring.ticks', 'ticks.minorWidth', 'Short tick width', 
 def('Ring', 'Tick marks', 'ring.ticks', 'ticks.majorOpacity', 'Long tick strength', 'num', .8, { min: 0, max: 1, step: .01 });
 def('Ring', 'Tick marks', 'ring.ticks', 'ticks.minorOpacity', 'Short tick strength', 'num', .42, { min: 0, max: 1, step: .01 });
 def('Ring', 'Tick marks', 'ring.ticks', 'ticks.turn', 'Turn with ring', 'bool', true);
+motionDefs('Tick marks', 'ring.ticks', 'ticks', 'Ticks', { mode: 'follow', dir: 1, period: 36, keep: false, turnWith: true });
 def('Ring', 'Station markers', 'ring.markers', 'markers.on', 'Station markers', 'bool', true, { info: 'The 4 colored arcs on the inner ring, one per shape. They light up when lined up.' });
 def('Ring', 'Station markers', 'ring.markers', 'markers.inset', 'Distance inside', 'num', 28, { min: -40, max: 80, step: .5, unit: 'px' });
 def('Ring', 'Station markers', 'ring.markers', 'markers.len', 'Length', 'num', 20.63, { min: 1, max: 90, step: .5, unit: '°' });
@@ -662,6 +704,20 @@ def('Ring', 'Grab highlight', 'ring.grab', 'grab.offset', 'Distance outside', 'n
 def('Ring', 'Grab highlight', 'ring.grab', 'grab.len', 'Length', 'num', 34.38, { min: 1, max: 360, step: .5, unit: '°' });
 def('Ring', 'Grab highlight', 'ring.grab', 'grab.width', 'Width', 'num', 1.6, { min: 0, max: 10, step: .05, unit: 'px' });
 def('Ring', 'Grab highlight', 'ring.grab', 'grab.opacity', 'Strength', 'num', 1, { min: 0, max: 1, step: .01 });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.on', 'Inner circle', 'bool', true, { info: 'Ring of dots or short curved lines inside the dial. New in the studio. Not in the Dart yet.' });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.style', 'Made of', 'select', 'dots', { opts: [['dots', 'Dots'], ['dashes', 'Curved line pieces']] });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.count', 'How many', 'int', 60, { min: 3, max: 240, step: 1 });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.inset', 'Distance inside', 'num', 22, { min: -40, max: 120, step: .5, unit: 'px', info: 'Same scale as the Bearing line. 22 sits on the bearing line.' });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.dot', 'Dot size', 'num', 1.1, { min: .2, max: 8, step: .05, unit: 'px', info: 'Used when made of dots.' });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.dashLen', 'Piece length', 'num', .55, { min: .02, max: .98, step: .01, unit: 'of spacing', info: 'Used when made of curved line pieces. Higher = longer pieces, smaller gaps.' });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.width', 'Piece thickness', 'num', 1.2, { min: .1, max: 8, step: .05, unit: 'px', info: 'Used when made of curved line pieces.' });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.round', 'Rounded piece ends', 'bool', false);
+def('Ring', 'Inner circle', 'ring.inner', 'inner.color', 'Color', 'color', '#BCEBFF');
+def('Ring', 'Inner circle', 'ring.inner', 'inner.opacity', 'Strength', 'num', .75, { min: 0, max: 1, step: .01 });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.glow', 'Glow blur', 'num', 2, { min: 0, max: 20, step: .1, unit: 'px' });
+def('Ring', 'Inner circle', 'ring.inner', 'inner.glowStrength', 'Glow strength', 'num', .5, { min: 0, max: 1, step: .01 });
+motionDefs('Inner circle', 'ring.inner', 'inner', 'Inner circle', { mode: 'own', dir: -1, period: 24, keep: true, turnWith: false });
+[0, 1, 2].forEach(i => motionDefs('Band spin', 'ring.band:' + i, 'band' + (i + 1), 'Band ' + (i + 1), { mode: 'follow', dir: 1, period: 36, keep: false, turnWith: true }));
 
 // Pointer
 def('Pointer', 'Dot', 'pointer.dot', 'dot.on', 'Pointer dot', 'bool', true, { info: 'The glowing dot that shows which shape is selected.' });
@@ -817,6 +873,10 @@ SHAPES.forEach((s, i) => {
     ST.amb += dt; if (ST.active == null) ST.wob += dt * P['wobble.speed'];
     const motor = ST.idle || (P['ring.spinAfterGrab'] && !ST.grab);
     if (motor && P['ring.spinOn'] && ST.rise.v >= 1 && !ST.turn.on && !ST.closing) ST.spin += dt * TAU / Math.max(.5, P['ring.spinPeriod']) * P['ring.spinDir'];
+    for (const k of RING_MOTION) {
+      if (P[k + '.mode'] !== 'own' || ST.rise.v < 1 || ST.closing) continue;
+      if (P[k + '.keep'] || (motor && !ST.turn.on)) ST.own[k] = ((ST.own[k] || 0) + dt * TAU / Math.max(.5, P[k + '.period']) * (P[k + '.dir'] < 0 ? -1 : 1)) % TAU;
+    }
   },
   draw(ctx, now, studio) {
     P=sc.P;const m=metrics(),arrival=entranceState(now),ge=arrival.glass,de=arrival.dial;
@@ -872,6 +932,7 @@ SHAPES.forEach((s, i) => {
       else bands.forEach(b => H1(() => { ctx.beginPath(); ctx.arc(rc.x, rc.y, b.rr + 2.5, b.start, b.start + b.sweep); ctx.arc(rc.x, rc.y, b.rr - 2.5, b.start + b.sweep, b.start, true); ctx.closePath(); })); }); break;
     case 'ring.contours': ringPose(() => { const o = P['contours.offset'] * u; if (sub !== 'back') { H1(circ(r + o)); H1(circ(r - o)); } if (sub !== 'front') { const rc = G.rear || c; [r + o, r - o].forEach(rr => H1(() => { ctx.beginPath(); ctx.arc(rc.x, rc.y, rr, 0, TAU); })); } }); break;
     case 'ring.bearing': ringPose(() => H1(arcBand(r - P['bearing.inset'] * u, 5, 0, TAU))); break;
+    case 'ring.inner': ringPose(() => H1(arcBand(r - P['inner.inset'] * u, Math.max(5, (P['inner.style'] === 'dashes' ? P['inner.width'] : P['inner.dot'] * 2) * u + 4), 0, TAU))); break;
     case 'ring.ticks': ringPose(() => { const rr = r + P['ticks.offset'] * u; H1(circ(rr + 2)); H1(circ(rr - Math.max(P['ticks.majorLen'], P['ticks.minorLen']) * u - 2)); }); break;
     case 'ring.markers': ringPose(() => m.angles.forEach(a => { const half = P['markers.len'] * D2R / 2; H1(arcBand(r - P['markers.inset'] * u, P['markers.width'] * u + 5, a - half, half * 2)); })); break;
     case 'ring.grab': ringPose(() => { const half = P['grab.len'] * D2R / 2; H1(arcBand(r + P['grab.offset'] * u, P['grab.width'] * u + 5, (G.phase || 0) - half, half * 2)); }); break;
@@ -921,6 +982,7 @@ function pickPart(raw) {
   const tickR = m.radius + P['ticks.offset'] * u;
   if (d <= tickR + 3 && d >= tickR - P['ticks.majorLen'] * u - 3) return ['Ring', 'Tick marks'];
   if (Math.abs(d - (m.radius - P['markers.inset'] * u)) < 4) return ['Ring', 'Station markers'];
+  if (P['inner.on'] && Math.abs(d - (m.radius - P['inner.inset'] * u)) < Math.max(3, P['inner.dot'] * u + 2)) return ['Ring', 'Inner circle'];
   if (Math.abs(d - (m.radius - P['bearing.inset'] * u)) < 3) return ['Ring', 'Bearing'];
   if (Math.abs(d - m.radius) <= m.thickness / 2 + 8) return ['Ring', 'Light bands'];
   if (d < m.radius - m.thickness / 2) return ['Text', 'Layout'];
