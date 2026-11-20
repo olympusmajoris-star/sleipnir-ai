@@ -149,8 +149,11 @@ const sc = K.screen({
     down(p) { ST.down = p; },
     up(p) {
       const d = ST.down; ST.down = null; if (!d || Math.hypot(p.x - d.x, p.y - d.y) > 8) return; const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
-      const b = G.btns.find(inR); if (b) { if (b.label === 'Asgard') K.go('sky', { href: 'sleipnir-studio-1120.html#sky' }); else K.status(b.label + ' is not built in the studio yet.'); return; }
-      const t = G.tiles.concat(G.tiles2).find(inR); if (t) { K.status(t.label + ' is not built in the studio yet. Asgard (button near the bottom) is.'); return; }
+      // Stores open the shared studio's store pages (pages.html browse → store)
+      const WS = { 'Grocery': 'grocery', 'Fast Food': 'fast_food', 'Restaurant': 'restaurant', 'Fast Casual': 'restaurant', 'Retail': 'retail', 'Pharmacy': 'retail', 'Convenience Store': 'retail', 'Valhalla': 'valhalla' };
+      const open = label => { const id = WS[label]; if (!id) return false; K.status('Opening ' + label + '…'); location.href = 'pages.html?page=browse&type=' + id; return true; };
+      const b = G.btns.find(inR); if (b) { if (b.label === 'Asgard') K.go('sky', { href: 'sleipnir-studio-1120.html#sky' }); else if (!open(b.label)) K.status(b.label + ' is not built in the studio yet.'); return; }
+      const t = G.tiles.concat(G.tiles2).find(inR); if (t) { if (!open(t.label)) K.status(t.label + ' is not built in the studio yet.'); return; }
       if (inR(G.account)) K.status('My account is not built in the studio yet.');
     },
   },
