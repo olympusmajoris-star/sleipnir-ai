@@ -1082,5 +1082,5 @@ const sc = K.screen({
     cancel() { ST.drag = null; if (SH) SH.drag = null; },
   },
 });
-sc.ST = ST; sc.G = () => G; sc.DartRandom = DartRandom;
+sc.ST = ST; sc.G = () => G; sc.DartRandom = DartRandom; sc.SH = () => SH;
 })();
