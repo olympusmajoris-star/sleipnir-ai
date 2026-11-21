@@ -90,7 +90,7 @@ def('Swipe batches', 'unread', 'un.sw.follow', 'People follow your finger', 'boo
 def('Swipe batches', 'unread', 'un.sw.loop', 'Wrap around after the last batch', 'bool', false);
 def('Swipe batches', 'unread', 'un.sw.next', 'Show next batch', 'action', null, { onclick: () => nextBatch() });
 def('Swipe batches', 'unread', 'un.dots', 'Batch dots', 'bool', true, { info: 'Small dots showing which batch you are on. Only shows when there is more than one batch.' });
-def('Swipe batches', 'unread', 'un.dotsY', 'Dots up / down', 'num', .292, { min: 0, max: 1, step: .001, unit: 'of height' });
+def('Swipe batches', 'unread', 'un.dotsY', 'Dots up / down', 'num', .03, { min: 0, max: 1, step: .001, unit: 'of height' });
 def('Swipe batches', 'unread', 'un.dotsSize', 'Dot size', 'num', 6, { min: 2, max: 20, step: .5, unit: 'px' });
 def('Swipe batches', 'unread', 'un.dotsGap', 'Space between dots', 'num', 8, { min: 2, max: 40, step: .5, unit: 'px' });
 def('Swipe batches', 'unread', 'un.dotsColor', 'Dot color', 'color', '#FFFFFF');
@@ -132,7 +132,8 @@ def('Figure look', 'unread', 'un.shadow', 'Shadow under feet', 'bool', true);
 def('Figure look', 'unread', 'un.shadowOp', 'Shadow darkness', 'num', .5, { min: 0, max: 1, step: .01 });
 def('Figure look', 'unread', 'un.shadowW', 'Shadow width', 'num', .9, { min: .2, max: 2.5, step: .01, unit: 'of body' });
 def('Figure look', 'unread', 'un.shadowH', 'Shadow depth', 'num', .06, { min: .01, max: .3, step: .005, unit: 'of height' });
-// bubble shape (small by default: the person matters more than the bubble)
+// bubble shape (off by default: just the person and their unread number)
+def('Bubble shape', 'unread.bubble', 'un.b.on', 'Show speech bubbles', 'bool', false, { info: 'Off = no bubbles, just the person with their unread number under them.' });
 def('Bubble shape', 'unread.bubble', 'un.b.style', 'Bubble style', 'select', 'round', { opts: [['oval', 'Comic oval'], ['round', 'Rounded box'], ['cloud', 'Thought cloud'], ['box', 'Square box']] });
 def('Bubble shape', 'unread.bubble', 'un.b.fill', 'Fill color', 'color', '#FFFFFF');
 def('Bubble shape', 'unread.bubble', 'un.b.fillOp', 'Fill opacity', 'num', 1, { min: 0, max: 1, step: .01 });
@@ -169,10 +170,13 @@ def('Bubble text', 'unread.bubble', 'un.f.nameColor', 'Name color', 'color', '#0
 def('Bubble text', 'unread.bubble', 'un.f.nameSize', 'Name size', 'num', 9, { min: 6, max: 30, step: .5, unit: 'px' });
 // badge
 def('Unread badge', 'unread.badge', 'un.u.on', 'Unread count badge', 'bool', true);
-def('Unread badge', 'unread.badge', 'un.u.where', 'Sits on', 'select', 'bubble', { opts: [['bubble', 'Bubble corner'], ['head', 'Above head']] });
+def('Unread badge', 'unread.badge', 'un.u.where', 'Sits', 'select', 'feet', { opts: [['feet', 'Under their feet'], ['head', 'Above their head'], ['bubble', 'On the bubble corner']] });
+def('Unread badge', 'unread.badge', 'un.u.gap', 'Distance from feet / head', 'num', 12, { min: -60, max: 80, step: 1, unit: 'px' });
+def('Unread badge', 'unread.badge', 'un.u.style', 'Look', 'select', 'pill', { opts: [['pill', 'Colored pill'], ['plain', 'Just the number']] });
+def('Unread badge', 'unread.badge', 'un.u.label', 'Word after the number', 'text', '', { info: 'Leave empty for just the number, or type e.g. "new" to show "2 new".' });
 def('Unread badge', 'unread.badge', 'un.u.color', 'Badge color', 'color', '#FF3B30');
 def('Unread badge', 'unread.badge', 'un.u.text', 'Number color', 'color', '#FFFFFF');
-def('Unread badge', 'unread.badge', 'un.u.size', 'Badge size', 'num', 14, { min: 8, max: 44, step: .5, unit: 'px' });
+def('Unread badge', 'unread.badge', 'un.u.size', 'Badge size', 'num', 18, { min: 8, max: 44, step: .5, unit: 'px' });
 // arrival
 def('Arrival', 'unread', 'un.a.style', 'How people appear', 'select', 'rise', { opts: [['fade', 'Fade in'], ['rise', 'Rise in'], ['pop', 'Pop in'], ['beam', 'Build up from the feet'], ['none', 'Already there']] });
 def('Arrival', 'unread', 'un.a.wait', 'Start after page opens', 'int', 2800, { min: 0, max: 8000, step: 10, unit: 'ms', info: 'Default waits for the dial to finish building.' });
@@ -192,7 +196,7 @@ try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '
 /* ---------- batches ---------- */
 const P = () => sc.P;
 const off = document.createElement('canvas'), ox = off.getContext('2d');
-const L = { figs: [], bubs: [] };
+const L = { figs: [], bubs: [], badges: [] };
 function unreadList() { const p = P(), n = clamp(Math.round(p['un.total']), 0, LIST), out = []; for (let j = 0; j < n; j++) if (!READ.has(j)) out.push(j); return out; }
 function spotsOn() { const p = P(), n = clamp(Math.round(p['un.count']), 1, MAX), out = []; for (let i = 0; i < n; i++) if (p['un.p' + i + '.show']) out.push(i); return out; }
 function pageCount() { const sp = spotsOn().length; return sp ? Math.max(1, Math.ceil(unreadList().length / sp)) : 1; }
@@ -324,9 +328,13 @@ function drawBubble(ctx, s, b, ar, count) {
   if (p['un.u.on'] && count > 0 && p['un.u.where'] === 'bubble') badge(ctx, b.cx + b.w / 2 * (b.style === 'oval' ? .72 : .96), b.cy - b.h / 2 * (b.style === 'oval' ? .72 : .96), count, alpha);
 }
 function badge(ctx, x, y, n, alpha) {
-  const p = P(), r = p['un.u.size'] / 2, t = n > 99 ? '99+' : String(n), hw = Math.max(r, r * .55 * t.length + 3);
-  ctx.save(); ctx.globalAlpha *= alpha; ctx.fillStyle = p['un.u.color']; ctx.beginPath(); ctx.roundRect(x - hw, y - r, hw * 2, r * 2, r); ctx.fill();
-  ctx.fillStyle = p['un.u.text']; ctx.font = `700 ${(r * 1.15).toFixed(1)}px Roboto, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + .5); ctx.restore();
+  const p = P(), r = p['un.u.size'] / 2, t = (n > 99 ? '99+' : String(n)) + (p['un.u.label'] ? ' ' + p['un.u.label'] : '');
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.font = `700 ${(r * 1.15).toFixed(1)}px Roboto, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const hw = Math.max(r, ctx.measureText(t).width / 2 + r * .55);
+  if (p['un.u.style'] === 'pill') { ctx.fillStyle = p['un.u.color']; ctx.beginPath(); ctx.roundRect(x - hw, y - r, hw * 2, r * 2, r); ctx.fill(); ctx.fillStyle = p['un.u.text']; }
+  else { ctx.fillStyle = p['un.u.color']; ctx.shadowColor = 'rgba(0,0,0,.85)'; ctx.shadowBlur = 4 * K.scaleOf(ctx); }
+  ctx.fillText(t, x, y + .5); ctx.restore();
+  return { x: x - hw, y: y - r, w: hw * 2, h: r * 2 };
 }
 function drawBatch(ctx, now, page, shiftX, alpha, record, arrived) {
   const p = P(), list = batch(page).map(s => ({ s, g: figGeom(s) })).filter(o => o.g);
@@ -334,14 +342,17 @@ function drawBatch(ctx, now, page, shiftX, alpha, record, arrived) {
   ctx.save(); ctx.translate(shiftX, 0); ctx.globalAlpha *= alpha;
   for (const o of list) { o.ar = arrival(o.s.order, now, arrived); drawFigure(ctx, o.s, o.g, now, o.ar); if (record) L.figs.push({ i: o.s.i, j: o.s.j, x: o.g.X - o.g.w / 2 + shiftX, y: o.g.top, w: o.g.w, h: o.g.H }); }
   for (const o of list) {
-    const b = bubbleLayout(ctx, o.s, o.g), cnt = p[o.s.lq + 'count']; drawBubble(ctx, o.s, b, o.ar, cnt);
-    if (p['un.u.on'] && cnt > 0 && p['un.u.where'] === 'head') badge(ctx, o.g.X, o.g.top - p['un.u.size'], cnt, smooth(o.ar.u));
-    if (record) L.bubs.push({ i: o.s.i, j: o.s.j, x: b.cx - b.w / 2 + shiftX, y: b.cy - b.h / 2, w: b.w, h: b.h });
+    const cnt = p[o.s.lq + 'count'], where = p['un.u.where'];
+    if (p['un.b.on']) { const b = bubbleLayout(ctx, o.s, o.g); drawBubble(ctx, o.s, b, o.ar, where === 'bubble' ? cnt : 0); if (record) L.bubs.push({ i: o.s.i, j: o.s.j, x: b.cx - b.w / 2 + shiftX, y: b.cy - b.h / 2, w: b.w, h: b.h }); }
+    if (p['un.u.on'] && cnt > 0 && (where !== 'bubble' || !p['un.b.on'])) {
+      const r = p['un.u.size'] / 2, y = where === 'head' ? o.g.top - p['un.u.gap'] - r : o.g.Y + p['un.u.gap'] + r;
+      const bb = badge(ctx, o.g.X, y, cnt, smooth(o.ar.u)); if (record) L.badges.push({ i: o.s.i, j: o.s.j, x: bb.x + shiftX, y: bb.y, w: bb.w, h: bb.h });
+    }
   }
   ctx.restore();
 }
 function drawUnread(ctx, now) {
-  const p = P(); L.figs = []; L.bubs = [];
+  const p = P(); L.figs = []; L.bubs = []; L.badges = [];
   if (!p['un.on']) return;
   const n = pageCount(); if (SW.page >= n) SW.page = n - 1; if (SW.page < 0) SW.page = 0;
   if (p['un.a.loop']) { const total = p['un.a.wait'] + spotsOn().length * p['un.a.gap'] + p['un.a.dur'] + 2600; if (now - T0 > total) { T0 = now; SW.page = 0; SW.from = -1; } }
@@ -376,14 +387,15 @@ const hl0 = sc.highlight;
 sc.highlight = function (ctx, base, sub, H1, now) {
   if (!String(base).startsWith('unread')) return hl0.call(this, ctx, base, sub, H1, now);
   const box = r => () => { ctx.beginPath(); ctx.roundRect(r.x - 3, r.y - 3, r.w + 6, r.h + 6, 8); };
-  if (base === 'unread.p') { const f = L.figs.find(q => q.i === +sub), b = L.bubs.find(q => q.i === +sub); if (f) H1(box(f)); if (b) H1(box(b)); return; }
-  if (base === 'unread.bubble' || base === 'unread.badge') { L.bubs.forEach(b => H1(box(b))); return; }
+  if (base === 'unread.p') { [L.figs, L.bubs, L.badges].forEach(a => { const r = a.find(q => q.i === +sub); if (r) H1(box(r)); }); return; }
+  if (base === 'unread.badge') { (L.badges.length ? L.badges : L.bubs).forEach(b => H1(box(b))); return; }
+  if (base === 'unread.bubble') { L.bubs.forEach(b => H1(box(b))); return; }
   L.figs.forEach(f => H1(box(f)));
 };
 const bounds0 = sc.bounds;
 sc.bounds = function (base, sub) {
   if (!String(base).startsWith('unread')) return bounds0.call(this, base, sub);
-  const rs = base === 'unread.p' ? [...L.figs, ...L.bubs].filter(r => r.i === +sub) : base === 'unread' ? L.figs.concat(L.bubs) : L.bubs;
+  const rs = base === 'unread.p' ? [...L.figs, ...L.bubs, ...L.badges].filter(r => r.i === +sub) : base === 'unread' ? L.figs.concat(L.bubs, L.badges) : base === 'unread.badge' ? (L.badges.length ? L.badges.concat(L.figs) : L.bubs) : L.bubs;
   if (!rs.length) return bounds0.call(this, null, null);
   const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y)), x2 = Math.max(...rs.map(r => r.x + r.w)), y2 = Math.max(...rs.map(r => r.y + r.h)), s = Math.max(x2 - x, y2 - y) * 1.15 + 20;
   return { x: (x + x2) / 2 - s / 2, y: (y + y2) / 2 - s / 2, s };
