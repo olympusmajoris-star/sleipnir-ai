@@ -342,6 +342,13 @@ function drawChrome(ctx, g, people) {
   ctx.fillText([P['header.new'], P['header.unread'], P['header.read']][group], side + 48, top + rowH / 2);
 }
 
+/* open the cloud conversation with the tapped person */
+function openConvo(name) {
+  const conv = K.screens.conversation;
+  if (!conv) { K.status('Tapped ' + name + ': the conversation screen is not loaded in this Studio.'); return; }
+  conv.withName = name; K.show('conversation');
+}
+
 /* ---------- module ---------- */
 const sc = K.screen({
   id: 'directory', title: 'Sphere & black holes', docId: 'raven_directory',
@@ -615,8 +622,8 @@ const sc = K.screen({
       const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       if (inR(G.back)) { K.show('dial'); return; }
       if (inR(G.refresh)) { ST.entry = 0; K.status('Refresh: in the app this reloads your conversations.'); return; }
-      for (let i = G.busts.length - 1; i >= 0; i--) if (inR(G.busts[i])) { K.status('Tapped ' + G.busts[i].it.person.name + ': in the app this opens your conversation with them.'); return; }
-      for (const t of G.tabs) if (inR(t)) { K.status('Tapped ' + t.it.person.name + ': in the app this opens your conversation with them.'); return; }
+      for (let i = G.busts.length - 1; i >= 0; i--) if (inR(G.busts[i])) { openConvo(G.busts[i].it.person.name); return; }
+      for (const t of G.tabs) if (inR(t)) { openConvo(t.it.person.name); return; }
     },
     cancel() { ST.dragging = false; ST.down = null; },
   },

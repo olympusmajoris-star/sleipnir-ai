@@ -725,7 +725,7 @@ const sc = K.screen({
     if (pr >= .80) {
       const items = [], nowMs = performance.now();
       if (ST.draft.trim()) items.push({ id: 'cloud-' + ST.draftId, body: ST.draft, mine: true, cap: 'Your message · not sent', draft: true });
-      for (const m of ST.msgs) items.push({ id: 'cloud-' + m.id, body: m.body, mine: m.mine, cap: (m.mine ? 'You' : P['hd.title']) + ' · ' + timeStr(m.at) });
+      for (const m of ST.msgs) items.push({ id: 'cloud-' + m.id, body: m.body, mine: m.mine, cap: (m.mine ? 'You' : (sc.withName || P['hd.title'])) + ' · ' + timeStr(m.at) });
       let y = listBottom;
       for (const it of items) {
         const s = cloudSize(it.body, availW), tile = tileFor(it.id, { w: s.w, h: s.h }), cur = curSize(tile, nowMs);
@@ -751,7 +751,7 @@ const sc = K.screen({
       withReveal(ctx, pr, { x: 0, y: hdTop - 4, w: W, h: 54 }, P['con.hdBegin'], P['con.hdEnd'], P['con.hdLift'], -1, () => {
         const ic = P['hd.icon'];
         const icon = (path, x, s = 24) => { ctx.save(); ctx.translate(x + 12, hdTop + 12); ctx.scale(s / 24, s / 24); ctx.fillStyle = ic; ctx.fill(path); ctx.restore(); };
-        icon(BACK, 6); ctx.font = `${P['hd.weight']} ${P['hd.size']}px Roboto`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,0,0,.87)'; ctx.shadowBlur = K.shadowBlurFor(ctx, P['hd.shadow']); ctx.fillText(P['hd.title'], 6 + 48, hdTop + 24); ctx.shadowBlur = 0;
+        icon(BACK, 6); ctx.font = `${P['hd.weight']} ${P['hd.size']}px Roboto`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,0,0,.87)'; ctx.shadowBlur = K.shadowBlurFor(ctx, P['hd.shadow']); ctx.fillText(sc.withName || P['hd.title'], 6 + 48, hdTop + 24); ctx.shadowBlur = 0;
         icon(ADD, W - 6 - 96 + 2, 21); icon(REFRESH, W - 6 - 48);
       });
       G.header = hdr; G.back = { x: 6, y: hdTop, w: 48, h: 48 };

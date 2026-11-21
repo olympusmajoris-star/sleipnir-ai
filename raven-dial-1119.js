@@ -438,7 +438,7 @@ function snap(m) {
 function doConfirm() {
   if (!ST.ready || ST.turn.on || ST.closing || ST.dis>=0 || G.entering) return;
   vib(15); ST.confirmed = true; ST.chose = P['label' + ST.hi]; ST.closing=true; ST.disStay=false; ST.navStarted=false;
-  ST.nextPage=['conversation','directory','calls','groups'][ST.hi];
+  ST.nextPage=['directory','directory','calls','groups'][ST.hi];
   if(P['dis.on'])ST.dis=0;else finishExit();
 }
 function finishExit() {

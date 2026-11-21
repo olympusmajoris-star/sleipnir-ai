@@ -50,7 +50,7 @@ test('Arrivals and idle time do not dismiss; only a valid middle confirmation st
  d.pointer.down(middle,e);d.pointer.up({x:middle.x+25,y:middle.y},e);assert.equal(d.ST.dis,-1);
  d.pointer.down(middle,e);d.pointer.up(middle,e);assert.equal(d.ST.dis,0);assert.deepEqual(h.pages,[]);
  d.pointer.down(rim,e);assert.equal(d.ST.active,null);
- h.tick(7500);assert.deepEqual(h.pages,[]);h.tick(8300);assert.deepEqual(h.pages,['conversation']);h.tick(9000);assert.deepEqual(h.pages,['conversation']);
+ h.tick(7500);assert.deepEqual(h.pages,[]);h.tick(8300);assert.deepEqual(h.pages,['directory']);h.tick(9000);assert.deepEqual(h.pages,['directory']);
 });
 test('Turning selects and settles without navigating; entrance blocks premature taps',()=>{
  const h=harness();h.dial.P['glass.refract']=0;h.tick(500);let m=h.dial.metrics();const e={pointerId:3};
