@@ -13,7 +13,7 @@ const { TAU, D2R, clamp, ease, smooth, rgb, rgba, mix, hsv, WHITE, scaleOf, blur
 let P = {};
 
 /* ---------- test people (the studio's fake test accounts) ---------- */
-const DEMO = [['Freya', 'That looks amazing', 1], ['Test Woman', 'I sent you the photo', 1], ['Loki', 'See you tonight?', 0], ['Hel', "I'll be there at six", 1], ['Tyr', 'Training at dawn', 0], ['Sif', 'Hair appointment moved', 0], ['Saga', 'Story time later', 1], ['Eir', 'Feeling better!', 0], ['Skadi', 'Snow trip this weekend?', 0], ['Njord', 'Boat is ready', 0], ['Bragi', 'New song drop', 1], ['Ullr', 'Archery Sunday', 0], ['Vidar', 'On my way', 0], ['Forseti', 'Settled it', 0], ['Gerd', 'Garden looks great', 0]];
+const DEMO = [['Test Woman', 'I sent you the photo', 1], ['Freya', 'That looks amazing', 1], ['Loki', 'See you tonight?', 0], ['Hel', "I'll be there at six", 1], ['Tyr', 'Training at dawn', 0], ['Sif', 'Hair appointment moved', 0], ['Saga', 'Story time later', 1], ['Eir', 'Feeling better!', 0], ['Skadi', 'Snow trip this weekend?', 0], ['Njord', 'Boat is ready', 0], ['Bragi', 'New song drop', 1], ['Ullr', 'Archery Sunday', 0], ['Vidar', 'On my way', 0], ['Forseti', 'Settled it', 0], ['Gerd', 'Garden looks great', 0]];
 const PEOPLE = DEMO.map(([name, msg, unread], i) => { const img = new Image(); img.src = 'busts/' + name.replace(/ /g, '') + '.webp'; return { name, msg, group: i === 0 ? 0 : unread ? 1 : 2, img, frames: 11, minAngle: -25, angleStep: 5 }; });
 const NAME_STYLES = [[0, 'Regular'], [1, 'Bold'], [2, 'Italic'], [3, 'Bold italic']];
 

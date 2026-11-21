@@ -61,7 +61,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEMO_CONTACTS = [
-  ['Freya','That looks amazing',1], ['Test Woman','I sent you the photo',1], ['Loki','See you tonight?',0], ['Hel',"I'll be there at six",1],
+  ['Test Woman','I sent you the photo',1], ['Freya','That looks amazing',1], ['Loki','See you tonight?',0], ['Hel',"I'll be there at six",1],
   ['Tyr','Training at dawn',0], ['Sif','Hair appointment moved',0], ['Saga','Story time later',1], ['Eir','Feeling better!',0],
   ['Skadi','Snow trip this weekend?',0], ['Njord','Boat is ready',0], ['Bragi','New song drop',1], ['Ullr','Archery Sunday',0],
   ['Vidar','On my way',0], ['Forseti','Settled it',0], ['Gerd','Garden looks great',0],

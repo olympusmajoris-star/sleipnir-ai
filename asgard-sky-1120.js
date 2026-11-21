@@ -556,8 +556,8 @@ function startFlight(o, top = G.top ?? P['strip.orbTop']) {
    _AsFigurePainter / _AsBeamPainter / _AsBustPainter / _AsTvLinePainter) ---------- */
 ['6515e1f4-8d26-44c4-80d9-3a8ce2d1472c', '8a626efb-7ea8-42be-aaa7-343db8cf1b4f', '2c8538fd-10ba-4ce2-a8f7-a4236c52d350', '21ceb19f-9065-45b1-8a7c-76ddf1e26da0', 'eb0b6a18-37a2-4ec0-8b68-69fbfc64cb39', '5820cd29-8784-4f18-8f76-e3d5e6851f85'].forEach((id, i) => { POSTS[i].id = id; });
 // Danny's favs (asgard_my_favs, oldest first) and their real figures from the figures bucket. Only Freya allows 360.
-const FAVS = [['02', 'test_freya', 'Freya', 9, 'freya', true, null], ['03', 'test_loki', 'Loki', 16, 'loki', false, 6], ['04', 'test_sif', 'Sif', 20, 'sif', false, 18], ['05', 'test_tyr', 'Tyr', 32, 'tyr', true, null], ['18', 'test_woman360', 'Test Woman', 'faces/TestWoman.jpg', 'testwoman', false, null], ['07', 'test_hel', 'Hel', 49, 'hel', false, 9]]
-  .map(([n, handle, name, av, key, hasSpin, avFrame]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + n, handle, name, avUrl: String(av).includes('/') ? av : 'https://i.pravatar.cc/300?img=' + av, key, hasSpin, allow360: key === 'freya', avFrame, spin: null, prof: null, avatar: null }));
+const FAVS = [['02', 'test_freya', 'Freya', 9, 'freya', true, null], ['03', 'test_loki', 'Loki', 16, 'loki', false, 6], ['04', 'test_sif', 'Sif', 20, 'sif', false, 18], ['05', 'test_tyr', 'Tyr', 32, 'tyr', true, null], ['18', 'test_woman360', 'Test Woman', 'faces/TestWoman.jpg', 'testwoman', true, null], ['07', 'test_hel', 'Hel', 49, 'hel', false, 9]]
+  .map(([n, handle, name, av, key, hasSpin, avFrame]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + n, handle, name, avUrl: String(av).includes('/') ? av : 'https://i.pravatar.cc/300?img=' + av, key, hasSpin, allow360: key === 'freya' || key === 'testwoman', avFrame, spin: null, prof: null, avatar: null }));
 // asgard_share_targets for Danny (people he follows or who follow him), sorted by name
 const TARGETS = [['06', 'test_baldr', 'Baldr', 47, true], ['02', 'test_freya', 'Freya', 9, true], ['07', 'test_hel', 'Hel', 49, true], ['08', 'test_idun', 'Idun', 64, false], ['03', 'test_loki', 'Loki', 16, true], ['04', 'test_sif', 'Sif', 20, true], ['01', 'test_thor', 'Thor', 5, false], ['05', 'test_tyr', 'Tyr', 32, true]]
   .map(([n, handle, name, av, fav]) => ({ id: 'aaaaaaaa-0000-4000-8000-0000000000' + n, handle, name, avUrl: 'https://i.pravatar.cc/300?img=' + av, fav, avatar: null }));
@@ -617,7 +617,7 @@ function figU(i, n, el, seed) {
 }
 function figModes(figs, seed) {
   const n = figs.length, rng = new DartRandom(asHash('modes' + seed)), modes = new Array(n).fill(1), order = dartShuffle(Array.from({ length: n }, (_, i) => i), rng);
-  const pref = i => /freya|tyr/.test(figs[i].handle.toLowerCase()); order.sort((a, b) => (pref(b) ? 1 : 0) - (pref(a) ? 1 : 0));
+  const pref = i => /woman360|freya|tyr/.test(figs[i].handle.toLowerCase()); order.sort((a, b) => (pref(b) ? 1 : 0) - (pref(a) ? 1 : 0));
   let spins = n >= 3 ? Math.round(P['sh.spins']) : 0; for (const i of order) { if (spins <= 0) break; const art = figArtOf(figs[i]); if (art && art.kind === 'spin') { modes[i] = 2; spins--; } }
   if (n >= 4 && P['sh.still']) { const rest = order.filter(i => modes[i] === 1); if (rest.length) modes[rest[rng.nextInt(rest.length)]] = 0; }
   return modes;
@@ -811,7 +811,7 @@ function drawShare(ctx, now) {
   S.floor = { M, plane, hz }; S.orbTop = P['strip.orbTop']; S.skyH = skyH; S.nearY = nearY;
   drawFloor(x, S.snap, plane, q, M); drawHorizon(x, hz, q, W);
   const snapA = 1 - smooth(el / P['sh.snapFade']); if (snapA > .002) { x.save(); x.globalAlpha = clamp(snapA, 0, 1); x.drawImage(S.snap, 0, 0, W, H); x.restore(); }
-  const n = figs.length, slots = figSlots(n, seed, W, Math.max(hz, horizonY), nearY), modes = figModes(figs, seed), order = slots.map((_, i) => i).sort((a, b) => slots[a][1] - slots[b][1]), beams = []; S.figBoxes = []; S.geoms = []; S.figScenes = [];
+  const n = figs.length, slots = figSlots(n, seed, W, Math.max(hz, horizonY), nearY); { const me = figs.findIndex(q => q.handle === 'test_woman360'); if (me >= 0) { let fr = 0; slots.forEach((s, j) => { if (s[1] > slots[fr][1]) fr = j; }); const sw = slots[me][1]; slots[me][1] = slots[fr][1]; slots[fr][1] = sw; } } const modes = figModes(figs, seed), order = slots.map((_, i) => i).sort((a, b) => slots[a][1] - slots[b][1]), beams = []; S.figBoxes = []; S.geoms = []; S.figScenes = [];
   for (const i of order) { const g = figGeom(slots[i], horizonY, nearY, W), u = figU(i, n, el, seed); beams.push([g.x + g.w / 2, g.y + g.h, u, g.w * .5]); S.geoms.push(g); S.figScenes.push({ f: figs[i], g, i, u, flick, mode: modes[i], secs, seed }); if (u > 0) drawFigure(x, figs[i], g, i, u, flick, modes[i], secs, seed); }
   S.beams = beams; drawBeams(x, beams);
   if (S.pick.length && S.deck === 0) { x.save(); x.globalAlpha = .55 + .45 * Math.abs(Math.sin(secs * 3)); x.font = '700 12.5px Roboto'; x.fillStyle = P['sh.hintColor']; x.textBaseline = 'top'; x.shadowColor = '#000'; x.shadowBlur = K.shadowBlurFor(x, 6); centerSpaced(x, P['sh.hint'] + '  ›  ' + S.pick.length + ' picked', W / 2, sheetTop - 22, 1.2); x.restore(); }
