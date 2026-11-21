@@ -102,6 +102,10 @@ def('Carousel', 'unread', 'un.c.friction', 'Slows down by', 'num', .93, { min: .
 def('Carousel', 'unread', 'un.c.snap', 'Stops with someone in the middle', 'bool', true);
 def('Carousel', 'unread', 'un.c.auto', 'Drifts on its own', 'num', 0, { min: -200, max: 200, step: 1, unit: 'px/s', info: '0 = still until you swipe.' });
 def('People', 'unread', 'un.count', 'People per batch', 'int', 4, { min: 1, max: MAX, step: 1, info: 'How many stand above the dial at once. Swipe left or right for the next batch. Each one stands on a Spot.' });
+def('People', 'unread', 'un.same', 'Everyone the same height', 'bool', false, { info: 'On = every person uses the one height below instead of each Spot\'s own Height.' });
+def('People', 'unread', 'un.sameH', 'Height for everyone', 'num', 150, { min: 30, max: 700, step: 1, unit: 'px' });
+def('People', 'unread', 'un.sameFeet', 'Everyone\'s feet on one line', 'bool', false, { info: 'On = all feet line up at the height below, instead of each Spot\'s own Feet up / down.' });
+def('People', 'unread', 'un.sameY', 'Feet line up / down', 'num', .27, { min: 0, max: 1, step: .001, unit: 'of height' });
 def('People', 'unread', 'un.scaleAll', 'Size of everyone', 'num', 1.15, { min: .3, max: 3, step: .01, unit: '×' });
 def('People', 'unread', 'un.lock', 'Lock positions', 'bool', false, { info: 'On = dragging on a person swipes batches instead of moving their spot.' });
 def('People', 'unread', 'un.snap', 'Snap to grid', 'int', 0, { min: 0, max: 40, step: 1, unit: 'px', info: '0 = no snapping. Any other value snaps feet and bubbles to that grid while you drag.' });
@@ -262,8 +266,8 @@ function nextBatch() { if (!turnPage(1) && pageCount() > 1) { SW.from = SW.page;
 /* ---------- draw ---------- */
 function figGeom(s) {
   const p = P(), a = art(s.who.id), box = a.box; if (!box) return null;
-  const H = (s.ov ? s.ov.H : p[s.q + 'h']) * p['un.scaleAll'], k = H / Math.max(1, box.b - box.t);
-  const X = s.ov ? s.ov.X : p[s.q + 'x'] * K.W, Y = s.ov ? s.ov.Y : p[s.q + 'y'] * K.H, w = (box.r - box.l) * k;
+  const H = (s.ov ? s.ov.H : p['un.same'] ? p['un.sameH'] : p[s.q + 'h']) * p['un.scaleAll'], k = H / Math.max(1, box.b - box.t);
+  const X = s.ov ? s.ov.X : p[s.q + 'x'] * K.W, Y = s.ov ? s.ov.Y : (p['un.sameFeet'] ? p['un.sameY'] : p[s.q + 'y']) * K.H, w = (box.r - box.l) * k;
   return { X, Y, H, k, w, top: Y - H, box, a };
 }
 function arrival(order, now, arrived) {
