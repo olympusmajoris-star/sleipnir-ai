@@ -118,6 +118,10 @@ for (let i = 0; i < MAX; i++) {
   def(S, t, p + 'bx', 'Bubble left / right', 'num', bx0, { min: -300, max: 300, step: 1, unit: 'px', info: 'Or drag the bubble on the phone.' });
   def(S, t, p + 'by', 'Bubble up / down', 'num', by0, { min: -400, max: 400, step: 1, unit: 'px' });
   def(S, t, p + 'bScale', 'Bubble size', 'num', 1, { min: .4, max: 2.5, step: .01, unit: '×' });
+  def(S, t, p + 'ux', 'Number left / right', 'num', 0, { min: -200, max: 200, step: 1, unit: 'px', info: 'Or drag the number on the phone.' });
+  def(S, t, p + 'uy', 'Number up / down', 'num', 0, { min: -300, max: 300, step: 1, unit: 'px' });
+  def(S, t, p + 'nx', 'Name left / right', 'num', 0, { min: -200, max: 200, step: 1, unit: 'px', info: 'Or drag the name on the phone.' });
+  def(S, t, p + 'ny', 'Name up / down', 'num', 0, { min: -300, max: 300, step: 1, unit: 'px' });
 }
 // figure look
 def('Figure look', 'unread', 'un.bright', 'Brightness', 'num', 1, { min: .3, max: 2, step: .01, unit: '×' });
@@ -177,6 +181,21 @@ def('Unread badge', 'unread.badge', 'un.u.label', 'Word after the number', 'text
 def('Unread badge', 'unread.badge', 'un.u.color', 'Badge color', 'color', '#FF3B30');
 def('Unread badge', 'unread.badge', 'un.u.text', 'Number color', 'color', '#FFFFFF');
 def('Unread badge', 'unread.badge', 'un.u.size', 'Badge size', 'num', 18, { min: 8, max: 44, step: .5, unit: 'px' });
+// name label (no bubble needed)
+def('Name label', 'unread.name', 'un.n.on', 'Show their name', 'bool', false, { info: 'Their name on its own, no bubble. Drag it on the phone to move it.' });
+def('Name label', 'unread.name', 'un.n.where', 'Sits', 'select', 'feet', { opts: [['feet', 'Under their feet'], ['head', 'Above their head']] });
+def('Name label', 'unread.name', 'un.n.gap', 'Distance from feet / head', 'num', 32, { min: -80, max: 120, step: 1, unit: 'px', info: 'Under the feet this sits below the unread number by default.' });
+def('Name label', 'unread.name', 'un.n.font', 'Font', 'select', 'Roboto', { opts: [['Roboto', 'Roboto (app font)'], ['Comic Neue', 'Comic Neue'], ['Bangers', 'Bangers (comic caps)'], ['Patrick Hand', 'Patrick Hand (handwritten)'], ['Cinzel', 'Cinzel (Norse / carved)']] });
+def('Name label', 'unread.name', 'un.n.size', 'Size', 'num', 12, { min: 6, max: 40, step: .5, unit: 'px' });
+def('Name label', 'unread.name', 'un.n.weight', 'Weight', 'select', '500', { opts: [['400', 'Regular'], ['500', 'Medium'], ['700', 'Bold']] });
+def('Name label', 'unread.name', 'un.n.color', 'Color', 'color', '#FFFFFF');
+def('Name label', 'unread.name', 'un.n.caps', 'ALL CAPS', 'bool', false);
+def('Name label', 'unread.name', 'un.n.spacing', 'Letter spacing', 'num', 0, { min: -2, max: 10, step: .1, unit: 'px' });
+def('Name label', 'unread.name', 'un.n.shadow', 'Shadow behind letters', 'num', .85, { min: 0, max: 1, step: .01 });
+def('Name label', 'unread.name', 'un.n.bg', 'Background pill', 'bool', false);
+def('Name label', 'unread.name', 'un.n.bgColor', 'Pill color', 'color', '#000000');
+def('Name label', 'unread.name', 'un.n.bgOp', 'Pill opacity', 'num', .5, { min: 0, max: 1, step: .01 });
+def('Name label', 'unread.name', 'un.n.first', 'First name only', 'bool', true);
 // arrival
 def('Arrival', 'unread', 'un.a.style', 'How people appear', 'select', 'rise', { opts: [['fade', 'Fade in'], ['rise', 'Rise in'], ['pop', 'Pop in'], ['beam', 'Build up from the feet'], ['none', 'Already there']] });
 def('Arrival', 'unread', 'un.a.wait', 'Start after page opens', 'int', 2800, { min: 0, max: 8000, step: 10, unit: 'ms', info: 'Default waits for the dial to finish building.' });
@@ -191,12 +210,12 @@ ADD.forEach(s => { sc.DEF[s.k] = s.def; sc.P[s.k] = s.def; });
 sc.ui.group = G0; sc.ui.section = 'People';
 
 /* ---------- fonts ---------- */
-try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&family=Patrick+Hand&display=swap'; document.head.appendChild(l); } catch (e) {}
+try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Bangers&family=Cinzel:wght@500;700&family=Comic+Neue:wght@400;700&family=Patrick+Hand&display=swap'; document.head.appendChild(l); } catch (e) {}
 
 /* ---------- batches ---------- */
 const P = () => sc.P;
 const off = document.createElement('canvas'), ox = off.getContext('2d');
-const L = { figs: [], bubs: [], badges: [] };
+const L = { figs: [], bubs: [], badges: [], names: [] };
 function unreadList() { const p = P(), n = clamp(Math.round(p['un.total']), 0, LIST), out = []; for (let j = 0; j < n; j++) if (!READ.has(j)) out.push(j); return out; }
 function spotsOn() { const p = P(), n = clamp(Math.round(p['un.count']), 1, MAX), out = []; for (let i = 0; i < n; i++) if (p['un.p' + i + '.show']) out.push(i); return out; }
 function pageCount() { const sp = spotsOn().length; return sp ? Math.max(1, Math.ceil(unreadList().length / sp)) : 1; }
@@ -336,6 +355,17 @@ function badge(ctx, x, y, n, alpha) {
   ctx.fillText(t, x, y + .5); ctx.restore();
   return { x: x - hw, y: y - r, w: hw * 2, h: r * 2 };
 }
+function nameLabel(ctx, s, g, alpha) {
+  const p = P(); let t = s.who.name; if (p['un.n.first']) t = t.split(' ')[0]; if (p['un.n.caps']) t = t.toUpperCase();
+  const fs = p['un.n.size'], x = g.X + p[s.q + 'nx'], y = (p['un.n.where'] === 'head' ? g.top - p['un.n.gap'] - fs / 2 : g.Y + p['un.n.gap'] + fs / 2) + p[s.q + 'ny'];
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.font = `${p['un.n.weight']} ${fs}px "${p['un.n.font']}", Roboto, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  try { ctx.letterSpacing = p['un.n.spacing'] + 'px'; } catch (e) {}
+  const w = ctx.measureText(t).width, padX = fs * .55, padY = fs * .3, box = { x: x - w / 2 - padX, y: y - fs / 2 - padY, w: w + padX * 2, h: fs + padY * 2 };
+  if (p['un.n.bg']) { ctx.fillStyle = rgba(p['un.n.bgColor'], p['un.n.bgOp']); ctx.beginPath(); ctx.roundRect(box.x, box.y, box.w, box.h, box.h / 2); ctx.fill(); }
+  if (p['un.n.shadow'] > 0) { ctx.shadowColor = `rgba(0,0,0,${p['un.n.shadow']})`; ctx.shadowBlur = 4 * K.scaleOf(ctx); }
+  ctx.fillStyle = p['un.n.color']; ctx.fillText(t, x, y + .5); ctx.restore();
+  return box;
+}
 function drawBatch(ctx, now, page, shiftX, alpha, record, arrived) {
   const p = P(), list = batch(page).map(s => ({ s, g: figGeom(s) })).filter(o => o.g);
   list.sort((a, b) => (a.s.layer - b.s.layer) || (a.g.Y - b.g.Y));
@@ -345,14 +375,15 @@ function drawBatch(ctx, now, page, shiftX, alpha, record, arrived) {
     const cnt = p[o.s.lq + 'count'], where = p['un.u.where'];
     if (p['un.b.on']) { const b = bubbleLayout(ctx, o.s, o.g); drawBubble(ctx, o.s, b, o.ar, where === 'bubble' ? cnt : 0); if (record) L.bubs.push({ i: o.s.i, j: o.s.j, x: b.cx - b.w / 2 + shiftX, y: b.cy - b.h / 2, w: b.w, h: b.h }); }
     if (p['un.u.on'] && cnt > 0 && (where !== 'bubble' || !p['un.b.on'])) {
-      const r = p['un.u.size'] / 2, y = where === 'head' ? o.g.top - p['un.u.gap'] - r : o.g.Y + p['un.u.gap'] + r;
-      const bb = badge(ctx, o.g.X, y, cnt, smooth(o.ar.u)); if (record) L.badges.push({ i: o.s.i, j: o.s.j, x: bb.x + shiftX, y: bb.y, w: bb.w, h: bb.h });
+      const r = p['un.u.size'] / 2, y = (where === 'head' ? o.g.top - p['un.u.gap'] - r : o.g.Y + p['un.u.gap'] + r) + p[o.s.q + 'uy'];
+      const bb = badge(ctx, o.g.X + p[o.s.q + 'ux'], y, cnt, smooth(o.ar.u)); if (record) L.badges.push({ i: o.s.i, j: o.s.j, x: bb.x + shiftX, y: bb.y, w: bb.w, h: bb.h });
     }
+    if (p['un.n.on']) { const nb = nameLabel(ctx, o.s, o.g, smooth(o.ar.u)); if (nb && record) L.names.push({ i: o.s.i, j: o.s.j, x: nb.x + shiftX, y: nb.y, w: nb.w, h: nb.h }); }
   }
   ctx.restore();
 }
 function drawUnread(ctx, now) {
-  const p = P(); L.figs = []; L.bubs = []; L.badges = [];
+  const p = P(); L.figs = []; L.bubs = []; L.badges = []; L.names = [];
   if (!p['un.on']) return;
   const n = pageCount(); if (SW.page >= n) SW.page = n - 1; if (SW.page < 0) SW.page = 0;
   if (p['un.a.loop']) { const total = p['un.a.wait'] + spotsOn().length * p['un.a.gap'] + p['un.a.dur'] + 2600; if (now - T0 > total) { T0 = now; SW.page = 0; SW.from = -1; } }
@@ -378,7 +409,7 @@ sc.draw = function (ctx, now, studio) {
 const inside = (p, r, pad = 0) => p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad;
 function hit(p) {
   if (!P()['un.on']) return null;
-  for (let k = L.bubs.length - 1; k >= 0; k--) if (inside(p, L.bubs[k], 2)) return { kind: 'bubble', i: L.bubs[k].i, j: L.bubs[k].j };
+  for (const [arr, kind] of [[L.badges, 'badge'], [L.names, 'name'], [L.bubs, 'bubble']]) for (let k = arr.length - 1; k >= 0; k--) if (inside(p, arr[k], 3)) return { kind, i: arr[k].i, j: arr[k].j };
   for (let k = L.figs.length - 1; k >= 0; k--) { const f = L.figs[k]; if (inside(p, { x: f.x + f.w * .1, y: f.y, w: f.w * .8, h: f.h }, 2)) return { kind: 'fig', i: f.i, j: f.j }; }
   return null;
 }
@@ -387,21 +418,22 @@ const hl0 = sc.highlight;
 sc.highlight = function (ctx, base, sub, H1, now) {
   if (!String(base).startsWith('unread')) return hl0.call(this, ctx, base, sub, H1, now);
   const box = r => () => { ctx.beginPath(); ctx.roundRect(r.x - 3, r.y - 3, r.w + 6, r.h + 6, 8); };
-  if (base === 'unread.p') { [L.figs, L.bubs, L.badges].forEach(a => { const r = a.find(q => q.i === +sub); if (r) H1(box(r)); }); return; }
+  if (base === 'unread.p') { [L.figs, L.bubs, L.badges, L.names].forEach(a => { const r = a.find(q => q.i === +sub); if (r) H1(box(r)); }); return; }
   if (base === 'unread.badge') { (L.badges.length ? L.badges : L.bubs).forEach(b => H1(box(b))); return; }
+  if (base === 'unread.name') { L.names.forEach(b => H1(box(b))); return; }
   if (base === 'unread.bubble') { L.bubs.forEach(b => H1(box(b))); return; }
   L.figs.forEach(f => H1(box(f)));
 };
 const bounds0 = sc.bounds;
 sc.bounds = function (base, sub) {
   if (!String(base).startsWith('unread')) return bounds0.call(this, base, sub);
-  const rs = base === 'unread.p' ? [...L.figs, ...L.bubs, ...L.badges].filter(r => r.i === +sub) : base === 'unread' ? L.figs.concat(L.bubs, L.badges) : base === 'unread.badge' ? (L.badges.length ? L.badges.concat(L.figs) : L.bubs) : L.bubs;
+  const rs = base === 'unread.p' ? [...L.figs, ...L.bubs, ...L.badges, ...L.names].filter(r => r.i === +sub) : base === 'unread' ? L.figs.concat(L.bubs, L.badges, L.names) : base === 'unread.badge' ? (L.badges.length ? L.badges.concat(L.figs) : L.bubs) : base === 'unread.name' ? L.names.concat(L.figs) : L.bubs;
   if (!rs.length) return bounds0.call(this, null, null);
   const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y)), x2 = Math.max(...rs.map(r => r.x + r.w)), y2 = Math.max(...rs.map(r => r.y + r.h)), s = Math.max(x2 - x, y2 - y) * 1.15 + 20;
   return { x: (x + x2) / 2 - s / 2, y: (y + y2) / 2 - s / 2, s };
 };
 const pick0 = sc.pick;
-sc.pick = function (p) { const h = hit(p); if (h) return [G0, h.kind === 'bubble' ? 'Bubble shape' : 'Spot ' + (h.i + 1)]; return pick0.call(this, p); };
+sc.pick = function (p) { const h = hit(p); if (h) return [G0, { bubble: 'Bubble shape', badge: 'Unread badge', name: 'Name label' }[h.kind] || 'Spot ' + (h.i + 1)]; return pick0.call(this, p); };
 
 function openConversation(j) {
   const who = BY_ID[P()['un.p' + j + '.who']], conv = K.screens.conversation;
@@ -416,8 +448,8 @@ sc.pointer = {
     const h = hit(p), P0 = P(), edit = !K.viewOnly && !P0['un.lock'];
     if (h && edit) {
       const q = 'un.p' + h.i + '.';
-      drag = { h, q, sx: p.x, sy: p.y, moved: false, x0: P0[q + 'x'], y0: P0[q + 'y'], bx0: P0[q + 'bx'], by0: P0[q + 'by'] };
-      K.openSection(G0, 'Spot ' + (h.i + 1)); return;
+      drag = { h, q, sx: p.x, sy: p.y, moved: false, x0: P0[q + 'x'], y0: P0[q + 'y'], bx0: P0[q + 'bx'], by0: P0[q + 'by'], ux0: P0[q + 'ux'], uy0: P0[q + 'uy'], nx0: P0[q + 'nx'], ny0: P0[q + 'ny'] };
+      K.openSection(G0, h.kind === 'name' ? 'Name label' : h.kind === 'badge' ? 'Unread badge' : 'Spot ' + (h.i + 1)); return;
     }
     if (P0['un.on'] && (h || p.y < band())) { swipe = { h, sx: p.x, sy: p.y, moved: false }; SW.dx = 0; return; }
     return ptr0.down(p, e);
@@ -426,6 +458,8 @@ sc.pointer = {
     if (drag) {
       const dx = p.x - drag.sx, dy = p.y - drag.sy; if (Math.hypot(dx, dy) > 4) drag.moved = true; if (!drag.moved) return;
       if (drag.h.kind === 'fig') { K.setVal(drag.q + 'x', +(snap(drag.x0 * K.W + dx) / K.W).toFixed(4)); K.setVal(drag.q + 'y', +(snap(drag.y0 * K.H + dy) / K.H).toFixed(4)); }
+      else if (drag.h.kind === 'badge') { K.setVal(drag.q + 'ux', Math.round(snap(drag.ux0 + dx))); K.setVal(drag.q + 'uy', Math.round(snap(drag.uy0 + dy))); }
+      else if (drag.h.kind === 'name') { K.setVal(drag.q + 'nx', Math.round(snap(drag.nx0 + dx))); K.setVal(drag.q + 'ny', Math.round(snap(drag.ny0 + dy))); }
       else { K.setVal(drag.q + 'bx', Math.round(snap(drag.bx0 + dx))); K.setVal(drag.q + 'by', Math.round(snap(drag.by0 + dy))); }
       return;
     }
