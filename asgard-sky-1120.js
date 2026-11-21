@@ -365,6 +365,95 @@ const WORM = (() => { const r = new DartRandom(5521), neb = []; for (let i = 0; 
   const sp = new DartRandom(777), dust = []; for (let i = 0; i < 240; i++) dust.push([sp.nextDouble() * TAU, 1.4 + sp.nextDouble() * 3, sp.nextDouble(), sp.nextDouble() < .14]);
   const st = new DartRandom(31), streaks = []; for (let i = 0; i < 60; i++) streaks.push([st.nextDouble() * TAU, 1.6 + st.nextDouble() * 2.4, st.nextDouble()]);
   return { neb, dust, streaks }; })();
+// Reuse the studio's textured gas. The favourite artwork remains image sequences,
+// independently placed in depth; these are not a substitute for future 3D meshes.
+const FLIGHT_GAS = ['gas_amber', 'gas_teal', 'dust_lanes'].map(n => img('gas/' + n + '.webp'));
+function holeAt(p, orbs, top) {
+  return orbs.slice().reverse().find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6);
+}
+function prepareGroundFlight(F, S) {
+  const W = K.W, H = K.H, f = W * 1.05, eye = 1.65, hz = S.floor.hz;
+  const sky = document.createElement('canvas'); sky.width = Math.ceil(W * 2); sky.height = Math.ceil(H * 2);
+  const x = sky.getContext('2d'); x.scale(2, 2); x.fillStyle = P['sh.bg']; x.fillRect(0, 0, W, H);
+  x.save(); x.beginPath(); x.rect(0, 0, W, S.skyH); x.clip(); drawScene(x, W, S.skyH, 'share', hz); x.restore();
+  const floor = document.createElement('canvas'), fw = Math.ceil(S.floor.plane.w * 2.5), fh = Math.ceil(S.floor.plane.h * 2.5);
+  floor.width = fw; floor.height = fh; floor.getContext('2d').drawImage(FLOOR, 0, 0, fw, fh, 0, 0, fw, fh);
+  const figures = [], boxes = S.figBoxes;
+  S.figBoxes = [];
+  for (const item of S.figScenes || []) {
+    if (item.u <= 0) continue;
+    const g = item.g, pad = 24, c = document.createElement('canvas');
+    c.width = Math.ceil((g.w + pad * 2) * 2); c.height = Math.ceil((g.h * 1.14 + pad * 2 + 16) * 2);
+    const cx = c.getContext('2d'); cx.scale(2, 2); cx.translate(pad - g.x, pad - g.y);
+    drawFigure(cx, item.f, g, item.i, item.u, item.flick, item.mode, item.secs, item.seed);
+    const feet = g.y + g.h, z = f * eye / Math.max(8, feet - hz);
+    figures.push({ image: c, g: { ...g }, pad, z, worldX: (g.x + g.w / 2 - W / 2) * z / f });
+  }
+  S.figBoxes = boxes;
+  const far = Math.max(4, ...figures.map(a => a.z));
+  F.ground = { sky, floor, figures, hz, f, eye, far, plane: { ...S.floor.plane }, M: { ...S.floor.M } };
+  F.ms = P['fl.duration'] * 1000 * P['fl.speed'];
+  F.flyEnd = .74; F.tunnelEnd = .91;
+}
+function groundCam(F, q, W, H) {
+  const G = F.ground, pass = smooth(q / .64), rise = smooth((q - .30) / .38), dive = smooth((q - .53) / .47);
+  const side = Math.sign(F.target[0] - W / 2) || 1;
+  return {
+    z: G.far * 1.08 * pass * P['fl.pass'],
+    x: side * Math.sin(pass * Math.PI) * .42 * P['fl.weave'],
+    eye: G.eye - .22 * Math.sin(pass * Math.PI) + rise * P['fl.rise'],
+    c: [W / 2 + (F.target[0] - W / 2) * dive, H / 2 + H * .10 * Math.sin(pass * Math.PI) * (1 - dive) + (F.target[1] - H / 2) * dive],
+    s: Math.exp(Math.log(Math.max(8, Math.hypot(W, H) * 1.8 / F.holeD)) * Math.pow(dive, 1.3)),
+    bank: -side * Math.sin(q * Math.PI) * .045 * P['fl.bank'],
+    entry: smooth((q - .38) / .26)
+  };
+}
+function groundPoint(G, cam, W, px, py) {
+  const z = G.f * G.eye / Math.max(.05, py - G.hz), dz = z - cam.z;
+  if (dz <= .18) return null;
+  const X = (px - W / 2) * z / G.f;
+  return [W / 2 + G.f * (X - cam.x) / dz, G.hz + G.f * cam.eye / dz];
+}
+function groundFlightWorld(ctx, F, cam, W, H, alpha = 1) {
+  const G = F.ground;
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(W / 2, H / 2); ctx.rotate(cam.bank);
+  ctx.scale(cam.s, cam.s); ctx.translate(-cam.c[0], -cam.c[1]);
+  ctx.drawImage(G.sky, 0, 0, W, H);
+  if (cam.entry > 0) {
+    ctx.save(); ctx.globalAlpha *= cam.entry; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(F.target[0], F.target[1], F.holeD * .495, 0, TAU); ctx.fill();
+    if (F.orb.live) drawHole(ctx, F.orb, F.top); ctx.restore();
+  }
+  const pl = G.plane, N = 400;
+  for (let i = 0; i < N; i++) {
+    const y0 = pl.y + pl.h * i / N, y1 = pl.y + pl.h * (i + 1) / N;
+    const a0 = fx(G.M, pl.x, y0), b0 = fx(G.M, pl.x + pl.w, y0), a1 = fx(G.M, pl.x, y1), b1 = fx(G.M, pl.x + pl.w, y1);
+    const a = groundPoint(G, cam, W, ...a0), b = groundPoint(G, cam, W, ...b0), c = groundPoint(G, cam, W, ...a1), d = groundPoint(G, cam, W, ...b1);
+    if (!a || !b || !c || !d || c[1] <= a[1]) continue;
+    const left = (a[0] + c[0]) / 2, right = (b[0] + d[0]) / 2;
+    ctx.drawImage(G.floor, 0, G.floor.height * i / N, G.floor.width, G.floor.height / N, left, a[1], right - left, c[1] - a[1] + .7);
+  }
+  drawHorizon(ctx, G.hz, 1, W);
+  for (const item of G.figures.slice().sort((a, b) => b.z - a.z)) {
+    const dz = item.z - cam.z; if (dz <= .24) continue;
+    const scale = item.z / dz, x = W / 2 + G.f * (item.worldX - cam.x) / dz, feet = G.hz + G.f * cam.eye / dz;
+    const w = item.image.width / 2 * scale, h = item.image.height / 2 * scale;
+    const left = x - (item.g.w / 2 + item.pad) * scale, top = feet - (item.g.h + item.pad) * scale;
+    if (Math.abs(left - cam.c[0]) * cam.s > W * 8 || Math.abs(top - cam.c[1]) * cam.s > H * 8) continue;
+    ctx.drawImage(item.image, left, top, w, h);
+  }
+  ctx.restore();
+}
+function texturedFlightGas(ctx, focus, q, W, H, strength) {
+  const phase = smooth((q - .19) / .3) * (1 - smooth((q - .91) / .09)); if (phase <= .001) return;
+  for (let i = 0; i < 6; i++) {
+    const im = FLIGHT_GAS[i % 3]; if (!ready(im)) continue;
+    const z = .22 + ((i * .187 + 1.6 - q * .82) % 1), size = W * (1.1 + .8 / z), angle = (i - 2.5) * .53 + q * .34;
+    const x = focus[0] + Math.cos(angle) * W * (.18 + i % 2 * .17), y = focus[1] + Math.sin(angle) * H * .24;
+    ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = clamp(phase * strength * (.18 + .14 / z), 0, .65);
+    ctx.translate(x, y); ctx.rotate(angle); ctx.drawImage(im, -size / 2, -size * .28, size, size * .56); ctx.restore();
+  }
+}
 function flightCam(F, q, W, H) {
   const diag = Math.hypot(W, H), sceneH = Math.min(P['strip.max'], H * P['strip.share']), postTop = sceneH - 26, postH = Math.max(80, H - postTop), tg = F.target;
   const p1 = [W * .5, postTop + postH / 6], p2 = [W * .5 + (tg[0] - W * .5) * .6, postTop - Math.min(60, sceneH * .25)], holeD = Math.max(24, F.holeD), lsEnd = Math.log(Math.max(6, diag * 1.25 / holeD));
@@ -378,14 +467,19 @@ function flightWorld(ctx, F, cam, rot, W, H, holeOp, alpha) {
   ctx.restore();
 }
 function flightScene(ctx, F, q, W, H) {
-  const diag = Math.hypot(W, H), cam = flightCam(F, q, W, H), prev = flightCam(F, Math.max(0, q - .02), W, H);
+  const diag = Math.hypot(W, H), camera = F.ground ? groundCam : flightCam, cam = camera(F, q, W, H), prev = camera(F, Math.max(0, q - .02), W, H);
   const vel = [(cam.c[0] - prev.c[0]) * cam.s, (cam.c[1] - prev.c[1]) * cam.s]; let speed = clamp(Math.hypot(vel[0], vel[1]) / (diag * .12), 0, 1); speed = Math.max(speed, clamp(((cam.s / prev.s) - 1) * 3, 0, 1));
   const rot = clamp(-vel[0] / (diag * .9), -.07, .07) * (1 - smooth((q - .8) / .2)) * P['fl.bank'];
   const rel = [(F.target[0] - cam.c[0]) * cam.s, (F.target[1] - cam.c[1]) * cam.s], focus = [W / 2 + rel[0] * Math.cos(rot) - rel[1] * Math.sin(rot), H / 2 + rel[0] * Math.sin(rot) + rel[1] * Math.cos(rot)];
-  const spaceIn = clamp((q - .42) / .58, 0, 1), travel = 2.4 * Math.pow(spaceIn, 1.7), black = smooth((q - .84) / .16);
-  flightWorld(ctx, F, cam, rot, W, H, smooth((q - .4) / .25), 1);
-  if (P['fl.blur'] && speed > .12 && q > .02) for (let g = 1; g <= 2; g++) flightWorld(ctx, F, flightCam(F, Math.max(0, q - .016 * g), W, H), rot, W, H, 0, clamp((g === 1 ? .2 : .1) * speed, 0, 1));
-  const alpha = smooth((q - .42) / .22) * (1 - black) * P['fl.dust'];
+  const spaceIn = clamp((q - .20) / .80, 0, 1), travel = 2.4 * Math.pow(spaceIn, 1.7), black = smooth((q - .90) / .10);
+  if (F.ground) groundFlightWorld(ctx, F, cam, W, H);
+  else flightWorld(ctx, F, cam, rot, W, H, smooth((q - .4) / .25), 1);
+  if (P['fl.blur'] && speed > .12 && q > .02) {
+    if (F.ground) groundFlightWorld(ctx, F, prev, W, H, .08 * speed);
+    else for (let g = 1; g <= 2; g++) flightWorld(ctx, F, flightCam(F, Math.max(0, q - .016 * g), W, H), rot, W, H, 0, clamp((g === 1 ? .2 : .1) * speed, 0, 1));
+  }
+  if (F.ground) texturedFlightGas(ctx, focus, q, W, H, P['fl.gas']);
+  const alpha = smooth((q - (F.ground ? .24 : .42)) / .22) * (1 - black) * P['fl.dust'];
   if (alpha > .01) {
     for (const [ux, uy, z0, ci] of DUST.clouds) { const z = .15 + .85 * ((((z0 - travel * .35) % 1) + 1) % 1), k = .25 / z, px = focus[0] + ux * W * .55 * k, py = focus[1] + uy * H * .55 * k, rad = Math.min(W * 1.2, W * .30 * k), tint = ['#7A8794', '#8C7360', '#5E7392'][ci], al = clamp(alpha * .08 * smooth((1 - z) / .4), 0, 1); if (al <= .003) continue; const g = ctx.createRadialGradient(px, py, 0, px, py, rad); g.addColorStop(0, rgba(tint, al)); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, rad, 0, TAU); ctx.fill(); }
     ctx.lineCap = 'round';
@@ -443,15 +537,16 @@ function drawFlight(ctx, now) {
   if (v > 0) portalRoom(ctx, F, W, H, smooth((v - .1) / .7), 1.5 - .5 * easeOut(v));
   if (F.dir !== 0) { ctx.font = '400 12px Roboto'; ctx.fillStyle = '#C7D5E2'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('Skip effect', W - 12 - 8, K.isMobile ? 64 : 24); }
 }
-function startFlight(o) {
-  const W = K.W, H = K.H, top = G.top || 48;
+function startFlight(o, top = G.top ?? P['strip.orbTop']) {
+  const W = K.W, H = K.H;
   // freeze exactly what is on screen (the flight starts from it)
   const snap = document.createElement('canvas'); snap.width = Math.round(W * 2.5); snap.height = Math.round(H * 2.5); const sx = snap.getContext('2d'); sx.scale(2.5, 2.5);
-  const keepHL = true; ST.flight = null; sc.draw(sx, performance.now(), false);
+  ST.flight = null; sc.draw(sx, performance.now(), false);
   const posts = Math.round(P['fl.posts']), ms = clamp(Math.round(1500 + 1500 * Math.min(1, posts / 1000)), 1500, 3000) * P['fl.speed'];
   const slots = Math.round(ms / 1000 * 14), walls = POSTS.map(p => p.pic0 || p.pic).filter(Boolean).slice(0, slots); walls.push(o.person.pic);
   const flyMs = Math.min(1000, Math.max(650, ms * .42)), tailMs = Math.min(600, Math.max(320, ms * .22));
   ST.flight = { orb: Object.assign({}, o), top, target: [o.x, o.y + top], holeD: o.d, snap, walls, ms, flyEnd: flyMs / ms, tunnelEnd: 1 - tailMs / ms, t: 0, dir: 1 };
+  if (SH) prepareGroundFlight(ST.flight, SH);
   K.status('Flying into ' + o.person.name + '’s black hole. Tap "Return through the black hole" to come back.');
 }
 
@@ -499,7 +594,7 @@ function shareUpdate(dt) {
 // _floorMatrix: tips the post back about its near edge, stretched so its far edge lands on the horizon
 function floorM(q, plane, horizonY) {
   const thMax = P['sh.tilt'] * Math.PI / 180, pMax = P['sh.persp'], a0 = Math.max(40, plane.h), bottom = plane.y + plane.h, rise = Math.max(60, bottom - horizonY);
-  const c = Math.cos(thMax), s = Math.sin(thMax), den = Math.max(.04, c - rise * pMax * s), syMax = clamp(rise / den / a0, 1, 12), th = thMax * q;
+  const c = Math.cos(thMax), s = Math.sin(thMax), den = Math.max(.04, c - rise * pMax * s), syMax = clamp(rise / den / a0, .05, 12), th = thMax * q;
   return { pvx: plane.x + plane.w / 2, pvy: bottom, cos: Math.cos(th), sin: Math.sin(th), sx: 1 + P['sh.widen'] * q, sy: 1 + (syMax - 1) * q, p: pMax * q };
 }
 const fx = (M, x, y) => { const Y = M.sy * (y - M.pvy), w = M.p * -M.sin * Y + 1; return [M.pvx + M.sx * (x - M.pvx) / w, M.pvy + M.cos * Y / w]; };
@@ -509,11 +604,11 @@ function figSlots(n, seed, w, horizonY, nearY) {
   for (let i = 0; i < n; i++) { const x = w / 2 + (i - (n - 1) / 2) * step + (rng.nextDouble() - .5) * step * P['sh.jitter']; const d = clamp(depths[i] + (rng.nextDouble() - .5) * .08, 0, 1); out.push([x, nearY - (nearY - farY) * d]); }
   return out;
 }
-function figGeom(feet, M, plane, w) {
-  const cx = plane.x + plane.w / 2, yAt = py => fx(M, cx, py)[1]; let lo = plane.y, hi = plane.y + plane.h + plane.h;
-  for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (yAt(mid) < feet[1]) lo = mid; else hi = mid; }
-  const py = (lo + hi) / 2, a = fx(M, cx - 20, py), b = fx(M, cx + 20, py), a0 = fx(M, cx - 20, plane.y + plane.h), b0 = fx(M, cx + 20, plane.y + plane.h);
-  const near = Math.max(1e-3, Math.abs(b0[0] - a0[0])), rel = clamp(Math.abs(b[0] - a[0]) / near, P['sh.minScale'], 1), fw = w * P['sh.size'] * rel, fh = fw * P['sh.tall'];
+function figGeom(feet, horizonY, nearY, w) {
+  // Equal-height people on a ground plane share an eye-level horizon.
+  // Their projected height changes with distance from that horizon.
+  const rel = clamp((feet[1] - horizonY) / Math.max(1, nearY - horizonY), P['sh.minScale'], 1);
+  const fw = w * P['sh.size'] * rel, fh = fw * P['sh.tall'];
   return { x: feet[0] - fw / 2, y: feet[1] - fh, w: fw, h: fh };
 }
 function figU(i, n, el, seed) {
@@ -703,17 +798,21 @@ const LAYERS = new WeakMap();
 function drawShare(ctx, now) {
   const S = SH, W = K.W, H = K.H, k = scaleOf(ctx), top = 0, el = S.t * 2.6, secs = now / 1000, flick = (secs / 4) % 1, seed = S.post.id || 'share';
   const sceneH = Math.min(P['strip.max'], H * P['strip.share']), postTop = top + sceneH - 26, foot = footprint();
-  const plane = { x: 0, y: postTop + 56, w: W, h: Math.max(postTop + 176, H - foot) - (postTop + 56) }, horizonY = H * P['sh.horizon'], skyH = Math.min(H, horizonY + H * P['sh.skyExtra']);
-  const figs = shareFigs(), sheetTop = H * (1 - (figs.length ? P['sh.sheet'] : .5)), nearY = Math.min(sheetTop - 26, H * .8);
+  const plane = { x: 0, y: postTop + 56, w: W, h: Math.max(postTop + 176, H - foot) - (postTop + 56) };
+  const figs = shareFigs(), sheetTop = H * (1 - (figs.length ? P['sh.sheet'] : .5));
+  const nearY = Math.min(sheetTop - 30, H * .82, plane.y + plane.h - P['sh.nameSize'] * 1.2 - 16);
+  const horizonY = Math.min(H * P['sh.horizon'], nearY - 60);
+  const q = smooth(el / P['sh.tiltSecs']), M = floorM(q, plane, horizonY), hz = fx(M, W / 2, plane.y)[1];
+  const skyH = Math.min(H, hz + H * P['sh.skyExtra']);
   const LW = Math.ceil(W * k), LH = Math.ceil(H * k); let L = LAYERS.get(ctx.canvas); if (!L) { L = document.createElement('canvas'); LAYERS.set(ctx.canvas, L); } if (L.width !== LW || L.height !== LH) { L.width = LW; L.height = LH; }
   const x = L.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.filter = 'none'; x.clearRect(0, 0, LW, LH); x.scale(k, k);
   x.fillStyle = P['sh.bg']; x.fillRect(0, 0, W, H);
-  x.save(); x.beginPath(); x.rect(0, 0, W, skyH); x.clip(); drawScene(x, W, skyH, 'share'); x.restore();
-  const q = smooth(el / P['sh.tiltSecs']), M = floorM(q, plane, horizonY), hz = fx(M, W / 2, plane.y)[1]; S.floor = { M, plane, hz };
+  x.save(); x.beginPath(); x.rect(0, 0, W, skyH); x.clip(); S.orbs = drawScene(x, W, skyH, 'share', hz); x.restore();
+  S.floor = { M, plane, hz }; S.orbTop = P['strip.orbTop']; S.skyH = skyH; S.nearY = nearY;
   drawFloor(x, S.snap, plane, q, M); drawHorizon(x, hz, q, W);
   const snapA = 1 - smooth(el / P['sh.snapFade']); if (snapA > .002) { x.save(); x.globalAlpha = clamp(snapA, 0, 1); x.drawImage(S.snap, 0, 0, W, H); x.restore(); }
-  const n = figs.length, slots = figSlots(n, seed, W, Math.max(hz, horizonY), nearY), modes = figModes(figs, seed), order = slots.map((_, i) => i).sort((a, b) => slots[a][1] - slots[b][1]), beams = []; S.figBoxes = []; S.geoms = [];
-  for (const i of order) { const g = figGeom(slots[i], M, plane, W), u = figU(i, n, el, seed); beams.push([g.x + g.w / 2, g.y + g.h, u, g.w * .5]); S.geoms.push(g); if (u > 0) drawFigure(x, figs[i], g, i, u, flick, modes[i], secs, seed); }
+  const n = figs.length, slots = figSlots(n, seed, W, Math.max(hz, horizonY), nearY), modes = figModes(figs, seed), order = slots.map((_, i) => i).sort((a, b) => slots[a][1] - slots[b][1]), beams = []; S.figBoxes = []; S.geoms = []; S.figScenes = [];
+  for (const i of order) { const g = figGeom(slots[i], horizonY, nearY, W), u = figU(i, n, el, seed); beams.push([g.x + g.w / 2, g.y + g.h, u, g.w * .5]); S.geoms.push(g); S.figScenes.push({ f: figs[i], g, i, u, flick, mode: modes[i], secs, seed }); if (u > 0) drawFigure(x, figs[i], g, i, u, flick, modes[i], secs, seed); }
   S.beams = beams; drawBeams(x, beams);
   if (S.pick.length && S.deck === 0) { x.save(); x.globalAlpha = .55 + .45 * Math.abs(Math.sin(secs * 3)); x.font = '700 12.5px Roboto'; x.fillStyle = P['sh.hintColor']; x.textBaseline = 'top'; x.shadowColor = '#000'; x.shadowBlur = K.shadowBlurFor(x, 6); centerSpaced(x, P['sh.hint'] + '  ›  ' + S.pick.length + ' picked', W / 2, sheetTop - 22, 1.2); x.restore(); }
   drawSheet(x, W, H);
@@ -735,7 +834,15 @@ function sharePointer(kind, p) {
     const vx = Math.abs(d.vx) > 1 ? d.vx : mdx / Math.max(1, now - d.t0) * 1000, horiz = Math.abs(mdx) > Math.abs(mdy) && Math.abs(mdx) > 18;
     if (d.mode === 'ret') { if (!moved && inR(S.ret)) closeShare(); return; }
     if (d.mode === 'deck') { if (moved && horiz && vx > 250 && !S.sending) S.deckDir = -1; else if (!moved) { const bx = (S.boxes || []).find(inR); if (bx) deckSend(bx.hall); } return; }
-    if (d.mode === 'layer') { if (moved && horiz && Math.abs(vx) > 250 && S.pick.length && !S.sending) S.deckDir = 1; else if (!moved) { const hit = S.figBoxes.slice().reverse().find(b => b.tap && inR(b)); if (hit) togglePick(hit.f.id); } return; }
+    if (d.mode === 'layer') {
+      if (moved && horiz && Math.abs(vx) > 250 && S.pick.length && !S.sending) S.deckDir = 1;
+      else if (!moved) {
+        const person = S.figBoxes.slice().reverse().find(b => b.tap && inR(b));
+        if (person) togglePick(person.f.id);
+        else if (p.y < S.floor.hz) { const hole = holeAt(p, S.orbs || [], S.orbTop); if (hole) startFlight(hole, S.orbTop); }
+      }
+      return;
+    }
     if (d.mode === 'sheet' && !moved) { const r = (S.rows || []).find(r => p.y >= r.y0 && p.y < r.y1); if (r) togglePick(r.u.id); }
   }
 }
@@ -860,16 +967,19 @@ function spaced(ctx, text, x, y, spacing) { let cx = x; for (const ch of text) {
 
 
 /* ---------- _scene(): deep space, Webb sky, bent light, rims, streams, faces, holes, labels ---------- */
-function drawScene(x, W, sh, mode) {
-  const top = P['strip.orbTop'], lh = sh - top - 5, orbs = orbLayout(W, lh), k = scaleOf(x), through = mode === 'strip' && P['sky.mode'] === 'through';
+function drawScene(x, W, sh, mode, horizon = sh) {
+  const top = P['strip.orbTop'], sceneH = mode === 'share' ? Math.min(sh, Math.max(180, horizon - P['sh.skyGap'])) : sh;
+  const lh = sceneH - top - 5, orbs = orbLayout(W, lh), k = scaleOf(x), through = mode === 'strip' && P['sky.mode'] === 'through';
   if (!through) x.drawImage(deepSpace(W, sh, Math.min(3, k)), 0, 0, W, sh);
   const sky = through ? throughSnap(W, sh) : P['sky.on'] ? skySnap(W, sh) : null; if (sky && !through) x.drawImage(sky, 0, 0, W, sh);
   const lensesLive = orbs.filter(o => o.live).map(o => ({ x: o.x, y: o.y + top, r: o.d / 2, s: o.strength }));
   if (P['lens.on'] && sky && lensesLive.length) { const out = lensLayer(W, sh, lensesLive, sky); if (out) x.drawImage(out, 0, 0, W, sh); }
+  x.save(); if (mode === 'share') { x.beginPath(); x.rect(0, 0, W, horizon); x.clip(); }
   drawRims(x, orbs.map(o => ({ x: o.x, y: o.y + top, r: o.d / 2 })));
   drawLinks(x, top);
   for (const o of orbs) { drawOrb(x, o, top); drawName(x, o, top); }
   for (const o of orbs) if (o.live) drawHole(x, o, top);
+  x.restore();
   const lab = mode === 'strip' ? G.labels : {};
   x.textBaseline = 'top'; x.textAlign = 'left';
   x.font = `700 ${P['lab.titleSize']}px Roboto`; x.fillStyle = P['lab.titleColor']; const tw = spaced(x, P['lab.title'], 18, 16, 1.6); lab.title = { x: 18, y: 16, w: tw, h: P['lab.titleSize'] * 1.2 };
@@ -1022,6 +1132,11 @@ const sc = K.screen({
     def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.hornGlow', 'Horn bursting (a saga was sent to you)', 'bool', false);
     def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.hornDot', 'Dot (follow request waiting)', 'bool', false);
     def('Bottom icons', 'Gjallarhorn', 'bar', 'bar.dotColor', 'Dot color', 'color', '#FFC72C');
+    def('Black-hole flight', 'Through the Fav 6', 'flight', 'fl.duration', 'Whole cinematic trip', 'num', 3.2, { min: 1.8, max: 8, step: .1, unit: 's' });
+    def('Black-hole flight', 'Through the Fav 6', 'flight', 'fl.pass', 'Forward travel through people', 'num', 1, { min: .3, max: 1.4, step: .05 });
+    def('Black-hole flight', 'Through the Fav 6', 'flight', 'fl.weave', 'Sideways camera sweep', 'num', 1, { min: 0, max: 2.5, step: .05 });
+    def('Black-hole flight', 'Through the Fav 6', 'flight', 'fl.rise', 'Rise from ground into sky', 'num', 3.6, { min: 0, max: 8, step: .1 });
+    def('Black-hole flight', 'Through the Fav 6', 'flight', 'fl.gas', 'Illuminated gas strength', 'num', 1.3, { min: 0, max: 3, step: .05 });
     def('Black-hole flight', 'Trip', 'flight', 'fl.posts', 'Their post count (sets trip length)', 'int', 40, { min: 0, max: 1000, step: 10, info: '1.5 s at few posts, 3 s at 1,000 posts. Tap a black hole, or press "Fly into a hole".' });
     def('Black-hole flight', 'Trip', 'flight', 'fl.speed', 'Slow motion', 'num', 1, { min: 1, max: 6, step: .25, unit: '×', info: 'Studio only: stretch the trip to study it.' });
     def('Black-hole flight', 'Trip', 'flight', 'fl.bank', 'Camera bank', 'num', 1, { min: 0, max: 4, step: .05 });
@@ -1046,7 +1161,7 @@ const sc = K.screen({
     def('Share', 'Play', 'share', 'sh.hold', 'Hold at a moment', 'bool', false);
     def('Share', 'Play', 'share', 'sh.at', 'Moment', 'num', 1, { min: 0, max: 1, step: .005, info: 'Turn on "Hold at a moment" first. 0 = the tap, 1 = everyone has landed.' });
     def('Share', 'Play', 'share', 'sh.closeMs', 'Return animation', 'int', 700, { min: 100, max: 3000, step: 50, unit: 'ms' });
-    def('Share', 'Floor', 'share.floor', 'sh.tilt', 'Lay-down angle', 'num', 66, { min: 20, max: 85, step: .5, unit: '°', dart: '_floorMatrix thMax' });
+    def('Share', 'Floor', 'share.floor', 'sh.tilt', 'Lay-down angle', 'num', 74, { min: 20, max: 85, step: .5, unit: '°', dart: '_floorMatrix thMax' });
     def('Share', 'Floor', 'share.floor', 'sh.persp', 'Perspective', 'num', .0007, { min: 0, max: .002, step: .00005 });
     def('Share', 'Floor', 'share.floor', 'sh.widen', 'Widen as it lays down', 'num', .9, { min: 0, max: 3, step: .05 });
     def('Share', 'Floor', 'share.floor', 'sh.tiltSecs', 'Lay-down time', 'num', .75, { min: .1, max: 2.6, step: .05, unit: 's' });
@@ -1054,19 +1169,20 @@ const sc = K.screen({
     def('Share', 'Floor', 'share.floor', 'sh.dim', 'Darken the floor', 'num', .3, { min: 0, max: 1, step: .01 });
     def('Share', 'Floor', 'share.floor', 'sh.tintG', 'Green lift', 'num', 2, { min: 0, max: 80, step: 1 });
     def('Share', 'Floor', 'share.floor', 'sh.tintB', 'Blue lift', 'num', 8, { min: 0, max: 80, step: 1 });
-    def('Share', 'Floor', 'share.floor', 'sh.farFade', 'Far edge melts into space', 'num', .42, { min: 0, max: 1, step: .01 });
+    def('Share', 'Floor', 'share.floor', 'sh.farFade', 'Far edge melts into space', 'num', .12, { min: 0, max: 1, step: .01 });
     def('Share', 'Floor', 'share.floor', 'sh.sideFade', 'Sides melt', 'num', .16, { min: .01, max: .45, step: .01 });
-    def('Share', 'Sky', 'share.sky', 'sh.horizon', 'Horizon height', 'num', .46, { min: .2, max: .8, step: .005, unit: 'of screen' });
-    def('Share', 'Sky', 'share.sky', 'sh.skyExtra', 'Stars reach below the horizon', 'num', .22, { min: 0, max: .6, step: .01, unit: 'of screen' });
+    def('Share', 'Sky', 'share.sky', 'sh.horizon', 'Ground horizon: up / down', 'num', .61, { min: .2, max: .8, step: .005, unit: 'of screen' });
+    def('Share', 'Sky', 'share.sky', 'sh.skyGap', 'Space between holes and horizon', 'num', 65, { min: 0, max: 180, step: 1, unit: 'px' });
+    def('Share', 'Sky', 'share.sky', 'sh.skyExtra', 'Stars reach below the horizon', 'num', 0, { min: 0, max: .6, step: .01, unit: 'of screen' });
     def('Share', 'Sky', 'share.sky', 'sh.bg', 'Night below the stars', 'color', '#02040A');
     def('Share', 'Sky', 'share.sky', 'sh.horizonLine', 'Horizon line color', 'color', '#E8FBFF');
     def('Share', 'Sky', 'share.sky', 'sh.lineAlpha', 'Horizon line strength', 'num', .6, { min: 0, max: 1, step: .01 });
     def('Share', 'Sky', 'share.sky', 'sh.horizonGlow', 'Horizon glow color', 'color', '#5FD8FF');
     def('Share', 'Figures', 'share.figs', 'sh.count', 'How many favs', 'int', 6, { min: 0, max: 6, step: 1, info: 'Your 6 favs: Freya, Loki, Sif, Tyr, Baldr, Hel (their real figures).' });
-    def('Share', 'Figures', 'share.figs', 'sh.size', 'Body size', 'num', .32, { min: .1, max: .6, step: .005, unit: 'of width' });
+    def('Share', 'Figures', 'share.figs', 'sh.size', 'Body size', 'num', .24, { min: .1, max: .6, step: .005, unit: 'of width' });
     def('Share', 'Figures', 'share.figs', 'sh.tall', 'Height to width', 'num', 2.05, { min: 1, max: 3.5, step: .01 });
     def('Share', 'Figures', 'share.figs', 'sh.minScale', 'Smallest far body', 'num', .45, { min: .2, max: 1, step: .01 });
-    def('Share', 'Figures', 'share.figs', 'sh.far', 'How far back they stand', 'num', .18, { min: 0, max: 1, step: .01 });
+    def('Share', 'Figures', 'share.figs', 'sh.far', 'How far back they stand', 'num', .42, { min: 0, max: 1, step: .01 });
     def('Share', 'Figures', 'share.figs', 'sh.jitter', 'Side scatter', 'num', .18, { min: 0, max: 1, step: .01 });
     def('Share', 'Figures', 'share.figs', 'sh.outline', 'Hologram outline color', 'color', '#5FD8FF');
     def('Share', 'Figures', 'share.figs', 'sh.flicker', 'Hologram flicker', 'bool', true);
@@ -1142,17 +1258,17 @@ const sc = K.screen({
     { label: 'Share a post', title: 'Play the share animation on the post in view (press again to return)', onclick: () => { if (SH) { closeShare(); return; } const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
     { label: 'Profile', title: 'Open the test profile (Profile page › Who)', onclick: () => { if (ST.view === 'profile') goFeed(); else openProfile({ idun: IDUN_ID, thor: THOR_ID, me: ME_ID }[sc.P['pf.who']] || IDUN_ID); } },
     { label: 'Marketplace', title: 'Open the Marketplace (swipe left on the feed in the app)', onclick: () => { if (ST.view === 'market') goFeed(); else goMarket(); } },
-    { label: 'Fly into a hole', title: 'Play the black-hole flight into the hole nearest the middle', onclick: () => { if (ST.flight) { ST.flight = null; return; } const o = G.orbs.slice().sort((a, b) => Math.abs(a.x - K.W / 2) - Math.abs(b.x - K.W / 2))[0]; if (o) startFlight(o); } },
+    { label: 'Fly into a hole', title: 'Play the black-hole flight into the hole nearest the middle', onclick: () => { if (ST.flight) { ST.flight = null; return; } const orbs = SH ? SH.orbs || [] : G.orbs; const o = orbs.slice().sort((a, b) => Math.abs(a.x - K.W / 2) - Math.abs(b.x - K.W / 2))[0]; if (o) startFlight(o, SH ? SH.orbTop : G.top); } },
   ],
   onShow() { P = sc.P; },
-  onSet(k) { P = sc.P; if (SH && !k.startsWith('sh.')) SH = null;
+  onSet(k) { P = sc.P; if (SH && !/^(sh|fl|wh|room)\./.test(k)) SH = null;
     if (k.startsWith('pf.') && (k === 'pf.who' || ST.view !== 'profile')) openProfile({ idun: IDUN_ID, thor: THOR_ID, me: ME_ID }[sc.P['pf.who']] || IDUN_ID);
     if (k === 'pf.edit' || k === 'pf.fig') openProfile(ME_ID);
     if (k.startsWith('cd.') && ST.view === 'feed') openProfile(IDUN_ID); if (k.startsWith('cd.') && !ST.view) openProfile(IDUN_ID);
     if (k.startsWith('mk.') && ST.view !== 'market') goMarket();
     if (!k.startsWith('pf.') && !k.startsWith('cd.') && !k.startsWith('mk.') && ST.view && ST.view !== 'feed' && !k.startsWith('bar.') && !k.startsWith('bg.')) goFeed();
     if (k.startsWith('sh.') && !SH && !ST.flight) { const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
-  update(dt) { P = sc.P; shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (ST.view && ST.view !== 'feed') { if (!ST.drag && ST.vel) { VS[ST.view] = clamp(VS[ST.view] + ST.vel * dt, 0, G.vMax || 0); ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } return; } if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
+  update(dt) { P = sc.P; if (!ST.flight) shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (ST.view && ST.view !== 'feed') { if (!ST.drag && ST.vel) { VS[ST.view] = clamp(VS[ST.view] + ST.vel * dt, 0, G.vMax || 0); ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } return; } if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
   draw(ctx, now, studio) {
     P = sc.P; sc.ty = 0;
     if (ST.flight) { drawFlight(ctx, now); if (studio) K.hl(ctx, now); return; }
@@ -1236,10 +1352,10 @@ const sc = K.screen({
     return ['Background', null];
   },
   pointer: {
-    down(p) { if (SH) { sharePointer('down', p); return; } if (ST.viewer || ST.menu) { ST.drag = { mode: ST.viewer ? 'viewer' : 'menu', x0: p.x, y0: p.y }; return; } if (ST.view && ST.view !== 'feed') { ST.vel = 0; ST.drag = { mode: 'page', y: p.y, x0: p.x, y0: p.y, t: performance.now(), t0: performance.now(), v: 0 }; return; } if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, t0: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, t0: now, v: 0 }; } },
-    move(p) { if (SH) { sharePointer('move', p); return; } const d = ST.drag; if (d && d.mode === 'page') { const now = performance.now(), dy = p.y - d.y; VS[ST.view] = clamp(VS[ST.view] - dy, 0, G.vMax || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; d.t = now; return; } if (d && (d.mode === 'viewer' || d.mode === 'menu')) return; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
+    down(p) { if (SH && !ST.flight) { sharePointer('down', p); return; } if (ST.viewer || ST.menu) { ST.drag = { mode: ST.viewer ? 'viewer' : 'menu', x0: p.x, y0: p.y }; return; } if (ST.view && ST.view !== 'feed') { ST.vel = 0; ST.drag = { mode: 'page', y: p.y, x0: p.x, y0: p.y, t: performance.now(), t0: performance.now(), v: 0 }; return; } if (ST.flight) { ST.drag = { mode: 'flight', x0: p.x, y0: p.y }; return; } const now = performance.now(); if (G.strip && p.y < G.strip.h - (P['strip.fade'] || 0)) ST.drag = { mode: 'strip', x: p.x, x0: p.x, y0: p.y, t: now, t0: now, v: 0 }; else { ST.vel = 0; ST.drag = { mode: 'feed', y: p.y, x0: p.x, y0: p.y, t: now, t0: now, v: 0 }; } },
+    move(p) { if (SH && !ST.flight) { sharePointer('move', p); return; } const d = ST.drag; if (d && d.mode === 'page') { const now = performance.now(), dy = p.y - d.y; VS[ST.view] = clamp(VS[ST.view] - dy, 0, G.vMax || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; d.t = now; return; } if (d && (d.mode === 'viewer' || d.mode === 'menu')) return; if (!d) return; const now = performance.now(); if (d.mode === 'strip') { const dx = p.x - d.x; ST.swipe += dx; d.v = dx / Math.max(1, now - d.t) * 1000; d.x = p.x; } else { const dy = p.y - d.y; ST.scroll = clamp(ST.scroll - dy, 0, G.maxScroll || 0); d.v = -dy / Math.max(1, now - d.t) * 1000; d.y = p.y; } d.t = now; },
     up(p) {
-      if (SH) { sharePointer('up', p); return; }
+      if (SH && !ST.flight) { sharePointer('up', p); return; }
       const d = ST.drag; ST.drag = null; if (!d) return;
       const tap = Math.hypot(p.x - d.x0, p.y - d.y0) < 6, inB = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       const swipeX = () => { const dx = p.x - d.x0, dy = p.y - d.y0; return (performance.now() - (d.t0 || d.t || 0) < 800 && Math.abs(dx) > 110 && Math.abs(dx) > Math.abs(dy) * 2.5) ? dx : 0; };
@@ -1257,7 +1373,7 @@ const sc = K.screen({
         if (Math.hypot(p.x - d.x0, p.y - d.y0) < 6) { const b = (G.barBtns || []).find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (b) { const i = G.barBtns.indexOf(b); if (i === 0) K.go('way'); else if (i === 2) K.go('horn'); else if (i === 3) K.go('dial', { href: 'sleipnir-studio-1120.html#dial' }); else K.status('Carve a Saga (Post a Saga / Be Alive menu) is not built in the studio yet.'); return; } const q = (G.posts || []).find(q => q.likeBox && p.x >= q.likeBox.x && p.x <= q.likeBox.x + q.likeBox.w && p.y >= q.likeBox.y && p.y <= q.likeBox.y + q.likeBox.h); if (q) { q.liked = !q.liked; q.likes += q.liked ? 1 : -1; return; } const inB = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h; const s = (G.posts || []).find(q => inB(q.sendBox)); if (s) { openShare(s); return; } if ((G.posts || []).some(q => inB(q.chatBox))) K.status('Comments are not built in the studio yet.'); return; }
         ST.vel = clamp(d.v, -4000, 4000); return;
       }
-      if (Math.abs(p.x - d.x0) < 6) { const top = G.top || 48, hit = G.orbs.find(o => Math.hypot(p.x - o.x, p.y - o.y - top) <= o.d / 2 + 6); if (hit) startFlight(hit); return; }
+      if (Math.abs(p.x - d.x0) < 6) { const top = G.top ?? P['strip.orbTop'], hit = holeAt(p, G.orbs, top); if (hit) startFlight(hit); return; }
       ST.swipe += clamp(d.v, -650, 650) * .14;
     },
     cancel() { ST.drag = null; if (SH) SH.drag = null; },
