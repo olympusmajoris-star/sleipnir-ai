@@ -56,13 +56,17 @@ function metrics() {
   m.angles = SHAPES.map((_, i) => Math.atan2(P['s' + i + '.y'], P['s' + i + '.x']));
   return m;
 }
-function nearest(m, a) { let best = 0, dist = Infinity; m.angles.forEach((x, i) => { const d = Math.abs(wrap(a - x)); if (d < dist) { dist = d; best = i; } }); return best; }
+function live(i) { return P['stop' + i + '.on'] !== false; }
+function liveList() { const l = [0, 1, 2, 3].filter(live); return l.length ? l : [0]; }
+function nearest(m, a) { let best = liveList()[0], dist = Infinity; liveList().forEach(i => { const d = Math.abs(wrap(a - m.angles[i])); if (d < dist) { dist = d; best = i; } }); return best; }
+function restAngle(m) { return m.angles[ST.hi] + (ST.rest ? P['rest.offset'] * D2R : 0); }
 function alignment(m, a, i) { const d = Math.abs(wrap(a - m.angles[i])); const t = clamp(1 - d / (P['feel.alignZone'] * D2R), 0, 1); return t * t * (3 - 2 * t); }
 function headingColor(m, a) {
-  const n = m.angles.length;
-  for (let i = 0; i < n; i++) {
-    const nx = (i + 1) % n;
-    const span = ((m.angles[nx] - m.angles[i]) % TAU + TAU) % TAU;
+  const L = liveList().slice().sort((p, q) => ((m.angles[p] % TAU) + TAU) % TAU - ((m.angles[q] % TAU) + TAU) % TAU), n = L.length;
+  if (n < 2) return rgb(P['s' + L[0] + '.color']);
+  for (let j = 0; j < n; j++) {
+    const i = L[j], nx = L[(j + 1) % n];
+    const span = ((m.angles[nx] - m.angles[i]) % TAU + TAU) % TAU || TAU;
     const travel = ((a - m.angles[i]) % TAU + TAU) % TAU;
     if (travel <= span) { const f = travel / span, t = f * f * (3 - 2 * f); return mix(P['s' + i + '.color'], P['s' + nx + '.color'], t); }
   }
@@ -175,6 +179,7 @@ function drawRing(ctx, m, reveal) {
     ctx.restore();
   }
   if (P['markers.on']) for (let i = 0; i < 4; i++) {
+    if (!live(i)) continue;
     const a = m.angles[i], e = alignment(m, ST.angle, i), half = P['markers.len'] * D2R / 2;
     A(c, radius - P['markers.inset'] * u, a - half, half * 2, P['markers.width'], P['s' + i + '.color'], P['markers.base'] + P['markers.boost'] * e);
   }
@@ -214,6 +219,7 @@ function drawPointer(ctx, m) {
   if (P['pticks.on']) {
     ctx.save(); ctx.lineCap = 'round';
     for (let i = 0; i < 4; i++) {
+      if (!live(i)) continue;
       const al = alignment(m, a0, i), half = P['pticks.len'] * D2R / 2;
       ctx.lineWidth = P['pticks.width'] + al * P['pticks.widthBoost']; ctx.strokeStyle = rgba(P['ring.blue'], P['pticks.opacity'] + al * P['pticks.boost']);
       ctx.beginPath(); ctx.arc(c.x, c.y, outer + th * P['pticks.offset'], m.angles[i] - half, m.angles[i] + half); ctx.stroke();
@@ -251,9 +257,9 @@ function drawText(ctx, m, rv) {
   };
   if (P['raven.on']) { line('raven', P['raven.text'], P['raven.size'] * u, P['raven.weight'], P['raven.color'], P['raven.opacity'], P['raven.spacing']); y += P['text.gap1'] * u; }
   const glow = P['title.glowOn'] && P['title.glowBlur'] > 0 ? { color: P['title.glowShape'] ? P['s' + ST.hi + '.color'] : P['title.glowColor'], blur: P['title.glowBlur'] } : null;
-  line('title', P['label' + ST.hi], P['title.size'] * u, P['title.weight'], P['title.color'], 1, P['title.spacing'], glow);
+  line('title', ST.rest ? P['rest.title'] : P['stop' + ST.hi + '.name'], P['title.size'] * u, P['title.weight'], P['title.color'], 1, P['title.spacing'], glow);
   y += P['text.gap2'] * u;
-  if (P['hint.on']) line('hint', ST.confirmed ? P['hint.done'] : (ST.ready ? P['hint.ready'] : P['hint.turning']), P['hint.size'] * u, P['hint.weight'], P['hint.color'], 1, 0);
+  if (P['hint.on']) line('hint', ST.confirmed ? P['hint.done'] : ST.rest ? P['hint.rest'] : (ST.ready ? P['hint.ready'] : P['hint.turning']), P['hint.size'] * u, P['hint.weight'], P['hint.color'], 1, 0);
   ctx.restore();
 }
 
@@ -276,6 +282,9 @@ function iconPaths(i) {
   return [circ(0, -.105, .055), circ(-.145, -.06, .038), circ(.145, -.06, .038), a, l, r];
 }
 const ICONS = [0, 1, 2, 3].map(iconPaths);
+ICONS.tag = (() => { const p = new Path2D(); p.moveTo(-.21, 0); p.lineTo(-.085, -.135); p.lineTo(.19, -.135); p.lineTo(.19, .135); p.lineTo(-.085, .135); p.closePath(); const h = new Path2D(); h.arc(-.075, 0, .034, 0, TAU); const s = new Path2D(); s.moveTo(.035, -.07); s.lineTo(.035, .07); s.moveTo(.085, -.045); s.quadraticCurveTo(.035, -.075, .005, -.04); s.quadraticCurveTo(-.01, -.01, .04, 0); s.quadraticCurveTo(.09, .012, .072, .045); s.quadraticCurveTo(.045, .075, -.005, .05); return [p, h, s]; })();
+const ICON_KEYS = { chat: 0, people: 1, phone: 2, group: 3, tag: 'tag' };
+function iconOf(i) { const k = P['stop' + i + '.icon']; return k === 'none' ? [] : ICONS[k in ICON_KEYS ? ICON_KEYS[k] : i]; }
 function hull(pts) {
   const s = pts.slice().sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x);
   const cr = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
@@ -293,7 +302,7 @@ function drawIcon(ctx, i, ox, oy, size, e, color) {
   const k = size * S('iconSize'); ctx.scale(k, k);
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   const lw = S('iconLine');
-  for (const p of ICONS[i]) {
+  for (const p of iconOf(i)) {
     ctx.lineWidth = .043 * lw; ctx.strokeStyle = rgba(mix(color, '#25465C', .58), .80); ctx.stroke(p);
     if (S('iconGlow') > 0) { ctx.save(); ctx.lineWidth = .035 * lw; ctx.strokeStyle = rgba(color, Math.min(1, .75 * S('iconGlow'))); blur(ctx, .045 * S('iconGlow')); ctx.stroke(p); ctx.restore(); }
     ctx.lineWidth = .027 * lw; ctx.strokeStyle = rgba(S('iconCore'), .98); ctx.stroke(p);
@@ -405,7 +414,7 @@ function pDown(p0, ev) {
   if (!onMat) return;
   ST.wasReady = ST.ready && !ST.turn.on; ST.grabAngle = ST.angle; ST.grabMode = ST.hi; ST.armed = false; ST.turn.on = false;
   ST.prevA = Math.atan2(loc.y - m.cy, loc.x - m.cx); ST.travel = 0;
-  ST.idle = false; ST.grab = true; ST.confirmed = false; ST.didTurn = false; ST.ready = false; ST.chose = null;
+  ST.idle = false; ST.grab = true; ST.confirmed = false; ST.didTurn = false; ST.ready = false; ST.chose = null; ST.wasRest = ST.rest;
 }
 function pMove(p0, ev) {
   P = sc.P; if (ST.closing || ev.pointerId !== ST.active) return;
@@ -417,7 +426,7 @@ function pMove(p0, ev) {
   const a = Math.atan2(dy, dx), prev = ST.prevA; ST.prevA = a; if (prev == null) return;
   const delta = wrap(a - prev); ST.travel += Math.abs(delta); ST.angle += delta;
   ST.didTurn = ST.travel >= P['feel.turnStart'] * D2R;
-  if (ST.didTurn) { const next = nearest(m, ST.angle); if (next !== ST.hi) { const now = Date.now(); if (now - ST.lastDetent >= P['feel.detentGap']) { ST.lastDetent = now; vib(8); } ST.hi = next; } }
+  if (ST.didTurn) { ST.rest = false; const next = nearest(m, ST.angle); if (next !== ST.hi) { const now = Date.now(); if (now - ST.lastDetent >= P['feel.detentGap']) { ST.lastDetent = now; vib(8); } ST.hi = next; } }
 }
 function pUp(p0, ev) {
   P = sc.P; if (ST.closing || ev.pointerId !== ST.active) return;
@@ -425,25 +434,26 @@ function pUp(p0, ev) {
   const wasRing = ST.grab, turned = ST.didTurn;
   const confirm = ST.insideTap && ST.ready && !ST.turn.on && insideWheel(m, loc) && Math.max(ST.drift, dist(loc, ST.origin)) <= P['feel.tapTolerance'];
   ST.active = null; ST.prevA = null; ST.grab = false; ST.insideTap = false; ST.didTurn = false;
-  if (wasRing) { if (turned) snap(m); else { ST.angle = ST.grabAngle; ST.hi = ST.grabMode; ST.ready = ST.wasReady; } return; }
+  if (wasRing) { if (turned) snap(m); else { ST.angle = ST.grabAngle; ST.hi = ST.grabMode; ST.ready = ST.wasReady; ST.rest = ST.wasRest; } return; }
   if (confirm) doConfirm();
 }
-function pCancel(p0, ev) { if (ev.pointerId !== ST.active) return; const wasRing = ST.grab; ST.active = null; ST.prevA = null; ST.grab = false; ST.insideTap = false; ST.didTurn = false; if (wasRing) { ST.angle = ST.grabAngle; ST.hi = ST.grabMode; ST.ready = ST.wasReady; } }
+function pCancel(p0, ev) { if (ev.pointerId !== ST.active) return; const wasRing = ST.grab; ST.active = null; ST.prevA = null; ST.grab = false; ST.insideTap = false; ST.didTurn = false; if (wasRing) { ST.rest = ST.wasRest; ST.angle = ST.grabAngle; ST.hi = ST.grabMode; ST.ready = ST.wasReady; } }
 function snap(m) {
   if (ST.closing) return; ST.turn.on = false;
   const mode = nearest(m, ST.angle), from = ST.angle, to = ST.angle + wrap(m.angles[mode] - ST.angle), immediate = Math.abs(to - from) < .0001;
-  ST.hi = mode; ST.ready = immediate; ST.armed = !immediate;
+  ST.hi = mode; ST.rest = false; ST.ready = immediate; ST.armed = !immediate;
   if (immediate) ST.angle = to; else ST.turn = { on: true, from, to, t0: performance.now() };
 }
 function doConfirm() {
-  if (!ST.ready || ST.turn.on || ST.closing || ST.dis>=0 || G.entering) return;
-  vib(15); ST.confirmed = true; ST.chose = P['label' + ST.hi]; ST.closing=true; ST.disStay=false; ST.navStarted=false;
-  ST.nextPage=['directory','directory','calls','groups'][ST.hi];
+  if (ST.rest || !ST.ready || ST.turn.on || ST.closing || ST.dis>=0 || G.entering) return;
+  vib(15); ST.confirmed = true; ST.chose = P['stop' + ST.hi + '.name']; ST.closing=true; ST.disStay=false; ST.navStarted=false;
+  ST.nextPage=P['stop'+ST.hi+'.page'];
   if(P['dis.on'])ST.dis=0;else finishExit();
 }
 function finishExit() {
   if(ST.disStay){ST.dis=-1;replay();return;}
   if(ST.navStarted)return;ST.navStarted=true;
+  if(ST.nextPage==='none'){ST.disStay=true;ST.dis=-1;replay();return;}
   if(K.screens[ST.nextPage])K.show(ST.nextPage);
   else K.status(ST.chose+' selected. That destination is not connected in this Studio. Press Replay to return to the dial.');
 }
@@ -458,13 +468,14 @@ function drawDismantleLines(ctx, m, p) {
     ctx.stroke();
   }
   for (let i = 0; i < 4; i++) {
+    if (!live(i)) continue;
     const s = m.st[i], r = s.size * (1 - K.smooth(p)) * .44; if (r <= 0) continue;
     ctx.strokeStyle = rgba(P['dis.color'], alpha); ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, TAU); ctx.stroke();
     ctx.strokeStyle = rgba(P['dis.pull'], alpha * .4); ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + (m.cx - s.x) * (1 - p), s.y + (m.cy - s.y) * (1 - p)); ctx.stroke();
   }
   ctx.restore();
 }
-function replay() { P = sc.P; const m = metrics(); ST.rise = { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }; ST.dis=-1;ST.navStarted=false;ST.closing = false; ST.idle = true; ST.confirmed = false; ST.ready = true; ST.armed = false; ST.turn.on = false; ST.grab = false; ST.active = null; ST.angle = m.angles[ST.hi]; ST.chose = null; touch.press=0; }
+function replay() { P = sc.P; const m = metrics(); ST.rise = { v: 0, mode: 'fwd', t0: performance.now(), from: 1 }; ST.dis=-1;ST.navStarted=false;ST.closing = false; ST.idle = true; ST.confirmed = false; ST.ready = true; ST.armed = false; ST.turn.on = false; ST.grab = false; ST.active = null; ST.rest = !!P['rest.on']; if (ST.rest || !live(ST.hi)) ST.hi = live(+P['rest.from']) ? +P['rest.from'] : liveList()[0]; ST.ready = !ST.rest; ST.angle = restAngle(m); ST.chose = null; touch.press=0; }
 function closeDial() { if (ST.rise.mode === 'closed') { replay(); return; } const a=entranceState(performance.now()); ST.closing = true; ST.rise = { v: 1, mode: 'rev', t0: performance.now(), from: 1, entrance:a }; }
 
 function entranceState(now) {
@@ -531,6 +542,7 @@ function blueprintPass(ctx,m,progress,form,fade,lineWidth) {
     for(const a of [b.start,b.start+b.sweep])traceLine(ctx,[{x:m.cx+Math.cos(a)*(b.rr-P['bands.width']*u/2),y:cy+Math.sin(a)*(b.rr-P['bands.width']*u/2)},{x:m.cx+Math.cos(a)*(b.rr+P['bands.width']*u/2),y:cy+Math.sin(a)*(b.rr+P['bands.width']*u/2)}],form.trace);
   });ctx.restore();
   for(let i=0;i<4;i++){
+    if(!live(i))continue;
     const f=window.RavenGlass.formation(P,progress,i+1),s=m.st[i],S=k=>P['s'+i+'.'+k],sep=P['build.spread']/100*(1-f.assemble),rot=v=>window.RavenMotion.rotate(motionState(i),motionSettings(i),v);
     const project=v=>{const r=rot(v),perspective=4/(4-r[2]);return{x:s.x+r[0]*s.size*.94*perspective,y:s.y+r[1]*s.size*.94*perspective};};
     if(i===0){
@@ -543,7 +555,7 @@ function blueprintPass(ctx,m,progress,form,fade,lineWidth) {
         const points=face.map(k=>project(vs[k].map((v,a)=>v+center[a]*sep*2)));points.push(points[0]);traceLine(ctx,points,clamp(f.trace*1.18-j*.025,0,1));
       }
     }
-    if(S('iconOn')&&f.trace>.65){ctx.save();ctx.globalAlpha*=clamp((f.trace-.65)/.35,0,1);ctx.translate(s.x+S('iconX')*s.size,s.y+S('iconY')*s.size);ctx.scale(s.size*S('iconSize'),s.size*S('iconSize'));ctx.lineWidth=.027*S('iconLine');for(const icon of ICONS[i])ctx.stroke(icon);ctx.restore();}
+    if(S('iconOn')&&f.trace>.65){ctx.save();ctx.globalAlpha*=clamp((f.trace-.65)/.35,0,1);ctx.translate(s.x+S('iconX')*s.size,s.y+S('iconY')*s.size);ctx.scale(s.size*S('iconSize'),s.size*S('iconSize'));ctx.lineWidth=.027*S('iconLine');for(const icon of iconOf(i))ctx.stroke(icon);ctx.restore();}
   }
   ctx.restore();
 }
@@ -554,11 +566,34 @@ function drawDialContents(ctx,m,reveal,buildProgress) {
   ctx.save();ctx.globalAlpha*=color;
   ctx.save();ctx.translate(m.cx,m.cy);ctx.transform(...ps,0,0);ctx.translate(-m.cx,-m.cy);drawRing(ctx,m,reveal);ctx.restore();
   drawPointer(ctx,m);drawText(ctx,m,reveal);
-  for(let i=0;i<4;i++){const s=m.st[i],e=alignment(m,ST.angle,i)*(ST.confirmed?1:.7);drawShape(ctx,i,s.x-s.size/2,s.y-s.size/2,s.size,e,shapePhase(i));}
+  for(let i=0;i<4;i++){if(!live(i))continue;const s=m.st[i],e=alignment(m,ST.angle,i)*(ST.confirmed?1:.7);drawShape(ctx,i,s.x-s.size/2,s.y-s.size/2,s.size,e,shapePhase(i));}
+  drawBadges(ctx,m);
   ctx.restore();
 }
 const LOOP_SECTIONS = new Set(['Construction', 'Dial entrance', 'Glass entrance', 'Rise & close', 'Entrance preview']);
 /* ---------- module ---------- */
+/* ---------- dial stops (module scope) ---------- */
+const STOP_DEF = [
+  { name: 'Messages', page: 'directory', icon: 'chat', count: 4, on: true },
+  { name: 'Mead Hall', page: 'groups', icon: 'group', count: 2, on: true },
+  { name: 'Deals', page: 'deals', icon: 'tag', count: 3, on: true },
+  { name: 'Calls', page: 'calls', icon: 'phone', count: 0, on: false },
+];
+const ICON_OPTS = [['chat', 'Message bubble'], ['group', 'Group of people'], ['people', 'Two people'], ['tag', 'Price tag'], ['phone', 'Phone'], ['none', 'No icon']];
+function pageOpts() { const ids = new Set(['directory', 'conversation', 'groups', 'deals', 'calls']); Object.keys(K.screens || {}).forEach(id => ids.add(id)); return [['none', 'Stay on the dial'], ...[...ids].map(id => [id, (K.screens[id] && K.screens[id].title ? K.screens[id].title : id) + (K.screens[id] ? '' : ' (not built yet)')])]; }
+function syncAngles() { for (let i = 0; i < 4; i++) { const x = P['s' + i + '.x'], y = P['s' + i + '.y']; if (x == null || y == null) continue; P['stop' + i + '.angle'] = Math.round(Math.atan2(x, -y) / D2R * 2) / 2; } }
+function drawBadges(ctx, m) {
+  for (let i = 0; i < 4; i++) {
+    if (!live(i) || !P['stop' + i + '.badge']) continue;
+    const n = Math.round(P['stop' + i + '.count']); if (!(n > 0)) continue;
+    const s = m.st[i], txt = n > P['badge.max'] ? P['badge.max'] + '+' : String(n), r = P['badge.size'] * m.unit, x = s.x + P['badge.x'] * s.size, y = s.y + P['badge.y'] * s.size;
+    ctx.save(); ctx.font = `${P['badge.weight']} ${r * 1.15}px Roboto`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = Math.max(r * 2, ctx.measureText(txt).width + r * .9);
+    if (P['badge.fillOn']) { if (P['badge.glow'] > 0) { ctx.shadowColor = P['badge.fill']; ctx.shadowBlur = P['badge.glow']; } ctx.fillStyle = P['badge.fill']; ctx.beginPath(); ctx.roundRect(x - w / 2, y - r, w, r * 2, r); ctx.fill(); ctx.shadowBlur = 0; }
+    else if (P['badge.glow'] > 0) { ctx.shadowColor = P['badge.fill']; ctx.shadowBlur = P['badge.glow']; }
+    ctx.fillStyle = P['badge.text']; ctx.fillText(txt, x, y + r * .05); ctx.restore();
+  }
+}
 const sc = K.screen({
   id: 'dial', title: 'Raven dial', docId: 'raven_dial',
   crumb: 'Asgard › Raven page › Raven dial <small>· AsgardRaven Dart</small>',
@@ -815,13 +850,35 @@ def('Text', 'Layout', 'text.all', 'text.y', 'Block up / down', 'num', -38, { min
 def('Text', 'Layout', 'text.all', 'text.gap1', 'Gap under RAVEN', 'num', 10, { min: 0, max: 60, step: .5, unit: 'px' });
 def('Text', 'Layout', 'text.all', 'text.gap2', 'Gap under name', 'num', 7, { min: 0, max: 60, step: .5, unit: 'px' });
 def('Text', 'Layout', 'text.all', 'text.fade', 'Fade-in starts at', 'num', .45, { min: 0, max: .95, step: .01, unit: 'of rise' });
-def('Text', 'Labels', 'text.title', 'label0', 'Messages shape', 'text', 'Messages');
-def('Text', 'Labels', 'text.title', 'label1', 'People shape', 'text', 'People');
-def('Text', 'Labels', 'text.title', 'label2', 'Calls shape', 'text', 'Calls');
-def('Text', 'Labels', 'text.title', 'label3', 'Groups shape', 'text', 'Groups');
+
+/* ---------- dial stops: rest position, names, pages, icons, unread badges ---------- */
+def('Stops', 'Resting position', 'pointer.arrow', 'rest.on', 'Arrow starts off a stop', 'bool', true, { info: 'On = when the dial opens the arrow sits a little off, nothing is chosen, and the user turns the dial onto a stop.' });
+def('Stops', 'Resting position', 'pointer.arrow', 'rest.offset', 'How far off', 'num', -10, { min: -180, max: 180, step: .5, unit: '°', info: 'Minus = to the left (north-west of the first stop). Plus = to the right.' });
+def('Stops', 'Resting position', 'pointer.arrow', 'rest.from', 'Rests next to', 'select', 0, { opts: [[0, 'Stop 1'], [1, 'Stop 2'], [2, 'Stop 3'], [3, 'Stop 4']] });
+def('Stops', 'Resting position', 'text.title', 'rest.title', 'Name shown while resting', 'text', '', { info: 'Leave empty to show no name until a stop is chosen.' });
+def('Stops', 'Resting position', 'text.hint', 'hint.rest', 'Hint while resting', 'text', 'Turn the ring');
+STOP_DEF.forEach((d, i) => {
+  const S = 'Stop ' + (i + 1), t = 'shape:' + i, a0 = Math.round(Math.atan2(SHAPES[i].pos[0], -SHAPES[i].pos[1]) / D2R * 2) / 2;
+  def('Stops', S, t, 'stop' + i + '.on', 'Use this stop', 'bool', d.on, { info: 'Off = the shape is hidden and the ring never stops here.' });
+  def('Stops', S, t, 'stop' + i + '.name', 'Name', 'text', d.name);
+  def('Stops', S, t, 'stop' + i + '.page', 'Opens page', 'select', d.page, { opts: [], info: 'Where tapping the middle takes you when this stop is chosen. Pages marked "not built yet" show a note in the studio.' });
+  def('Stops', S, t, 'stop' + i + '.icon', 'Icon', 'select', d.icon, { opts: ICON_OPTS });
+  def('Stops', S, t, 'stop' + i + '.angle', 'Angle around the dial', 'num', a0, { min: -180, max: 180, step: .5, unit: '°', info: '0 = top, 90 = right, -90 = left. Moves the shape around the ring; the ring stops there.' });
+  def('Stops', S, t, 'stop' + i + '.badge', 'Unread number', 'bool', true, { info: i === 2 ? 'Deals: unread messages from people who want to buy something you are selling.' : 'Unread count shown on the shape.' });
+  def('Stops', S, t, 'stop' + i + '.count', 'Test count', 'int', d.count, { min: 0, max: 999, step: 1, info: 'Studio test number. In the app this is the real unread count; 0 hides the number.' });
+});
+def('Stops', 'Unread numbers', 'shape:0', 'badge.size', 'Size', 'num', 11, { min: 5, max: 30, step: .5, unit: 'px' });
+def('Stops', 'Unread numbers', 'shape:0', 'badge.x', 'Left / right on the shape', 'num', .36, { min: -.8, max: .8, step: .01, unit: 'of shape' });
+def('Stops', 'Unread numbers', 'shape:0', 'badge.y', 'Up / down on the shape', 'num', -.36, { min: -.8, max: .8, step: .01, unit: 'of shape' });
+def('Stops', 'Unread numbers', 'shape:0', 'badge.fill', 'Bubble color', 'color', '#FF3B4E');
+def('Stops', 'Unread numbers', 'shape:0', 'badge.fillOn', 'Show bubble', 'bool', true, { info: 'Off = just the number, no bubble.' });
+def('Stops', 'Unread numbers', 'shape:0', 'badge.text', 'Number color', 'color', '#FFFFFF');
+def('Stops', 'Unread numbers', 'shape:0', 'badge.weight', 'Weight', 'select', 700, { opts: [[400, 'Regular'], [500, 'Medium'], [700, 'Bold'], [900, 'Black']] });
+def('Stops', 'Unread numbers', 'shape:0', 'badge.glow', 'Glow', 'num', 6, { min: 0, max: 30, step: .5, unit: 'px' });
+def('Stops', 'Unread numbers', 'shape:0', 'badge.max', 'Show "99+" above', 'int', 99, { min: 9, max: 999, step: 1 });
 
 SHAPES.forEach((s, i) => {
-  const g = s.tab + ' shape', t = 'shape:' + i, p = 's' + i + '.';
+  const g = 'Stop ' + (i + 1) + ' look', t = 'shape:' + i, p = 's' + i + '.';
   def(g, 'Place', t, p + 'x', 'Left / right', 'num', s.pos[0], { min: -300, max: 300, step: .5, unit: 'px', info: 'Moving a shape also moves where the ring stops for it.' });
   def(g, 'Place', t, p + 'y', 'Up / down', 'num', s.pos[1], { min: -350, max: 350, step: .5, unit: 'px' });
   def(g, 'Place', t, p + 'size', 'Size', 'num', 73.44, { min: 20, max: 220, step: .5, unit: 'px' });
@@ -870,8 +927,10 @@ SHAPES.forEach((s, i) => {
 
   },
   toolbar: [{ label: 'Replay', title: 'Play the rise-in again', onclick: () => replay() }, { label: 'Close', title: 'Play the close animation', onclick: () => closeDial() }, { label: 'Play exit', title: 'Preview the confirmed exit, then replay the entrance', onclick: () => { ST.dis = 0; ST.disStay = true; ST.closing=true; ST.navStarted=false; } }],
-  onSet(k) { P = sc.P; const reset = /^s([0-3])\.start$/.exec(k); if (reset) shapeMotion[+reset[1]] = window.RavenMotion.create(motionSettings(+reset[1])); if (/^s\d\.(x|y)$/.test(k) && !ST.grab && !ST.turn.on) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
-  onLoad() { P = sc.P; shapeMotion.length = 0; if (!ST.grab) { const m = metrics(); ST.angle = m.angles[ST.hi]; } },
+  onSet(k) { P = sc.P; const reset = /^s([0-3])\.start$/.exec(k); if (reset) shapeMotion[+reset[1]] = window.RavenMotion.create(motionSettings(+reset[1])); if (/^s\d\.(x|y)$/.test(k)) syncAngles(); const sa = /^stop([0-3])\.angle$/.exec(k); if (sa) { const i = +sa[1], r = Math.hypot(P['s' + i + '.x'], P['s' + i + '.y']) || 150, a = P[k] * D2R; P['s' + i + '.x'] = Math.round(r * Math.sin(a) * 2) / 2; P['s' + i + '.y'] = Math.round(-r * Math.cos(a) * 2) / 2; }
+    if (/^stop\d\.on$/.test(k) && !live(ST.hi)) ST.hi = liveList()[0];
+    if ((/^s\d\.(x|y)$/.test(k) || /^stop\d\.(angle|on)$/.test(k) || /^rest\./.test(k)) && !ST.grab && !ST.turn.on) { if (/^rest\./.test(k)) { ST.rest = !!P['rest.on']; if (ST.rest) ST.hi = live(+P['rest.from']) ? +P['rest.from'] : liveList()[0]; ST.ready = !ST.rest; } const m = metrics(); ST.angle = restAngle(m); } },
+  onLoad() { P = sc.P; shapeMotion.length = 0; syncAngles(); if (!ST.grab) { ST.rest = !!P['rest.on']; if (ST.rest || !live(ST.hi)) ST.hi = live(+P['rest.from']) ? +P['rest.from'] : liveList()[0]; ST.ready = !ST.rest; const m = metrics(); ST.angle = restAngle(m); } },
   onShow() { ST.dis = -1; replay(); },
   update(dt, now) {
     P = sc.P;
@@ -987,11 +1046,12 @@ SHAPES.forEach((s, i) => {
   pick(p) { P = sc.P; return pickPart(unRise(p)); },
   pointer: { down: (p, e) => { sc._flick = { x: p.x, y: p.y, t: performance.now(), lx: p.x, ly: p.y, lt: performance.now(), vx: 0, vy: 0 }; pDown(p, e); }, move: (p, e) => { const f = sc._flick; if (f) { const now = performance.now(), dt = Math.max(1, now - f.lt); f.vx = (p.x - f.lx) / dt * 1000; f.vy = (p.y - f.ly) / dt * 1000; f.lx = p.x; f.ly = p.y; f.lt = now; } pMove(p, e); }, up: (p, e) => { const f = sc._flick; sc._flick = null; if (f && !ST.didTurn) { const dy = p.y - f.y; if (dy > 60 && f.vy > 900 && Math.abs(f.vx) < f.vy * .6) { pCancel && pCancel(p, e); K.go('sky', { href: 'sleipnir-studio-1120.html#sky' }); return; } } pUp(p, e); }, cancel: pCancel },
 });
+sc.SPEC.filter(s => /^stop\d\.page$/.test(s.k)).forEach(s => Object.defineProperty(s, 'opts', { get: pageOpts, enumerable: true, configurable: true }));
 sc.ST = ST; sc.metrics = () => { P = sc.P; return metrics(); }; sc.replay = replay; sc.closeDial = closeDial;
 function pickPart(raw) {
   const m = metrics(), W = K.W, H = K.H;
   const p = raw, c = { x: m.cx, y: m.cy };
-  for (let i = 0; i < 4; i++) { const s = m.st[i]; if (Math.abs(p.x - s.x) <= s.size / 2 && Math.abs(p.y - s.y) <= s.size / 2) return [SHAPES[i].tab + ' shape', 'Place']; }
+  for (let i = 0; i < 4; i++) { if (!live(i)) continue; const s = m.st[i]; if (Math.abs(p.x - s.x) <= s.size / 2 && Math.abs(p.y - s.y) <= s.size / 2) return ['Stops', 'Stop ' + (i + 1)]; }
   for (const [k, sec] of [['raven', 'RAVEN label'], ['title', 'Mode name'], ['hint', 'Hint line']]) { const b = G.text && G.text[k]; if (b && p.x >= b.x - 4 && p.x <= b.x + b.w + 4 && p.y >= b.y - 3 && p.y <= b.y + b.h + 3) return ['Text', sec]; }
   if (G.marker && dist(p, G.marker) < G.dot * 2.5 + 6) return ['Pointer', 'Dot'];
   const lr = toRing(m, p), d = dist(lr, c), u = m.thickness / 32;
