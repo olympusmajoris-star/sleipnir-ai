@@ -323,6 +323,7 @@ function status(t) { $('status').textContent = t; }
 let toastTimer = 0; function toast(t) { let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); } el.textContent = t; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 3200); }
 K.status = t => { status(t); toast(t); }; K.toast = toast;
 K.commit = () => commit();
+K.SB = SB;
 K.rebuild = () => { if (cur) { buildTabs(); buildChips(); buildControls(); } };
 K.openSectionOf = (sc, g, sec) => { if (cur === sc) openSection(g, sec); };
 function localGet(k) { try { return JSON.parse(localStorage.getItem('studioKit1119.' + k)); } catch (e) { return null; } }

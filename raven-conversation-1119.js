@@ -686,7 +686,7 @@ const sc = K.screen({
     waterClock += dt * P['wa.speed']; windClock += dt * P['amb.windSpeed'];
     if (ST.active && now > ST.activeUntil) ST.active = false;
     // construction progress (waits at .28 until footage and clouds are ready, like the app)
-    if (ST.prog < 1) { const ready = (!P['earth.on'] || videos[vCur].readyState >= 2) && FILMS.every(f => f.ready || f.failed); if (ready || ST.prog < .28) ST.prog = Math.min(ready ? 1 : .28, ST.prog + dt / Math.max(.5, P['con.seconds'])); }
+    if (ST.prog < 1) { const ready = (P['lm.on'] && window.RavenLiveMap ? window.RavenLiveMap.ready() : (!P['earth.on'] || videos[vCur].readyState >= 2)) && FILMS.every(f => f.ready || f.failed); if (ready || ST.prog < .28) ST.prog = Math.min(ready ? 1 : .28, ST.prog + dt / Math.max(.5, P['con.seconds'])); }
     // Match _RvEarthJourney: keep every last frame, and wait for the next clip.
     const v = videos[vCur];
     if (P['earth.on'] && P['earth.cycle'] && v.dataset.idx != null && !ST.swap) { const ni = (+v.dataset.idx + 1) % CLIPS.length; if (+videos[1-vCur].dataset.idx !== ni) loadClip(1-vCur, ni, false); }
@@ -707,7 +707,9 @@ const sc = K.screen({
     G.composer = { x: cx, y: cy, w: cw, h: boxH };
     // paper + Earth (Earth is cut out block by block while the page builds)
     ctx.fillStyle = P['earth.paper']; ctx.globalAlpha = P['bg.mode'] === 'plain' ? 1 : 0; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
-    if (P['earth.on']) {
+    const liveMap = P['lm.on'] && window.RavenLiveMap;
+    if (liveMap) { ctx.save(); if (pr < .78) ctx.clip(revealedPath(cells, pr, W, H)); window.RavenLiveMap.draw(ctx, W, H, now); ctx.restore(); }
+    else if (P['earth.on']) {
       ctx.save(); if (pr < .78) ctx.clip(revealedPath(cells, pr, W, H));
       ctx.transform(...window.RavenEarthControls.matrix(P,W,H));
       const drawV = (v, a) => { if (!v.videoWidth || a <= 0) return; a *= P['earth.opacity']; const s = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s; ctx.save(); ctx.globalAlpha = a; ctx.filter = `brightness(${P['sc.groundBrightness']})`; ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh); ctx.restore(); ctx.save(); ctx.filter = `brightness(${P['sc.groundBrightness']})`; drawWater(ctx, v, a, now); ctx.restore(); };
@@ -716,7 +718,7 @@ const sc = K.screen({
     }
     if (P['shade.on']) { const op = cRamp(pr, .48, .82); if (op > 0) { const g = ctx.createLinearGradient(0, 0, 0, H), c = P['shade.color']; g.addColorStop(0, rgba(c, P['shade.top'])); g.addColorStop(P['shade.topEnd'], rgba(c, 0)); g.addColorStop(P['shade.bottomStart'], rgba(c, 0)); g.addColorStop(1, rgba(c, P['shade.bottom'])); ctx.save(); ctx.globalAlpha = op; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore(); } }
     // construction drawing over the page
-    if (pr < .96) { let terr = null; const v = videos[vCur]; if (pr < .91 && v.videoWidth && v.dataset.idx != null) { const raw = terrainAt(CLIPS[+v.dataset.idx][1], v.currentTime); if (raw) { const vw = v.videoWidth, vh = v.videoHeight, s0 = Math.max(W / vw, H / vh), sw = W / s0, sh = H / s0, sx = (vw - sw) / 2, sy = (vh - sh) / 2; const transform = window.RavenEarthControls.matrix(P,W,H); terr = raw.filter(q => q.length >= 2).map(q => q.map(([x, y]) => window.RavenEarthControls.point(transform, (x * vw - sx) * W / sw, (y * vh - sy) * H / sh)));  } } G.terrain = terr ? terr.length : 0; drawConstruction(ctx, pr, W, H, cells, hdr, G.composer, terr); }
+    if (pr < .96) { let terr = null; const v = videos[vCur]; if (pr < .91 && !liveMap && v.videoWidth && v.dataset.idx != null) { const raw = terrainAt(CLIPS[+v.dataset.idx][1], v.currentTime); if (raw) { const vw = v.videoWidth, vh = v.videoHeight, s0 = Math.max(W / vw, H / vh), sw = W / s0, sh = H / s0, sx = (vw - sw) / 2, sy = (vh - sh) / 2; const transform = window.RavenEarthControls.matrix(P,W,H); terr = raw.filter(q => q.length >= 2).map(q => q.map(([x, y]) => window.RavenEarthControls.point(transform, (x * vw - sx) * W / sw, (y * vh - sy) * H / sh)));  } } G.terrain = terr ? terr.length : 0; drawConstruction(ctx, pr, W, H, cells, hdr, G.composer, terr); }
     // drifting clouds sit behind the message clouds
     if (pr >= .96) drawMist(ctx); else G.mist = [];
     // message clouds mount once the page is built, then form
