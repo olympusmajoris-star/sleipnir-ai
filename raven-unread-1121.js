@@ -16,7 +16,7 @@ const { TAU, clamp, smooth, rgba } = K;
 const G0 = 'Unread people';
 
 /* ---------- people with real figures ---------- */
-const PEOPLE = [
+let PEOPLE = [
   { id: 'testwoman', name: 'Test Woman', is360: true, spin: true },
   { id: 'freya', name: 'Freya', is360: true, spin: true },
   { id: 'loki', name: 'Loki' },
@@ -25,7 +25,7 @@ const PEOPLE = [
   { id: 'baldr', name: 'Baldr', spin: true },
   { id: 'hel', name: 'Hel' },
 ];
-const BY_ID = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
+let BY_ID = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
 const MAX = 6, LIST = 12;
 // SPOTS: x (of width), feet y (of height), height px, bubble side, bubble x / y offset
 const SPOTS = [
@@ -53,13 +53,23 @@ function scan(im, n, f) {
   return b > t ? { fw, fh, t, b: b + 1, l, r: r + 1 } : { fw, fh, t: 0, b: fh, l: 0, r: fw };
 }
 function art(id) {
-  if (ART[id]) return ART[id];
-  const a = ART[id] = { prof: new Image(), spin: null, box: null, n: 25, sn: 48 };
-  a.prof.onload = () => { a.box = scan(a.prof, a.n, 12); buildTray(); };
-  a.prof.src = 'asgard/figs/' + id + '_profile.webp?v=1121u';
-  if (BY_ID[id] && BY_ID[id].spin) { a.spin = new Image(); a.spin.src = 'asgard/figs/' + id + '_spin.webp?v=1121u'; }
+  const who = BY_ID[id], src = who && who.src, key = id + '|' + (src ? src.profile : '');
+  if (ART[key]) return ART[key];
+  const a = ART[key] = { prof: new Image(), spin: null, box: null, n: src ? src.n : 25, sn: src ? src.sn : 48 };
+  a.prof.crossOrigin = 'anonymous';
+  a.prof.onload = () => { a.box = scan(a.prof, a.n, Math.floor(a.n / 2)); buildTray(); };
+  a.prof.src = src ? src.profile : 'asgard/figs/' + id + '_profile.webp?v=1121u';
+  const spinSrc = src ? src.spin : (who && who.spin ? 'asgard/figs/' + id + '_spin.webp?v=1121u' : null);
+  if (spinSrc) { a.spin = new Image(); a.spin.crossOrigin = 'anonymous'; a.spin.src = spinSrc; }
   return a;
 }
+// the studio's People list (add / remove test people without Claude) replaces the built-in list once it loads
+function syncPeople() {
+  const list = K.people ? K.people.list() : []; if (!list.length) return;
+  PEOPLE = list.map(q => ({ id: q.key, name: q.name, is360: q.is360, spin: !!q.spin, src: { profile: q.profile, spin: q.spin, n: q.profileFrames, sn: q.spinFrames } }));
+  BY_ID = Object.fromEntries(PEOPLE.map(q => [q.id, q])); PEOPLE.forEach(q => art(q.id)); if (typeof buildTray === 'function') buildTray();
+}
+if (K.people) K.people.on(syncPeople);
 PEOPLE.forEach(p => art(p.id));
 const ready = im => im && im.complete && im.naturalWidth > 0;
 
@@ -115,7 +125,8 @@ def('Swipe batches', 'unread', 'un.dotsOff', 'Other dots brightness', 'num', .35
 // unread list
 for (let j = 0; j < LIST; j++) {
   const [who, msg, n] = UNREAD[j], S = j < 6 ? 'Unread 1-6' : 'Unread 7-12', p = 'un.p' + j + '.', N = '#' + (j + 1) + ' ';
-  def(S, 'unread', p + 'who', N + 'who', 'select', who, { opts: PEOPLE.map(q => [q.id, q.name + (q.is360 ? ' (360)' : '')]), info: 'Their real 3D figure. Or drag a face from the tray onto someone standing above the dial.' });
+  def(S, 'unread', p + 'who', N + 'who', 'select', who, { info: 'Their real 3D figure. Or drag a face from the tray onto someone standing above the dial. Add or remove people with the People button at the top.' });
+  Object.defineProperty(ADD[ADD.length - 1], 'opts', { get: () => PEOPLE.map(q => [q.id, q.name + (q.is360 ? ' (360)' : '')]) });
   def(S, 'unread', p + 'msg', N + 'message', 'text', msg, { info: 'Their newest unread message. The bubble shows all of it.' });
   def(S, 'unread', p + 'count', N + 'unread count', 'int', n, { min: 0, max: 99, step: 1 });
   def(S, 'unread', p + 'spin', N + 'spin 360 (360 members only)', 'bool', false, { info: 'Only people who paid for 360 can spin. Everyone else ignores this.' });
@@ -233,13 +244,13 @@ try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '
 const P = () => sc.P;
 const off = document.createElement('canvas'), ox = off.getContext('2d');
 const L = { figs: [], bubs: [], badges: [], names: [] };
-function unreadList() { const p = P(), n = clamp(Math.round(p['un.total']), 0, LIST), out = []; for (let j = 0; j < n; j++) if (!READ.has(j)) out.push(j); return out; }
+function unreadList() { const p = P(), n = clamp(Math.round(p['un.total']), 0, LIST), out = []; for (let j = 0; j < n; j++) if (!READ.has(j) && BY_ID[p['un.p' + j + '.who']]) out.push(j); return out; }
 function spotsOn() { const p = P(), n = clamp(Math.round(p['un.count']), 1, MAX), out = []; for (let i = 0; i < n; i++) if (p['un.p' + i + '.show']) out.push(i); return out; }
 function pageCount() { const sp = spotsOn().length; return sp ? Math.max(1, Math.ceil(unreadList().length / sp)) : 1; }
 function batch(page) {
   const p = P(), list = unreadList(), sp = spotsOn(), start = page * sp.length;
   return sp.map((i, k) => { const j = list[start + k]; if (j === undefined) return null; const lq = 'un.p' + j + '.';
-    return { i, j, q: 'un.p' + i + '.', lq, order: k, who: BY_ID[p[lq + 'who']] || PEOPLE[0], layer: p['un.p' + i + '.layer'] }; }).filter(Boolean);
+    return { i, j, q: 'un.p' + i + '.', lq, order: k, who: BY_ID[p[lq + 'who']], layer: p['un.p' + i + '.layer'] }; }).filter(s => s && s.who);
 }
 function turnPage(dir) {
   const n = pageCount(); let np = SW.page + dir;
@@ -414,7 +425,7 @@ function carousel(now) {
   }
   const pl = { i: 0, q: 'un.p0.' }, Y0 = p['un.c.y'] * K.H, H0 = p['un.c.h'];
   list.forEach((j, k) => {
-    const lq = 'un.p' + j + '.', who = BY_ID[p[lq + 'who']] || PEOPLE[0];
+    const lq = 'un.p' + j + '.', who = BY_ID[p[lq + 'who']]; if (!who) return;
     let X, Y = Y0, H = H0, turn = 0, dim = 1, alpha = 1, depth = 1;
     if (ring) {
       const ang = (k - CAR.pos) / n * TAU, c = Math.cos(ang), sn = Math.sin(ang), f = (c + 1) / 2;
@@ -568,7 +579,7 @@ function tray(on) { if (!trayEl) buildTray(); if (trayEl) trayEl.style.display =
 function thumb(id) {
   const a = art(id), c = document.createElement('canvas'); c.width = 64; c.height = 112; c.draggable = true; c.title = 'Drag onto the phone';
   c.style.cssText = 'background:#0c1219;border:1px solid #233142;border-radius:8px;cursor:grab;width:48px;height:84px';
-  if (a.box && ready(a.prof)) { const x = c.getContext('2d'), b = a.box, fw = Math.floor(a.prof.naturalWidth / a.n), k = Math.min(100 / (b.b - b.t), 58 / (b.r - b.l)); x.drawImage(a.prof, 12 * fw, 0, fw, a.prof.naturalHeight, 32 - (b.l + b.r) / 2 * k, 106 - b.b * k, fw * k, a.prof.naturalHeight * k); }
+  if (a.box && ready(a.prof)) { const x = c.getContext('2d'), b = a.box, fw = Math.floor(a.prof.naturalWidth / a.n), k = Math.min(100 / (b.b - b.t), 58 / (b.r - b.l)); x.drawImage(a.prof, Math.floor(a.n / 2) * fw, 0, fw, a.prof.naturalHeight, 32 - (b.l + b.r) / 2 * k, 106 - b.b * k, fw * k, a.prof.naturalHeight * k); }
   c.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', 'unread:' + id); e.dataTransfer.effectAllowed = 'copy'; });
   c.addEventListener('click', () => placePerson(id, null));
   return c;

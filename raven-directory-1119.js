@@ -16,6 +16,15 @@ let P = {};
 const DEMO = [['Test Woman', 'I sent you the photo', 1], ['Freya', 'That looks amazing', 1], ['Loki', 'See you tonight?', 0], ['Hel', "I'll be there at six", 1], ['Tyr', 'Training at dawn', 0], ['Sif', 'Hair appointment moved', 0], ['Saga', 'Story time later', 1], ['Eir', 'Feeling better!', 0], ['Skadi', 'Snow trip this weekend?', 0], ['Njord', 'Boat is ready', 0], ['Bragi', 'New song drop', 1], ['Ullr', 'Archery Sunday', 0], ['Vidar', 'On my way', 0], ['Forseti', 'Settled it', 0], ['Gerd', 'Garden looks great', 0]];
 const PEOPLE = DEMO.map(([name, msg, unread], i) => { const img = new Image(); img.src = 'busts/' + name.replace(/ /g, '') + '.webp'; return { name, msg, group: i === 0 ? 0 : unread ? 1 : 2, img, frames: 11, minAngle: -25, angleStep: 5 }; });
 const NAME_STYLES = [[0, 'Regular'], [1, 'Bold'], [2, 'Italic'], [3, 'Bold italic']];
+// studio People list (add / remove test people without Claude): rebuild the Rolodex from it once it loads
+if (K.people) K.people.on(() => {
+  const list = K.people.list().filter(q => q.bust); if (!list.length) return;
+  const order = new Map(DEMO.map(([n], i) => [n, i])), msgs = new Map(DEMO.map(([n, m, u]) => [n, [m, u]]));
+  list.sort((a, b) => (order.has(a.name) ? order.get(a.name) : 999) - (order.has(b.name) ? order.get(b.name) : 999) || a.name.localeCompare(b.name));
+  const next = list.map((q, i) => { const old = PEOPLE.find(o => o.name === q.name && o.img && o.img.src && o.img.src.includes(String(q.bust).split('?')[0])); const img = old ? old.img : new Image(); if (!old) { img.crossOrigin = 'anonymous'; img.src = q.bust; }
+    const [msg, unread] = msgs.get(q.name) || ['', 0]; return { name: q.name, msg, group: i === 0 ? 0 : unread ? 1 : 2, img, frames: q.bustFrames || 11, minAngle: -25, angleStep: 5 }; });
+  PEOPLE.splice(0, PEOPLE.length, ...next);
+});
 
 /* ---------- state ---------- */
 const ST = { scroll: 0, entry: 0, velocity: 0, settle: null, dragging: false, spinPhase: 0, time: 0, down: null, lastY: 0, lastT: 0, vy: 0, moved: 0 };
