@@ -320,6 +320,7 @@ function updUndo() { $('bUndo').disabled = cur.hi <= 0; $('bRedo').disabled = cu
 function status(t) { $('status').textContent = t; }
 let toastTimer = 0; function toast(t) { let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); } el.textContent = t; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 3200); }
 K.status = t => { status(t); toast(t); }; K.toast = toast;
+K.commit = () => commit();
 function localGet(k) { try { return JSON.parse(localStorage.getItem('studioKit1119.' + k)); } catch (e) { return null; } }
 function localSet(k, v) { try { localStorage.setItem('studioKit1119.' + k, JSON.stringify(v)); } catch (e) {} }
 async function save(sc, auto) {
