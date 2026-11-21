@@ -67,6 +67,7 @@ const ready = im => im && im.complete && im.naturalWidth > 0;
 let T0 = performance.now();
 const READ = new Set();                                   // list entries opened (read) this session
 const SW = { page: 0, from: -1, dir: 1, t: -1e9, dx: 0 };
+const CAR = { pos: 0, vel: 0, drag: false, last: 0 };       // carousel scroll (px for row, people for ring)
 
 /* ---------- controls ---------- */
 const ADD = [];
@@ -74,6 +75,22 @@ const def = (section, target, k, label, type, d, o = {}) => ADD.push(Object.assi
 const NEW = 'Studio addition, not in the Dart yet.';
 def('People', 'unread', 'un.on', 'Show unread people', 'bool', true, { info: 'People with unread messages stand above the dial with their message in a small comic bubble. ' + NEW });
 def('People', 'unread', 'un.total', 'People with unread messages', 'int', 7, { min: 0, max: LIST, step: 1, info: 'How many are in the unread list (edit them under Unread 1-6 and Unread 7-12). Opening someone\'s messages takes them off the list.' });
+def('People', 'unread', 'un.layout', 'How they are shown', 'select', 'batches', { opts: [['batches', 'Batches on spots (swipe for next batch)'], ['row', 'Carousel: one long row you slide'], ['ring', 'Carousel: 3D ring that turns']], info: 'Batches = each batch stands on your Spots. Carousels put every unread person in one strip you slide with your finger; the ring turns them in 3D using their real models.' });
+def('Carousel', 'unread', 'un.c.y', 'Feet up / down', 'num', .27, { min: 0, max: 1, step: .001, unit: 'of height' });
+def('Carousel', 'unread', 'un.c.h', 'Person height', 'num', 175, { min: 40, max: 600, step: 1, unit: 'px' });
+def('Carousel', 'unread', 'un.c.gap', 'Space between people', 'num', 105, { min: 30, max: 400, step: 1, unit: 'px', info: 'Row carousel only.' });
+def('Carousel', 'unread', 'un.c.focus', 'Middle person bigger by', 'num', 1.15, { min: 1, max: 2, step: .01, unit: '×' });
+def('Carousel', 'unread', 'un.c.loop', 'Wrap around (no end)', 'bool', true, { info: 'Row carousel. The ring always wraps.' });
+def('Carousel', 'unread', 'un.c.radius', 'Ring width', 'num', .38, { min: .1, max: .8, step: .005, unit: 'of width', info: 'Ring carousel only.' });
+def('Carousel', 'unread', 'un.c.depth', 'Back of ring size', 'num', .55, { min: .2, max: 1, step: .01, unit: '×' });
+def('Carousel', 'unread', 'un.c.lift', 'Back of ring lifts up', 'num', 34, { min: -200, max: 200, step: 1, unit: 'px' });
+def('Carousel', 'unread', 'un.c.dim', 'Back of ring darker', 'num', .45, { min: 0, max: 1, step: .01 });
+def('Carousel', 'unread', 'un.c.turn', 'People turn with the ring', 'bool', true, { info: 'Shows the side of their real 3D model as they go around.' });
+def('Carousel', 'unread', 'un.c.fade', 'Fade at the screen edges', 'num', 36, { min: 0, max: 200, step: 1, unit: 'px', info: 'Row carousel. 0 = no fade.' });
+def('Carousel', 'unread', 'un.c.inertia', 'Keeps sliding after you let go', 'bool', true);
+def('Carousel', 'unread', 'un.c.friction', 'Slows down by', 'num', .93, { min: .5, max: .995, step: .001, info: 'Higher = slides longer.' });
+def('Carousel', 'unread', 'un.c.snap', 'Stops with someone in the middle', 'bool', true);
+def('Carousel', 'unread', 'un.c.auto', 'Drifts on its own', 'num', 0, { min: -200, max: 200, step: 1, unit: 'px/s', info: '0 = still until you swipe.' });
 def('People', 'unread', 'un.count', 'People per batch', 'int', 4, { min: 1, max: MAX, step: 1, info: 'How many stand above the dial at once. Swipe left or right for the next batch. Each one stands on a Spot.' });
 def('People', 'unread', 'un.scaleAll', 'Size of everyone', 'num', 1.15, { min: .3, max: 3, step: .01, unit: '×' });
 def('People', 'unread', 'un.lock', 'Lock positions', 'bool', false, { info: 'On = dragging on a person swipes batches instead of moving their spot.' });
@@ -234,8 +251,8 @@ function nextBatch() { if (!turnPage(1) && pageCount() > 1) { SW.from = SW.page;
 /* ---------- draw ---------- */
 function figGeom(s) {
   const p = P(), a = art(s.who.id), box = a.box; if (!box) return null;
-  const H = p[s.q + 'h'] * p['un.scaleAll'], k = H / Math.max(1, box.b - box.t);
-  const X = p[s.q + 'x'] * K.W, Y = p[s.q + 'y'] * K.H, w = (box.r - box.l) * k;
+  const H = (s.ov ? s.ov.H : p[s.q + 'h']) * p['un.scaleAll'], k = H / Math.max(1, box.b - box.t);
+  const X = s.ov ? s.ov.X : p[s.q + 'x'] * K.W, Y = s.ov ? s.ov.Y : p[s.q + 'y'] * K.H, w = (box.r - box.l) * k;
   return { X, Y, H, k, w, top: Y - H, box, a };
 }
 function arrival(order, now, arrived) {
@@ -249,13 +266,14 @@ function arrival(order, now, arrived) {
 function frameOf(s, g, now) {
   const p = P(), a = g.a, spin = s.who.is360 && p[s.lq + 'spin'] && ready(a.spin);
   if (spin) { const pos = ((now / 1000) / Math.max(.5, p[s.lq + 'spinSec']) % 1) * a.sn, f0 = Math.floor(pos) % a.sn; return { im: a.spin, n: a.sn, f0, f1: (f0 + 1) % a.sn, mix: pos - Math.floor(pos) }; }
-  const mid = (a.n - 1) / 2, pos = clamp(mid + clamp(p[s.q + 'turn'], -60, 60) / 60 * mid, 0, a.n - 1), f0 = Math.floor(pos);
+  const turn = s.ov && s.ov.turn != null ? s.ov.turn : p[s.q + 'turn'];
+  const mid = (a.n - 1) / 2, pos = clamp(mid + clamp(turn, -60, 60) / 60 * mid, 0, a.n - 1), f0 = Math.floor(pos);
   return { im: a.prof, n: a.n, f0, f1: Math.min(f0 + 1, a.n - 1), mix: pos - f0 };
 }
 function drawFigure(ctx, s, g, now, ar) {
   const p = P(), fr = frameOf(s, g, now), fw = Math.floor(fr.im.naturalWidth / fr.n), fh = fr.im.naturalHeight, k = g.k;
   const dw = fw * k, dh = fh * k, cx = (g.box.l + g.box.r) / 2 * k, dx = g.X - cx, dy = g.Y - g.box.b * k;
-  let alpha = p['un.opacity'], yOff = 0, sc0 = 1, reveal = 1; const e = smooth(ar.u), st = p['un.a.style'];
+  let alpha = p['un.opacity'] * (s.ov && s.ov.alpha != null ? s.ov.alpha : 1), yOff = 0, sc0 = 1, reveal = 1; const e = smooth(ar.u), st = p['un.a.style'];
   if (st === 'fade') alpha *= e; else if (st === 'rise') { alpha *= e; yOff = (1 - e) * 40; } else if (st === 'pop') { alpha *= e; sc0 = .6 + .4 * e; } else if (st === 'beam') { reveal = e; alpha *= Math.min(1, e * 4); }
   if (p['un.flicker'] > 0) { const ph = now / 1000 * TAU * 6 + s.i * 1.7; alpha *= 1 - p['un.flicker'] * .25 * (1 + Math.sin(ph) * Math.sin(ph * 2.3 + 1)) / 2; }
   if (alpha <= .001) return;
@@ -273,7 +291,7 @@ function drawFigure(ctx, s, g, now, ar) {
     ox.globalCompositeOperation = 'source-in'; ox.fillStyle = p['un.edgeColor']; ox.fillRect(0, 0, cw, ch); ox.globalCompositeOperation = 'source-over';
     ctx.save(); ctx.globalAlpha *= p['un.edge']; ctx.filter = `blur(${(p['un.edgeBlur'] * kk).toFixed(2)}px)`; ctx.drawImage(off, 0, 0, cw, ch, dx, dy, dw, dh); ctx.restore();
   }
-  ctx.filter = `brightness(${p['un.bright']}) contrast(${p['un.contrast']}) saturate(${p['un.sat']})`;
+  ctx.filter = `brightness(${p['un.bright'] * (s.ov && s.ov.dim != null ? s.ov.dim : 1)}) contrast(${p['un.contrast']}) saturate(${p['un.sat']})`;
   put(fr.f0, 1); if (fr.f1 !== fr.f0) put(fr.f1, fr.mix);
   ctx.filter = 'none';
   if (reveal < 1) { ctx.restore(); ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 2); ctx.fillStyle = 'rgba(220,245,255,.9)'; ctx.fillRect(dx, ry - 1, dw, 2); }
@@ -382,9 +400,52 @@ function drawBatch(ctx, now, page, shiftX, alpha, record, arrived) {
   }
   ctx.restore();
 }
+function carousel(now) {
+  const p = P(), list = unreadList(), n = list.length, ring = p['un.layout'] === 'ring', out = [];
+  if (!n) return out;
+  const dt = Math.min(.05, Math.max(0, (now - (CAR.last || now)) / 1000)); CAR.last = now;
+  const unit = ring ? 1 : p['un.c.gap'];
+  if (!CAR.drag) {
+    if (p['un.c.auto']) CAR.pos += p['un.c.auto'] * dt / (ring ? p['un.c.gap'] : 1);
+    else if (p['un.c.inertia'] && Math.abs(CAR.vel) > .01) { CAR.pos += CAR.vel * dt; CAR.vel *= Math.pow(p['un.c.friction'], dt * 60); }
+    else CAR.vel = 0;
+    if (p['un.c.snap'] && !p['un.c.auto'] && Math.abs(CAR.vel) < (ring ? .6 : 60)) { const tgt = Math.round(CAR.pos / unit) * unit; CAR.pos += (tgt - CAR.pos) * Math.min(1, dt * 10); CAR.vel *= .8; }
+    if (!ring && !p['un.c.loop']) CAR.pos = clamp(CAR.pos, 0, (n - 1) * unit);
+  }
+  const pl = { i: 0, q: 'un.p0.' }, Y0 = p['un.c.y'] * K.H, H0 = p['un.c.h'];
+  list.forEach((j, k) => {
+    const lq = 'un.p' + j + '.', who = BY_ID[p[lq + 'who']] || PEOPLE[0];
+    let X, Y = Y0, H = H0, turn = 0, dim = 1, alpha = 1, depth = 1;
+    if (ring) {
+      const ang = (k - CAR.pos) / n * TAU, c = Math.cos(ang), sn = Math.sin(ang), f = (c + 1) / 2;
+      X = K.W / 2 + sn * p['un.c.radius'] * K.W; depth = c;
+      H = H0 * (p['un.c.depth'] + (1 - p['un.c.depth']) * f) * (1 + (p['un.c.focus'] - 1) * Math.max(0, c) ** 6);
+      Y = Y0 - (1 - f) * p['un.c.lift']; dim = 1 - p['un.c.dim'] * (1 - f); if (p['un.c.turn']) turn = clamp(sn * 60 * (c < 0 ? -1 : 1), -60, 60);
+    } else {
+      let off = k * unit - CAR.pos; if (p['un.c.loop'] && n > 1) { const span = n * unit; off = ((off % span) + span * 1.5) % span - span / 2; }
+      X = K.W / 2 + off; H = H0 * (1 + (p['un.c.focus'] - 1) * Math.max(0, 1 - Math.abs(off) / unit));
+      const fd = p['un.c.fade']; if (fd > 0) alpha = clamp(Math.min(X, K.W - X) / fd, 0, 1);
+      depth = 1 - Math.abs(off) / (K.W);
+    }
+    out.push({ i: 0, j, q: pl.q, lq, order: k, who, layer: depth, ov: { X, Y, H, turn, dim, alpha } });
+  });
+  return out;
+}
+function drawCarousel(ctx, now) {
+  const p = P(), list = carousel(now).map(s => ({ s, g: figGeom(s) })).filter(o => o.g && (o.s.ov.alpha > .01));
+  list.sort((a, b) => a.s.layer - b.s.layer);
+  for (const o of list) { o.ar = arrival(0, now, SW.from >= 0 || CAR.moved); drawFigure(ctx, o.s, o.g, now, o.ar); L.figs.push({ i: o.s.i, j: o.s.j, x: o.g.X - o.g.w / 2, y: o.g.top, w: o.g.w, h: o.g.H }); }
+  for (const o of list) {
+    const cnt = p[o.s.lq + 'count'], where = p['un.u.where'], a = smooth(o.ar.u) * o.s.ov.alpha;
+    if (p['un.b.on']) { const b = bubbleLayout(ctx, o.s, o.g); drawBubble(ctx, o.s, b, o.ar, where === 'bubble' ? cnt : 0); }
+    if (p['un.u.on'] && cnt > 0 && (where !== 'bubble' || !p['un.b.on'])) { const r = p['un.u.size'] / 2, y = (where === 'head' ? o.g.top - p['un.u.gap'] - r : o.g.Y + p['un.u.gap'] + r) + p[o.s.q + 'uy']; badge(ctx, o.g.X + p[o.s.q + 'ux'], y, cnt, a); }
+    if (p['un.n.on']) nameLabel(ctx, o.s, o.g, a);
+  }
+}
 function drawUnread(ctx, now) {
   const p = P(); L.figs = []; L.bubs = []; L.badges = []; L.names = [];
   if (!p['un.on']) return;
+  if (p['un.layout'] !== 'batches') { drawCarousel(ctx, now); return; }
   const n = pageCount(); if (SW.page >= n) SW.page = n - 1; if (SW.page < 0) SW.page = 0;
   if (p['un.a.loop']) { const total = p['un.a.wait'] + spotsOn().length * p['un.a.gap'] + p['un.a.dur'] + 2600; if (now - T0 > total) { T0 = now; SW.page = 0; SW.from = -1; } }
   const st = p['un.sw.style'], u = st === 'none' ? 1 : clamp((now - SW.t) / Math.max(1, p['un.sw.ms']), 0, 1), e = smooth(u);
@@ -413,7 +474,7 @@ function hit(p) {
   for (let k = L.figs.length - 1; k >= 0; k--) { const f = L.figs[k]; if (inside(p, { x: f.x + f.w * .1, y: f.y, w: f.w * .8, h: f.h }, 2)) return { kind: 'fig', i: f.i, j: f.j }; }
   return null;
 }
-function band() { const p = P(); let b = 0; for (const i of spotsOn()) b = Math.max(b, p['un.p' + i + '.y'] * K.H); return b + 18; }
+function band() { const p = P(); if (p['un.layout'] !== 'batches') return p['un.c.y'] * K.H + 40; let b = 0; for (const i of spotsOn()) b = Math.max(b, p['un.p' + i + '.y'] * K.H); return b + 18; }
 const hl0 = sc.highlight;
 sc.highlight = function (ctx, base, sub, H1, now) {
   if (!String(base).startsWith('unread')) return hl0.call(this, ctx, base, sub, H1, now);
@@ -446,6 +507,7 @@ const ptr0 = sc.pointer;
 sc.pointer = {
   down(p, e) {
     const h = hit(p), P0 = P(), edit = !K.viewOnly && !P0['un.lock'];
+    if (P0['un.on'] && P0['un.layout'] !== 'batches' && (h || p.y < band())) { swipe = { h, sx: p.x, sy: p.y, lx: p.x, lt: performance.now(), pos0: CAR.pos, moved: false, car: true }; CAR.drag = true; CAR.vel = 0; return; }
     if (h && edit) {
       const q = 'un.p' + h.i + '.';
       drag = { h, q, sx: p.x, sy: p.y, moved: false, x0: P0[q + 'x'], y0: P0[q + 'y'], bx0: P0[q + 'bx'], by0: P0[q + 'by'], ux0: P0[q + 'ux'], uy0: P0[q + 'uy'], nx0: P0[q + 'nx'], ny0: P0[q + 'ny'] };
@@ -463,11 +525,15 @@ sc.pointer = {
       else { K.setVal(drag.q + 'bx', Math.round(snap(drag.bx0 + dx))); K.setVal(drag.q + 'by', Math.round(snap(drag.by0 + dy))); }
       return;
     }
+    if (swipe && swipe.car) { const dx = p.x - swipe.sx, ring = P()['un.layout'] === 'ring', per = ring ? (P()['un.c.radius'] * K.W * 2 * Math.PI / Math.max(1, unreadList().length)) : 1;
+      if (Math.abs(dx) > 6) { swipe.moved = true; CAR.moved = true; }
+      const t = performance.now(), v = (p.x - swipe.lx) / Math.max(1, t - swipe.lt) * 1000; swipe.lx = p.x; swipe.lt = t; CAR.vel = -v / per; CAR.pos = swipe.pos0 - dx / per; return; }
     if (swipe) { const dx = p.x - swipe.sx, dy = p.y - swipe.sy; if (Math.hypot(dx, dy) > 6) swipe.moved = true; if (Math.abs(dx) > Math.abs(dy)) SW.dx = dx; return; }
     return ptr0.move(p, e);
   },
   up(p, e) {
     if (drag) { const d = drag; drag = null; if (d.moved) { if (K.commit) K.commit(); } else if (P()['un.tapStudio']) openConversation(d.h.j); return; }
+    if (swipe && swipe.car) { const s = swipe; swipe = null; CAR.drag = false; if (!s.moved && s.h && (K.viewOnly || P()['un.tapStudio'])) openConversation(s.h.j); return; }
     if (swipe) {
       const s = swipe, dx = p.x - s.sx, dy = p.y - s.sy; swipe = null; SW.dx = 0;
       if (Math.abs(dx) >= P()['un.sw.min'] && Math.abs(dx) > Math.abs(dy)) { turnPage(dx < 0 ? 1 : -1); return; }
@@ -476,7 +542,7 @@ sc.pointer = {
     }
     return ptr0.up(p, e);
   },
-  cancel(p, e) { if (drag || swipe) { drag = swipe = null; SW.dx = 0; return; } if (ptr0.cancel) ptr0.cancel(p, e); },
+  cancel(p, e) { if (drag || swipe) { drag = swipe = null; SW.dx = 0; CAR.drag = false; return; } if (ptr0.cancel) ptr0.cancel(p, e); },
 };
 sc.toolbar = (sc.toolbar || []).map(t => t.label === 'Replay' ? Object.assign({}, t, { onclick: () => { t.onclick(); T0 = performance.now(); SW.page = 0; SW.from = -1; } }) : t);
 sc.toolbar.push({ label: 'Replay people', title: 'Play the unread people arriving again', onclick: () => { T0 = performance.now(); SW.page = 0; SW.from = -1; } });
