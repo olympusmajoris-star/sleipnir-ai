@@ -799,9 +799,16 @@ const sc = K.screen({
     return prog() < .96 ? ['Construction', 'Timing'] : ['Earth', 'Footage'];
   },
   pointer: {
-    down(p) { },
+    // back (button or a swipe down) returns to wherever the conversation was opened from: the dial's unread people or the sphere
+    down(p) { sc._sw = { x: p.x, y: p.y, t: performance.now() }; },
     move() { },
-    up(p) { const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h; if (inR(G.back)) { K.show('directory'); return; } if (inR(G.composer) && input) { input.focus(); } },
+    up(p) {
+      const inR = b => b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h, goBack = () => { const to = sc.backTo && K.screens[sc.backTo] ? sc.backTo : 'directory'; sc.backTo = null; K.show(to); };
+      const s = sc._sw; sc._sw = null;
+      if (inR(G.back)) { goBack(); return; }
+      if (s && p.y - s.y > 90 && Math.abs(p.x - s.x) < (p.y - s.y) * .6 && !inR(G.composer)) { goBack(); return; }
+      if (inR(G.composer) && input) { input.focus(); }
+    },
   },
 });
 const BACK = new Path2D('M19 11H7.83l4.88-4.88c.39-.39.39-1.03 0-1.42-.39-.39-1.02-.39-1.41 0l-6.59 6.59c-.39.39-.39 1.02 0 1.41l6.59 6.59c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L7.83 13H19c.55 0 1-.45 1-1s-.45-1-1-1z');

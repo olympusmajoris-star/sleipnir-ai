@@ -346,7 +346,7 @@ function drawChrome(ctx, g, people) {
 function openConvo(name) {
   const conv = K.screens.conversation;
   if (!conv) { K.status('Tapped ' + name + ': the conversation screen is not loaded in this Studio.'); return; }
-  conv.withName = name; K.show('conversation');
+  conv.withName = name; conv.backTo = 'directory'; K.show('conversation');
 }
 
 /* ---------- module ---------- */
