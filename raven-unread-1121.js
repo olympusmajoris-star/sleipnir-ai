@@ -481,6 +481,17 @@ sc.pointer = {
 sc.toolbar = (sc.toolbar || []).map(t => t.label === 'Replay' ? Object.assign({}, t, { onclick: () => { t.onclick(); T0 = performance.now(); SW.page = 0; SW.from = -1; } }) : t);
 sc.toolbar.push({ label: 'Replay people', title: 'Play the unread people arriving again', onclick: () => { T0 = performance.now(); SW.page = 0; SW.from = -1; } });
 sc.toolbar.push({ label: 'Next batch ›', title: 'Same as swiping left over the people', onclick: () => nextBatch() });
+// things the Text & buttons layer can attach to / do on this page
+sc.anchors = () => { const p = P(), out = [{ id: 'dial', label: 'The dial (middle)', x: K.W / 2, y: K.H * .62, fields: null }];
+  for (let i = 0; i < MAX; i++) { const f = L.figs.find(r => r.i === i); const j = f ? f.j : null, who = j != null ? BY_ID[p['un.p' + j + '.who']] : null;
+    out.push({ id: 'spot:' + i, label: 'Person on Spot ' + (i + 1), x: f ? f.x + f.w / 2 : null, y: f ? f.y + f.h : null, fields: who ? { name: who.name, count: p['un.p' + j + '.count'], msg: p['un.p' + j + '.msg'] } : null, open: j != null ? () => openConversation(j) : null }); }
+  return out; };
+sc.actions = () => [
+  { id: 'nextBatch', label: 'Next batch of unread people', run: () => nextBatch() },
+  { id: 'prevBatch', label: 'Previous batch of unread people', run: () => { turnPage(-1); } },
+  { id: 'replayPeople', label: 'Replay the people arriving', run: () => { T0 = performance.now(); SW.page = 0; SW.from = -1; } },
+  { id: 'sphere', label: 'Open the Rolodex sphere (everyone)', run: () => { if (K.screens.directory) K.show('directory'); } },
+];
 const show0 = sc.onShow, hide0 = sc.onHide;
 sc.onShow = function () { if (show0) show0.call(this); if (!sc._backFromConv) { T0 = performance.now(); SW.page = 0; SW.from = -1; } else { SW.from = SW.page; SW.t = -1e9; } sc._backFromConv = false; buildTray(); tray(true); };
 sc.onHide = function () { if (hide0) hide0.call(this); tray(false); };

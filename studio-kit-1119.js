@@ -223,8 +223,10 @@ function buildTabs() { const el = $('tabs'); el.innerHTML = ''; groups().forEach
 function buildChips() {
   const el = $('chips'); el.innerHTML = '';
   [...new Set(cur.SPEC.filter(s => s.group === cur.ui.group).map(s => s.section))].forEach(sec => {
+    const first = cur.SPEC.find(s => s.group === cur.ui.group && s.section === sec);
+    if (first.hideIf && first.hideIf(cur.P) && sec !== cur.ui.section) return;
     const b = document.createElement('button'); b.textContent = sec; b.className = sec === cur.ui.section ? 'on' : '';
-    const tgt = cur.SPEC.find(s => s.group === cur.ui.group && s.section === sec).target;
+    const tgt = first.target;
     b.onclick = () => openSection(cur.ui.group, sec);
     b.onpointerenter = () => { hover = tgt; hoverUntil = Infinity; }; b.onpointerleave = () => { hoverUntil = performance.now(); };
     el.appendChild(b);
@@ -321,6 +323,8 @@ function status(t) { $('status').textContent = t; }
 let toastTimer = 0; function toast(t) { let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); } el.textContent = t; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 3200); }
 K.status = t => { status(t); toast(t); }; K.toast = toast;
 K.commit = () => commit();
+K.rebuild = () => { if (cur) { buildTabs(); buildChips(); buildControls(); } };
+K.openSectionOf = (sc, g, sec) => { if (cur === sc) openSection(g, sec); };
 function localGet(k) { try { return JSON.parse(localStorage.getItem('studioKit1119.' + k)); } catch (e) { return null; } }
 function localSet(k, v) { try { localStorage.setItem('studioKit1119.' + k, JSON.stringify(v)); } catch (e) {} }
 async function save(sc, auto) {
