@@ -55,7 +55,7 @@ def('Aurora', 'earth', 'lm.auroraOp', 'Aurora strength', 'num', .7, { min: 0, ma
 def('Aurora', 'earth', 'lm.auroraAll', 'Show the aurora all day too', 'bool', false);
 def('Credit', 'earth', 'lm.creditSize', 'Mapbox credit size', 'num', 8, { min: 7, max: 14, step: .5, unit: 'px', info: 'Mapbox requires its credit on the map. You can move it and size it, not hide it.' });
 def('Credit', 'earth', 'lm.creditX', 'Credit left / right', 'num', 8, { min: 0, max: 400, step: 1, unit: 'px' });
-def('Credit', 'earth', 'lm.creditY', 'Credit up from bottom', 'num', 150, { min: 0, max: 900, step: 1, unit: 'px' });
+def('Credit', 'earth', 'lm.creditY', 'Credit up from bottom', 'num', 205, { min: 0, max: 900, step: 1, unit: 'px' });
 sc.SPEC.splice(first < 0 ? 0 : first, 0, ...add);
 add.forEach(s => { sc.DEF[s.k] = s.def; sc.P[s.k] = s.def; });
 
