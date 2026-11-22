@@ -6,7 +6,10 @@
   <meta name="color-scheme" content="dark">
   <title>Grocery aisle editor · Sleipnir Studio</title>
   <link rel="stylesheet" href="aisle-shelf-editor.css?v=shelf-resize-2">
-<link rel="stylesheet" href="product-details-editor.css"></head>
+<link rel="stylesheet" href="product-details-editor.css">
+  <link rel="stylesheet" href="shelf-layout-canvas.css?v=1">
+  <link rel="stylesheet" href="shelf-layout-controls.css?v=1">
+  <link rel="stylesheet" href="shelf-layout-workspace.css?v=1"></head>
 <body>
   <header id="editor-header">
     <div><a href="store-directory.html?type=grocery" class="back-link" id="store-back">‹ Stores</a><h1>Grocery aisle editor</h1></div>
@@ -17,6 +20,7 @@
     <section id="preview-pane" aria-labelledby="preview-heading">
       <div id="preview-toolbar">
         <div class="field"><label for="department" id="preview-heading">Store aisle</label><select id="department"></select></div>
+        <button type="button" id="open-layout" aria-haspopup="dialog" disabled>Aisle organizer</button>
         <button type="button" id="mode-toggle" aria-haspopup="dialog" aria-controls="shopping-preview" disabled>Preview shopping</button>
       </div>
       <div id="preview-host">
@@ -46,6 +50,7 @@
           </div>
           <div class="button-row"><button type="button" id="save-scale" class="primary" disabled>Save size</button><button type="button" id="scale-reset" disabled>Reset to 100%</button></div>
           <p id="draft-status" class="field-hint" role="status"></p>
+          <button type="button" id="enlarge-layout" aria-haspopup="dialog" hidden>Enlarge &amp; rearrange</button>
         </div>
         <a href="#preview-pane" id="return-preview" hidden>Back to preview</a>
       </section>
@@ -68,6 +73,20 @@
       <p id="editor-status" role="status" aria-live="polite"></p>
     </aside>
   </main>
+  <dialog id="layout-workspace" aria-labelledby="layout-heading">
+    <header class="layout-top"><div><small>Aisle organizer</small><h2 id="layout-heading">Aisle</h2></div><button id="layout-close" type="button" autofocus>Back to aisle</button></header>
+    <p id="layout-status" role="status"></p><button id="layout-retry" hidden type="button">Retry</button>
+    <div id="layout-panels" hidden>
+      <section id="layout-preview" aria-label="Shelf preview">
+        <div id="layout-phone">
+          <nav id="layout-groups" aria-label="Quick jump to product group"></nav>
+          <div id="layout-surface" aria-label="Editable shelf"></div>
+          <nav id="layout-paging" aria-label="Shelf navigation"><button type="button" id="layout-prev" aria-label="Previous bay">‹</button><span id="layout-page"></span><button type="button" id="layout-next" aria-label="Next bay">›</button></nav>
+        </div>
+      </section>
+      <aside id="layout-inspector" aria-label="Shelf and product controls"></aside>
+    </div>
+  </dialog>
   <dialog id="shopping-preview" aria-labelledby="shopping-heading">
     <header><h2 id="shopping-heading">Shopping preview</h2><button type="button" id="close-shopping" autofocus>Back to editing</button></header>
     <p id="shopping-status" role="status"></p>
@@ -77,6 +96,11 @@
   <script src="studio-auth-core.js"></script>
   <script src="studio-jobs.js"></script>
   <script src="grocery-private-build.js"></script>
-  <script src="product-details-editor.js"></script><script src="aisle-shelf-editor.js?v=shelf-resize-2"></script>
+  <script src="product-details-editor.js"></script><script src="shelf-layout-data.js?v=1"></script>
+  <script src="shelf-layout-store.js?v=1"></script>
+  <script src="shelf-layout-canvas.js?v=1"></script>
+  <script src="shelf-layout-controls.js?v=1"></script>
+  <script src="shelf-layout-workspace.js?v=1"></script>
+  <script src="aisle-shelf-editor.js?v=shelf-layout-1"></script>
 </body>
 </html>

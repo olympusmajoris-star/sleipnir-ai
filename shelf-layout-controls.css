@@ -1,0 +1,60 @@
+.sl-tools {
+  display: grid;
+  align-items: start;
+  align-content: start;
+  gap: .72rem;
+  padding: 1rem;
+  min-width: 0;
+  background: var(--panel, #121d28);
+  color: var(--ink, #ecf3f5);
+  border: 1px solid var(--edge, #364958);
+  border-radius: .6rem;
+}
+.sl-tools h2, .sl-tools h3, .sl-tools p, .sl-tools hr { margin: 0; }
+.sl-tools h2 { font-size: 1.13rem; }
+.sl-tools h3 { font-size: 1.02rem; }
+.sl-tools hr { width: 100%; border: 0; border-block-start: 1px solid var(--edge,#364958); }
+.sl-tools fieldset { min-width: 0; display: grid; gap: .62rem; margin: 0; padding: 0; border: 0; }
+.sl-tools fieldset:disabled { opacity: .55; }
+.sl-tools .sl-control-row, .sl-tools .sl-size-label, .sl-tools .sl-modes, .sl-tools .sl-adjust, .sl-tools .sl-step, .sl-tools .sl-nudges {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.sl-tools .sl-control-row, .sl-tools .sl-size-label { justify-content: space-between; flex-wrap: wrap; }
+.sl-tools button { min-height: 40px; color: inherit; font-size: .9rem; }
+.sl-tools .sl-step button, .sl-tools .sl-nudges button { min-width: 42px; font-size: 1.1rem; }
+.sl-tools .sl-step output { min-width: 2ch; text-align: center; }
+.sl-tools .sl-modes { flex-wrap: wrap; }
+.sl-tools .sl-modes button[aria-pressed="true"] { color: var(--accent,#86dfda); border-color: var(--accent,#86dfda); background: #193a42; }
+.sl-tools .sl-range { display: grid; grid-template-columns: 1fr auto; align-items: center; }
+.sl-tools .sl-range input { grid-column: 1/-1; width: 100%; min-width: 0; }
+.sl-tools .sl-adjust input { flex: 1 1 auto; width: 0; min-width: 0; }
+.sl-tools output { font-variant-numeric: tabular-nums; color: var(--accent,#86dfda); }
+.sl-tools input[type="number"] { width: 4.4rem; height: 36px; padding-inline: .35rem; }
+.sl-tools .sl-offsets { display: flex; flex-wrap: wrap; gap: .65rem; justify-content: space-between; }
+.sl-tools .sl-offsets label { display: grid; gap: .15rem; }
+.sl-tools .sl-nudges button { flex: 1 1 20%; }
+.sl-tools .sl-selected-name { font-weight: 650; }
+.sl-tools .sl-hint { font-size: .88rem; color: var(--muted,#b1c4cf); }
+.sl-tools p:empty { display: none; }
+.sl-tools .sl-save { border-color: var(--accent,#85e4e0); background: var(--accent,#85e4e0); color: #09292c; }
+.sl-tools .sl-save:not(:disabled):hover { background: #b9efea; color: #09292c; }
+.sl-edit-surface { touch-action: none; user-select: none; -webkit-user-select: none; }
+.sl-edit-surface .sl-faces { cursor: grab; }
+.sl-edit-surface .sl-faces:active { cursor: grabbing; }
+.sl-edit-surface[data-sl-tool="box"], .sl-edit-surface[data-sl-tool="box"] .sl-slot, .sl-edit-surface[data-sl-tool="box"] .sl-faces { cursor: crosshair; }
+.sl-edit-surface .sl-picked .sl-faces {
+  outline: 2px solid #69ece4; outline-offset: 1px; border-radius: 2px;
+}
+.sl-rubber-band {
+  position: fixed; z-index: 99999; pointer-events: none;
+  border: 1px solid #79f2ea; background: rgb(77 220 209 / 18%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 50%);
+}
+@media (max-width: 760px) {
+  .sl-tools button { min-height: 44px; }
+}
+@media (forced-colors: active) {
+  .sl-edit-surface .sl-picked .sl-faces, .sl-rubber-band { outline: 2px solid Highlight; }
+}

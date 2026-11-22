@@ -1,0 +1,37 @@
+{
+  "Dairy & Eggs": {
+    "aliases": {
+      "milk": "Milk",
+      "plant-based milk": "Milk",
+      "eggs": "Eggs",
+      "cheese": "Cheese",
+      "yogurt": "Yogurt & Kefir",
+      "yogurt & kefir": "Yogurt & Kefir",
+      "butter": "Butter & Margarine",
+      "butter & margarine": "Butter & Margarine",
+      "cream & creamers": "Cream & Creamers",
+      "refrigerated desserts": "Refrigerated Desserts",
+      "sour cream & refrigerated dips": "Sour Cream & Refrigerated Dips"
+    },
+    "rules": [
+      ["Refrigerated Desserts", "\\b(pudding|custard|gelatin|cheesecake|tiramisu|desserts?)\\b"],
+      ["Refrigerated Dough", "\\b(cinnamon rolls?|crescent rolls?|biscuit dough|cookie dough)\\b"],
+      ["Sour Cream & Refrigerated Dips", "\\b(sour cream|dips?)\\b"],
+      ["Cream & Creamers", "\\b(creamers?|cold foam|whip(ped|ping) cream|heavy cream|half[ -](and|&|n)[ -]half)\\b"],
+      ["Yogurt & Kefir", "\\b(yo[g]+h?urt|kefir|skyr)\\b"],
+      ["Cheese", "\\b(cheese|cheddar|mozzarella|parmesan|ricotta|mascarpone|feta|gouda|brie)\\b"],
+      ["Butter & Margarine", "\\b(butter|margarine)\\b"],
+      ["Eggs", "\\b(eggs?|egg whites?|egg beaters|egglands?)\\b(?! noodles?)"],
+      ["Milk", "\\b(buttermilk|grassmilk|almondmilk|oatmilk|soymilk|coconutmilk|cashewmilk|milk)\\b(?! chocolate\\b)"]
+    ]
+  },
+  "Dry Goods & Pasta": {
+    "aliases": {"pasta":"Pasta","mac & cheese":"Mac & Cheese","rice & grains":"Rice & Grains","ramen & asian noodles":"Ramen & Asian Noodles","asian cooking":"Asian Cooking"},
+    "rules": [
+      ["Mac & Cheese","\\b(mac(aroni)? (and |& |n )?cheese|shells (and |& )?cheese)\\b"],
+      ["Ramen & Asian Noodles","\\b(ramen|udon|soba|rice noodles?|pad thai|chow mein|lo mein)\\b"],
+      ["Pasta","\\b(pasta|spaghetti|spaghettini|angel hair|penne|rotini|rigatoni|fettuccine|linguine|macaroni|orzo|ziti|cavatappi|farfalle|campanelle|ditalini|fusilli|egg noodles?)\\b"],
+      ["Rice & Grains","\\b(rice|quinoa|barley|farro|bulgur|couscous)\\b"]
+    ]
+  }
+}

@@ -148,6 +148,10 @@
   }
   function paint(inputs){
     const d=state.draft;if(!d)return;
+    const organizer=el('open-organizer');
+    const route=d.published_revision ? {authored:d.aisle_id} : d.source_aisle && !d.product_ids.length ? {aisle:d.source_aisle} : null;
+    organizer.hidden=!route;
+    if(route)organizer.href='grocery-aisle-editor.html?'+new URLSearchParams({store,layout:'1',...route});
     const unfinishedPlacement=!!d.source_aisle&&!!d.startEmpty&&!d.product_ids.length;
     if(inputs){el('title').value=d.title;el('fixture').value=d.fixture;for(const f of fields)el(f).value=d.appearance[f]||defaults[f]||'';}
     el('undo').disabled=!state.undo.length||state.busy;el('redo').disabled=!state.redo.length||state.busy;

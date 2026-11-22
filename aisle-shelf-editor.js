@@ -38,6 +38,31 @@
     ready: false, readOnly: false, frameSequence: 0, selectionSequence: 0, versionSequence: 0, flagSequence: 0,
     saveBusy: new Set(), flagBusy: new Set(), flags: [], sourceFile: null, frameTimer: null
   };
+  function openLayout(group, anchorId, saved) {
+    if (!state.storeReady || !state.catalogReady || (!state.authoredId && !state.stockedShelves.includes(state.aisle))) return;
+    window.ShelfLayoutWorkspace.open({
+      store, aisle: state.aisle, authoredId: state.authoredId, group, anchorId, saved,
+      getScales: () => ({
+        ...Object.fromEntries([...state.saved].filter(([,r])=>r.revision>0).map(([id,r])=>[id,r.scale])),
+        ...Object.fromEntries(state.drafts)
+      }),
+      getScaleData: () => state.scaleLoad,
+      async authorize() {
+        if (!state.owner || !jobs?.current()) await connectOwner(true);
+        if (!state.owner || !jobs?.current()) throw Error(el('editor-status').textContent || 'Connect the owner account to save.');
+      }
+    });
+  }
+  function maybeOpenLayout() {
+    const key = state.authoredId ? 'studio:'+state.authoredId : state.aisle;
+    const group = start.get('group') || '';
+    if (start.get('layout') === '1') { openLayout(group); return; }
+    if (start.get('layout') === '0') return;
+    const activity = window.ShelfLayoutWorkspace?.activity;
+    window.ShelfLayoutStore?.load(store,key).then(saved => {
+      if (saved.layout && window.ShelfLayoutWorkspace.activity === activity && key === (state.authoredId ? 'studio:'+state.authoredId : state.aisle) && !state.selected) openLayout('',null,saved);
+    }).catch(() => {});
+  }
   function currentVersion() { return state.versions.get(state.selectedSha); }
   function setNotice(text) { message('editor-status', text); }
   function scaleMap() {
@@ -416,6 +441,8 @@
     const scalable = valid && p.scalable;
     const saving = !!p && state.saveBusy.has(p.id);
     const signed = state.owner && !!jobs?.current();
+    el('open-layout').disabled = !state.storeReady || !state.catalogReady || (!state.authoredId && !state.stockedShelves.includes(state.aisle));
+    el('enlarge-layout').hidden = !p?.verified;
     el('phone-size-tools').hidden = !p;
     message('phone-size-product',p?.name);
     el('scale-range').setAttribute('aria-valuetext',percentage(scale));
@@ -432,7 +459,10 @@
     el('scale-range').value = scale;
     el('scale-range').disabled = !scalable;
     el('scale-minus').disabled = !scalable || scale <= p.min;
-    el('scale-plus').disabled = !scalable || scale >= p.max;
+    const needsRoom = scalable && scale >= p.max;
+    el('scale-plus').disabled = !scalable;
+    el('scale-plus').textContent = needsRoom ? 'More room' : '+10%';
+    el('scale-plus').setAttribute('aria-label',needsRoom ? 'Make more room in the aisle organizer' : 'Make product larger by 10 percentage points');
     el('scale-reset').disabled = !scalable || scale === 1 || !p || p.min > 1 || p.max < 1;
     message('scale-value',p ? percentage(scale) : '—');
     const dirty = Boolean(p && state.drafts.has(p.id));
@@ -684,6 +714,8 @@
     } else if (state.ready && data.type === 'select') selectProduct(data);
     else if (state.ready && data.type === 'status' && typeof data.message === 'string') setNotice(data.message.slice(0,350));
   });
+  el('open-layout').addEventListener('click',() => openLayout('',state.selected?.id));
+  el('enlarge-layout').addEventListener('click',() => openLayout('',state.selected?.id));
   el('connect-owner').addEventListener('click',() => connectOwner(true));
   el('inspect-selected').addEventListener('click',() => {el('product-heading').focus({preventScroll:true}); el('inspector').scrollIntoView({block:'start'});});
   el('department').addEventListener('change',e => changeAisle(e.target.value));
@@ -699,7 +731,10 @@
   placeSizeTools();
   smallScreen.addEventListener('change',placeSizeTools);
   el('scale-minus').addEventListener('click',() => draftScale(currentScale() - 0.10));
-  el('scale-plus').addEventListener('click',() => draftScale(currentScale() + 0.10));
+  el('scale-plus').addEventListener('click',() => {
+    if(state.selected && currentScale() >= state.selected.max) openLayout('',state.selected.id);
+    else draftScale(currentScale() + 0.10);
+  });
   el('scale-range').addEventListener('input',e => draftScale(Number(e.target.value)));
   el('scale-reset').addEventListener('click',() => draftScale(1));
   el('save-scale').addEventListener('click',saveScale);
@@ -755,7 +790,8 @@
     const compatible=state.authoredId&&!hasAuthored(state.hosted.get(state.defaultSha))?
       [...state.hosted.values()].find(hasAuthored):null;
     selectVersion(compatible?.sha256??state.defaultSha);
-    loadScales().catch(() => {}); // Each selection also requires a fresh store-scoped read.
+    state.scaleLoad = loadScales().catch(() => {});
+    maybeOpenLayout();
     connectOwner(false);
   };
   el('retry-store').addEventListener('click',() => location.reload());

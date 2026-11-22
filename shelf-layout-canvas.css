@@ -1,0 +1,67 @@
+.sl-bay {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  container-type: inline-size;
+  color: #121313;
+  background: #292924;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sl-bay .sl-art, .sl-bay .sl-fixture-band, .sl-bay .sl-slot, .sl-bay .sl-faces, .sl-bay .sl-label {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+}
+.sl-bay .sl-art { inset: 0; pointer-events: none; }
+.sl-bay .sl-fixture-band, .sl-bay .sl-face { background-repeat: no-repeat; }
+.sl-bay button.sl-faces, .sl-bay button.sl-label {
+  min-height: 0; min-width: 0; max-width: none;
+  padding: 0;
+  border: 0; border-radius: 0;
+  background-color: transparent;
+  line-height: 1;
+  appearance: none;
+}
+.sl-bay .sl-faces {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  cursor: grab;
+}
+.sl-bay .sl-face {
+  display: block;
+  height: 100%;
+  flex: none;
+  object-fit: contain;
+  object-position: bottom;
+  pointer-events: none;
+}
+.sl-bay .sl-missing {
+  margin: auto; font-size: .65rem; color: #e7e9e7; background: #303634; padding: .25em;
+}
+.sl-bay button.sl-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .24em;
+  padding-inline: .24em;
+  box-sizing: border-box;
+  text-align: left;
+  background: #f3f0e6;
+  color: #11130e;
+  border-block: 1px solid #a4a297;
+  font: 500 clamp(6px,1.7cqw,13px)/1 system-ui,sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sl-bay .sl-tag-name { overflow: hidden; text-overflow: ellipsis; }
+.sl-bay .sl-tag-price { flex: none; font-size: 1.18em; font-weight: 750; }
+.sl-bay .sl-faces:focus-visible, .sl-bay .sl-slot[data-selected="true"] .sl-faces,
+.sl-bay .sl-slot.is-selected .sl-faces, .sl-bay .sl-faces[aria-pressed="true"] {
+  outline: 2px solid #91f3ed;
+  outline-offset: 1px;
+  border-radius: 2px;
+}

@@ -100,6 +100,8 @@ class Fixture:
                 body="window.StudioTransferConfig={url:location.origin,key:'local-fixture-only'};")
         if basename=='studio-auth-core.js':
             return route.fulfill(content_type='text/javascript',body='/* owner supplied by fixture */')
+        if basename.startswith('shelf-layout-') and basename.endswith(('.js','.css')):
+            return route.fulfill(path=SITE/basename,content_type='text/javascript' if basename.endswith('.js') else 'text/css')
         if basename in ('grocery-aisle-editor.html','aisle-shelf-editor.css','aisle-shelf-editor.js'):
             file=ROOT/basename
             mime={'.html':'text/html','.css':'text/css','.js':'text/javascript'}[file.suffix]
@@ -125,6 +127,8 @@ class Fixture:
                             'address':f'123 Main St, {city}, FL 32164','product_count':200,'image_count':180,
                             'app_surface':'ordinary','native_renderer':None,'valhalla_menu_count':0,'is_valhalla':False})
                 return route.fulfill(json=rows)
+            if basename=='studio_grocery_shelf_layout':
+                return route.fulfill(json={'revision':0,'layout':None})
             if basename=='studio_grocery_aisles':
                 return route.fulfill(json=[])
             if basename=='studio_product_categories':
