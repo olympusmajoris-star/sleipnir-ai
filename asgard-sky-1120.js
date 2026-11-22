@@ -866,6 +866,31 @@ const VS = { profile: 0, market: 0 };
 function openProfile(id) { ST.view = 'profile'; ST.profile = id; VS.profile = 0; ST.vel = 0; ST.menu = null; }
 function goMarket() { ST.view = 'market'; VS.market = 0; ST.vel = 0; ST.menu = null; }
 function goFeed() { ST.view = 'feed'; ST.vel = 0; ST.menu = null; }
+/* Studio: the preview follows the part being edited — Share plays the share scene with the 3D favs,
+   Profile page and Marketplace open those views, Black-hole flight keeps flying in. Display only. */
+const FOLLOW = { part: null, at: 0, auto: '' };
+function postInView() { return (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; }
+function studioFollow(now) {
+  if (K.viewOnly || K.cur !== sc) return;
+  const part = sc.ui.part || sc.ui.group;
+  if (part !== FOLLOW.part) {
+    FOLLOW.part = part; FOLLOW.at = now;
+    if (FOLLOW.auto === 'share' && part !== 'Share' && SH) closeShare();
+    if (FOLLOW.auto === 'flight' && part !== 'Black-hole flight') ST.flight = null;
+    if ((FOLLOW.auto === 'profile' && part !== 'Profile page') || (FOLLOW.auto === 'market' && part !== 'Marketplace')) goFeed();
+    FOLLOW.auto = '';
+    if (part === 'Profile page') { if (SH) SH = null; openProfile({ idun: IDUN_ID, thor: THOR_ID, me: ME_ID }[sc.P['pf.who']] || IDUN_ID); FOLLOW.auto = 'profile'; }
+    else if (part === 'Marketplace') { if (SH) SH = null; goMarket(); FOLLOW.auto = 'market'; }
+    else if (part === 'Share' || part === 'Black-hole flight') { if (ST.view && ST.view !== 'feed') goFeed(); FOLLOW.auto = part === 'Share' ? 'share' : 'flight'; }
+  }
+  // keep it playing: reopen after it ends or after RETURN
+  if (FOLLOW.auto === 'share' && !SH && !ST.flight && now - FOLLOW.at > 400) { openShare(postInView()); FOLLOW.at = now; }
+  if (FOLLOW.auto === 'share' && SH) FOLLOW.at = now;
+  if (FOLLOW.auto === 'flight') {
+    if (ST.flight) { if (ST.flight.dir === 0) { if (!FOLLOW.endAt) FOLLOW.endAt = now; else if (now - FOLLOW.endAt > 1500) { ST.flight = null; FOLLOW.endAt = 0; FOLLOW.at = now; } } else { FOLLOW.endAt = 0; FOLLOW.at = now; } }
+    else if (now - FOLLOW.at > 800) { const orbs = SH ? SH.orbs || [] : G.orbs || []; const o = orbs.slice().sort((a, b) => Math.abs(a.x - K.W / 2) - Math.abs(b.x - K.W / 2))[0]; if (o) startFlight(o, SH ? SH.orbTop : G.top); FOLLOW.at = now; }
+  }
+}
 const money = c => c % 100 === 0 ? '$' + (c / 100).toFixed(0) : '$' + (c / 100).toFixed(2);
 function cover(ctx, im, x, y, w, h, r) { ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.clip(); if (ready(im)) { const s = Math.max(w / im.naturalWidth, h / im.naturalHeight), dw = im.naturalWidth * s, dh = im.naturalHeight * s; ctx.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); } else { ctx.fillStyle = 'rgba(0,0,0,.26)'; ctx.fillRect(x, y, w, h); } ctx.restore(); }
 function btn(ctx, x, y, label, kind, color) { // Material 3 button: stadium, 40 high, 24 side padding
@@ -1268,7 +1293,7 @@ const sc = K.screen({
     if (k.startsWith('mk.') && ST.view !== 'market') goMarket();
     if (!k.startsWith('pf.') && !k.startsWith('cd.') && !k.startsWith('mk.') && ST.view && ST.view !== 'feed' && !k.startsWith('bar.') && !k.startsWith('bg.')) goFeed();
     if (k.startsWith('sh.') && !SH && !ST.flight) { const p = (G.posts || []).find(q => q.bottomBox && q.bottomBox.y > (G.feedTop || 0)) || (G.posts || [])[0] || POSTS[0]; openShare(p); } },
-  update(dt) { P = sc.P; if (!ST.flight) shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (ST.view && ST.view !== 'feed') { if (!ST.drag && ST.vel) { VS[ST.view] = clamp(VS[ST.view] + ST.vel * dt, 0, G.vMax || 0); ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } return; } if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
+  update(dt) { P = sc.P; studioFollow(performance.now()); if (!ST.flight) shareUpdate(dt); if (ST.flight && ST.flight.dir) { const F = ST.flight; F.t = clamp(F.t + F.dir * dt * 1000 / F.ms, 0, 1); if (F.t >= 1 && F.dir > 0) F.dir = 0; if (F.t <= 0 && F.dir < 0) ST.flight = null; } if (!ST.paused) ST.motion = (ST.motion + dt / Math.max(1, P['move.loop'])) % 1; if (ST.view && ST.view !== 'feed') { if (!ST.drag && ST.vel) { VS[ST.view] = clamp(VS[ST.view] + ST.vel * dt, 0, G.vMax || 0); ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } return; } if (!ST.drag && ST.vel) { ST.scroll += ST.vel * dt; ST.vel *= Math.pow(.135, dt); if (Math.abs(ST.vel) < 5) ST.vel = 0; } if (G.maxScroll != null) { if (ST.scroll < 0) { ST.scroll = 0; ST.vel = 0; } if (ST.scroll > G.maxScroll) { ST.scroll = G.maxScroll; ST.vel = 0; } } },
   draw(ctx, now, studio) {
     P = sc.P; sc.ty = 0;
     if (ST.flight) { drawFlight(ctx, now); if (studio) K.hl(ctx, now); return; }
