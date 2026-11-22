@@ -75,7 +75,10 @@ class ShelfEditorTests(unittest.TestCase):
         self.assertEqual(page.evaluate('document.activeElement.id'),next_focus)
         self.assertEqual(page.locator('#'+next_focus).evaluate(
             'e=>getComputedStyle(e).outlineStyle'),'solid')
-        self.assertLessEqual(page.locator('#scale-range').bounding_box()['width'],inspector['width'])
+        if mobile:
+            expect(page.locator('#phone-size-tools')).to_be_hidden()
+        else:
+            self.assertLessEqual(page.locator('#scale-range').bounding_box()['width'],inspector['width'])
 
     def optional_capture(self, name):
         output=os.getenv('EDITOR_TEST_ARTIFACTS')
@@ -92,7 +95,7 @@ class ShelfEditorTests(unittest.TestCase):
         self.assertGreaterEqual(float(controls.get_attribute('min')), .5)
         self.page.locator('#scale-plus').click()
         scale=float(controls.input_value())
-        self.assertGreater(scale,1)
+        self.assertEqual(scale,1.10)
         self.assertIn(FIRST,str(self.wait_received('set-scale')))
         self.page.locator('#save-scale').click()
         self.page.wait_for_function("document.querySelector('#save-scale').disabled")
@@ -151,10 +154,29 @@ class ShelfEditorTests(unittest.TestCase):
         self.assertEqual([m['direction'] for m in self.wait_received('move')],['right','left'])
         self.assertIn('cheese',str(self.wait_received('search')))
         self.page.locator('#mode-toggle').click()
-        self.assertIn('shop',str(self.wait_received('set-mode','mode','shop')))
+        shop=self.page.locator('#shopping-frame').element_handle().content_frame()
+        shop.wait_for_function("window.received?.some(m=>m.type==='set-mode' && m.mode==='shop')")
+        self.assertIn('Dairy+%26+Eggs',shop.url)
+        self.assertTrue(all(m['mode']=='select' for m in self.received('set-mode')))
+        self.page.locator('#close-shopping').click()
+        expect(self.page.locator('#shopping-frame')).to_have_count(0)
         self.optional_capture('phone-selection')
         self.assertEqual(self.fixture.failures,[])
         self.assertEqual(self.errors,[])
+
+    def test_shopping_preview_keeps_the_selected_shelf_product_and_its_size(self):
+        self.launch()
+        self.select()
+        self.page.locator('#scale-plus').click()
+        size=float(self.page.locator('#scale-range').input_value())
+        self.page.get_by_role('button',name='Preview shopping').click()
+        shopper=self.page.locator('#shopping-frame').element_handle().content_frame()
+        shopper.wait_for_function("([id,size])=>window.received?.some(x=>x.type==='sync' && x.scales[id]===size)",arg=[FIRST,size])
+        self.page.get_by_role('button',name='Back to editing').click()
+        expect(self.page.locator('#product-detail')).to_contain_text('Good & Gather Black Beans')
+        self.assertEqual(float(self.page.locator('#scale-range').input_value()),size)
+        self.assertTrue(all(m['mode']=='select' for m in self.received('set-mode')))
+        self.assertEqual(self.fixture.scales,{})
 
     def test_delayed_catalog_response_cannot_switch_the_selected_sku(self):
         self.launch()
@@ -191,6 +213,17 @@ class ShelfEditorTests(unittest.TestCase):
         self.assertEqual(self.fixture.flags,[])
         self.assertEqual(self.fixture.scales,{})
         self.assertEqual(self.fixture.failures,[])
+
+    def test_phone_can_resize_and_connect_from_the_save_button(self):
+        self.launch(390,650,signed_in=False)
+        self.select()
+        tools=self.page.locator('#phone-size-tools')
+        tools.locator('#scale-plus').click()
+        expect(tools.locator('#scale-value')).to_have_text('110%')
+        self.assertEqual(self.fixture.scales,{})
+        tools.get_by_role('button',name='Connect to save size').click()
+        expect(self.page.locator('#editor-status')).to_contain_text('Saved 110%')
+        self.assertEqual(self.fixture.scales[FIRST]['scale'],1.1)
 
     def test_publix_route_filters_stock_scale_and_flag_queries_by_real_store(self):
         self.launch(390,844,url=f'{PAGE}?store={PUBLIX}&aisle=Snacks',store=PUBLIX)

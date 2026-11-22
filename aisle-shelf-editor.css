@@ -165,6 +165,33 @@ details[open] > summary { margin-block-end: .45rem; }
   border-radius: 3px;
   background: #090d11;
 }
+#shopping-preview {
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 0;
+  width: min(100%, 422px);
+  max-width: calc(100vw - 12px);
+  max-height: calc(100dvh - 12px);
+}
+#shopping-preview::backdrop { background: rgb(0 0 0 / .75); }
+#shopping-preview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .55rem .75rem;
+}
+#shopping-frame {
+  display: block;
+  width: min(390px, 100%);
+  height: clamp(250px, calc(100dvh - 90px), 844px);
+  border: 0;
+  margin-inline: auto;
+  background: #090d11;
+}
+#shopping-status:not(:empty) { padding: .4rem .75rem; color: var(--muted); }
 #inspector {
   display: grid;
   align-content: start;
@@ -195,6 +222,17 @@ details[open] > summary { margin-block-end: .45rem; }
 #product-detail dd { margin-inline: 0; }
 #scale-range { width: 100%; min-width: 7rem; }
 #scale-minus, #scale-plus { min-width: 44px; }
+#product-size-tools { display: grid; gap: .55rem; }
+#phone-size-tools, #phone-size-product { display: none; }
+@media (max-width: 760px) {
+  #phone-size-product { display: block; }
+  #phone-size-tools:not([hidden]) {
+    display: block;
+    padding: .6rem .9rem;
+    border-bottom: 1px solid var(--edge);
+    background: var(--panel);
+  }
+}
 #save-scale, #upload {
   border-color: var(--accent);
   background: var(--accent);

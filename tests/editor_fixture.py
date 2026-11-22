@@ -125,6 +125,8 @@ class Fixture:
                             'address':f'123 Main St, {city}, FL 32164','product_count':200,'image_count':180,
                             'app_surface':'ordinary','native_renderer':None,'valhalla_menu_count':0,'is_valhalla':False})
                 return route.fulfill(json=rows)
+            if basename=='studio_grocery_aisles':
+                return route.fulfill(json=[])
             if basename=='studio_product_categories':
                 source = SAMPLES.get(self.store)
                 categories = ('Snacks',source[3]) if source else ('Snacks','Produce','Bakery')

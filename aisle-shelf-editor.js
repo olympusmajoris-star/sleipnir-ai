@@ -50,6 +50,51 @@
     if (!state.ready || !state.previewURL) return;
     el('editor-frame').contentWindow.postMessage({channel, type, ...data}, state.previewURL.origin);
   }
+  function previewRoute() {
+    const src = new URL(state.previewURL);
+    src.searchParams.set('store',store);
+    if (state.authoredId) src.searchParams.set('authored',state.authoredId);
+    else src.searchParams.set('aisle',state.aisle);
+    return src;
+  }
+  function previewShopping() {
+    const dialog = el('shopping-preview');
+    if (!state.ready || state.readOnly || !state.previewURL || dialog.open) return;
+    const url = previewRoute(), sha = state.selectedSha, frame = make('iframe');
+    frame.id = 'shopping-frame';
+    frame.title = 'Shop this aisle';
+    frame.setAttribute('sandbox','allow-scripts allow-same-origin');
+    frame.referrerPolicy = 'no-referrer';
+    frame.inert = true;
+    const post = (type, data = {}) => frame.contentWindow.postMessage({channel,type,...data},url.origin);
+    const receive = event => {
+      const data = event.data;
+      if (!dialog.open || event.source !== frame.contentWindow || event.origin !== url.origin ||
+          !data || data.channel !== channel || data.store_id !== store || data.sourceSha256 !== sha) return;
+      if (data.type === 'error') {
+        clearTimeout(timer);
+        message('shopping-status',String(data.message || 'The shopping preview could not open.').slice(0,350));
+      } else if (data.type === 'ready' && frame.inert) {
+        clearTimeout(timer);
+        post('set-mode',{mode:'shop'});
+        post('sync',{scales:scaleMap()});
+        frame.inert = false;
+        message('shopping-status','');
+      }
+    };
+    const timer = setTimeout(()=>message('shopping-status','The shopping preview is taking longer to open.'),25000);
+    window.addEventListener('message',receive);
+    dialog.addEventListener('close',()=>{
+      clearTimeout(timer);
+      window.removeEventListener('message',receive);
+      frame.remove();
+    },{once:true});
+    frame.addEventListener('load',()=>{if(dialog.open)post('hello');},{once:true});
+    frame.src = url.href;
+    message('shopping-status','Opening shopping preview…');
+    dialog.append(frame);
+    dialog.showModal();
+  }
   function setOptions(select, entries, chosen) {
     select.replaceChildren(...entries.map(([value, label]) => {
       const option = make('option', label);
@@ -304,7 +349,7 @@
     state.selected = null;
     ++state.selectionSequence;
     el('repair-note').value = '';
-    el('product-detail').replaceChildren(make('p', state.editing ? 'Select a product to edit its details, adjust its image size or flag a repair.' : 'Shopping mode opens the normal product details in the preview.'));
+    el('product-detail').replaceChildren(make('p', state.editing ? 'Click a product on the shelf to resize it.' : 'This Dart version supports shopping only.'));
     updateControls();
   }
   function selectVersion(digest) {
@@ -313,11 +358,9 @@
     const v = currentVersion(), build = state.hosted.get(digest) || state.local.get(digest);
     const serial = ++state.frameSequence;
     state.ready = false;
-    const previouslyReadOnly = state.readOnly;
     const editableIds = build?.aisleRouting?.editableStoreIds;
     state.readOnly = !!build?.readOnly || Array.isArray(editableIds) && !editableIds.includes(store);
-    if (previouslyReadOnly && !state.readOnly) state.editing = true;
-    if (state.readOnly) state.editing = false;
+    state.editing = !state.readOnly;
     const supported = chooseShelves(build);
     state.previewURL = supported && build ? build.url : null;
     clearTimeout(state.frameTimer);
@@ -332,10 +375,7 @@
     message('version-status', versionStatus() + (state.readOnly ? ' · Shopping preview only for this store.' : ''));
     if (state.previewURL) {
       message('frame-status','Starting the compiled Flutter preview…');
-      const src = new URL(build.url);
-      src.searchParams.set('store',store);
-      if(state.authoredId)src.searchParams.set('authored',state.authoredId);
-      else src.searchParams.set('aisle',state.aisle);
+      const src = previewRoute();
       frame.addEventListener('load',() => {
         if (state.frameSequence === serial)
           frame.contentWindow.postMessage({channel,type:'hello'},build.url.origin);
@@ -376,6 +416,9 @@
     const scalable = valid && p.scalable;
     const saving = !!p && state.saveBusy.has(p.id);
     const signed = state.owner && !!jobs?.current();
+    el('phone-size-tools').hidden = !p;
+    message('phone-size-product',p?.name);
+    el('scale-range').setAttribute('aria-valuetext',percentage(scale));
     el('inspect-selected').hidden = !p;
     el('return-preview').hidden = !p;
     if (p) message('inspect-selected','Edit ' + p.name);
@@ -383,8 +426,7 @@
     el('connect-owner').disabled = !state.storeReady || state.authPending || signed;
     for (const id of ['aisle-search','search-go','prev-panel','next-panel']) el(id).disabled = !state.ready;
     el('mode-toggle').disabled = !state.ready || state.readOnly;
-    el('mode-toggle').setAttribute('aria-pressed',String(state.editing));
-    el('mode-toggle').textContent = state.editing ? 'Select products' : 'Shopping mode';
+    el('mode-toggle').textContent = state.readOnly ? 'Shopping only' : 'Preview shopping';
     el('scale-range').min = p?.min ?? 0.5;
     el('scale-range').max = p?.max ?? 1.5;
     el('scale-range').value = scale;
@@ -393,8 +435,9 @@
     el('scale-plus').disabled = !scalable || scale >= p.max;
     el('scale-reset').disabled = !scalable || scale === 1 || !p || p.min > 1 || p.max < 1;
     message('scale-value',p ? percentage(scale) : '—');
-    el('save-scale').disabled = !scalable || !signed || !state.drafts.has(p.id) || saving;
-    el('save-scale').textContent = saving ? 'Saving…' : 'Save scale';
+    const dirty = Boolean(p && state.drafts.has(p.id));
+    el('save-scale').disabled = !scalable || !dirty || saving || state.authPending;
+    el('save-scale').textContent = saving ? 'Saving…' : dirty && !signed ? 'Connect to save size' : 'Save size';
     el('repair-note').disabled = !valid;
     el('flag-product').disabled = !valid || !signed || !el('repair-note').value.trim() || state.flagBusy.has(p.id);
     message('draft-status',p ? (!p.verified ? p.status : !p.scalable ? 'This display supports repair flags. Product scaling is unavailable.' : state.drafts.has(p.id) ?
@@ -510,11 +553,15 @@
   }
   async function saveScale() {
     const p = state.selected;
-    if (!p?.verified || !state.drafts.has(p.id) || !state.owner || state.saveBusy.has(p.id)) return;
+    if (!p?.verified || !p.scalable || !state.drafts.has(p.id) || state.saveBusy.has(p.id)) return;
     const value = state.drafts.get(p.id), revision = state.saved.get(p.id)?.revision ?? 0;
     state.saveBusy.add(p.id);
     updateControls();
     try {
+      if (!state.owner || !jobs?.current()) {
+        await connectOwner(true);
+        if (!state.owner || !jobs?.current() || state.selected !== p || state.drafts.get(p.id) !== value) return;
+      }
       const r = row(await rpc('studio_save_grocery_product_scale',{p_store_id:store,p_product_id:p.id,p_scale:value,p_expected_revision:revision}));
       if (!r || r.product_id !== p.id || r.store_id !== store || Number(r.scale) !== value || Number(r.revision) <= revision)
         throw Error('The store did not confirm this scale change.');
@@ -627,7 +674,6 @@
       }
       clearTimeout(state.frameTimer);
       state.ready = true;
-      if (state.readOnly) state.editing = false;
       el('frame-status').hidden = true;
       if(!state.authoredId)send('set-aisle',{aisle:state.aisle});
       send('set-mode',{mode:state.editing ? 'select':'shop'});
@@ -642,9 +688,18 @@
   el('inspect-selected').addEventListener('click',() => {el('product-heading').focus({preventScroll:true}); el('inspector').scrollIntoView({block:'start'});});
   el('department').addEventListener('change',e => changeAisle(e.target.value));
   el('version-list').addEventListener('change',e => selectVersion(e.target.value));
-  el('mode-toggle').addEventListener('click',() => { state.editing = !state.editing; clearSelection(); send('set-mode',{mode:state.editing ? 'select':'shop'}); });
-  el('scale-minus').addEventListener('click',() => draftScale(currentScale() - 0.01));
-  el('scale-plus').addEventListener('click',() => draftScale(currentScale() + 0.01));
+  el('mode-toggle').addEventListener('click',previewShopping);
+  el('close-shopping').addEventListener('click',()=>el('shopping-preview').close());
+  const smallScreen = window.matchMedia('(max-width: 760px)');
+  function placeSizeTools() {
+    const sizeTools = el('product-size-tools');
+    if (smallScreen.matches) el('phone-size-tools').append(sizeTools);
+    else el('return-preview').before(sizeTools);
+  }
+  placeSizeTools();
+  smallScreen.addEventListener('change',placeSizeTools);
+  el('scale-minus').addEventListener('click',() => draftScale(currentScale() - 0.10));
+  el('scale-plus').addEventListener('click',() => draftScale(currentScale() + 0.10));
   el('scale-range').addEventListener('input',e => draftScale(Number(e.target.value)));
   el('scale-reset').addEventListener('click',() => draftScale(1));
   el('save-scale').addEventListener('click',saveScale);

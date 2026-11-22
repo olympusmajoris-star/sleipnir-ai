@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Grocery aisle editor · Sleipnir Studio</title>
-  <link rel="stylesheet" href="aisle-shelf-editor.css">
+  <link rel="stylesheet" href="aisle-shelf-editor.css?v=shelf-resize-2">
 <link rel="stylesheet" href="product-details-editor.css"></head>
 <body>
   <header id="editor-header">
@@ -17,13 +17,14 @@
     <section id="preview-pane" aria-labelledby="preview-heading">
       <div id="preview-toolbar">
         <div class="field"><label for="department" id="preview-heading">Store aisle</label><select id="department"></select></div>
-        <button type="button" id="mode-toggle" aria-pressed="true" disabled>Select products</button>
+        <button type="button" id="mode-toggle" aria-haspopup="dialog" aria-controls="shopping-preview" disabled>Preview shopping</button>
       </div>
       <div id="preview-host">
         <p id="frame-status" role="status">Loading the compiled preview…</p>
         <button type="button" id="retry-store" hidden>Retry store lookup</button>
         <iframe id="editor-frame" title="Interactive GroceryAisle Flutter preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" hidden></iframe>
       </div>
+      <div id="phone-size-tools"></div>
       <div class="preview-actions">
         <button type="button" id="prev-panel" aria-label="Previous shelf" disabled>‹</button>
         <form id="search-form" role="search"><input type="search" id="aisle-search" aria-label="Search products in the preview" placeholder="Find a product" disabled><button type="submit" id="search-go" disabled>Find</button></form>
@@ -34,15 +35,18 @@
     <aside id="inspector" aria-label="Aisle editing controls">
       <section class="editor-card" id="product-card" aria-labelledby="product-heading">
         <h2 id="product-heading" tabindex="-1">Selected product</h2>
-        <div id="product-detail" aria-live="polite"><p>Select a product to edit its details, adjust its image size or flag a repair.</p></div>
-        <div class="control-label"><label for="scale-range">Product scale</label><output id="scale-value" for="scale-range">—</output></div>
-        <div class="scale-controls">
-          <button type="button" id="scale-minus" aria-label="Decrease product scale" disabled>−</button>
-          <input type="range" id="scale-range" min="0.5" max="1.5" step="0.01" value="1" disabled>
-          <button type="button" id="scale-plus" aria-label="Increase product scale" disabled>+</button>
+        <div id="product-detail" aria-live="polite"><p>Click a product on the shelf to resize it.</p></div>
+        <div id="product-size-tools">
+          <strong id="phone-size-product"></strong>
+          <div class="control-label"><label for="scale-range">Size on shelf</label><output id="scale-value" for="scale-range">—</output></div>
+          <div class="scale-controls">
+            <button type="button" id="scale-minus" aria-label="Make product smaller by 10 percentage points" disabled>−10%</button>
+            <input type="range" id="scale-range" min="0.5" max="1.5" step="0.01" value="1" disabled>
+            <button type="button" id="scale-plus" aria-label="Make product larger by 10 percentage points" disabled>+10%</button>
+          </div>
+          <div class="button-row"><button type="button" id="save-scale" class="primary" disabled>Save size</button><button type="button" id="scale-reset" disabled>Reset to 100%</button></div>
+          <p id="draft-status" class="field-hint" role="status"></p>
         </div>
-        <div class="button-row"><button type="button" id="save-scale" class="primary" disabled>Save scale</button><button type="button" id="scale-reset" disabled>Reset to 100%</button></div>
-        <p id="draft-status" class="field-hint" role="status"></p>
         <a href="#preview-pane" id="return-preview" hidden>Back to preview</a>
       </section>
       <section class="editor-card" id="repair-card" aria-labelledby="repair-heading">
@@ -64,11 +68,15 @@
       <p id="editor-status" role="status" aria-live="polite"></p>
     </aside>
   </main>
+  <dialog id="shopping-preview" aria-labelledby="shopping-heading">
+    <header><h2 id="shopping-heading">Shopping preview</h2><button type="button" id="close-shopping" autofocus>Back to editing</button></header>
+    <p id="shopping-status" role="status"></p>
+  </dialog>
   <script src="workspace-core.js?v=stores-20261122"></script>
   <script src="studio-transfer-config.js"></script>
   <script src="studio-auth-core.js"></script>
   <script src="studio-jobs.js"></script>
   <script src="grocery-private-build.js"></script>
-  <script src="product-details-editor.js"></script><script src="aisle-shelf-editor.js"></script>
+  <script src="product-details-editor.js"></script><script src="aisle-shelf-editor.js?v=shelf-resize-2"></script>
 </body>
 </html>
