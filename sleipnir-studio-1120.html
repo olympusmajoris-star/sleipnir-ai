@@ -5,13 +5,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache">
 <title>Sleipnir Studio</title>
-</head>
+<style>
+#store-workspace{box-sizing:border-box;position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;color:#edf3f1;background:#0d1518}
+#store-workspace[open]{display:flex;flex-direction:column}
+#store-workspace::backdrop{background:#080d11}
+#store-workspace header{display:flex;align-items:center;gap:8px;border-bottom:1px solid #304044;padding:calc(7px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 7px max(12px,env(safe-area-inset-left))}
+#store-workspace header strong{flex:1}
+#store-workspace iframe{border:0;width:100%;flex:1;min-height:0;background:#0d1518}
+#store-workspace-phone{display:none}
+@media(max-width:820px){
+  #store-workspace-desktop{display:none}
+  #store-workspace-phone{display:block;position:fixed;right:max(10px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));z-index:6}
+}
+</style></head>
 <body>
 <script src="studio-kit-1119.js?v=1121map1"></script>
 <script src="studio-people-1121.js?v=1121a"></script>
 <script src="rock-nav.js?v=1120-rocks-2"></script>
 <script src="rock-nav-kit-1120.js?v=1120-rocks-2"></script>
-<script src="home-1120.js?v=1120j"></script>
+<script src="home-1120.js?v=stores-entry-1"></script>
 <script src="asgard-sky-1120.js?v=real360"></script>
 <script src="asgard-heimdall-1120.js?v=1120h"></script>
 <script src="asgard-wayfinder-1120.js?v=1120h"></script>
@@ -31,13 +43,17 @@
 <script src="raven-conversation-1119.js?v=1121lm"></script>
 <script src="raven-livemap-1121.js?v=1121c"></script>
 <script src="text-layer-1121.js?v=1121a"></script>
-<script>const home = StudioKit.screens.home;
-home.toolbar = [...(home.toolbar || []), {
-  label: 'Store editor',
-  title: 'Open a store, resize a product, or flag it for repair',
-  onclick: () => location.assign('store-directory.html')
-}];
-StudioKit.start({ title: 'Sleipnir Studio', first: 'home' });</script>
+<button type="button" id="store-workspace-phone" data-open-store-workspace aria-haspopup="dialog" aria-controls="store-workspace">Store editor</button>
+<button type="button" id="store-workspace-desktop" data-open-store-workspace aria-haspopup="dialog" aria-controls="store-workspace">Store editor</button>
+<dialog id="store-workspace" aria-labelledby="store-workspace-title">
+  <header><strong id="store-workspace-title">Store editor</strong><button type="button" id="store-workspace-all">All stores</button><button type="button" id="store-workspace-close" autofocus>Close store editor</button></header>
+  <iframe id="store-workspace-frame" title="Palm Coast stores"></iframe>
+</dialog>
+<script src="store-workspace.js?v=stores-entry-1"></script>
+<script>
+StudioKit.start({ title: 'Sleipnir Studio', first: 'home' });
+document.getElementById('bar').insertBefore(document.getElementById('store-workspace-desktop'), document.getElementById('screenBtns'));
+</script>
 </body>
 </html>
 
