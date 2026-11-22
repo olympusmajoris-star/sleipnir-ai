@@ -5,6 +5,11 @@
 // The approved player supplies its immutable envelope before this file runs.
 // It never falls back to editable drafts or the editor's local browser state.
 const RUNTIME = window.AsgardRuntime || null;
+const entryQuery = new URLSearchParams(location.search);
+if (!RUNTIME && entryQuery.get('page') === 'store') {
+ const entrance = window.StudioWorkspaceCore?.groceryEntranceForStore(entryQuery.get('store'));
+ if (entrance) { location.replace(entrance); return; }
+}
 const RUNTIME_PREVIEW = !!(RUNTIME && RUNTIME.preview === true);
 let runtimeContext = {}, runtimePaused = false, runtimePauseAt = 0, runtimePauseOffset = 0, runtimeStopped = false, runtimeFrame = null;
 const runtimeHits = [], runtimeAssetRefs = new Set(), runtimeDataAssets = new Set();
@@ -1650,6 +1655,15 @@ if(RUNTIME){
   cv.addEventListener('pointerup',()=>{pan=null;});cv.addEventListener('pointercancel',()=>{pan=null;});
   cv.addEventListener('click',e=>{if(moved>6)return;const P=PAGES[STATE.page];if(!P)return;
    {const r0=cv.getBoundingClientRect(),px=(e.clientX-r0.left)*W/r0.width,py=(e.clientY-r0.top)*W/r0.width;const h=[...runtimeHits].reverse().find(z=>px>=z.x&&px<=z.x+z.w&&py>=z.y&&py<=z.y+z.h);const a=h?.action;
+    if(a?.type==='navigate'&&a.target==='store'){
+     const entrance=window.StudioWorkspaceCore.groceryEntranceForStore(a.storeId);
+     if(entrance){
+      let workshop=false;try{workshop=parent!==window&&parent.location.pathname.endsWith('/workshop.html');}catch{}
+      if(workshop)parent.postMessage({type:'studio-open',target:'store',storeId:a.storeId},location.origin);
+      else location.assign(entrance);
+      return;
+     }
+    }
     if(a&&a.type==='navigate'&&parent!==window){parent.postMessage({type:'studio-open',target:a.target,storeId:a.storeId||'',pageType:a.pageType||''},location.origin);return;}
     if(a&&a.type==='navigate'&&a.target==='store'&&a.storeId){location.href='pages.html?page=store&store='+encodeURIComponent(a.storeId);return;}}const items=(P.sections||[]).map(sec=>({id:sec.id,name:sec.name,sub:sec.sub}));
    document.querySelector('.canvas-pick')?.remove();const m=document.createElement('div');m.className='canvas-pick';m.style.left=Math.max(4,Math.min(e.clientX,innerWidth-260))+'px';m.style.top=Math.max(4,Math.min(e.clientY,innerHeight-50-items.length*46))+'px';const h=document.createElement('div');h.className='canvas-pick-title';h.textContent='Edit what is here';m.append(h);

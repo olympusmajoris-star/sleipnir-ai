@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "default": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
+  "defaultSourceSha256": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
+  "versions": {
+    "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657": {
+      "sourceSha256": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
+      "artifactSha256": "df5d6c3c5be4d0ce4858f120877467c0674f717e83de324683d4b0ea26a39016",
+      "path": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657/index.html",
+      "buildSignature": "07132428e0a22b14ff2d0d8e160b59ee9ba5504fa229e1469af9469c20999b2a",
+      "buildFlavor": "widget-with-studio-scope",
+      "filename": "GroceryAisle_Target_Studio.dart",
+      "capabilities": [
+        "select",
+        "scale",
+        "set-aisle",
+        "move",
+        "search",
+        "focus-product"
+      ],
+      "default": true
+    },
+    "5b0c743163a3bb4350938134c36c16f745929b1bc16ef7b173bcf0c7f5182ca6": {
+      "sourceSha256": "5b0c743163a3bb4350938134c36c16f745929b1bc16ef7b173bcf0c7f5182ca6",
+      "artifactSha256": "bad42b69772325c33c137bd596e37ce0df78425e87206fb20521f9e03522a10b",
+      "path": "5b0c743163a3bb4350938134c36c16f745929b1bc16ef7b173bcf0c7f5182ca6/index.html",
+      "buildSignature": "07132428e0a22b14ff2d0d8e160b59ee9ba5504fa229e1469af9469c20999b2a",
+      "buildFlavor": "original-with-studio-adapter",
+      "filename": "GroceryAisle_Target_Grocery_20261121.dart",
+      "capabilities": [
+        "select",
+        "scale",
+        "set-aisle",
+        "move",
+        "search",
+        "focus-product"
+      ],
+      "default": false
+    }
+  }
+}

@@ -38,7 +38,7 @@ async function pages(){++navRevision;const nav=$('#pages'),list=AREAS[here.group
 async function drill(page){
  const d=$('#drill');d.replaceChildren();
  const change=document.createElement('button');change.className='retry-stores';change.textContent='Choose city and store';change.onclick=()=>chooseStore(page);d.append(change);
- if(here.store){const all=await stores(),store=all.find(s=>s.id===here.store&&C.storeTypeMatches(page.id,s));if(store){const info=document.createElement('p');info.textContent=store.name+' · '+store.town;d.append(info);return show('store-editor.html?store='+encodeURIComponent(store.id)+'&type='+page.id);}here.store='';}
+ if(here.store){const all=await stores(),store=all.find(s=>s.id===here.store&&C.storeTypeMatches(page.id,s));if(store){const info=document.createElement('p');info.textContent=store.name+' · '+store.town;d.append(info);const entrance=['grocery','retail'].includes(page.id)&&C.groceryEntranceForStore(store.id);return show(entrance||'store-editor.html?store='+encodeURIComponent(store.id)+'&type='+page.id);}here.store='';}
  show(null,'<div><h2>Choose a city and store</h2><p>Your selected store’s components will appear here.</p></div>');await chooseStore(page);
 }
 async function chooseStore(page){

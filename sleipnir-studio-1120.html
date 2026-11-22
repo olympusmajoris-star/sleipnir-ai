@@ -31,7 +31,13 @@
 <script src="raven-conversation-1119.js?v=1121lm"></script>
 <script src="raven-livemap-1121.js?v=1121c"></script>
 <script src="text-layer-1121.js?v=1121a"></script>
-<script>StudioKit.start({ title: 'Sleipnir Studio', first: 'home' });</script>
+<script>const home = StudioKit.screens.home;
+home.toolbar = [...(home.toolbar || []), {
+  label: 'Grocery aisle editor',
+  title: 'Preview the GroceryAisle Dart, resize a product, or flag it for repair',
+  onclick: () => location.assign('grocery-aisle-editor.html')
+}];
+StudioKit.start({ title: 'Sleipnir Studio', first: 'home' });</script>
 </body>
 </html>
 
