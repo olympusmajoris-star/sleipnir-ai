@@ -686,6 +686,8 @@ const sc = K.screen({
     waterClock += dt * P['wa.speed']; windClock += dt * P['amb.windSpeed'];
     if (ST.active && now > ST.activeUntil) ST.active = false;
     // construction progress (waits at .28 until footage and clouds are ready, like the app)
+    // Studio: while Construction is open, the preview keeps playing the page building itself.
+    if (ST.prog >= 1 && !K.viewOnly && K.cur === sc && sc.ui.group === 'Construction') { if (!ST.builtAt) ST.builtAt = now; else if (now - ST.builtAt > 1800) { ST.builtAt = 0; startBuild(); } } else if (ST.prog < 1) ST.builtAt = 0;
     if (ST.prog < 1) { const ready = (P['lm.on'] && window.RavenLiveMap ? window.RavenLiveMap.ready() : (!P['earth.on'] || videos[vCur].readyState >= 2)) && FILMS.every(f => f.ready || f.failed); if (ready || ST.prog < .28) ST.prog = Math.min(ready ? 1 : .28, ST.prog + dt / Math.max(.5, P['con.seconds'])); }
     // Match _RvEarthJourney: keep every last frame, and wait for the next clip.
     const v = videos[vCur];

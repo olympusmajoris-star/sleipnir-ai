@@ -59,13 +59,24 @@ const CSS = `:root{--bg:#0a0e13;--panel:#111821;--panel2:#16202b;--line:#233142;
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.35 Roboto,system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
 button,select,input{font:inherit;color:var(--text)}button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap}button:hover{border-color:#3b4f66}button.on{border-color:var(--acc);background:#123029;color:#bff3e6}button:disabled{opacity:.4;cursor:default}
 select,input[type=text],input[type=number]{background:#0c1219;border:1px solid var(--line);border-radius:7px;padding:4px 6px}
-#app{display:grid;grid-template-columns:auto 1fr;height:100%}#stageWrap{position:relative;height:100%;padding:10px;display:flex;align-items:center;justify-content:center;background:#04060a;border-right:1px solid var(--line)}
+#app{display:grid;grid-template-columns:210px auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%}
+#areas{grid-column:1/-1;display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:#0d131a;flex-wrap:wrap}#areas button{padding:8px 20px;font-size:14px;font-weight:500}#areas button.on{background:#14304a;border-color:#4aa8ff;color:#d6ecff}
+#pages{grid-row:2;grid-column:1;min-height:0;overflow-y:auto;border-right:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:4px}#pages button{text-align:left;white-space:normal;padding:9px 10px;width:100%}#pages button.on{background:#14304a;border-color:#4aa8ff;color:#d6ecff}#pages button small{display:block;color:var(--mut);font-size:11px;margin-top:2px}#pages button.nb{opacity:.5}#pages .grp{margin:10px 2px 2px;font-size:11px;color:var(--mut);letter-spacing:.05em}
+#stageWrap{grid-row:2;grid-column:2;position:relative;min-height:0;height:100%;padding:10px;display:flex;align-items:center;justify-content:center;background:#04060a;border-right:1px solid var(--line)}
 #stage{display:block;border-radius:24px;background:#000;touch-action:none;box-shadow:0 0 0 1px #1c2734}#stageWrap.pick #stage{cursor:crosshair}
-#side{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;overflow-y:auto}#bar,#status,#screens,#tabs,#chips,#cameraTools{flex-shrink:0}#bar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-#crumb{font-weight:500;margin-right:auto;font-size:14px}#crumb small{color:var(--mut);font-weight:400}#status{color:var(--mut);font-size:12px;padding:0 10px 6px;min-height:20px}
-#screens,#tabs,#chips{display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line)}#screens:empty{display:none}#screens button{padding:7px 14px;font-weight:500}#screens button.on{background:#14304a;border-color:#4aa8ff;color:#d6ecff}
-#tabs button{padding:7px 12px}#chips button{padding:5px 10px;font-size:12px;border-radius:999px}
-#work{flex:1 0 200px;min-height:200px;display:grid;grid-template-columns:minmax(280px,580px) minmax(220px,380px);grid-template-rows:minmax(0,1fr);gap:14px;padding:12px;overflow:hidden}#controls{min-height:0;min-width:0;height:100%;overflow-y:scroll;overflow-x:hidden;padding-right:8px;scrollbar-gutter:stable;overscroll-behavior:contain}#controls,#zoomBox{scrollbar-width:auto;scrollbar-color:#48a895 #111821}#controls::-webkit-scrollbar,#zoomBox::-webkit-scrollbar{width:12px}#controls::-webkit-scrollbar-thumb,#zoomBox::-webkit-scrollbar-thumb{background:#48a895;border:3px solid #111821;border-radius:8px}
+#side{grid-row:2;grid-column:3;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#tabs{flex-shrink:0;display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap;border-bottom:1px solid var(--line)}#tabs button{padding:7px 12px}#tabs button.shared{border-style:dashed;color:var(--mut)}#tabs button.shared.on{color:#bff3e6}
+#work{flex:1;min-height:0;display:flex;flex-direction:column;padding:8px 12px 10px;position:relative}
+#workHead{flex-shrink:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-bottom:4px}#workHead button{padding:5px 10px}#workTitle{font-size:14px;font-weight:500;margin-right:auto;min-width:0}#workHead .sep{width:1px;height:22px;background:var(--line);margin:0 2px}#bBack[hidden]{display:none}
+#status{flex-shrink:0;color:var(--mut);font-size:12px;min-height:18px;padding:0 2px 6px}
+#bar{position:absolute;right:12px;top:44px;z-index:8;width:min(620px,94%);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid #2f4258;border-radius:12px;padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;box-shadow:0 14px 40px rgba(0,0,0,.55)}#bar[hidden]{display:none}#bar .tt{width:100%;font-size:11px;color:var(--mut);letter-spacing:.05em}#crumb{width:100%;font-size:12px;color:var(--mut)}#crumb small{color:var(--mut)}#screenBtns{display:contents}
+#workBody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,360px);grid-template-rows:minmax(0,1fr);gap:14px}
+#workBody.choosing #controls{display:none}#workBody:not(.choosing) #chips{display:none}
+#chips{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding-right:6px}
+.tn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:8px 10px;font-size:13px;white-space:normal}.tn:hover{background:#172230;border-color:#2c3d52}.tn .tw{width:14px;flex:none;color:var(--mut);text-align:center}.tn .all{margin-left:auto;font-size:11px;color:var(--mut);white-space:nowrap}.tn.trunk{font-weight:500;font-size:14px;background:var(--panel2);border-color:var(--line)}.tn.leaf .tw{color:#3f6d63}
+.tkids{margin-left:17px;border-left:1px solid var(--line);padding-left:6px;display:flex;flex-direction:column;gap:2px}
+#controls{min-height:0;min-width:0;height:100%;overflow-y:scroll;overflow-x:hidden;padding-right:8px;scrollbar-gutter:stable;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px}#controls,#zoomBox,#chips{scrollbar-width:auto;scrollbar-color:#48a895 #111821}#controls::-webkit-scrollbar,#zoomBox::-webkit-scrollbar,#chips::-webkit-scrollbar{width:12px}#controls::-webkit-scrollbar-thumb,#zoomBox::-webkit-scrollbar-thumb,#chips::-webkit-scrollbar-thumb{background:#48a895;border:3px solid #111821;border-radius:8px}
+#extDlg{box-sizing:border-box;position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;color:#edf3f1;background:#0d1518}#extDlg[open]{display:flex;flex-direction:column}#extDlg header{display:flex;align-items:center;gap:8px;border-bottom:1px solid #304044;padding:8px 12px}#extDlg header b{flex:1}#extDlg iframe{border:0;width:100%;flex:1;min-height:0}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.boxHead{position:sticky;top:0;z-index:1;background:var(--panel);display:flex;align-items:center;gap:8px;padding:2px 2px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}.boxHead b{font-size:14px;font-weight:500;margin-right:auto}
 .row{display:grid;grid-template-columns:150px minmax(0,1fr) 28px;gap:8px;align-items:center;padding:5px 6px;border-radius:8px;border:1px solid transparent}.row:hover,.row.act{background:#172230;border-color:#2c3d52}
 .lab{display:flex;align-items:center;gap:6px;min-width:0}.lab span{white-space:normal;overflow-wrap:anywhere;line-height:1.3}.info{width:18px;height:18px;padding:0;border-radius:50%;font-size:11px;line-height:16px;flex:none;color:var(--mut)}
@@ -76,8 +87,8 @@ select,input[type=text],input[type=number]{background:#0c1219;border:1px solid v
 #zoomLab{position:absolute;left:8px;top:6px;font-size:11px;color:#cfe;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px}#zoomHelp{color:var(--mut);font-size:12px}#legend{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}#legend i{display:inline-block;width:22px;height:0;border-top:2px dashed var(--hl)}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%) translateY(20px);max-width:86vw;background:rgba(10,14,19,.92);color:#e8eef5;border:1px solid #2a3a4a;border-radius:14px;padding:10px 14px;font:500 13px/1.35 Roboto,system-ui,sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20}#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}html.viewonly #mobBtns,html.viewonly #side{display:none!important}#mobBtns{display:none}#phoneLink{font-size:12px;color:var(--mut)}#phoneLink a{color:#9fe}
 #cameraTools{margin:0 10px 6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px}#cameraTools[hidden]{display:none}#cameraTools summary{cursor:pointer;color:#b9e5dc}#cameraSourceRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:8px}#selCamera{max-width:260px}#cameraInfo{font-size:12px;color:var(--mut);padding-top:6px}#cameraPreview[hidden]{display:none}#cameraPreview{padding-top:8px}#cam{display:block;max-width:100%;width:260px;height:146px;object-fit:contain;background:#000}#cameraPreview p{margin:4px 0;color:var(--mut);font-size:12px}
-@media (max-width:820px){#app{display:block}#stageWrap{position:fixed;inset:0;padding:0;border:0}#stage{border-radius:0;box-shadow:none}#side{position:fixed;left:0;right:0;bottom:0;height:52vh;background:rgba(10,14,19,.97);border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .25s;z-index:5}#side.open{transform:none}#work{display:block;flex:1 0 180px;min-height:180px;padding:8px;overflow:auto}#zoomBox{display:none}#controls{height:auto;overflow:visible;padding-right:0}.row{grid-template-columns:118px minmax(0,1fr) 28px}#bar .desk{display:none}#mobBtns{display:flex;gap:8px;position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:6}#mobBtns button{background:rgba(10,14,19,.75);backdrop-filter:blur(6px)}}`;
-const HTML = `<div id="app"><div id="stageWrap"><canvas id="stage"></canvas></div><div id="side"><div id="bar"><div id="crumb"></div><span id="screenBtns"></span><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bPick" title="Click a part to open its controls">Pick part</button><button id="bHl" class="on" title="Show the highlighted edges">Highlights</button><select id="selPhone" class="desk" title="Phone screen size"></select><button id="bSave" title="Save to the shared studio">Save</button></div><div id="status">Loading…</div><details id="cameraTools" hidden><summary>Camera source &amp; original feed</summary><div id="cameraSourceRow"><label for="selCamera">Camera</label><select id="selCamera"><option value="">Automatic camera</option></select><button id="bCameraReconnect">Reconnect</button><button id="bCameraPreview">Show original feed</button></div><div id="cameraInfo" role="status"></div><div id="cameraPreview" hidden><video id="cam" playsinline muted autoplay></video><p>This is the camera before any Studio effects. If the white symbol appears here, check the selected camera or its privacy shutter.</p></div></details><div id="screens"></div><div id="tabs"></div><div id="chips"></div><div id="work"><div id="controls" tabindex="0" role="region" aria-label="Scrollable settings"></div><div id="zoomBox"><div id="zoomWrap"><canvas id="zoom"></canvas><div id="zoomLab"></div></div><div id="legend"><i></i> dashed gold edge = what the control you're on changes</div><div id="zoomHelp">Close-up of the part you're editing, live.</div><div id="phoneLink"></div></div></div></div></div><div id="mobBtns"><button id="mPick">Pick part</button><button id="mCtl">Controls</button></div>`;
+@media (max-width:820px){#app{display:block}#areas,#pages{display:none}#workBody{display:block}#workBody.choosing #chips{display:flex}#bar{top:40px}#stageWrap{position:fixed;inset:0;padding:0;border:0}#stage{border-radius:0;box-shadow:none}#side{position:fixed;left:0;right:0;bottom:0;height:52vh;background:rgba(10,14,19,.97);border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .25s;z-index:5}#side.open{transform:none}#work{display:block;flex:1 0 180px;min-height:180px;padding:8px;overflow:auto}#zoomBox{display:none}#controls{height:auto;overflow:visible;padding-right:0}.row{grid-template-columns:118px minmax(0,1fr) 28px}#bar .desk{display:none}#mobBtns{display:flex;gap:8px;position:fixed;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:6}#mobBtns button{background:rgba(10,14,19,.75);backdrop-filter:blur(6px)}}`;
+const HTML = `<div id="app"><div id="areas"></div><div id="pages"><div id="screens"></div></div><div id="stageWrap"><canvas id="stage"></canvas></div><div id="side"><div id="tabs"></div><div id="work"><div id="workHead"><button id="bBack" title="Back to the list">← Back</button><b id="workTitle"></b><button id="bUndo">Undo</button><button id="bRedo">Redo</button><button id="bHl" title="See the page clean, without the gold edges">Preview</button><button id="bSave" title="Save to the shared studio, then pick the next thing">Save</button><span class="sep"></span><button id="bPick" title="Click a part on the phone to open its controls">Pick part</button><span id="pinBtns"></span><button id="bTools" title="Page tools, phone size, camera, store editor, transitions">Tools ▾</button></div><div id="status">Loading…</div><div id="bar" hidden><div class="tt">PAGE TOOLS</div><div id="crumb"></div><span id="screenBtns"></span><select id="selPhone" class="desk" title="Phone screen size"></select><details id="cameraTools" hidden><summary>Camera source &amp; original feed</summary><div id="cameraSourceRow"><label for="selCamera">Camera</label><select id="selCamera"><option value="">Automatic camera</option></select><button id="bCameraReconnect">Reconnect</button><button id="bCameraPreview">Show original feed</button></div><div id="cameraInfo" role="status"></div><div id="cameraPreview" hidden><video id="cam" playsinline muted autoplay></video><p>This is the camera before any Studio effects. If the white symbol appears here, check the selected camera or its privacy shutter.</p></div></details></div><div id="workBody" class="choosing"><div id="chips"></div><div id="controls" tabindex="0" role="region" aria-label="Scrollable settings"></div><div id="zoomBox"><div id="zoomWrap"><canvas id="zoom"></canvas><div id="zoomLab"></div></div><div id="legend"><i></i> dashed gold edge = what the control you're on changes</div><div id="zoomHelp">Close-up of the part you're editing, live.</div><div id="phoneLink"></div></div></div></div></div></div><div id="mobBtns"><button id="mPick">Pick part</button><button id="mCtl">Controls</button></div><dialog id="extDlg"><header><b id="extTitle"></b><button id="extClose">Close</button></header><iframe id="extFrame" title="Editor"></iframe></dialog>`;
 
 const K = { TAU, D2R, clamp, ease, smooth, wrap, rgb, rgba, mix, hsv, WHITE, scaleOf, blur, arc, shadowBlurFor, makeSpec, bgSpec, W: 390, H: 844, isMobile: false, screens: {}, order: [] };
 let cur = null; // current screen
@@ -206,7 +217,7 @@ function layout() {
   K.viewOnly = K.isMobile && !/[?&]edit=1/.test(location.search); document.documentElement.classList.toggle('viewonly', K.viewOnly);
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
   if (K.isMobile) { K.W = Math.round(window.innerWidth); K.H = Math.round(window.innerHeight); cssScale = 1; stage.style.width = K.W + 'px'; stage.style.height = K.H + 'px'; }
-  else { const [pw, ph] = ($('selPhone').value || '390x844').split('x').map(Number); K.W = pw; K.H = ph; const availH = window.innerHeight - 20, availW = Math.max(240, window.innerWidth * .42); cssScale = Math.min(availH / K.H, availW / K.W); stage.style.width = K.W * cssScale + 'px'; stage.style.height = K.H * cssScale + 'px'; }
+  else { const [pw, ph] = ($('selPhone').value || '390x844').split('x').map(Number); K.W = pw; K.H = ph; const availH = window.innerHeight - ($('areas') ? $('areas').offsetHeight : 0) - 20, availW = Math.max(240, window.innerWidth * .34); cssScale = Math.min(availH / K.H, availW / K.W); stage.style.width = K.W * cssScale + 'px'; stage.style.height = K.H * cssScale + 'px'; }
   stage.width = Math.round(K.W * cssScale * dpr); stage.height = Math.round(K.H * cssScale * dpr);
   const zr = zoom.getBoundingClientRect(); zoom.width = Math.round((zr.width || 340) * dpr); zoom.height = Math.round((zr.width || 340) * dpr);
   if (cur && cur.onLayout) cur.onLayout();
@@ -220,42 +231,122 @@ function fmt(v, s) { if (s.type === 'int') return String(Math.round(v)); const s
 function shownDefault(s) { if (s.type === 'bool') return s.def ? 'On' : 'Off'; if (s.type === 'select') { const o = s.opts.find(o => String(o[0]) === String(s.def)); return o ? o[1] : s.def; } return s.type === 'num' || s.type === 'int' ? fmt(s.def, s) + (s.unit ? ' ' + s.unit : '') : s.def; }
 const rowRefs = {};
 function groups() { return [...new Set(cur.SPEC.map(s => s.group))]; }
+/* Area 1: main areas. Area 2: that area's pages. Area 3: the page's parts. Area 4: a tree of the part. Area 5: every control for what is picked. */
+const AREAS = ['Home', 'Shopping', 'Asgard', 'Valkyries', 'Business', 'Account'];
+const SHARED_PART = 'Rocks & background';
+const isShared = g => g === 'Background' || g === 'Rock row' || / rock$/.test(g);
+const store = type => () => { if (window.SleipnirStoreWorkspace) window.SleipnirStoreWorkspace.open(type); else K.status('The store editor is not loaded on this page.'); };
+const ext = (title, url) => () => { $('extTitle').textContent = title; const u = new URL(url, location.href); u.searchParams.set('embed', '1'); $('extFrame').src = u.href; if (!$('extDlg').open) $('extDlg').showModal(); K.previewCovered = true; };
+const click = (id, why) => () => { const b = $(id); if (b) b.click(); else K.status(why); };
+const PAGES = {
+  Home: [['screen', 'home'], ['Rock navigation', 'The rocks on every page', () => { if (cur.id !== 'home') K.show('home').then(() => pickPart(SHARED_PART)); else pickPart(SHARED_PART); }], ['Launch screen', 'Opening animation', ext('Launch screen', 'sleipnir-launch-preview.html')], ['Page transitions', 'Moving between pages', click('transition-open-desktop', 'Page transitions are not loaded on this page.')]],
+  Shopping: [['Fast food', 'Town → store → menu board', store('fast_food')], ['Fast casual', 'Town → store → menu', store('fast_casual')], ['Sit-down', 'Town → store → menu', store('sit_down')], ['Grocery', 'Town → store → entrance & aisles', store('grocery')], ['Retail', 'Town → store', store('retail')], ['Convenience', 'Town → store', store('convenience')], ['Valhalla street', 'Local storefronts', store('valhalla')], ['Cart & checkout', '', null], ['Track order', 'Chat’s editor', ext('Track order', 'pages.html?page=track')]],
+  Asgard: [['screen', 'sky'], ['screen', 'dial'], ['screen', 'conversation'], ['screen', 'directory'], ['Mead Hall', 'Chat’s editor', ext('Mead Hall', 'pages.html?page=group')], ['Deals', 'Chat’s editor', ext('Deals', 'pages.html?page=deals')], ['Swap', 'Chat’s editor', ext('Swap', 'pages.html?page=swap')], ['Share scene', 'Chat’s editor', ext('Share scene', 'pages.html?page=share')], ['Shop the post', 'Chat’s editor', ext('Shop the post', 'pages.html?page=shoppost')], ['Be Alive (live)', '', null], ['screen', 'horn'], ['screen', 'way'], ['Local ads', 'Chat’s editor', ext('Local ads', 'pages.html?page=ads')]],
+  Valkyries: [['Driver home / go online', '', null], ['Order offers', '', null], ['Pickup & drop-off', '', null], ['Load board', '', null], ['Find a driver', '', null], ['Earnings & cash-out', '', null], ['Driver profile', '', null]],
+  Business: [['Owner sign-up', '', null], ['Valhalla store builder', '', null], ['Menu & catalog', '', null], ['Ads portal', '', null], ['Sleipnir Drive', '', null], ['Orders & payouts', '', null], ['Shelf placement slots', '', null]],
+  Account: [['Sign-up & 18+ gate', '', null], ['3D figure & 360 builder', '', null], ['Profile', '', null], ['Settings', '', null], ['Subscriptions', '', null]],
+};
+function areaOf(id) { const sc = K.screens[id]; if (sc && sc.area) return sc.area; for (const a of AREAS) if (PAGES[a].some(p => p[0] === 'screen' && p[1] === id)) return a; return 'Asgard'; }
+let area = null; const lastPage = {};
 function buildScreens() {
+  if (!area) area = areaOf(cur.id);
+  if (areaOf(cur.id) === area) lastPage[area] = cur.id;
+  const ar = $('areas'); ar.innerHTML = '';
+  AREAS.forEach(a => { const b = document.createElement('button'); b.textContent = a; b.className = a === area ? 'on' : ''; b.onclick = () => { area = a; const id = lastPage[a] || (PAGES[a].find(p => p[0] === 'screen' && K.screens[p[1]]) || [])[1]; if (id && id !== cur.id) K.show(id); else buildScreens(); }; ar.appendChild(b); });
   const el = $('screens'); el.innerHTML = '';
-  if (K.order.length < 2) return;
-  K.order.forEach(id => { const s = K.screens[id], b = document.createElement('button'); b.textContent = s.title; b.className = s === cur ? 'on' : ''; b.onclick = () => K.show(id); el.appendChild(b); });
-}
-function buildTabs() { const el = $('tabs'); el.innerHTML = ''; groups().forEach(g => { const b = document.createElement('button'); b.textContent = g; b.className = g === cur.ui.group ? 'on' : ''; b.onclick = () => openSection(g, cur.ui.last[g]); el.appendChild(b); }); }
-function buildChips() {
-  const el = $('chips'); el.innerHTML = '';
-  [...new Set(cur.SPEC.filter(s => s.group === cur.ui.group).map(s => s.section))].forEach(sec => {
-    const first = cur.SPEC.find(s => s.group === cur.ui.group && s.section === sec);
-    if (first.hideIf && first.hideIf(cur.P) && sec !== cur.ui.section) return;
-    const b = document.createElement('button'); b.textContent = sec; b.className = sec === cur.ui.section ? 'on' : '';
-    const tgt = first.target;
-    b.onclick = () => openSection(cur.ui.group, sec);
-    b.onpointerenter = () => { hover = tgt; hoverUntil = Infinity; }; b.onpointerleave = () => { hoverUntil = performance.now(); };
+  const listed = new Set();
+  PAGES[area].forEach(p => {
+    const b = document.createElement('button');
+    if (p[0] === 'screen') { const s = K.screens[p[1]]; if (!s) return; listed.add(p[1]); b.innerHTML = s.title; b.className = s === cur ? 'on' : ''; b.onclick = () => K.show(p[1]); }
+    else { b.innerHTML = p[0] + (p[1] || !p[2] ? '<small>' + (p[2] ? p[1] : 'Not built yet') + '</small>' : ''); if (p[2]) b.onclick = p[2]; else { b.className = 'nb'; b.onclick = () => K.status(p[0] + ' is not built yet.'); } }
     el.appendChild(b);
   });
+  // Any studio page not placed above still shows in its own area, so nothing is left out.
+  K.order.forEach(id => { if (listed.has(id) || areaOf(id) !== area || PAGES[area].some(p => p[0] === 'screen' && p[1] === id)) return; const s = K.screens[id], b = document.createElement('button'); b.textContent = s.title; b.className = s === cur ? 'on' : ''; b.onclick = () => K.show(id); el.appendChild(b); });
 }
-function openSection(g, sec) {
-  const secs = [...new Set(cur.SPEC.filter(s => s.group === g).map(s => s.section))];
-  cur.ui.group = g; cur.ui.section = secs.includes(sec) ? sec : secs[0]; cur.ui.last[g] = cur.ui.section;
+function parts() { const gs = groups(), own = gs.filter(g => !isShared(g)); if (gs.some(isShared)) own.push(SHARED_PART); return own; }
+function partOf(g) { return isShared(g) ? SHARED_PART : g; }
+function sectionsOf(g) { return [...new Set(cur.SPEC.filter(s => s.group === g).map(s => s.section))]; }
+function buildTabs() {
+  const el = $('tabs'); el.innerHTML = '';
+  parts().forEach(g => { const b = document.createElement('button'); b.textContent = g; b.className = (g === SHARED_PART ? 'shared ' : '') + (g === cur.ui.part ? 'on' : ''); b.onclick = () => pickPart(g); el.appendChild(b); });
+}
+function pickPart(g) {
+  cur.ui.part = g; cur.ui.choosing = true;
+  const gs = g === SHARED_PART ? groups().filter(isShared) : [g];
+  if (gs.length === 1 && sectionsOf(gs[0]).length === 1) { openNode(gs[0] + ' › ' + sectionsOf(gs[0])[0], [[gs[0], sectionsOf(gs[0])[0]]]); return; }
+  if (gs[0]) { cur.ui.group = gs[0]; cur.ui.section = cur.ui.last[gs[0]] || sectionsOf(gs[0])[0]; }
+  buildTabs(); buildChips(); buildControls(); hover = null;
+}
+function treeNode(host, label, pairs, kids, cls) {
+  const b = document.createElement('button'); b.className = 'tn ' + cls;
+  b.innerHTML = `<span class="tw">${kids ? '▾' : '•'}</span><span></span>` + (pairs.length > 1 ? `<span class="all">all ${pairs.length}</span>` : '');
+  b.children[1].textContent = label;
+  const first = cur.SPEC.find(s => s.group === pairs[0][0] && s.section === pairs[0][1]), tgt = first && first.target;
+  b.onclick = () => openNode(label, pairs);
+  b.onpointerenter = () => { hover = tgt; hoverUntil = Infinity; }; b.onpointerleave = () => { hoverUntil = performance.now(); };
+  host.appendChild(b);
+  if (kids) { const k = document.createElement('div'); k.className = 'tkids'; host.appendChild(k); kids(k); }
+}
+function buildChips() {
+  const el = $('chips'); el.innerHTML = '';
+  const part = cur.ui.part || partOf(cur.ui.group);
+  const visible = g => sectionsOf(g).filter(sec => { const f = cur.SPEC.find(s => s.group === g && s.section === sec); return !(f.hideIf && f.hideIf(cur.P)); });
+  if (part === SHARED_PART) {
+    const gs = groups().filter(isShared);
+    treeNode(el, SHARED_PART, gs.flatMap(g => visible(g).map(sec => [g, sec])), host => gs.forEach(g => {
+      const secs = visible(g); if (!secs.length) return;
+      treeNode(host, g, secs.map(sec => [g, sec]), secs.length > 1 ? h2 => secs.forEach(sec => treeNode(h2, sec, [[g, sec]], null, 'leaf')) : null, secs.length > 1 ? 'branch' : 'leaf');
+    }), 'trunk');
+  } else {
+    const secs = visible(part), branches = cur.tree && cur.tree[part];
+    treeNode(el, part, secs.map(sec => [part, sec]), host => {
+      if (branches) {
+        const used = new Set();
+        branches.forEach(([label, list]) => { const ss = list.filter(s => secs.includes(s)); if (!ss.length) return; ss.forEach(s => used.add(s)); treeNode(host, label, ss.map(s => [part, s]), h2 => ss.forEach(s => treeNode(h2, s, [[part, s]], null, 'leaf')), 'branch'); });
+        secs.filter(s => !used.has(s)).forEach(s => treeNode(host, s, [[part, s]], null, 'leaf'));
+      } else secs.forEach(s => treeNode(host, s, [[part, s]], null, 'leaf'));
+    }, 'trunk');
+  }
+  $('workBody').classList.toggle('choosing', !!cur.ui.choosing);
+  $('bBack').hidden = !!cur.ui.choosing;
+  $('workTitle').textContent = cur.ui.choosing ? part + ' — pick what to change' : (cur.ui.node ? cur.ui.node.label : cur.ui.group + ' › ' + cur.ui.section);
+}
+function openNode(label, pairs) {
+  if (!pairs.length) return;
+  if (pairs.length === 1 && label === pairs[0][1]) label = pairs[0][0] + ' › ' + label;
+  cur.ui.node = { label, pairs }; cur.ui.choosing = false;
+  cur.ui.group = pairs[0][0]; cur.ui.section = pairs[0][1]; cur.ui.last[cur.ui.group] = cur.ui.section; cur.ui.part = partOf(cur.ui.group);
   buildTabs(); buildChips(); buildControls();
   if (pickMode && K.isMobile) $('side').classList.add('open');
   hover = null;
+}
+function openSection(g, sec) {
+  const secs = sectionsOf(g); if (!secs.length) return;
+  const s = secs.includes(sec) ? sec : secs[0];
+  // A refresh of what is already showing (other modules re-open the current section after loading) keeps the view as it is.
+  const n = cur.ui.node, same = g === cur.ui.group && s === cur.ui.section;
+  if (same && (cur.ui.choosing || (n && n.pairs[0][0] === g && n.pairs[0][1] === s))) { buildTabs(); buildChips(); if (!cur.ui.choosing) buildControls(); return; }
+  openNode(g + ' › ' + s, [[g, s]]);
 }
 K.openSection = openSection;
 function buildControls() {
   for (const k in rowRefs) delete rowRefs[k];
   const el = $('controls'); el.innerHTML = '';
-  const box = document.createElement('div'); box.className = 'box';
-  const head = document.createElement('div'); head.className = 'boxHead'; head.innerHTML = `<b>${cur.ui.group} › ${cur.ui.section}</b>`;
-  const rs = document.createElement('button'); rs.textContent = 'Reset section'; rs.title = 'Back to the Dart originals for this section';
-  rs.onclick = () => { cur.SPEC.filter(s => s.group === cur.ui.group && s.section === cur.ui.section).forEach(s => setVal(s.k, s.def, false)); commit(); buildControls(); };
-  head.appendChild(rs); box.appendChild(head);
-  for (const s of cur.SPEC.filter(s => s.group === cur.ui.group && s.section === cur.ui.section)) box.appendChild(makeRow(s));
-  el.appendChild(box); $('zoomLab').textContent = cur.title + ' › ' + cur.ui.group + ' › ' + cur.ui.section;
+  const pairs = (cur.ui.node && cur.ui.node.pairs) || [[cur.ui.group, cur.ui.section]];
+  pairs.forEach(([g, sec]) => {
+    const specs = cur.SPEC.filter(s => s.group === g && s.section === sec); if (!specs.length) return;
+    const box = document.createElement('div'); box.className = 'box';
+    const head = document.createElement('div'); head.className = 'boxHead'; const hb = document.createElement('b'); hb.textContent = g + ' › ' + sec; head.appendChild(hb);
+    const rs = document.createElement('button'); rs.textContent = 'Reset section'; rs.title = 'Back to the Dart originals for this section';
+    rs.onclick = () => { specs.forEach(s => setVal(s.k, s.def, false)); commit(); buildControls(); };
+    head.appendChild(rs); box.appendChild(head);
+    const tgt = specs[0].target; box.onpointerenter = () => { hover = tgt; hoverUntil = Infinity; }; box.onpointerleave = () => { hoverUntil = performance.now(); };
+    for (const s of specs) box.appendChild(makeRow(s));
+    el.appendChild(box);
+  });
+  $('zoomLab').textContent = cur.title + ' › ' + (cur.ui.node ? cur.ui.node.label : cur.ui.group + ' › ' + cur.ui.section);
+  if (!cur.ui.choosing) $('workTitle').textContent = cur.ui.node ? cur.ui.node.label : cur.ui.group + ' › ' + cur.ui.section;
 }
 function makeRow(s) {
   const P = cur.P;
@@ -332,6 +423,7 @@ K.status = t => { status(t); toast(t); }; K.toast = toast;
 K.commit = () => commit();
 K.SB = SB;
 K.rebuild = () => { if (cur) { buildTabs(); buildChips(); buildControls(); } };
+K.pickPart = g => { if (cur) pickPart(g); };
 K.openSectionOf = (sc, g, sec) => { if (cur === sc) openSection(g, sec); };
 function localGet(k) { try { return JSON.parse(localStorage.getItem('studioKit1119.' + k)); } catch (e) { return null; } }
 function localSet(k, v) { try { localStorage.setItem('studioKit1119.' + k, JSON.stringify(v)); } catch (e) {} }
@@ -371,9 +463,11 @@ K.show = async function (id, opts) {
   if (!sc.loaded) await load(sc);
   if (cur !== sc) return;
   $('crumb').innerHTML = sc.crumb;
-  const btns = $('screenBtns'); btns.innerHTML = '';
-  (sc.toolbar || []).forEach(t => { const b = document.createElement('button'); b.textContent = t.label; b.title = t.title || ''; b.onclick = t.onclick; btns.appendChild(b); });
-  buildScreens(); openSection(sc.ui.group, sc.ui.section); updUndo(); ensureCamera();
+  const btns = $('screenBtns'), pins = $('pinBtns'); btns.innerHTML = ''; pins.innerHTML = '';
+  (sc.toolbar || []).forEach(t => { const b = document.createElement('button'); b.textContent = t.label; b.title = t.title || ''; b.onclick = t.onclick; (t.label === 'People' ? pins : btns).appendChild(b); });
+  area = areaOf(sc.id); buildScreens();
+  if (opts.group) openSection(opts.group, opts.section); else if (sc.ui.node && !sc.ui.choosing) openNode(sc.ui.node.label, sc.ui.node.pairs); else pickPart(sc.ui.part || partOf(sc.ui.group));
+  updUndo(); ensureCamera();
   if (sc.onShow) sc.onShow();
   if (route) window.dispatchEvent(new CustomEvent('studio:page-shown', {detail: route}));
   status(sc.loadedFrom ? 'Loaded your saved settings for ' + sc.title + ' from the ' + sc.loadedFrom + '.' : sc.title + ': all values are the Dart originals. Changes save automatically.');
@@ -572,8 +666,12 @@ K.start = async function ({ title, first }) {
   $('bRedo').onclick = () => { if (cur.hi < cur.hist.length - 1) { cur.hi++; applySnap(cur.hist[cur.hi]); updUndo(); const sc = cur; clearTimeout(sc.saveTimer); sc.saveTimer = setTimeout(() => save(sc, true), 1500); } };
   const setPick = on => { pickMode = on; $('bPick').classList.toggle('on', on); $('mPick').classList.toggle('on', on); $('stageWrap').classList.toggle('pick', on); if (on) K.status('Pick part: tap any part to open its controls. Press Pick part again to go back to using the page.'); };
   $('bPick').onclick = () => setPick(!pickMode); $('mPick').onclick = () => setPick(!pickMode);
-  $('bHl').onclick = () => { showHL = !showHL; $('bHl').classList.toggle('on', showHL); };
-  $('bSave').onclick = () => save(cur, false);
+  $('bHl').classList.remove('on'); $('bHl').onclick = () => { showHL = !showHL; $('bHl').classList.toggle('on', !showHL); };
+  $('bSave').onclick = async () => { await save(cur, false); if (!cur.ui.choosing) pickPart(cur.ui.part || partOf(cur.ui.group)); };
+  $('bBack').onclick = () => pickPart(cur.ui.part || partOf(cur.ui.group));
+  $('bTools').onclick = e => { e.stopPropagation(); $('bar').hidden = !$('bar').hidden; $('bTools').classList.toggle('on', !$('bar').hidden); };
+  document.addEventListener('pointerdown', e => { if (!$('bar').hidden && !e.target.closest('#bar,#bTools')) { $('bar').hidden = true; $('bTools').classList.remove('on'); } });
+  $('extClose').onclick = () => $('extDlg').close(); $('extDlg').addEventListener('close', () => { K.previewCovered = false; $('extFrame').removeAttribute('src'); });
   $('mCtl').onclick = () => $('side').classList.toggle('open');
   const cameraToggle = document.createElement('button'); cameraToggle.id = 'bCameraToggle';
   $('bar').appendChild(cameraToggle);

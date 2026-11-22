@@ -462,7 +462,8 @@ function drawUnread(ctx, now) {
   if (!p['un.on']) return;
   if (p['un.layout'] !== 'batches') { drawCarousel(ctx, now); return; }
   const n = pageCount(); if (SW.page >= n) SW.page = n - 1; if (SW.page < 0) SW.page = 0;
-  if (p['un.a.loop']) { const total = p['un.a.wait'] + spotsOn().length * p['un.a.gap'] + p['un.a.dur'] + 2600; if (now - T0 > total) { T0 = now; SW.page = 0; SW.from = -1; } }
+  const editingArrival = !K.viewOnly && K.cur === sc && (sc.ui.node ? sc.ui.node.pairs.some(q => q[1] === 'Arrival') : sc.ui.section === 'Arrival');
+  if (p['un.a.loop'] || editingArrival) { const total = p['un.a.wait'] + spotsOn().length * p['un.a.gap'] + p['un.a.dur'] + 2600; if (now - T0 > total) { T0 = now; SW.page = 0; SW.from = -1; } }
   const st = p['un.sw.style'], u = st === 'none' ? 1 : clamp((now - SW.t) / Math.max(1, p['un.sw.ms']), 0, 1), e = smooth(u);
   const swiped = SW.from >= 0;
   if (u < 1 && swiped && SW.from !== SW.page) {
