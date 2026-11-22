@@ -34,7 +34,7 @@
       surface.setAttribute('aria-label','Preview surface');
       surface.append(new Option('Dark menu leather','leather'),new Option('Solid color','solid'));
       surfaceLabel.append(surface);controls.append(surfaceLabel);
-      // The swatch samples the photographed right-hand leather edge (932,376)-(946,421)
+      // The swatch samples the photographed right-hand leather edge (933,376)-(940,408)
       // of the existing native book's 1122 × 1402 menu-pages/menu-page-right.png.png.
       function paintSurface(){preview.dataset.surface=surface.value;preview.style.backgroundColor=light.value;}
       surface.onchange=paintSurface;light.oninput=()=>{surface.value='solid';paintSurface();};paintSurface();
