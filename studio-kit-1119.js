@@ -386,6 +386,7 @@ function render(now) {
 }
 function loop(now) {
   const dt = clamp((now - last) / 1000, 0, .08); last = now;
+  if (K.previewCovered) { requestAnimationFrame(loop); return; }
   if (!frozen) { cur.update(dt, now); const s = cur.P['bg.smooth']; tilt.x = tilt.x * s + tilt.tx * (1 - s); tilt.y = tilt.y * s + tilt.ty * (1 - s); }
   try { render(now); } catch (e) { console.error(e); }
   requestAnimationFrame(loop);

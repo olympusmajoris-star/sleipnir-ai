@@ -16,8 +16,10 @@
   function open(type) {
     if (type || !frame.hasAttribute('src')) frame.src = directoryURL(type);
     if (!dialog.open) dialog.showModal();
+    window.StudioKit.previewCovered = true;
   }
 
+  dialog.addEventListener('close', () => { window.StudioKit.previewCovered = dialog.open; });
   for (const button of openers) button.addEventListener('click', () => open());
   document.getElementById('store-workspace-close').addEventListener('click', () => dialog.close());
   document.getElementById('store-workspace-all').addEventListener('click', () => {
