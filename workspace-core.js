@@ -89,16 +89,18 @@ async function approvedIds(force=false){
  })().finally(()=>{pendingScope=null;});
  return pendingScope;
 }
-async function readApprovedLocations(ids,allowSplit=false){
+async function readApprovedLocations(ids){
  const conf=G.StudioTransferConfig;
  if(!conf?.url||!conf?.key)throw Error('The shopping directory configuration is unavailable.');
  const list=[...ids];let rows;
- try{rows=await appTable(conf,'rpc/studio_palm_coast_editor_locations',{p_store_ids:'{'+list.join(',')+'}'},allowSplit&&list.length>1);}
+ try{rows=await appTable(conf,'rpc/studio_palm_coast_editor_locations',{p_store_ids:'{'+list.join(',')+'}'},list.length>1);}
  catch(error){
   if(error.code!=='57014')throw error;
   const middle=Math.ceil(list.length/2);
-  const halves=await Promise.all([list.slice(0,middle),list.slice(middle)].map(batch=>readApprovedLocations(new Set(batch))));
-  return new Map([...halves[0],...halves[1]]);
+  // Each worker recovers one half at a time to keep retries within the same concurrency limit.
+  const first=await readApprovedLocations(new Set(list.slice(0,middle)));
+  const second=await readApprovedLocations(new Set(list.slice(middle)));
+  return new Map([...first,...second]);
  }
  const verified=new Map();
  for(const row of rows){
@@ -114,9 +116,19 @@ async function loadAppStores(options={}){
  if(pendingAppStores)return pendingAppStores;
  pendingAppStores=(async()=>{
   const ids=await approvedIds(options.force);
-  const list=[...ids],batches=[];
-  for(let start=0;start<list.length;start+=32)batches.push(new Set(list.slice(start,start+32)));
-  const groups=await Promise.all(batches.map(batch=>readApprovedLocations(batch,true)));
+  const list=[...ids];
+  const workerCount=Math.min(4,Math.ceil(list.length/32));
+  // Distribute the large catalogs at the start of the approved list across workers.
+  const workers=Array.from({length:workerCount},()=>[]);
+  list.forEach((id,index)=>workers[index%workerCount].push(id));
+  const groups=await Promise.all(workers.map(async stores=>{
+   const entries=[];
+   for(let start=0;start<stores.length;start+=32){
+    const batch=await readApprovedLocations(new Set(stores.slice(start,start+32)));
+    entries.push(...batch);
+   }
+   return entries;
+  }));
   const verified=new Map(groups.flatMap(group=>[...group]));
   appRows=Object.freeze([...ids].filter(id=>verified.has(id)).map(id=>verified.get(id)));
   appLookup=verified;loadedAt=Date.now();checkedById.clear();return appRows;
