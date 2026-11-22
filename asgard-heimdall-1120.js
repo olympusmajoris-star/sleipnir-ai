@@ -277,6 +277,7 @@ const sc = K.screen({
     ctx.restore();
     planet(ctx, W, H, hy, t, lr, lg, lb, fade * spaceA, rim);
     G.planet = { hy };
+    K.transitionBoundary?.(ctx);
     // the figure
     const fa = clamp(figA * fade, 0, 1);
     ctx.save(); ctx.translate(0, p); ctx.filter = `blur(${(7 * kk).toFixed(1)}px)`; ctx.fillStyle = `rgba(0,0,0,${P['fig.shadow'] * fa})`; ctx.beginPath(); ctx.ellipse(f.left + 283 * s, f.top + 1416 * s, 105 * s, (30 * s + 6) / 2, 0, 0, TAU); ctx.fill(); ctx.restore();

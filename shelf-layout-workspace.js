@@ -192,5 +192,17 @@
     el('layout-surface').replaceChildren();
     session=null;
   });
-  window.ShelfLayoutWorkspace={open,get activity(){return activity;}};
+  window.ShelfLayoutWorkspace={open,toolTarget(){
+    if(!session||!dialog.open)return null;
+    const parts=session.controls?.selectedItems?.()||[];
+    let bounds;
+    if(parts.length===1){
+      const face=el('layout-surface').querySelector('[data-product-id="'+CSS.escape(parts[0].id)+'"] .sl-faces');
+      const box=face?.getBoundingClientRect(), phone=el('layout-phone').getBoundingClientRect();
+      if(box?.width&&box.height&&phone.width&&phone.height&&box.left>=phone.left&&box.right<=phone.right&&box.top>=phone.top&&box.bottom<=phone.bottom)
+        bounds={x:(box.left-phone.left)/phone.width,y:(box.top-phone.top)/phone.height,width:box.width/phone.width,height:box.height/phone.height};
+    }
+    return {page:'GroceryAislePage',item:'grocery',store:session.store,aisle:session.key,bounds,
+      part:parts.length===1?parts[0].id:'',label:parts.length===1?parts[0].label:session.aisle,parts};
+  },get activity(){return activity;}};
 })();

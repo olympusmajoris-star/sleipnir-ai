@@ -24,13 +24,13 @@
     if (!parentOrigin) { parentOrigin = event.origin; if (ready) send(ready); }
     const command = event.data;
     if (command.type === 'hello') { if (ready) send(ready); return; }
-    if (!['set-aisle','set-scale','set-mode','sync','move','search','focus-product','street-settings','street-move','menu-design'].includes(command.type)) return;
+    if (!['set-aisle','set-scale','set-mode','sync','move','search','focus-product','street-settings','page-sky-settings','street-move','menu-design'].includes(command.type)) return;
     document.dispatchEvent(new CustomEvent('sleipnir-preview-down',{detail:JSON.stringify(command)}));
   });
   document.addEventListener('sleipnir-preview-up', event => {
     let detail;
     try { detail = JSON.parse(event.detail); } catch { return; }
-    if (detail.type === 'ready') { ready=detail; document.querySelector('#startup')?.remove(); }
+    if (detail.type === 'ready') { if(detail.street===true && window.ValhallaSkyMatte) detail.page_sky=true; ready=detail; document.querySelector('#startup')?.remove(); }
     send(detail);
   });
 })();

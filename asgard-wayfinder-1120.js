@@ -127,6 +127,7 @@ const sc = K.screen({
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 1.1 * Math.min(W, H)); g.addColorStop(0, P['sk.inner']); g.addColorStop(.55, P['sk.mid']); g.addColorStop(1, P['sk.outer']); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     const ns = Math.round(P['sk.stars']);
     for (let i = 0; i < ns; i++) { const a = (.25 + .3 * (.5 + .5 * Math.sin(t * (.7 + (i % 7) * .2) + i))) * P['sk.starAlpha']; ctx.fillStyle = `rgba(220,230,255,${clamp(a, 0, 1)})`; ctx.beginPath(); ctx.arc(STAR_RAW[i][0] * W, STAR_RAW[i][1] * H, i % 9 === 0 ? 1.3 : .8, 0, TAU); ctx.fill(); }
+    K.transitionBoundary?.(ctx);
     const draw = clamp(t / .9, 0, 1), flick = 1 - P['st.flicker'] * (7 / 3) + Math.sin(t * 9) * P['st.flicker'];
     if (P['tk.on']) { ctx.save(); ctx.translate(cx, cy); ctx.rotate(-t * P['tk.speed']); ctx.strokeStyle = rgba(P['st.gold'], P['tk.alpha'] * draw); ctx.lineWidth = 1; ctx.beginPath(); const n = Math.round(P['tk.count']); for (let i = 0; i < n; i++) { const a = i * TAU / n, l = i % 9 === 0 ? P['tk.long'] : P['tk.short'], c = Math.cos(a), s = Math.sin(a); ctx.moveTo(c * r * 1.12, s * r * 1.12); ctx.lineTo(c * (r * 1.12 + l), s * (r * 1.12 + l)); } ctx.stroke(); ctx.restore(); }
     ctx.save(); ctx.translate(cx, cy); ctx.lineCap = 'round'; ctx.lineJoin = 'round';

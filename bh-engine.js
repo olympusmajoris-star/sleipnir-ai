@@ -79,6 +79,7 @@ in vec2 vUv; out vec4 o;
 #define MAXH ${MAXH}
 uniform vec2 uRes; uniform float uTime;
 uniform sampler2D uBgA, uBgB, uFaces; uniform float uBgMix; uniform vec4 uFitA, uFitB; uniform float uBgBright;
+uniform bool uIsolatedLayer;
 uniform sampler2D uGas; uniform float uGasReady;
 uniform vec4 uMaterial[MAXH]; // cool gas opacity, supply reach, resolved inner detail, supply angle
 uniform int uN;
@@ -512,7 +513,10 @@ void main(){
   vec3 lit = (em + overlay) * ex;
   lit = 1.0 - exp(-lit*1.6);
   vec3 outc = base*T*(captured?1.0:1.0) + lit*(1.0 - 0.5*clamp(dot(base*T,vec3(.33)),0.,1.));
-  o = vec4(outc, 1.0);
+  if (uIsolatedLayer && !captured) {
+    float alpha = clamp(max(1.0 - T, max(lit.r, max(lit.g, lit.b))), 0.0, 1.0);
+    o = vec4(alpha > 0.0 ? clamp(lit / alpha, 0.0, 1.0) : vec3(0.0), alpha);
+  } else { o = vec4(outc, 1.0); }
 }`;
 
 function hex(c){ c=c.replace('#',''); if(c.length===3) c=c.split('').map(x=>x+x).join(''); const n=parseInt(c,16); return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255]; }
@@ -666,6 +670,7 @@ const ANGLE_STUDIES={
 
 class BHScene {
   constructor(canvas, opts={}){
+    this.isolatedLayer = opts.isolatedLayer === true;
     this.canvas = canvas; this.scale = opts.scale || 1; this.holes = []; this.t0 = performance.now(); this.timeScale = 1; this.paused=false; this.time=0;
     const gl = this.gl = canvas.getContext('webgl2', {antialias:false, premultipliedAlpha:false, preserveDrawingBuffer:true});
     if(!gl) throw new Error('WebGL2 not available');
@@ -704,6 +709,7 @@ class BHScene {
     const gl=this.gl,u=this.u; if(time===undefined){ const now=performance.now(); if(!this.paused) this.time += (now-(this._last||now))/1000*this.timeScale; this._last=now; time=this.time; }
     for(const s of ['A','B']){ const v=this.bg[s]; if(v instanceof HTMLVideoElement && v.readyState>=2) this._upload(this.tex[s],v); }
     gl.uniform2f(u.uRes,this.canvas.width,this.canvas.height); gl.uniform1f(u.uTime,time);
+    gl.uniform1i(u.uIsolatedLayer,this.isolatedLayer ? 1 : 0);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,this.tex.A); gl.uniform1i(u.uBgA,0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,this.tex.B); gl.uniform1i(u.uBgB,1);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,this.tex.F); gl.uniform1i(u.uFaces,2);

@@ -366,6 +366,8 @@ function enter(){
  navigate(currentDoor,true);
 }
 $('retryAuthored').onclick=()=>{initialLoaded=false;route();};
+global.StudioSelectionTarget=()=>!store?null:{item:'grocery',page:'StoreEntrancePage',store:id,
+  aisle:currentDoor?doorKey(currentDoor):'',part:activeSku?.product?.id||'',label:activeSku?.product?.name||currentDoor?.label||store.name};
 $('departments').onchange=e=>{const item=doors.find(d=>doorKey(d)===e.target.value);if(item)navigate(item);};
 function turnDoor(delta){const count=doors.length;if(count)navigate(doors[(doors.indexOf(currentDoor)+delta+count)%count]);}
 $('previousDoor').onclick=()=>turnDoor(-1);$('nextDoor').onclick=()=>turnDoor(1);$('enter').onclick=enter;$('doorImage').onclick=enter;

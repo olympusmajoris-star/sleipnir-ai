@@ -1,0 +1,14 @@
+#pt-editor .pt-other-group,#pt-editor [hidden],#pt-editor:not([data-pt-work="placement"]) [data-pt-handles]{display:none!important}
+#pt-editor .pt-focus-head{display:flex;align-items:center;gap:12px;margin-bottom:.8rem}
+#pt-choice-context{color:#a8bdc8;font-size:.88rem;overflow-wrap:anywhere}
+#pt-editor .pt-settings>h3{font-size:1.12rem;margin:0 0 1rem}
+#pt-editor .pt-choose-tool{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+#pt-editor .pt-choose-tool button{min-height:46px;text-align:left;white-space:normal}
+#pt-editor .pt-pane-prompt button{margin-left:3px}
+#pt-editor[data-pt-work="timing"] #pt-intensity,#pt-editor[data-pt-work="timing"] #pt-duration{margin-top:12px}
+#pt-editor .pt-settings fieldset legend{display:none}
+@media(min-width:721px){
+#pt-editor .pt-body{grid-template-columns:minmax(250px,.78fr) minmax(360px,1.22fr);grid-template-areas:"phone work"}
+#pt-editor .pt-settings{grid-area:work;border-right:0;border-left:1px solid #35464b}
+#pt-editor .pt-preview{grid-area:phone}
+}

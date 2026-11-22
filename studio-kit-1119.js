@@ -9,7 +9,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const SB = { url: 'https://afnihsdxtisneuyehatw.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmbmloc2R4dGlzbmV1eWVoYXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjUxMDcsImV4cCI6MjA4NzE0MTEwN30.q94Gw7BVKgyGm-I_XXGaoScVK50MMfQMk2RHms3qhps' };
+const SB = window.StudioTransferConfig;
 const TAU = Math.PI * 2, D2R = Math.PI / 180;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const ease = t => 1 - Math.pow(1 - t, 3);
@@ -90,6 +90,7 @@ const bgImg = new Image(); let bgLoaded = '';
 const tilt = { tx: 0, ty: 0, x: 0, y: 0 }; K.tilt = tilt;
 function cameraInfo(message) { if ($('cameraInfo')) $('cameraInfo').textContent = message; }
 function cameraEnabled() {
+  if (new URLSearchParams(location.search).has('transition-frame')) return false;
   const saved = localGet('cameraEnabled');
   if (typeof saved === 'boolean') return saved;
   // Desktop camera drivers can send a phone/lock slate as valid video. Keep
@@ -110,10 +111,15 @@ async function refreshCameraDevices() {
   }
   select.value = selected;
 }
+let previewCamera = null;
+let deferBackgroundCamera = new URLSearchParams(location.search).get('transitionEditor') === '1';
+const cameraConsumers = new Map();
 async function ensureCamera(force = false) {
-  const P = cur.P, needed = P['bg.mode'] === 'camera' || (P['env.on'] && P['env.source'] === 'camera');
+  if (deferBackgroundCamera && !previewCamera && !force) { stopCamera(); return; }
+  const P = cur.P, facing = previewCamera?.facing || P['bg.facing'];
+  const needed = !!previewCamera || P['bg.mode'] === 'camera' || (P['env.on'] && P['env.source'] === 'camera');
   $('cameraTools').hidden = !needed;
-  const enabled = cameraEnabled(), toggle = $('bCameraToggle');
+  const enabled = !!previewCamera || cameraEnabled(), toggle = $('bCameraToggle');
   if (toggle) {
     toggle.hidden = !needed; toggle.textContent = enabled ? 'Camera on' : 'Camera off';
     toggle.classList.toggle('on', enabled); toggle.setAttribute('aria-pressed', String(enabled));
@@ -124,19 +130,19 @@ async function ensureCamera(force = false) {
     if (needed) cameraInfo('Camera is off on this device. Click Camera off to turn it on.');
     return;
   }
-  const device = localGet('cameraDevice') || '';
-  if (!force && camState === 'on' && camFacing === P['bg.facing'] && camDevice === device) return;
+  const device = previewCamera ? previewCamera.device : localGet('cameraDevice') || '';
+  if (!force && camState === 'on' && camFacing === facing && camDevice === device) return;
   if (!force && camState === 'starting') return;
   stopCamera(); const request = ++camRequest; camState = 'starting'; cameraInfo('Opening camera…');
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw Error('no camera api');
     const video = { width: { ideal: 1280 }, height: { ideal: 1280 } };
-    if (device) video.deviceId = { exact: device }; else video.facingMode = { ideal: P['bg.facing'] };
+    if (device) video.deviceId = { exact: device }; else video.facingMode = { ideal: facing };
     const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
     if (request !== camRequest) { stream.getTracks().forEach(t => t.stop()); return; }
     camStream = stream; cam.srcObject = stream; await cam.play().catch(() => {});
     if (request !== camRequest) { stream.getTracks().forEach(t => t.stop()); return; }
-    camState = 'on'; camFacing = P['bg.facing']; camDevice = device;
+    camState = 'on'; camFacing = facing; camDevice = device;
     const track = stream.getVideoTracks()[0];
     cameraInfo('Receiving video from ' + (track?.label || 'the selected camera') + '.');
     if (track) track.onended = () => { if (camStream === stream) { camState = 'off'; cameraInfo('Camera stopped. Choose a source or press Reconnect.'); } };
@@ -154,12 +160,12 @@ function stopCamera() {
   camStream = null; if (cam) cam.srcObject = null; camState = 'off'; camFacing = null; camDevice = '';
 }
 function cover(ctx, src, sw, sh, zm, ox, oy, mirror) { const W = K.W, H = K.H, s = Math.max(W / sw, H / sh) * zm, dw = sw * s, dh = sh * s; ctx.save(); if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); } ctx.drawImage(src, (W - dw) / 2 + ox, (H - dh) / 2 + oy, dw, dh); ctx.restore(); }
-function drawBackground(ctx, P) {
+function drawBackground(ctx, P, previewFullCamera = false) {
   const W = K.W, H = K.H;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
   if (P['bg.blur'] > 0) blur(ctx, P['bg.blur']);
-  if (P['bg.mode'] === 'camera' && camState === 'on' && cam.videoWidth) cover(ctx, cam, cam.videoWidth, cam.videoHeight, 1, 0, 0, P['bg.facing'] === 'user');
+  if (P['bg.mode'] === 'camera' && camState === 'on' && cam.videoWidth && (previewFullCamera || cameraEnabled())) cover(ctx, cam, cam.videoWidth, cam.videoHeight, 1, 0, 0, P['bg.facing'] === 'user');
   if (P['bg.mode'] === 'tilt' || (P['bg.mode'] === 'camera' && P['bg.overlay'])) { const f = 'bg/' + P['bg.image'] + '.jpg'; if (bgLoaded !== f) { bgLoaded = f; bgImg.src = f; } if (bgImg.complete && bgImg.naturalWidth) { ctx.save(); ctx.globalAlpha *= P['bg.mode'] === 'camera' ? clamp(P['bg.overlayOpacity'] ?? .5, 0, 1) : 1; cover(ctx, bgImg, bgImg.naturalWidth, bgImg.naturalHeight, P['bg.zoom'], tilt.x * P['bg.tilt'], tilt.y * P['bg.tilt'], false); ctx.restore(); } }
   ctx.restore();
   if (P['bg.dim'] > 0) { ctx.fillStyle = rgba(P['bg.dimColor'], P['bg.dim']); ctx.fillRect(0, 0, W, H); }
@@ -312,6 +318,7 @@ function setVal(k, v, refreshRow = true) {
 K.setVal = setVal;
 function diff(s) { const o = {}; for (const k in s.P) if (JSON.stringify(s.P[k]) !== JSON.stringify(s.DEF[k])) o[k] = s.P[k]; return o; }
 function commit() {
+  if (K.componentInstance) return;
   const s = JSON.stringify(cur.P); if (cur.hist[cur.hi] === s) return;
   cur.hist = cur.hist.slice(0, cur.hi + 1); cur.hist.push(s); if (cur.hist.length > 300) cur.hist.shift(); cur.hi = cur.hist.length - 1;
   Object.values(rowRefs).forEach(f => f()); updUndo();
@@ -357,30 +364,136 @@ K.screen = function (def) {
 };
 K.show = async function (id, opts) {
   opts = opts || {}; const sc = K.screens[id]; if (!sc) return; const firstShow = !cur;
+  const route = cur && cur !== sc ? {from: cur.id, to: sc.id} : null;
+  if (route) window.dispatchEvent(new CustomEvent('studio:page-leaving', {detail: route}));
   if (cur && cur.onHide) cur.onHide();
   cur = sc; K.cur = sc;
   if (!sc.loaded) await load(sc);
+  if (cur !== sc) return;
   $('crumb').innerHTML = sc.crumb;
   const btns = $('screenBtns'); btns.innerHTML = '';
   (sc.toolbar || []).forEach(t => { const b = document.createElement('button'); b.textContent = t.label; b.title = t.title || ''; b.onclick = t.onclick; btns.appendChild(b); });
   buildScreens(); openSection(sc.ui.group, sc.ui.section); updUndo(); ensureCamera();
   if (sc.onShow) sc.onShow();
+  if (route) window.dispatchEvent(new CustomEvent('studio:page-shown', {detail: route}));
   status(sc.loadedFrom ? 'Loaded your saved settings for ' + sc.title + ' from the ' + sc.loadedFrom + '.' : sc.title + ': all values are the Dart originals. Changes save automatically.');
   try { if (opts.fromPop) {} else if (firstShow || opts.replace) history.replaceState(null, '', '#' + id); else if (location.hash !== '#' + id) history.pushState(null, '', '#' + id); } catch (e) {}
 };
 K.go = (id, how) => { if (K.screens[id]) { K.show(id); return true; } if (how && how.href) { location.href = how.href; return true; } return false; };
 K.back = () => { if (history.length > 1) history.back(); };
 
+/* ---------- scene planes shared by the preview and normal navigation ---------- */
+const routes = {home:'HomePage', sky:'Asgard', horn:'Asgard/horn', way:'Asgard/way', dial:'Asgard/dial', directory:'Asgard/directory', conversation:'Asgard/conversation'};
+const boundaries = new WeakMap();
+const seeThrough = id => id === 'dial' || id === 'directory';
+K.transitionRoute = id => routes[id] || id;
+K.transitionBoundary = ctx => boundaries.get(ctx)?.();
+function surface(width, height) {
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas;
+}
+function atPixels(ctx, action) {
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.filter = 'none'; ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over'; action(); ctx.restore();
+}
+function paintScene(ctx, sc, now, studio) {
+  drawBackground(ctx, sc.P);
+  if (seeThrough(sc.id)) K.transitionBoundary(ctx);
+  // The conversation combines Earth imagery and controls in one native paint.
+  // Its transparent areas can reveal the sky; a complete frame moves as one.
+  if (sc.id === 'conversation') K.drawPageSky?.(ctx,sc.id);
+  if (sc.id === 'sky' && K.paintAsgardScene && (boundaries.has(ctx) || K.hasPageSky?.(sc.id))) K.paintAsgardScene(ctx,sc,() => sc.draw(ctx,now,studio));
+  else sc.draw(ctx, now, studio);
+}
+function drawScene(ctx, now) {
+  const glass = window.SleipnirTransitionNavigation?.currentGlass();
+  const sky = cur.id !== 'sky' && K.hasPageSky?.(cur.id);
+  const pane = glass?.material && glass.material !== 'none' && window.PageGlass;
+  if (sky || pane) boundaries.set(ctx, () => {
+    if (sky) K.drawPageSky(ctx,cur.id);
+    if (pane) window.PageGlass.draw(ctx, glass, null, K.W, K.H, window.SleipnirTransitionNavigation?.currentGlassClock?.());
+  });
+  try { paintScene(ctx, cur, now, true); } finally { boundaries.delete(ctx); }
+}
+K.captureTransitionScreen = function (id) {
+  const sc = K.screens[id];
+  if (!stage || !sc?.loaded) return null;
+  const layer = surface(stage.width, stage.height), ctx = layer.getContext('2d');
+  const base = surface(layer.width, layer.height), full = surface(layer.width, layer.height);
+  let separated = false, underSky = null;
+  const sky = id !== 'sky' && K.hasPageSky?.(id);
+  boundaries.set(ctx, () => {
+    if (separated) return;
+    separated = true;
+    if (sky) {
+      underSky = surface(layer.width,layer.height); underSky.getContext('2d').drawImage(layer,0,0);
+      K.drawPageSky(ctx,id);
+    }
+    base.getContext('2d').drawImage(layer, 0, 0);
+    atPixels(ctx, () => ctx.clearRect(0, 0, layer.width, layer.height));
+  });
+  ctx.setTransform(layer.width / K.W, 0, 0, layer.height / K.H, 0, 0);
+  try { paintScene(ctx, sc, performance.now(), false); } finally { boundaries.delete(ctx); }
+  const out = full.getContext('2d');
+  out.drawImage(base, 0, 0); out.drawImage(layer, 0, 0);
+  return {full,base,layer,underSky,separated,seeThrough:seeThrough(id)};
+};
+K.captureTransitionBackground = function (id, canvas, planes) {
+  const sc = K.screens[id], transparent = seeThrough(id);
+  if (!sc?.loaded || !canvas || (!transparent && !planes?.underSky)) return null;
+  const ctx = canvas.getContext('2d'); ctx.save();
+  ctx.setTransform(canvas.width / K.W, 0, 0, canvas.height / K.H, 0, 0);
+  if (transparent) drawBackground(ctx, sc.P);
+  else { ctx.clearRect(0,0,K.W,K.H); ctx.drawImage(planes.underSky,0,0,K.W,K.H); }
+  K.drawPageSky?.(ctx,id);
+  ctx.restore(); return canvas;
+};
+K.transitionCamera = {
+  async devices() { await refreshCameraDevices(); return Array.from($('selCamera').options, o => ({value:o.value,label:o.textContent})); },
+  paneAllowed() { return localGet('paneCameraAllowed') === true || localGet('cameraEnabled') === true; },
+  async start(facing, device, consumer = 'editor') {
+    if (consumer === 'page' && deferBackgroundCamera) return this.status();
+    if (consumer === 'editor') localSet('paneCameraAllowed', true);
+    if (!this.paneAllowed() || !cur) return this.status();
+    cameraConsumers.set(consumer, {facing:facing || cur.P['bg.facing'], device:device ?? localGet('cameraDevice') ?? ''});
+    previewCamera = cameraConsumers.get('editor') || cameraConsumers.get('page');
+    await ensureCamera(); return this.status();
+  },
+  stop(consumer = 'editor') {
+    if (!cameraConsumers.delete(consumer)) return;
+    previewCamera = cameraConsumers.get('editor') || cameraConsumers.get('page') || null;
+    if (cur) ensureCamera();
+  },
+  revoke() { localSet('paneCameraAllowed', false); localSet('cameraEnabled', false); cameraConsumers.clear(); previewCamera = null; stopCamera(); if (cur) ensureCamera(); },
+  source() { return camState === 'on' && cam.videoWidth ? cam : null; },
+  mirrored() { return camFacing === 'user'; },
+  wholeAllowed:cameraEnabled,
+  status() {return {live:camState === 'on' && !!cam.videoWidth, message:$('cameraInfo')?.textContent || 'Camera is off.'};},
+  draw(canvas, backdrop) {
+    if (camState !== 'on' || !cam.videoWidth) return false;
+    const ctx = canvas.getContext('2d'); ctx.save();
+    ctx.setTransform(canvas.width / K.W, 0, 0, canvas.height / K.H, 0, 0);
+    if (backdrop) drawBackground(ctx, {...backdrop, 'bg.facing':camFacing}, true);
+    else cover(ctx, cam, cam.videoWidth, cam.videoHeight, 1, 0, 0, camFacing === 'user');
+    ctx.restore(); return true;
+  }
+};
+
+window.addEventListener('studio:transition-editor-closed', () => {
+  if (!deferBackgroundCamera) return;
+  deferBackgroundCamera = false;
+  if (cur && !K.previewCovered) ensureCamera();
+});
+
 /* ---------- loop ---------- */
 function render(now) {
   const dpr = Math.min(window.devicePixelRatio || 1, 3), k = cssScale * dpr;
   sctx.setTransform(k, 0, 0, k, 0, 0); sctx.filter = 'none';
-  drawBackground(sctx, cur.P); cur.draw(sctx, now, true);
+  drawScene(sctx, now);
   if (!K.isMobile && frame % 2 === 0) {
     const b = targetBounds(), zs = zoom.width / b.s;
     zctx.setTransform(1, 0, 0, 1, 0, 0); zctx.fillStyle = '#000'; zctx.fillRect(0, 0, zoom.width, zoom.height);
     zctx.setTransform(zs, 0, 0, zs, -b.x * zs, -b.y * zs); zctx.filter = 'none';
-    drawBackground(zctx, cur.P); cur.draw(zctx, now, true);
+    drawScene(zctx, now);
   }
   frame++;
 }
@@ -407,6 +520,43 @@ K.readSavedDesign = async id => {
   return rows[0].data;
 };
 
+// Paint a referenced screen without starting the editor, its inputs or autosave.
+K.openComponentScene = async function(id, output, permitted) {
+  const sc = K.screens[id];
+  if (!sc || !location.pathname.endsWith('/studio-component-surface.html')) throw Error('Unknown component source.');
+  K.componentInstance = true; K.viewOnly = true; K.isMobile = true;
+  cur = K.cur = sc; stage = output; sctx = output.getContext('2d');
+  K.W = 390; K.H = 844; stage.width = 390; stage.height = 844;
+  let baseline = {...sc.DEF}, source = 'Authored defaults';
+  try {
+    const doc = await K.readSavedDesign(sc.docId);
+    for (const [key,value] of Object.entries(doc.values || {})) if (permitted(key,value)) baseline[key] = value;
+    source = 'Published Studio settings';
+  } catch { /* Public authored defaults are available offline. */ }
+  Object.assign(sc.P, baseline);sc.loaded = true;
+  if (sc.onLoad) sc.onLoad(); if (sc.onShow) sc.onShow();
+  baseline = {...sc.P};
+  function apply(values) {
+    const previous = {...sc.P};
+    Object.assign(sc.P, baseline);
+    for (const [key,value] of Object.entries(values)) if (permitted(key,value)) sc.P[key] = value;
+    if (sc.onSet) for (const key of Object.keys(sc.P)) if (sc.P[key] !== previous[key]) sc.onSet(key,sc.P[key]);
+  }
+  function draw(now, dt, plane) {
+    sc.update(dt,now);
+    const ctx = sctx;
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,K.W,K.H);
+    let boundary = false;
+    if (plane === 'foreground') boundaries.set(ctx, () => {
+      if (boundary) return;
+      boundary = true; atPixels(ctx, () => ctx.clearRect(0,0,K.W,K.H));
+    });
+    try { paintScene(ctx,sc,now,false); } finally { boundaries.delete(ctx); }
+    if (plane === 'foreground' && !boundary) ctx.clearRect(0,0,K.W,K.H);
+  }
+  return {baseline,source,apply,draw,dispose(){ if (sc.onHide) sc.onHide(); }};
+};
+
 /* ---------- start ---------- */
 K.start = async function ({ title, first }) {
   document.title = title;
@@ -427,7 +577,7 @@ K.start = async function ({ title, first }) {
   $('mCtl').onclick = () => $('side').classList.toggle('open');
   const cameraToggle = document.createElement('button'); cameraToggle.id = 'bCameraToggle';
   $('bar').appendChild(cameraToggle);
-  cameraToggle.onclick = () => { localSet('cameraEnabled', !cameraEnabled()); ensureCamera(true); };
+  cameraToggle.onclick = () => { if (cameraEnabled() || previewCamera) K.transitionCamera.revoke(); else { localSet('cameraEnabled', true); localSet('paneCameraAllowed', true); ensureCamera(true); } };
   $('selCamera').onchange = () => { localSet('cameraDevice', $('selCamera').value); localSet('cameraEnabled', true); ensureCamera(true); };
   $('bCameraReconnect').onclick = () => { localSet('cameraEnabled', true); ensureCamera(true); };
   $('bCameraPreview').onclick = () => { const panel = $('cameraPreview'); panel.hidden = !panel.hidden; $('bCameraPreview').textContent = panel.hidden ? 'Show original feed' : 'Hide original feed'; };

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page sky · Sleipnir Studio</title>
+<link rel="stylesheet" href="studio-media.css"><link rel="stylesheet" href="page-sky-editor.css"></head>
+<body><main>
+<section class="viewer" aria-label="Page preview"><figure><div id="phone"><canvas id="sky-canvas" width="390" height="740" aria-label="Sky appearance on this page"></canvas></div><figcaption id="scene-caption" role="status">Opening preview…</figcaption></figure>
+<label class="lighting">Preview light<select id="lighting"><option value="local">Device clock</option><option value="day">Day</option><option value="night">Night</option></select></label></section>
+<section class="workspace"><div class="topline"><button id="back" type="button">← Back</button><span id="page-name"></span></div>
+<h1 id="heading">Sky library</h1><div id="controls"></div>
+<div id="review" hidden><p>An owner draft and a device draft both exist for this page.</p><button id="use-local">Keep device edits</button><button id="use-remote">Open owner draft</button></div>
+<div id="actions"><button id="connect">Connect owner</button><button id="save" hidden>Save owner draft</button><button id="publish" hidden>Publish saved draft</button></div>
+<p role="status" id="status"></p></section></main>
+<script src="studio-transfer-config.js"></script><script src="studio-auth-core.js"></script><script src="studio-jobs.js"></script><script src="workspace-core.js"></script><script src="studio-media.js"></script><script src="page-sky-store.js"></script><script src="page-sky-layers.js"></script><script src="native-valhalla/storefront-artwork.js"></script><script src="page-sky-storefront-preview.js?v=2"></script><script src="page-sky-editor.js"></script></body></html>

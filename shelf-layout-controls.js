@@ -383,7 +383,7 @@
     });
     refresh();
     return {
-      refresh, select(ids){select(new Set(ids));},
+      refresh, selectedItems:()=>[...selected].map(id=>({id,label:itemById(id)?.name||id})), select(ids){select(new Set(ids));},
       destroy(){
         signalController.abort();cancelGesture();panel.remove();surface.classList.remove('sl-edit-surface');
         for(const node of surface.querySelectorAll('.sl-picked'))node.classList.remove('sl-picked');

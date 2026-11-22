@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sleipnir · App launch</title>
+<meta name="theme-color" content="#11161c">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#090d12;color:#e8edf0;font:15px system-ui,sans-serif}
+main{display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:center;justify-items:center;height:100vh;height:100dvh;padding:12px;gap:12px}
+canvas{display:block;aspect-ratio:390/844;height:100%;max-width:100%;min-height:0;background:#11161c}
+nav{display:flex;align-items:center;gap:18px;padding:4px 0 max(4px,env(safe-area-inset-bottom))}
+a{color:#c6d5dd}button{background:#25313b;color:#f3f6f8;border:1px solid #445461;border-radius:6px;font:inherit;padding:7px 14px;cursor:pointer}
+@media(max-width:600px){main{padding:0;gap:4px}canvas{width:100%;height:100%;aspect-ratio:auto}}
+</style>
+</head>
+<body><main><canvas aria-label="Sleipnir’s silver horse and ring drawing into view"></canvas>
+<nav><a href="sleipnir-studio-1120.html#dial">Studio</a><button id="replay" type="button" disabled>Replay launch</button><span role="status"></span></nav></main>
+<script src="launch/scene.js"></script><script>
+(async () => {
+  const canvas = document.querySelector('canvas'), ctx = canvas.getContext('2d');
+  const replay = document.querySelector('#replay'), status = document.querySelector('[role=status]');
+  const image = new Image(); image.src = 'launch/emblem.webp';
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  let elapsed = 0, frame = 0, started = 0;
+  function draw() {
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1,3);
+    const width = Math.max(1,Math.round(r.width*dpr)), height = Math.max(1,Math.round(r.height*dpr));
+    if(canvas.width !== width || canvas.height !== height){canvas.width=width;canvas.height=height;}
+    SleipnirLaunch.draw(ctx,width,height,elapsed,image);
+  }
+  function play() {
+    cancelAnimationFrame(frame); started = performance.now();
+    function tick(now) {
+      elapsed = motion.matches ? SleipnirLaunch.duration : Math.min((now-started)/1000,SleipnirLaunch.duration);
+      draw();
+      if(elapsed < SleipnirLaunch.duration) frame=requestAnimationFrame(tick);
+    }
+    tick(started);
+  }
+  try {
+    const [data] = await Promise.all([fetch('launch/paths.json').then(r=>{if(!r.ok)throw Error();return r.json();}), image.decode()]);
+    SleipnirLaunch.setGeometry(data); replay.disabled=false; replay.onclick=play;
+    new ResizeObserver(draw).observe(canvas); motion.addEventListener('change',play); play();
+  } catch {status.textContent='Launch preview could not load. Reload to retry.';}
+})();
+</script></body></html>

@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio components · Sleipnir</title><link rel="stylesheet" href="studio-component-editor.css"></head>
+<body><header><button id="back" type="button">← Back</button><strong id="target"></strong></header>
+<main><figure><div id="art" aria-label="Component instance preview"></div><figcaption id="caption">Component preview</figcaption></figure>
+<section><h1>Studio components</h1><label>Placed components<select id="instances"></select></label>
+<div id="choose"><label>Source screen<select id="source"></select></label><button id="add" type="button">Add component</button></div>
+<div id="edit" hidden><label>Instance source<select id="edit-source"></select></label><label>Show<select id="plane"><option value="foreground">Transparent foreground</option><option value="full">Full scene</option></select></label>
+<label>Adjustment group<select id="group"></select></label><div id="fields"></div><button id="remove" type="button">Remove component</button></div></section></main>
+<footer><button id="publish" disabled type="button">Publish to this target</button><button id="reload" type="button">Reload published</button><span id="status" role="status"></span></footer>
+<script src="studio-transfer-config.js"></script><script src="studio-auth-core.js"></script><script src="studio-jobs.js"></script><script src="portable-layer-store.js"></script>
+<script src="studio-component-layers.js"></script><script src="studio-page-tools.js"></script><script src="studio-component-editor.js"></script></body></html>

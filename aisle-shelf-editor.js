@@ -38,6 +38,11 @@
     ready: false, readOnly: false, frameSequence: 0, selectionSequence: 0, versionSequence: 0, flagSequence: 0,
     saveBusy: new Set(), flagBusy: new Set(), flags: [], sourceFile: null, frameTimer: null
   };
+  window.StudioSelectionTarget=()=>window.ShelfLayoutWorkspace?.toolTarget?.()||(!state.storeReady?null:{
+    page:'GroceryAislePage',item:'grocery',store,aisle:state.authoredId?'studio:'+state.authoredId:state.aisle,
+    part:state.selected?.id||'',label:state.selected?.name||state.aisle,
+    parts:state.selected?[{id:state.selected.id,label:state.selected.name}]:[]
+  });
   function openLayout(group, anchorId, saved) {
     if (!state.storeReady || !state.catalogReady || (!state.authoredId && !state.stockedShelves.includes(state.aisle))) return;
     window.ShelfLayoutWorkspace.open({

@@ -36,6 +36,8 @@
     const body=el('div');body.className='commerce-body';body.append(viewer,inspector);shell.append(body);
     frame.hidden=true;nav.hidden=true;selection.inert=true;
     let loadedView='studio', shopperView=false, confirmedBuild=false, editing=true, product=null, owner=false, sequence=0, scalable=false, sourceDigest='', panel=1, maxPanel=1, renderer='', busy=false;
+    global.StudioSelectionTarget=()=>({page:isStreet?'ValhallaV2':({retail:'RetailStorePage',convenience:'RetailStorePage',fast_food:'DriveThruBoard',fast_casual:'FastCasualMenu',sit_down:'RestaurantMenu',restaurant:'RestaurantMenu'})[store.menu_type],
+      store:id,item:isStreet?'vbrowse':store.menu_type==='convenience'?'retail':store.menu_type,part:product?.id||'',label:product?.name||store.name});
     let menuEditor=null,latestMenuPage=null;
     const saved=new Map(), drafts=new Map(), notes=new Map();
     const query=(table,params)=>jobs.request('/rest/v1/'+table+'?'+new URLSearchParams(params),{auth:false});

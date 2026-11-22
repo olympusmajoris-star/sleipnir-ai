@@ -34,11 +34,13 @@ test('Cached refraction continues to use each new camera frame and moves with th
 test('Actual background compositor offers camera, a blend, and a fully opaque backdrop',()=>{
  const source=fs.readFileSync(require.resolve('../studio-kit-1119.js'),'utf8'),start=source.indexOf('function drawBackground('),end=source.indexOf('/* ---------- highlight ---------- */',start);
  const calls=[],ctx={globalAlpha:1,fillRect(){},save(){this.saved??=[];this.saved.push(this.globalAlpha)},restore(){this.globalAlpha=this.saved.pop()},beginPath(){},rect(){},clip(){}};
- const K={W:390,H:844},sandbox={K,camState:'on',cam:{videoWidth:1280,videoHeight:720},bgImg:{complete:true,naturalWidth:800,naturalHeight:600},bgLoaded:'bg/bg02.jpg',tilt:{x:0,y:0},blur:()=>{},rgba:()=>'',clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),cover:(ctx,src)=>calls.push({camera:src===sandbox.cam,alpha:ctx.globalAlpha})};
+ const K={W:390,H:844},sandbox={K,cameraEnabled:()=>true,camState:'on',cam:{videoWidth:1280,videoHeight:720},bgImg:{complete:true,naturalWidth:800,naturalHeight:600},bgLoaded:'bg/bg02.jpg',tilt:{x:0,y:0},blur:()=>{},rgba:()=>'',clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),cover:(ctx,src)=>calls.push({camera:src===sandbox.cam,alpha:ctx.globalAlpha})};
  vm.runInNewContext(source.slice(start,end),sandbox);
  const p={'bg.mode':'camera','bg.image':'bg02','bg.zoom':1,'bg.tilt':0,'bg.overlay':true};
  for(const opacity of [0,.5,1]){calls.length=0;K.drawBackground(ctx,{...p,'bg.overlayOpacity':opacity});assert.equal(calls[0].camera,true);assert.equal(calls[0].alpha,1);assert.equal(calls[1].alpha,opacity);}
  calls.length=0;K.drawEnvironment(ctx,{...p,'bg.overlayOpacity':1},'camera');assert.equal(calls.length,1);assert.equal(calls[0].camera,true);
+ sandbox.cameraEnabled=()=>false;calls.length=0;K.drawBackground(ctx,{...p,'bg.overlay':false});assert.equal(calls.length,0);
+ sandbox.drawBackground(ctx,{...p,'bg.overlay':false},true);assert.equal(calls.length,1);assert.equal(calls[0].camera,true);
 });
 test('Directory preserves sphere geometry controls and wires lighting and Rolodex response',()=>{
  const {harness}=require('./helpers/dial-harness.cjs'),h=harness();

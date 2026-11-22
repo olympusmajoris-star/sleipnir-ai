@@ -1,10 +1,16 @@
 (() => {
   'use strict';
+  const skyParams = new URLSearchParams(location.search);
+  if (skyParams.get('view') === 'sky') {
+    skyParams.delete('view'); skyParams.set('page','ValhallaV2');
+    location.replace('page-sky-editor.html?' + skyParams); return;
+  }
   const $=id=>document.getElementById(id),form=$('fields'),f=form.elements,frame=$('scene');
   const channel='sleipnir-native-commerce-v1', store=new URL(location.href).searchParams.get('store');
   const rpc=(name,body={},auth=true)=>StudioJobs.request('/rest/v1/rpc/'+name,{method:'POST',auth,body});
   const status=text=>{$('status').textContent=text;}, fail=e=>status(e.message||'Request failed.');
   const settings=()=>state.settings, state={settings:{},original:{},order:[],adjacencies:new Set(),merchant:null,ready:false,owner:false,dirty:false,saving:false,draft:0,published:0};
+  window.StudioSelectionTarget=()=>state.merchant?{page:'ValhallaV2',item:'vbrowse',store:state.merchant,label:state.order.find(r=>r.id===state.merchant)?.name||state.merchant}:null;
   const copy=v=>structuredClone(v),items=v=>Array.isArray(v)?v:[],int=v=>Number.isInteger(v)&&v>=0;
   const opt=(s,list,value)=>{s.replaceChildren(...list.map(([id,name])=>new Option(name,id)));if([...s.options].some(o=>o.value===value))s.value=value;};
   const front=()=>settings().fronts?.[state.merchant]||{};

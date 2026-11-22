@@ -77,6 +77,7 @@ const sc = K.screen({
     P = sc.P; sc.ty = 0; const W = K.W, H = K.H, k = scaleOf(ctx); G = { tiles: [], tiles2: [], btns: [] };
     ctx.fillStyle = P['bg2.page']; ctx.fillRect(0, 0, W, H);
     if (P['bg2.on']) { const tw = P['bg2.tile'], n = BG.length, total = tw * n, off = ST.scroll % total; ctx.save(); ctx.globalAlpha = P['bg2.alpha']; for (let i = 0; i < n * 2; i++) { const x = i * tw - off; if (x > W || x + tw < 0) continue; cover(ctx, BG[i % n], x, 0, tw, H); } ctx.restore(); }
+    K.transitionBoundary?.(ctx);
     // header: glowing logo + title
     const hh = P['logo.header'], ls = P['logo.size'], lx = W / 2, ly = ls / 2, gr = P['logo.glowR'];
     for (const [a, blur, spread] of [[.2, gr * 4, 12], [.5, gr * 2, 8], [.9, gr, 4]]) { ctx.save(); ctx.shadowColor = rgba(P['logo.glow'], a); ctx.shadowBlur = K.shadowBlurFor(ctx, blur); ctx.fillStyle = rgba(P['logo.glow'], a); ctx.beginPath(); ctx.arc(lx, ly, ls / 2 + spread, 0, TAU); ctx.fill(); ctx.restore(); }

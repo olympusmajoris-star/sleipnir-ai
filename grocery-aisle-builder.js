@@ -12,6 +12,9 @@
     dirty:false,saved:null,undo:[],redo:[],tab:'entrance',side:'door',page:0,searchOffset:0,query:'',searchTicket:0,
     frameReady:false,frameSha:'',lastSend:0,previewTimer:null,detailTicket:0,storageError:false,
     previewMode:'select',selection:null,checkingProduct:null,selectionTicket:0,pendingSizes:new Map(),productBusy:false};
+  window.StudioSelectionTarget=()=>!state.info||!state.draft?null:{item:'grocery',page:state.side==='shelf'?'GroceryAislePage':'StoreEntrancePage',
+    store,aisle:'studio:'+state.draft.aisle_id,part:state.selection?.id||state.tab,
+    label:state.selection?.name||state.tab,parts:features.map(id=>({id,label:id}))};
   const text=(id,v)=>el(id).textContent=v;
   const say=v=>text('status',v);
   const create=(tag,t)=>{const n=document.createElement(tag);if(t!=null)n.textContent=t;return n;};
