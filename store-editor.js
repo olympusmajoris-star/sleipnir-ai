@@ -1,4 +1,6 @@
 (function(G){'use strict';
+const route=new URLSearchParams(location.search);
+if(route.get('native')==='1'){G.NativeCommerceEditor.open(route.get('store'));return;}
 const C=StoreEditorCore,SB=StudioTransferConfig,$=s=>document.querySelector(s),q=new URLSearchParams(location.search),storeId=q.get('store'),docId='store_components_'+storeId;
 const E=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;},button=(text,fn)=>{const b=E('button',text);b.onclick=()=>Promise.resolve().then(fn).catch(error);return b;};
 let store,assets=[],selection={feature:'',option:'',asset:''},documentState={version:1,storeId,edits:{}},stamp=null,dirty=false,loaded=false,history=[],productOffset=0,productQuery='',revision=0,basket=[],originalProducts=new Map(),nativeThumbnails=new Map(),referenceCache=new Map(),selectingArtworkPart=false;

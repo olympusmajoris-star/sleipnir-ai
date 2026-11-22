@@ -1,15 +1,10 @@
 (function () {
   'use strict';
 
-  const targetStore = '35ef70d0-3d20-4599-96a3-648ee3c7c340';
-  const publixStore = '189581c9-d728-4e5d-9e02-ae4de19a15af';
-  const supportedShelves = ['Snacks','Beverages','Breakfast','Canned Goods & Soups','Dry Goods & Pasta','Condiments & Sauces','Personal Care','Health Care','Household','Baby','Pet Care','Bread & Rolls'];
   const start = new URLSearchParams(location.search);
-  const store = start.has('store') ? start.get('store').trim().toLowerCase() : targetStore;
-  const isTarget = store === targetStore;
+  const store = (start.get('store') || '').trim().toLowerCase();
   const channel = 'sleipnir-aisle-editor-v1';
   const requestedAisle = (start.get('aisle') || '').trim().slice(0,140);
-  const initialAisle = requestedAisle || (isTarget ? 'Canned Goods & Soups' : 'Snacks');
   const hashPattern = /^[0-9a-f]{64}$/;
   const idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
   const manifestURL = new URL('aisle-preview/manifest.json', location.href);
@@ -28,13 +23,15 @@
   };
   const failText = err => err && err.message ? err.message : 'Request failed. Please try again.';
   const rpc = (name, body, auth = true) => jobs.request('/rest/v1/rpc/' + name, { method: 'POST', body, auth });
-  const request = (path, params, auth = true) => jobs.request('/rest/v1/' + path + '?' + new URLSearchParams(params), {auth});
+  const fresh = { 'Cache-Control':'no-cache, no-store' };
+  const request = (path, params, auth = true) => jobs.request('/rest/v1/' + path + '?' + new URLSearchParams(params), {auth,headers:fresh});
   const percentage = n => Math.round(n * 100) + '%';
   const number = x => typeof x === 'number' && Number.isFinite(x);
   const round = x => Math.round(x * 100) / 100;
   const state = {
     hosted: new Map(), versions: new Map(), local: new Map(), saved: new Map(), drafts: new Map(),
-    notes: new Map(), productNames: new Map(), defaultSha: '', selectedSha: '', selected: null, aisle: initialAisle,
+    notes: new Map(), productNames: new Map(), defaultSha: '', selectedSha: '', selected: null, aisle: requestedAisle,
+    mode:'', catalog:[], stockedShelves:[], breadAlias:false, storeReady:false, catalogReady:false,
     editing: true, owner: false, authPending: false, uploading: false, building: false, previewURL: null,
     ready: false, readOnly: false, frameSequence: 0, selectionSequence: 0, versionSequence: 0, flagSequence: 0,
     saveBusy: new Set(), flagBusy: new Set(), flags: [], sourceFile: null, frameTimer: null
@@ -59,10 +56,26 @@
     }));
     select.value = chosen;
   }
-  function setAisles(aisles) {
-    const values = Array.from(new Set(aisles.filter(v => typeof v === 'string' && v.trim())));
-    if (!values.includes(state.aisle)) values.push(state.aisle);
-    setOptions(el('department'), values.sort((a,b) => a.localeCompare(b)).map(a => [a,a]), state.aisle);
+  function availableShelves(build) {
+    const rules = build?.aisleRouting;
+    if (!rules) return Array.from(new Set([...state.catalog,...(state.breadAlias ? ['Bread & Rolls'] : [])]));
+    const standard = new Set(rules.standard || []);
+    const dynamic = state.mode !== 'publix' && (rules.otherStores === 'catalog' ||
+      (rules.dynamicStoreIds || []).includes(store) || (rules.dollarGeneralByName && state.mode === 'dollar-general'));
+    const groups = state.catalog.filter(name => dynamic || standard.has(name));
+    if (state.breadAlias && state.mode !== 'dollar-general' && (dynamic || standard.has('Bread & Rolls'))) groups.push('Bread & Rolls');
+    return Array.from(new Set(groups)).sort((a,b) => a.localeCompare(b));
+  }
+  function chooseShelves(build) {
+    const groups = state.stockedShelves = availableShelves(build);
+    const preferred = state.mode === 'target' ? 'Canned Goods & Soups' : 'Snacks';
+    if (!state.aisle) state.aisle = groups.includes(preferred) ? preferred : groups[0] || '';
+    const supported = groups.includes(state.aisle);
+    const options = groups.map(g => [g,g]);
+    if (!supported) options.unshift(['',groups.length ? 'Choose an available aisle' : 'No stocked aisles']);
+    setOptions(el('department'),options,supported ? state.aisle : '');
+    el('department').disabled = !groups.length;
+    return supported;
   }
   function getVersionLabel(v) {
     const label = v.label || v.filename || 'GroceryAisle.dart';
@@ -75,23 +88,27 @@
     el('version-list').disabled = !list.length;
   }
   async function loadManifest() {
-    const response = await fetch(manifestURL, {cache:'no-cache', credentials:'omit'});
+    const response = await fetch(manifestURL, {cache:'no-store', credentials:'omit'});
     if (!response.ok) throw Error('The compiled preview registry is unavailable.');
     const manifest = await response.json();
+    const latest = new Map();
+    let preferred = '';
     for (const [digest, item] of Object.entries(manifest.versions || {})) {
       if (!hashPattern.test(digest) || !item || typeof item.path !== 'string' ||
           !hashPattern.test(item.artifactSha256 || '')) continue;
       const url = new URL(item.path, previewRoot);
       const expected = new URL(digest + '/index.html', previewRoot);
       if (url.href !== expected.href) continue;
-      const version = { ...state.versions.get(digest), sha256:digest, filename:item.filename, label:item.label,buildFlavor:item.buildFlavor,
-        artifactSha256:item.artifactSha256, url, readOnly:!!item.readOnly };
-      state.hosted.set(digest, version);
-      state.versions.set(digest, version);
-      if (item.default === true) state.defaultSha = digest;
+      const version = {sha256:digest, filename:item.filename, label:item.label,buildFlavor:item.buildFlavor,
+        artifactSha256:item.artifactSha256, url, readOnly:!!item.readOnly,aisleRouting:item.aisleRouting || null};
+      latest.set(digest, version);
+      if (item.default === true) preferred = digest;
     }
-    if (state.hosted.has(manifest.defaultSourceSha256)) state.defaultSha = manifest.defaultSourceSha256;
-    if (!state.defaultSha) state.defaultSha = state.hosted.keys().next().value || '';
+    if (latest.has(manifest.defaultSourceSha256)) preferred = manifest.defaultSourceSha256;
+    for (const sha of state.hosted.keys()) if (!latest.has(sha) && !state.versions.get(sha)?.id) state.versions.delete(sha);
+    state.hosted = latest;
+    for (const [sha,v] of latest) state.versions.set(sha,{...state.versions.get(sha),...v});
+    state.defaultSha = preferred || latest.keys().next().value || '';
     if (!state.defaultSha) throw Error('No verified compiled Dart version is available.');
   }
   async function loadVersions() {
@@ -99,7 +116,7 @@
     const size = 250;
     let offset = 0;
     while (true) {
-      const result = await jobs.request(versionsPath + '?' + new URLSearchParams({select:versionFields,order:'created_at.desc,id.asc',limit:size,offset}));
+      const result = await jobs.request(versionsPath + '?' + new URLSearchParams({select:versionFields,order:'created_at.desc,id.asc',limit:size,offset}),{headers:fresh});
       for (const v of result || []) {
         if (!hashPattern.test(v.sha256)) continue;
         state.versions.set(v.sha256, {...v,...state.hosted.get(v.sha256)});
@@ -110,29 +127,30 @@
     showVersions();
   }
   async function loadAisles() {
-    try {
-      const result = isTarget ? await rpc('target_catalog_categories', {}, false) :
-        await rpc('studio_product_categories',{p_store_id:store},false);
-      let aisles = result.filter(r => Number(r.product_count) > 0).map(r => r.category);
-      if (!isTarget) {
-        const hasBakery = aisles.includes('Bakery');
-        aisles = aisles.filter(a => supportedShelves.includes(a));
-        if (hasBakery && !aisles.includes('Bread & Rolls')) {
-          const bread = await request('products',{select:'id',store_id:'eq.' + store,category:'eq.Bakery',shelf_group:'eq.Bread & Rolls',limit:1},false);
-          if (bread?.length) aisles.push('Bread & Rolls');
-        }
-      }
-      if (aisles.length) setAisles(aisles);
-    } catch (_) {
-      // The store's known entry remains usable while its independent directory is offline.
+    const result = state.mode === 'target' ? await rpc('target_catalog_categories', {}, false) :
+      await rpc('studio_product_categories',{p_store_id:store},false);
+    const categories = new Set(result.filter(r => Number(r.product_count) > 0 && typeof r.category === 'string' && r.category.trim()).map(r => r.category));
+    if (categories.has('Uncategorized')) {
+      const found = await request('products',{select:'id',store_id:'eq.'+store,category:'eq.Uncategorized',limit:1},false);
+      if (!found?.length) categories.delete('Uncategorized');
     }
+    let breadAlias = false;
+    if (!['target','dollar-general'].includes(state.mode) && categories.has('Bakery')) {
+      const bread = await request('products',{select:'id',store_id:'eq.' + store,category:'eq.Bakery',shelf_group:'eq.Bread & Rolls',limit:1},false);
+      breadAlias = !!bread?.length;
+      // This native route selects Bakery + shelf_group even when a direct category shares its name.
+      if (!breadAlias) categories.delete('Bread & Rolls');
+    }
+    state.catalog = [...categories].sort((a,b) => a.localeCompare(b));
+    state.breadAlias = breadAlias;
+    state.catalogReady = true;
   }
   async function loadScales() {
     const limit = 500;
     let offset = 0;
     while (true) {
       const result = await request('studio_grocery_product_scales',
-        {select:'product_id,scale,revision',store_id:'eq.' + store,order:'product_id',limit,offset},false);
+        {select:'store_id,product_id,scale,revision',store_id:'eq.' + store,order:'product_id',limit,offset},false);
       for (const r of result || []) acceptScale(r);
       if (!Array.isArray(result) || result.length < limit) break;
       offset += limit;
@@ -141,13 +159,14 @@
     updateControls();
   }
   function acceptScale(r) {
-    if (!r || !idPattern.test(r.product_id || '') || !number(Number(r.scale)) || !Number.isInteger(Number(r.revision))) return;
+    if (!r || r.store_id !== store || !idPattern.test(r.product_id || '') || !number(Number(r.scale)) || !Number.isInteger(Number(r.revision))) return;
     const current = state.saved.get(r.product_id);
     if (!current || Number(r.revision) >= current.revision) state.saved.set(r.product_id,{scale:Number(r.scale),revision:Number(r.revision)});
   }
   async function loadSkuScale(id) {
-    const rows = await request('studio_grocery_product_scales', {select:'product_id,scale,revision',store_id:'eq.' + store,product_id:'eq.' + id,limit:1},false);
+    const rows = await request('studio_grocery_product_scales', {select:'store_id,product_id,scale,revision',store_id:'eq.' + store,product_id:'eq.' + id,limit:1},false);
     const latest = row(rows);
+    if (latest && (latest.store_id !== store || latest.product_id !== id)) throw Error('Scale does not match this store product.');
     if (latest) acceptScale(latest);
     else if (!state.saved.has(id)) state.saved.set(id,{scale:1,revision:0});
   }
@@ -159,7 +178,7 @@
     do {
       const rows = await request('studio_grocery_product_flags',{select:fields,store_id:'eq.' + store,order:'created_at.desc,id.asc',limit,offset});
       if (seq !== state.flagSequence) return;
-      flags.push(...rows);
+      flags.push(...rows.filter(flag => flag.store_id === store && idPattern.test(flag.product_id)));
       if (rows.length < limit) break;
       offset += limit;
     } while (true);
@@ -201,11 +220,12 @@
     if (!state.focus || !state.ready) return;
     const {product_id,aisle} = state.focus;
     state.focus = null;
+    if (!state.stockedShelves.includes(aisle)) { setNotice('This flagged aisle is unavailable in the selected version.'); return; }
     changeAisle(aisle);
     send('focus-product',{product_id,aisle});
   }
   async function connectOwner(interactive) {
-    if (state.authPending) return;
+    if (!state.storeReady || state.authPending) return;
     state.authPending = true;
     updateControls();
     try {
@@ -245,8 +265,13 @@
     const v = currentVersion(), build = state.hosted.get(digest) || state.local.get(digest);
     const serial = ++state.frameSequence;
     state.ready = false;
-    state.readOnly = !!build?.readOnly;
-    state.previewURL = build?.url || null;
+    const previouslyReadOnly = state.readOnly;
+    const editableIds = build?.aisleRouting?.editableStoreIds;
+    state.readOnly = !!build?.readOnly || Array.isArray(editableIds) && !editableIds.includes(store);
+    if (previouslyReadOnly && !state.readOnly) state.editing = true;
+    if (state.readOnly) state.editing = false;
+    const supported = chooseShelves(build);
+    state.previewURL = supported && build ? build.url : null;
     clearTimeout(state.frameTimer);
     clearSelection();
     showVersions();
@@ -254,10 +279,10 @@
     const frame = old.cloneNode(false);
     frame.removeAttribute('src');
     old.replaceWith(frame);
-    frame.hidden = !build;
+    frame.hidden = !state.previewURL;
     el('frame-status').hidden = false;
-    message('version-status', versionStatus());
-    if (build) {
+    message('version-status', versionStatus() + (state.readOnly ? ' · Shopping preview only for this store.' : ''));
+    if (state.previewURL) {
       message('frame-status','Starting the compiled Flutter preview…');
       const src = new URL(build.url);
       src.searchParams.set('store',store);
@@ -271,22 +296,26 @@
         if (state.frameSequence === serial && !state.ready)
           message('frame-status','The compiled preview has not connected. Reload this version to retry.');
       }, 25000);
-    } else message('frame-status', v ? 'This Dart version needs a compiled preview.' : 'A verified Flutter preview is unavailable.');
+    } else {
+      const text = !supported && state.catalogReady ?
+        (state.stockedShelves.length ? 'This aisle is unavailable in the selected version. Choose another aisle or return to the store entrance.' : 'This store has no stocked aisles available in the selected version.') :
+        v ? 'This Dart version needs a compiled preview.' : 'A verified Flutter preview is unavailable.';
+      message('frame-status',text);
+    }
     drawFlags();
     updateControls();
   }
   function changeAisle(aisle) {
-    if (!aisle || typeof aisle !== 'string') return;
-    if (!isTarget && !supportedShelves.includes(aisle)) return;
+    if (!state.stockedShelves.includes(aisle)) return;
     state.aisle = aisle;
-    if (!Array.from(el('department').options).some(o => o.value === aisle)) setAisles([...Array.from(el('department').options).map(o => o.value),aisle]);
     el('department').value = aisle;
     const route = new URL(location.href);
     route.searchParams.set('store',store);
     route.searchParams.set('aisle',aisle);
     try { history.replaceState(null,'',route); } catch (_) {}
     clearSelection();
-    send('set-aisle',{aisle});
+    if (!state.previewURL && state.selectedSha) selectVersion(state.selectedSha);
+    else send('set-aisle',{aisle});
   }
   function currentScale() {
     const p = state.selected;
@@ -302,7 +331,7 @@
     el('return-preview').hidden = !p;
     if (p) message('inspect-selected','Edit ' + p.name);
     el('connect-owner').textContent = state.authPending ? 'Connecting…' : signed ? 'Owner connected' : 'Connect owner';
-    el('connect-owner').disabled = state.authPending || signed;
+    el('connect-owner').disabled = !state.storeReady || state.authPending || signed;
     for (const id of ['aisle-search','search-go','prev-panel','next-panel']) el(id).disabled = !state.ready;
     el('mode-toggle').disabled = !state.ready || state.readOnly;
     el('mode-toggle').setAttribute('aria-pressed',String(state.editing));
@@ -324,7 +353,7 @@
       'Saved scale ' + percentage(scale) + ' · ' + percentage(p.min) + '–' + percentage(p.max) + ' available') : '');
     el('upload').disabled = !el('dart-file').files.length || !signed || state.uploading;
     el('upload').textContent = state.uploading ? 'Saving…' : 'Save version';
-    const unbuilt = !!currentVersion() && !state.previewURL;
+    const unbuilt = !!currentVersion() && !state.hosted.has(state.selectedSha) && !state.local.has(state.selectedSha);
     el('compile-version').hidden = !unbuilt;
     el('compile-version').disabled = !signed || state.building;
     el('compile-version').textContent = state.building ? 'Building preview…' : 'Build private preview';
@@ -339,6 +368,20 @@
     box.replaceChildren(make('h3',p.name),make('p',[p.size, p.price !== null ? new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(p.price) : 'Price unavailable'].filter(Boolean).join(' · ')));
     const detail = make('small',[p.render != null ? 'Shelf ' + p.render : p.aisle, p.slot != null ? 'Spot ' + p.slot : '', 'SKU ' + p.id].filter(Boolean).join(' · '));
     box.append(detail);
+  }
+  async function matchesShelf(product, spot) {
+    if (product.category === spot.aisle) return true;
+    if (state.mode !== 'target')
+      return state.breadAlias && spot.aisle === 'Bread & Rolls' && product.category === 'Bakery' && product.shelf_group === 'Bread & Rolls';
+    // A Target shelf may intentionally stock an item from a historical catalog category.
+    if (spot.render !== null && spot.slot !== null) {
+      const placed = await request('target_render_slots',{select:'product_id,slot,target_renders!inner(aisle,status)',
+        render_no:'eq.'+spot.render,slot:'eq.'+spot.slot,product_id:'eq.'+spot.id,'target_renders.aisle':'eq.'+spot.aisle,
+        'target_renders.status':'eq.done',limit:1},false);
+      return row(placed)?.product_id === spot.id;
+    }
+    const moved = await request('target_aisle_override',{select:'product_id,aisle',product_id:'eq.'+spot.id,aisle:'eq.'+spot.aisle,limit:1},false);
+    return row(moved)?.product_id === spot.id;
   }
   async function selectProduct(data) {
     if (!state.editing || state.readOnly || data.store_id !== store || data.aisle !== state.aisle || !idPattern.test(data.product_id || '')) return;
@@ -365,12 +408,15 @@
     showProduct(p);
     updateControls();
     try {
-      const [products] = await Promise.all([request('products',{select:'id,name,price',store_id:'eq.' + store,id:'eq.' + id,limit:1},false),loadSkuScale(id)]);
+      const [products] = await Promise.all([request('products',{select:'id,name,price,store_id,category,shelf_group',store_id:'eq.' + store,id:'eq.' + id,limit:1},false),loadSkuScale(id)]);
       if (seq !== state.selectionSequence) return;
       const actual = row(products);
-      if (!actual || actual.id !== id) throw Error('This product could not be verified in this store.');
+      if (!actual || actual.id !== id || actual.store_id !== store) throw Error('This product could not be verified in this store.');
+      if (!await matchesShelf(actual,p)) throw Error('This product belongs to a different aisle in this store.');
+      if (seq !== state.selectionSequence) return;
       p.name = actual.name || p.name;
-      p.price = actual.price != null && actual.price !== '' && number(Number(actual.price)) ? Number(actual.price) : null;
+      const price = Number(actual.price);
+      p.price = number(price) && price > 0 ? price : null;
       p.verified = true;
       state.productNames.set(id,p.name);
       showProduct(p);
@@ -414,7 +460,7 @@
     try {
       const f = row(await rpc('studio_flag_grocery_product', {p_store_id:store,p_product_id:p.id,p_aisle:p.aisle,p_version:version,
         p_page_key:p.render != null ? 'r' + p.render + (p.slot != null ? '/slot/' + p.slot : '') : null,p_note:note}));
-      if (!f || !f.id || f.product_id !== p.id) throw Error('The store did not confirm this repair flag.');
+      if (!f || !f.id || f.store_id !== store || f.product_id !== p.id || f.aisle !== p.aisle) throw Error('The store did not confirm this repair flag.');
       if (state.notes.get(p.id)?.trim() === note) {
         state.notes.delete(p.id);
         if (state.selected?.id === p.id) el('repair-note').value = '';
@@ -470,7 +516,7 @@
       const url = new URL(result.url);
       const expected = new URL('/preview/' + sha + '/index.html',privateOrigin);
       if (result.sha256 !== sha || url.href !== expected.href) throw Error('The private compiler returned a different source or preview location.');
-      state.local.set(sha,{url,readOnly:!!result.readOnly});
+      state.local.set(sha,{url,readOnly:!!result.readOnly,aisleRouting:result.aisleRouting || null});
       if (serial === state.versionSequence) {
         selectVersion(sha);
         setNotice(result.readOnly ? 'Private build ready in shopping mode. This source has no product editing bridge.' : 'Private compiled preview ready.');
@@ -486,8 +532,17 @@
     const data = event.data;
     if (!state.previewURL || event.origin !== state.previewURL.origin || event.source !== el('editor-frame').contentWindow ||
         !data || data.channel !== channel) return;
+    if (data.type === 'error' && data.sourceSha256 === state.selectedSha && data.store_id === store) {
+      clearTimeout(state.frameTimer);
+      state.ready = false;
+      el('editor-frame').hidden = true;
+      el('frame-status').hidden = false;
+      message('frame-status',String(data.message || 'The compiled preview could not open this store.').slice(0,350));
+      clearSelection();
+      return;
+    }
     if (data.type === 'ready') {
-      if (data.sourceSha256 !== state.selectedSha || (data.store_id !== undefined && data.store_id !== store)) {
+      if (data.sourceSha256 !== state.selectedSha || data.store_id !== store) {
         message('frame-status','The running preview does not match the selected Dart source.');
         return;
       }
@@ -529,42 +584,47 @@
   el('compile-version').addEventListener('click',buildPreview);
   el('refresh-versions').addEventListener('click',async () => {
     const sha = state.selectedSha;
-    try { await loadManifest(); await loadVersions(); selectVersion(sha || state.defaultSha); }
+    try {
+      const stores = await window.StudioWorkspaceCore.loadAppStores({force:true});
+      if (!stores.some(row => row.id === store)) { location.reload(); return; }
+      await Promise.all([loadManifest(),loadAisles()]);
+      await loadVersions();
+      selectVersion(state.versions.has(sha) ? sha : state.defaultSha);
+    }
     catch (err) { setNotice(failText(err)); }
   });
   el('prev-panel').addEventListener('click',() => send('move',{direction:'left'}));
   el('next-panel').addEventListener('click',() => send('move',{direction:'right'}));
   el('search-form').addEventListener('submit',e => { e.preventDefault(); send('search',{query:el('aisle-search').value.trim()}); });
-  const knownStore = isTarget ? 'Target' : store === publixStore ? 'Publix (Island Walk)' : '';
-  if (!idPattern.test(store) || (!isTarget && requestedAisle && !supportedShelves.includes(requestedAisle))) {
-    el('connect-owner').disabled = true;
-    el('department').disabled = true;
-    message('preview-heading',knownStore || 'Store aisle');
-    message('frame-status',idPattern.test(store) ? 'This department uses a different store display.' : 'This store link contains an invalid store ID.');
-    if (idPattern.test(store)) {
-      el('store-back').href = 'grocery-entrance.html?store=' + encodeURIComponent(store);
-      message('store-back','‹ Store entrance');
-    }
-    return;
-  }
-  function setStoreName(name) {
-    message('preview-heading',name + ' aisle');
-    el('store-back').href = 'grocery-entrance.html?store=' + encodeURIComponent(store);
-    message('store-back','‹ ' + name + ' entrance');
-  }
-  if (knownStore) setStoreName(knownStore);
-  setAisles(isTarget ? [initialAisle,'Condiments & Sauces','Dairy & Eggs'] : [initialAisle]);
+  if (!start.has('store')) { location.replace('store-directory.html?type=grocery'); return; }
+  el('department').disabled = true;
   drawFlags();
   updateControls();
-  const verifiedStore = knownStore ? Promise.resolve() : request('stores',{select:'id,name',id:'eq.' + store,limit:1},false).then(rows => {
-    if (row(rows)?.id !== store) throw Error('This store is unavailable.');
-    setStoreName(row(rows).name || 'Store');
-  });
-  verifiedStore.then(() => loadManifest()).then(() => {if (!state.selectedSha) selectVersion(state.defaultSha); else showVersions();})
-    .catch(err => {if (!state.selectedSha) selectVersion(''); setNotice(failText(err));});
-  verifiedStore.then(() => {
-    loadAisles();
-    loadScales().catch(() => {}); // A fresh store-scoped read is also required on each selection.
+  const openStore = async () => {
+    if (!idPattern.test(store)) { message('frame-status','This store link contains an invalid store ID.'); return; }
+    const core = window.StudioWorkspaceCore;
+    if (!core?.appStoreById || !core.groceryModeForStore) throw Error('The store directory could not load.');
+    const info = await core.appStoreById(store);
+    if (!info) { message('frame-status','This store is unavailable in the app.'); return; }
+    state.mode = core.groceryModeForStore(info);
+    if (!state.mode) {
+      message('frame-status',info.name + ' uses a different store editor.');
+      const route = core.storeEditorForStore?.(info);
+      if (route) { el('store-back').href = route; message('store-back','‹ ' + info.name + ' editor'); }
+      return;
+    }
+    state.storeReady = true;
+    message('preview-heading',info.name + ' aisle');
+    el('store-back').href = 'grocery-entrance.html?store=' + encodeURIComponent(store);
+    message('store-back','‹ ' + info.name + ' entrance');
+    await Promise.all([loadManifest(),loadAisles()]);
+    selectVersion(state.defaultSha);
+    loadScales().catch(() => {}); // Each selection also requires a fresh store-scoped read.
     connectOwner(false);
-  }).catch(() => { el('connect-owner').disabled = true; });
+  };
+  el('retry-store').addEventListener('click',() => location.reload());
+  openStore().catch(err => {
+    message('frame-status',failText(err));
+    el('retry-store').hidden = false;
+  });
 })();

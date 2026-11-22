@@ -23,22 +23,26 @@ function breadcrumbs(){const g=C.GROUPS.find(g=>g.id===here.group),p=AREAS[here.
 $('#navHome').onclick=()=>move({group:C.GROUPS[0].id,page:C.GROUPS[0].pages[0][0]});
 addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data||{};if(d.type==='studio-wide')document.body.classList.remove('wide-tools');
  if(d.type==='studio-open'){ // tapping something in the preview opens it, like the app would
-  if(d.target==='store'&&d.storeId){move({group:'shopping',page:'stores',store:d.storeId});return;}
+  if(d.target==='store'&&d.storeId){
+   stores().then(list=>{const row=list.find(s=>s.id===d.storeId);if(!row)return;
+    const page=row.app_surface==='valhalla'?'vbrowse':C.groceryModeForStore(row)?'grocery':row.menu_type==='convenience'?'retail':row.menu_type;
+    move({group:'shopping',page,store:row.id});}).catch(e=>{$('#workspaceStatus').textContent=e.message;});return;
+  }
   const types={grocery:'grocery',retail:'retail',fast_food:'fast_food',restaurant:'restaurant',valhalla:'vbrowse'};
   if(d.target==='browse'&&types[d.pageType]){move({group:'shopping',page:types[d.pageType]});return;}
   for(const g of C.GROUPS)for(const pg of g.pages)if(pg[0]===d.target||(pg[3]||'').includes('page='+d.target+'&')||(pg[3]||'').endsWith('page='+d.target)){move({group:g.id,page:pg[0]});return;}}});
 $('#navBack').onclick=async()=>{if(trail.at<=0)return;try{await flush();trail.at--;await move(trail.items[trail.at],true);}catch(e){$('#workspaceStatus').textContent=e.message;}};
 $('#navForward').onclick=async()=>{if(trail.at>=trail.items.length-1)return;try{await flush();trail.at++;await move(trail.items[trail.at],true);}catch(e){$('#workspaceStatus').textContent=e.message;}};
 $('#workshopTransfer').onclick=()=>{const f=$('#ed');if(!f.hidden)f.contentWindow.postMessage({type:'asgard-open-transfer'},location.origin);};
-async function stores(){if(STORES&&Date.now()-inventoryLoadedAt<60000)return STORES;if(inventoryRequest)return inventoryRequest;inventoryRequest=(async()=>{const rows=[];for(let offset=0;;offset+=500){const response=await fetch(SB.url+'/rest/v1/stores?select=*&order=id&limit=500&offset='+offset,{headers:H});if(!response.ok)throw Error('Could not load the store directory.');const batch=await response.json();rows.push(...batch);if(batch.length<500)break;}rows.forEach(s=>{s.town=townOf(s.address);s.type=TYPE[s.menu_type]||'Other';});STORES=rows.sort((a,b)=>a.name.localeCompare(b.name));inventoryLoadedAt=Date.now();return STORES;})().finally(()=>inventoryRequest=null);return inventoryRequest;}
-async function inventoryForStore(store){const count=async(filter)=>{const query=new URLSearchParams({select:'id',store_id:'eq.'+store.id,limit:'1'});if(filter)query.set('image_url',filter);let r;for(let attempt=0;attempt<2;attempt++){r=await fetch(SB.url+'/rest/v1/products?'+query,{method:'HEAD',headers:{...H,Prefer:'count=exact'}});if(r.ok)break;}if(!r.ok)throw Error('Product count unavailable for '+store.name);const raw=r.headers.get('content-range')?.split('/')[1],n=Number(raw);if(raw==null||!Number.isFinite(n))throw Error('Product count unavailable for '+store.name);return n;};const product_count=await count(null);if(!product_count)return {...store,product_count:0,image_count:0};const missing=await count('is.null'),blank=await count('eq.');return {...store,product_count,image_count:Math.max(0,product_count-missing-blank)};}
-
-
+async function stores(){
+ const rows=await C.loadAppStores();
+ return rows.map(s=>({...s,town:C.physicalCity(s),type:TYPE[s.menu_type]||'Other'})).sort((a,b)=>a.name.localeCompare(b.name));
+}
 async function pages(){++navRevision;const nav=$('#pages'),list=AREAS[here.group];nav.innerHTML=`<div class="cap">CHOOSE WHAT TO WORK ON</div>`+list.map(p=>`<button class="pg ${p.id===here.page?'on':''}" data-p="${p.id}">${esc(p.name)}<small>${esc(p.sub)}</small></button>${p.stores&&p.id===here.page?'<div class="drill" id="drill">Loading stores…</div>':''}`).join('');nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{if(b.dataset.p===here.page&&C.STORE_TYPES.some(t=>t[0]===here.page))chooseStore(list.find(p=>p.id===here.page));else move({group:here.group,page:b.dataset.p});});const p=list.find(p=>p.id===here.page);if(p.stores)await drill(p);else if(p.url)return show(p.url);else show(null,'<div class="workspace-source-note"><h2>Keep the original app screen</h2><p>Your delivery, checkout and merchant screens already exist in the app. Their current source is needed to expose their real controls here without substituting a different screen.</p><p>Existing app behavior is preserved. Work on the connected editors using the sections above.</p></div>');}
 async function drill(page){
  const d=$('#drill');d.replaceChildren();
  const change=document.createElement('button');change.className='retry-stores';change.textContent='Choose city and store';change.onclick=()=>chooseStore(page);d.append(change);
- if(here.store){const all=await stores(),store=all.find(s=>s.id===here.store&&C.storeTypeMatches(page.id,s));if(store){const info=document.createElement('p');info.textContent=store.name+' · '+store.town;d.append(info);const entrance=['grocery','retail'].includes(page.id)&&C.groceryEntranceForStore(store.id);return show(entrance||'store-editor.html?store='+encodeURIComponent(store.id)+'&type='+page.id);}here.store='';}
+ if(here.store){const all=await stores(),store=all.find(s=>s.id===here.store&&C.storeTypeMatches(page.id,s));if(store){const info=document.createElement('p');info.textContent=store.name+' · '+store.town;d.append(info);return show(C.storeEditorForStore(store));}here.store='';}
  show(null,'<div><h2>Choose a city and store</h2><p>Your selected store’s components will appear here.</p></div>');await chooseStore(page);
 }
 async function chooseStore(page){
@@ -48,10 +52,19 @@ async function chooseStore(page){
  dialog.querySelector('h2').textContent=page.name;dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
  try{const rows=(await stores()).filter(s=>C.storeTypeMatches(page.id,s)),cities=[...new Set(rows.map(s=>s.town))].sort(),city=dialog.querySelector('select'),cards=dialog.querySelector('.store-cards'),status=dialog.querySelector('[role=status]');
  for(const name of cities){const o=document.createElement('option');o.value=name;o.textContent=name;city.append(o);}
- status.textContent=rows.length? 'Choose a city to check its stores and product availability.':'No stores with products are recorded in this category.';
- city.onchange=async()=>{cards.replaceChildren();const selectedCity=city.value,matches=rows.filter(s=>s.town===selectedCity);status.textContent=selectedCity?'Checking products and images for '+matches.length+' stores…':'Choose a city.';if(!selectedCity)return;let shown=0,failed=0;for(let offset=0;offset<matches.length;offset+=4){const results=await Promise.allSettled(matches.slice(offset,offset+4).map(inventoryForStore));if(!dialog.isConnected||city.value!==selectedCity)return;for(const result of results){if(result.status!=='fulfilled'){failed++;const missing=matches[offset+results.indexOf(result)],card=document.createElement('article');card.className='store-card';const heading=document.createElement('h3');heading.textContent=missing.name;const note=document.createElement('p');note.textContent='Product counts could not be verified. This store has not been removed.';const retry=document.createElement('button');retry.textContent='Retry store counts';retry.onclick=()=>city.onchange();card.append(heading,note,retry);cards.append(card);continue;}const st=result.value;if(!st.product_count)continue;shown++;const card=document.createElement('article');card.className='store-card';const coverage=st.product_count?Math.floor(st.image_count/st.product_count*1000)/10:0;
- card.innerHTML='<h3>'+esc(st.name)+'</h3><p>'+esc(st.address||'Address not recorded')+'</p><p>'+st.product_count.toLocaleString()+' products · '+st.image_count.toLocaleString()+' images ('+coverage+'%)</p><p>'+esc(st.image_count===st.product_count?'All product images present':coverage>=95?'Most product images present':'Some product images missing')+'</p><button class="retry-stores">Edit this store</button>';
- card.querySelector('button').onclick=async()=>{dialog.close();await move({group:'shopping',page:page.id,store:st.id,feature:'',topic:''});};cards.append(card);}}status.textContent=shown+' stores with products in '+selectedCity+(failed?' · '+failed+' counts could not be verified':'');}
+ status.textContent=rows.length?'Choose a city.':'No live stores in this category.';
+ city.onchange=()=>{
+  cards.replaceChildren();const selectedCity=city.value,matches=rows.filter(s=>s.town===selectedCity);
+  if(!selectedCity){status.textContent='Choose a city.';return;}
+  status.textContent=matches.length+' stores in '+selectedCity;
+  for(const st of matches){
+   const card=document.createElement('article');card.className='store-card';
+   const count=Number(st.product_count)||0,photos=Number(st.image_count)||0;
+   const description=st.app_surface==='valhalla'?st.valhalla_menu_count.toLocaleString()+' orderable menu items':count?count.toLocaleString()+' products · '+photos.toLocaleString()+' images':'No catalog products recorded';
+   card.innerHTML='<h3>'+esc(st.name)+'</h3><p>'+esc(st.address||'Address not recorded')+'</p><p>'+esc(description)+'</p><button class="retry-stores">Edit this store</button>';
+   card.querySelector('button').onclick=()=>{dialog.close();move({group:'shopping',page:page.id,store:st.id});};cards.append(card);
+  }
+ };
  }catch(e){dialog.querySelector('[role=status]').textContent=e.message;}
 }
 

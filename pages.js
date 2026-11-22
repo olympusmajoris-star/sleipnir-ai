@@ -6,9 +6,19 @@
 // It never falls back to editable drafts or the editor's local browser state.
 const RUNTIME = window.AsgardRuntime || null;
 const entryQuery = new URLSearchParams(location.search);
-if (!RUNTIME && entryQuery.get('page') === 'store') {
- const entrance = window.StudioWorkspaceCore?.groceryEntranceForStore(entryQuery.get('store'));
- if (entrance) { location.replace(entrance); return; }
+if (!RUNTIME && entryQuery.get('page') === 'store' && entryQuery.get('store') && entryQuery.get('legacy')!=='1') {
+ const id=entryQuery.get('store');
+ const routeStore=async()=>{
+  const host=document.querySelector('.center')||document.body;
+  try{
+   if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))throw Error('The store link is invalid.');
+   const store=await window.StudioWorkspaceCore.appStoreById(id);
+   const target=window.StudioWorkspaceCore.storeEditorForStore(store);
+   if(!target){const legacy=new URL(location.href);legacy.searchParams.set('legacy','1');location.replace(legacy);return;}
+   location.replace(target);
+  }catch(error){const msg=document.createElement('p'),back=document.createElement('a');msg.textContent=error.message;back.textContent='Store directory';back.href='store-directory.html';host.replaceChildren(msg,back);}
+ };
+ routeStore();return;
 }
 const RUNTIME_PREVIEW = !!(RUNTIME && RUNTIME.preview === true);
 let runtimeContext = {}, runtimePaused = false, runtimePauseAt = 0, runtimePauseOffset = 0, runtimeStopped = false, runtimeFrame = null;
@@ -680,12 +690,19 @@ const BROWSE = { type: RUNTIME?.envelope?.pageType || QS.get('type') || 'grocery
 const BTYPES = { grocery: 'Grocery', fast_food: 'Fast Food', restaurant: 'Restaurants', retail: 'Retail', valhalla: 'Valhalla' };
 async function loadBrowse(){
   if(BROWSE.all || BROWSE.loading) return; BROWSE.loading = true;
-  try { const r = await fetch(SB.url + '/rest/v1/stores?select=id,name,logo_url,address,menu_type,category,is_valhalla&is_live=is.true&order=name', { headers: H() }); BROWSE.all = r.ok ? await r.json() : [];allowDataAssets(BROWSE.all.map(s=>s.logo_url)); } catch(e){ BROWSE.all = []; }
+  try {
+   if(RUNTIME){
+    const r=await fetch(SB.url+'/rest/v1/stores?select=id,name,logo_url,address,menu_type,category,is_valhalla&is_live=is.true&order=name',{headers:H()});
+    BROWSE.all=r.ok?await r.json():[];
+   }else BROWSE.all=[...await window.StudioWorkspaceCore.loadAppStores()].sort((a,b)=>a.name.localeCompare(b.name));
+   allowDataAssets(BROWSE.all.map(s=>s.logo_url));
+  }catch{BROWSE.all=[];}
   BROWSE.loading = false;
 }
 function browseList(){
   const a = BROWSE.all || [], t = BROWSE.type;
-  return a.filter(s => t === 'valhalla' ? s.is_valhalla : !s.is_valhalla && (
+  const onStreet=s=>RUNTIME?s.is_valhalla:s.app_surface==='valhalla';
+  return a.filter(s => t === 'valhalla' ? onStreet(s) : !onStreet(s) && (
     t === 'grocery' ? (s.menu_type === 'grocery' || /grocery|wholesale/i.test(s.category || '')) :
     t === 'fast_food' ? s.menu_type === 'fast_food' :
     t === 'restaurant' ? (s.menu_type === 'sit_down' || s.menu_type === 'fast_casual') :
@@ -1656,10 +1673,11 @@ if(RUNTIME){
   cv.addEventListener('click',e=>{if(moved>6)return;const P=PAGES[STATE.page];if(!P)return;
    {const r0=cv.getBoundingClientRect(),px=(e.clientX-r0.left)*W/r0.width,py=(e.clientY-r0.top)*W/r0.width;const h=[...runtimeHits].reverse().find(z=>px>=z.x&&px<=z.x+z.w&&py>=z.y&&py<=z.y+z.h);const a=h?.action;
     if(a?.type==='navigate'&&a.target==='store'){
-     const entrance=window.StudioWorkspaceCore.groceryEntranceForStore(a.storeId);
+     const row=(BROWSE.all||[]).find(store=>store.id===a.storeId);
+     const entrance=window.StudioWorkspaceCore.storeEditorForStore(row);
      if(entrance){
       let workshop=false;try{workshop=parent!==window&&parent.location.pathname.endsWith('/workshop.html');}catch{}
-      if(workshop)parent.postMessage({type:'studio-open',target:'store',storeId:a.storeId},location.origin);
+      if(workshop)parent.postMessage({type:'studio-open',target:'store',storeId:a.storeId,pageType:BROWSE.type},location.origin);
       else location.assign(entrance);
       return;
      }

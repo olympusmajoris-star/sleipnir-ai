@@ -1,8 +1,56 @@
 {
   "version": 1,
-  "default": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
-  "defaultSourceSha256": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
+  "default": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee",
+  "defaultSourceSha256": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee",
   "versions": {
+    "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee": {
+      "sourceSha256": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee",
+      "artifactSha256": "f6d7ce3b43691ee7052f82c34da8c04346dd045490003a4a54d74578ad74dd1e",
+      "path": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee/index.html",
+      "buildSignature": "a23dc60701c58702d30508ca43a8adee8aea0a82b029fd22640bbe804b71dfc2",
+      "buildFlavor": "widget-with-studio-scope",
+      "filename": "GroceryAisle_AllStores_Studio.dart",
+      "aisleRouting": {
+        "standard": [
+          "Snacks",
+          "Beverages",
+          "Breakfast",
+          "Canned Goods & Soups",
+          "Dry Goods & Pasta",
+          "Condiments & Sauces",
+          "Personal Care",
+          "Health Care",
+          "Household",
+          "Baby",
+          "Pet Care",
+          "Bread & Rolls"
+        ],
+        "targetStoreId": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+        "dynamicStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733",
+          "0600cb61-45f9-402b-a209-134abdaef10f"
+        ],
+        "otherStores": "catalog",
+        "dollarGeneralByName": true,
+        "editableStoreIds": null,
+        "studioStoreIds": [
+          "03dbd8fa-ed64-4236-85be-206c952da024",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af",
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733"
+        ]
+      },
+      "capabilities": [
+        "select",
+        "scale",
+        "set-aisle",
+        "move",
+        "search",
+        "focus-product"
+      ],
+      "default": true
+    },
     "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657": {
       "sourceSha256": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
       "artifactSha256": "df5d6c3c5be4d0ce4858f120877467c0674f717e83de324683d4b0ea26a39016",
@@ -18,7 +66,41 @@
         "search",
         "focus-product"
       ],
-      "default": true
+      "default": false,
+      "aisleRouting": {
+        "standard": [
+          "Snacks",
+          "Beverages",
+          "Breakfast",
+          "Canned Goods & Soups",
+          "Dry Goods & Pasta",
+          "Condiments & Sauces",
+          "Personal Care",
+          "Health Care",
+          "Household",
+          "Baby",
+          "Pet Care",
+          "Bread & Rolls"
+        ],
+        "targetStoreId": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+        "dynamicStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733",
+          "0600cb61-45f9-402b-a209-134abdaef10f"
+        ],
+        "otherStores": "standard",
+        "dollarGeneralByName": false,
+        "editableStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af"
+        ],
+        "studioStoreIds": [
+          "03dbd8fa-ed64-4236-85be-206c952da024",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af",
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733"
+        ]
+      }
     },
     "5b0c743163a3bb4350938134c36c16f745929b1bc16ef7b173bcf0c7f5182ca6": {
       "sourceSha256": "5b0c743163a3bb4350938134c36c16f745929b1bc16ef7b173bcf0c7f5182ca6",
@@ -35,7 +117,41 @@
         "search",
         "focus-product"
       ],
-      "default": false
+      "default": false,
+      "aisleRouting": {
+        "standard": [
+          "Snacks",
+          "Beverages",
+          "Breakfast",
+          "Canned Goods & Soups",
+          "Dry Goods & Pasta",
+          "Condiments & Sauces",
+          "Personal Care",
+          "Health Care",
+          "Household",
+          "Baby",
+          "Pet Care",
+          "Bread & Rolls"
+        ],
+        "targetStoreId": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+        "dynamicStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733",
+          "0600cb61-45f9-402b-a209-134abdaef10f"
+        ],
+        "otherStores": "standard",
+        "dollarGeneralByName": false,
+        "editableStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af"
+        ],
+        "studioStoreIds": [
+          "03dbd8fa-ed64-4236-85be-206c952da024",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af",
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733"
+        ]
+      }
     }
   }
 }

@@ -1,0 +1,124 @@
+{
+  "renderer": "ValhallaStreet",
+  "protocol": "sleipnir-native-commerce-v1",
+  "sources": {
+    "valhalla": "4a769e447a92def95f3932aec3f8a0131a4d0568eca80da63913d5d63a69f2c3"
+  },
+  "studioSourceSHA256": "005a994e88d0e598afebeafd5b2478309ecf5a10b2059bab6ab6de46b834719e",
+  "artifactSHA256": "95e6ddedaa246df0f9f31016ae4f4fdc31dbc3ec8b5c639f499c0cd3c08b5635",
+  "activeLocations": 15,
+  "menuItems": 1531,
+  "orderableItems": 1183,
+  "scope": [
+    {
+      "id": "30dd81a7-bb35-4d97-bb37-51291524312c",
+      "name": "Burger Bros PC",
+      "menu_items": 45,
+      "allowed": 40,
+      "board_style": "burger_grill"
+    },
+    {
+      "id": "a3358438-9b8d-4c8f-9a24-615924d32e50",
+      "name": "China King",
+      "menu_items": 177,
+      "allowed": 32,
+      "board_style": "chinese_takeout"
+    },
+    {
+      "id": "7fa8bc01-81ca-4f96-8799-ec93128a5196",
+      "name": "China One Restaurant",
+      "menu_items": 200,
+      "allowed": 199,
+      "board_style": "chinese_takeout"
+    },
+    {
+      "id": "ffd58857-dd29-4da2-b115-c2ec5ad5551c",
+      "name": "Cinco de Mayo",
+      "menu_items": 207,
+      "allowed": 161,
+      "board_style": "mexican_felt"
+    },
+    {
+      "id": "e70b08e2-75f7-480f-ac14-2bc70f6abdbc",
+      "name": "Dim Sum Express",
+      "menu_items": 59,
+      "allowed": 59,
+      "board_style": "chinese_takeout"
+    },
+    {
+      "id": "282f9564-1b1d-4cb8-9c2e-ba9c962a1ef7",
+      "name": "Dominics Deli",
+      "menu_items": 101,
+      "allowed": 96,
+      "board_style": "deli_white"
+    },
+    {
+      "id": "25ecabff-a920-4a40-8154-ddc611fee9a1",
+      "name": "Joe\u2019s New York Pizza",
+      "menu_items": 31,
+      "allowed": 9,
+      "board_style": "ny_pizzeria"
+    },
+    {
+      "id": "8f6550fd-4bcc-4f4e-9b42-dfd1297a257b",
+      "name": "JP's Italian American Bistro",
+      "menu_items": 60,
+      "allowed": 3,
+      "board_style": "italian_bistro"
+    },
+    {
+      "id": "c141f0dc-e3e7-410a-b9ab-bc2f9219c640",
+      "name": "Mamaling Asian Street Food",
+      "menu_items": 33,
+      "allowed": 33,
+      "board_style": "modern_asian"
+    },
+    {
+      "id": "8d687884-4576-4fb2-a9bb-03df08a2c5bc",
+      "name": "Mezzaluna Pizzeria at Town Center",
+      "menu_items": 100,
+      "allowed": 93,
+      "board_style": "artisan_pizza"
+    },
+    {
+      "id": "a05ff3fe-1a45-4f6d-a1e5-170094f9b3e7",
+      "name": "Redefined Food Co",
+      "menu_items": 33,
+      "allowed": 19,
+      "board_style": "coastal_felt"
+    },
+    {
+      "id": "89e20d57-c44e-4718-9ebc-1bf671f3955d",
+      "name": "Rustic Dough Works",
+      "menu_items": 123,
+      "allowed": 122,
+      "board_style": "artisan_pizza"
+    },
+    {
+      "id": "cd4abecc-d151-420f-bcfa-7479edd2c0a9",
+      "name": "Scoops & Subs",
+      "menu_items": 41,
+      "allowed": 30,
+      "board_style": "dessert_white"
+    },
+    {
+      "id": "c6ce15b5-05b8-4129-a50e-24bbc9736519",
+      "name": "The Brown Dog",
+      "menu_items": 44,
+      "allowed": 36,
+      "board_style": "american_grill"
+    },
+    {
+      "id": "46ece11c-d9ef-4f61-b40d-895c1d5ac450",
+      "name": "Wild Ginger",
+      "menu_items": 277,
+      "allowed": 251,
+      "board_style": "tabletop"
+    }
+  ],
+  "previewAdapters": [
+    "store-scoped, read-only network client",
+    "browser-only Studio event bridge; same-origin public static frontend"
+  ],
+  "independentDishPhotoProducts": 30
+}

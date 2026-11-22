@@ -9,8 +9,9 @@
 </head>
 <body>
   <header id="editor-header">
-    <div><a href="workshop.html" class="back-link" id="store-back">‹ Workshop</a><h1>Grocery aisle editor</h1></div>
+    <div><a href="store-directory.html?type=grocery" class="back-link" id="store-back">‹ Stores</a><h1>Grocery aisle editor</h1></div>
     <button type="button" id="connect-owner">Connect owner</button>
+    <a href="store-directory.html?type=grocery" id="change-store">Change store</a>
   </header>
   <main id="editor-grid">
     <section id="preview-pane" aria-labelledby="preview-heading">
@@ -20,6 +21,7 @@
       </div>
       <div id="preview-host">
         <p id="frame-status" role="status">Loading the compiled preview…</p>
+        <button type="button" id="retry-store" hidden>Retry store lookup</button>
         <iframe id="editor-frame" title="Interactive GroceryAisle Flutter preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" hidden></iframe>
       </div>
       <div class="preview-actions">
@@ -62,6 +64,7 @@
       <p id="editor-status" role="status" aria-live="polite"></p>
     </aside>
   </main>
+  <script src="workspace-core.js?v=stores-20261122"></script>
   <script src="studio-transfer-config.js"></script>
   <script src="studio-auth-core.js"></script>
   <script src="studio-jobs.js"></script>

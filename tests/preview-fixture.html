@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Test shelf</title></head>
+<body>
+<button id="first">Good &amp; Gather Black Beans, 15 oz</button>
+<button id="second">Good &amp; Gather Garbanzo Beans, 15.5 oz</button>
+<script>
+'use strict';
+const channel = 'sleipnir-aisle-editor-v1';
+const sourceSha256 = location.pathname.split('/').at(-2);
+const query = new URL(location.href).searchParams;
+const store=query.get('store') || '35ef70d0-3d20-4599-96a3-648ee3c7c340';
+const aisle = query.get('aisle') || 'Canned Goods & Soups';
+const first = '11111111-1111-4111-8111-111111111111';
+const second = '22222222-2222-4222-8222-222222222222';
+window.received = [];
+window.addEventListener('message', e => {
+  if(e.source === window.parent && e.origin === location.origin) window.received.push(e.data);
+});
+function send(type, fields) {
+  window.parent.postMessage({channel,type,...fields},location.origin);
+}
+function selectItem(id,name,size,price) {
+  send('select',{store_id:store,product_id:id,aisle,
+    name,size,price,scale:1,min_scale:0.7,max_scale:1.3,image_url:'',
+    render_no:11871,slot:id===first?1:2});
+}
+document.querySelector('#first').onclick=()=>selectItem(first,'Good & Gather Black Beans','15 oz',.99);
+document.querySelector('#second').onclick=()=>selectItem(second,'Good & Gather Garbanzo Beans','15.5 oz',1.29);
+if(store==='189581c9-d728-4e5d-9e02-ae4de19a15af'){
+  const firstButton=document.querySelector('#first');
+  firstButton.textContent='3 Musketeers Candy Milk Chocolate Bar Full Size';
+  firstButton.onclick=()=>selectItem('814a7e25-2055-4cc0-8c9d-bb1bf0fb0315',firstButton.textContent,'',1.97);
+}
+send('ready',{sourceSha256,store_id:store});
+</script></body></html>

@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Repair flags · Sleipnir Studio</title><link rel="stylesheet" href="store-directory.css?v=2">
+<script defer src="studio-transfer-config.js"></script><script defer src="studio-auth-core.js"></script><script defer src="studio-jobs.js"></script>
+<script defer src="workspace-core.js?v=all-stores-1"></script><script defer src="store-repairs.js?v=1"></script></head>
+<body><header><a href="store-directory.html">‹ Store editor</a></header><main class="repairs">
+<h1>Repair flags</h1><label>Store<select id="scope" disabled><option value="">All Palm Coast app stores</option></select></label>
+<p id="status" role="status">Loading app stores…</p><button id="connect" hidden>Connect owner account</button><button id="retry" hidden>Retry</button>
+<form id="report" hidden><h2>Flag this store</h2><label>Where is the problem?<input id="surface" required maxlength="180" placeholder="Entrance, aisle or menu"></label>
+<label>What needs fixing?<textarea id="note" required maxlength="4000" rows="3"></textarea></label><button class="primary" type="submit">Save flag</button></form>
+<section id="inbox" hidden><h2>Open repairs</h2><p id="empty" hidden>No open repair flags.</p><ul id="flags"></ul></section></main></body></html>

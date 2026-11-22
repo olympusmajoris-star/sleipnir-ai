@@ -52,8 +52,8 @@
     });
   }
   async function open(file, {onStatus=()=>{},signal} = {}) {
-    if (!(file instanceof Blob) || file.size<500 || file.size>5*1024*1024)
-      throw error('file','Select a GroceryAisle Dart file up to 5 MiB.');
+    if (!(file instanceof Blob) || file.size===0 || file.size>8*1024*1024)
+      throw error('file','Select a nonempty GroceryAisle Dart file up to 8 MiB.');
     const bytes=await file.arrayBuffer();
     const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),
       n=>n.toString(16).padStart(2,'0')).join('');

@@ -52,24 +52,25 @@ function panelsFor(rows,products,storeId,media){
  }
  return [...panels.values()];
 }
-const api={PUBLIX,TARGET,publixDoors,mediaPath,validBox,panelsFor};
+const api={PUBLIX,TARGET,publixDoors,mediaPath,validBox,panelsFor,calibratedSpot};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(!global.document)return;
 const $=id=>document.getElementById(id),conf=global.StudioTransferConfig;
 const args=()=>new URLSearchParams(location.search);
 const id=(args().get('store')||'').toLowerCase();
 const media=(path,folder)=>mediaPath(path,conf.url,folder);
-let doors=[],panels=[],currentDoor,activeSku,controller,store,initialLoaded=false,revision=0;
+let doors=[],panels=[],currentDoor,activeSku,controller,store,mode,initialLoaded=false,revision=0;
 const formatPrice=value=>value==null||!Number.isFinite(Number(value))?'Price unavailable':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value));
 async function read(table,params,signal){
- const rows=[];
- for(let offset=0;;offset+=500){
-  const query=new URLSearchParams({...params,limit:'500',offset:String(offset)});
+ const rows=[],maximum=params.limit?Math.max(1,Number(params.limit)):Infinity;
+ for(let offset=0;offset<maximum;offset+=500){
+  const limit=Math.min(500,maximum-offset),query=new URLSearchParams({...params,limit:String(limit),offset:String(offset)});
   const response=await fetch(conf.url+'/rest/v1/'+table+'?'+query,{headers:{apikey:conf.key,Authorization:'Bearer '+conf.key},signal});
   if(!response.ok)throw Error('Could not load the published '+table.replaceAll('_',' ')+' records.');
   const batch=await response.json();
-  rows.push(...batch);if(batch.length<500)return rows;
+  rows.push(...batch);if(batch.length<limit)return rows;
  }
+ return rows;
 }
 async function ownedProducts(rows,signal){
  const ids=[...new Set(rows.map(r=>r.product_id).filter(x=>typeof x==='string'&&UUID.test(x)))],batches=[];
@@ -86,6 +87,83 @@ async function targetDoors(signal){
  for(const label of counts||[]){if(!result.has(label))result.set(label,{label,art:'',kind:'Aisles'});}
  return [...result.values()];
 }
+async function doorsForStore(row,signal){
+ if(mode==='publix')return publixDoors();
+ if(mode==='target')return targetDoors(signal);
+ const registered=await read('store_entrances',{select:'store_id,label,image_path,sort',store_id:'eq.'+row.id,is_active:'eq.true',order:'sort,label'},signal);
+ if(mode==='published'||registered.length){
+  const doors=new Map();
+  for(const r of registered){if(r.store_id===row.id&&r.label?.trim()&&media(r.image_path)&&!doors.has(r.label))doors.set(r.label,{label:r.label,art:r.image_path,kind:'Published aisles'});}
+  return [...doors.values()];
+ }
+ const [categories,sort]=await Promise.all([global.StudioJobs.request('/rest/v1/rpc/studio_product_categories',{auth:false,method:'POST',body:{p_store_id:row.id}}),
+   read('store_categories',{select:'category,sort_order',store_id:'eq.'+row.id,order:'sort_order,category'},signal)]);
+ const countByLabel=new Map(categories.filter(c=>typeof c.category==='string'&&c.category.trim()&&Number(c.product_count)>0).map(c=>[c.category,Number(c.product_count)]));
+ const priority=new Map(sort.map((r,i)=>[r.category,i]));
+ return [...countByLabel].sort(([a],[b])=>(priority.get(a)??Infinity)-(priority.get(b)??Infinity)||a.localeCompare(b)).map(([label,count])=>({label,art:'',count,kind:'Aisles',preview:true}));
+}
+function catalogPhoto(value){
+ const internal=media(value);if(internal)return internal;
+ try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password&&!/\.svg$/i.test(url.pathname)?url.href:'';}catch{return '';}
+}
+const productPreviewCache=new Map();
+async function drawProductPreview(door,signal){
+ const host=$('doorProducts');host.replaceChildren();host.hidden=true;
+ if(!door.preview)return;
+ if(!productPreviewCache.has(door.label)){
+  const rows=await read('products',{select:'id,store_id,name,price,image_url,image_url_orig',store_id:'eq.'+id,category:'eq.'+door.label,order:'name,id',limit:100},signal);
+  if(signal.aborted)return;
+  const products=rows.filter(r=>r.store_id===id&&r.price!=null&&Number.isFinite(Number(r.price)))
+   .map(r=>({...r,photo:catalogPhoto(r.image_url)||catalogPhoto(r.image_url_orig)})).filter(r=>r.photo).slice(0,6);
+  productPreviewCache.set(door.label,products);
+ }
+ if(signal.aborted||currentDoor!==door)return;
+ for(const product of productPreviewCache.get(door.label)){
+  const face=document.createElement('span');face.className='category-product';
+  const pic=document.createElement('img');pic.alt=product.name;pic.referrerPolicy='no-referrer';pic.src=product.photo;
+  pic.onerror=()=>{pic.hidden=true;};const price=document.createElement('small');price.textContent=formatPrice(product.price);
+  face.append(pic,price);host.append(face);
+ }
+ host.hidden=!host.childElementCount;
+}
+function calibratedSpot(slot,layout,anchors){
+ const dimensions=/^(2|3)x3$/.exec(layout);
+ if(!dimensions)return [];
+ const cols=Number(dimensions[1]),index=Number(slot.slot)-1;
+ if(!Number.isInteger(index)||index<0||index>=3*cols)return [];
+ const tag=anchors.get(slot.slot);
+ if(!tag)return [];
+ const x=Number(tag.tag_x),y=Number(tag.tag_y),w=Number(tag.tag_w),h=Number(tag.tag_h);
+ const ticket=[x,y,x+w,y+h];if(!validBox(ticket))return [];
+ const row=Math.floor(index/cols),col=index%cols;
+ const previous=[...anchors.values()].filter(a=>Math.floor((Number(a.slot)-1)/cols)===row-1).map(a=>Number(a.tag_y)+Number(a.tag_h)).filter(Number.isFinite);
+ const top=row?(previous.length?Math.max(...previous):row/3):0;
+ const box=[col/cols,top,(col+1)/cols,y+h];
+ return validBox(box)?[box,ticket]:[ticket];
+}
+async function publishedPanels(door,signal){
+ const scope={store_id:'eq.'+id,aisle:'eq.'+door.label};
+ const [renders,slots,coords]=await Promise.all([
+  read('aisle_renders',{...scope,select:'store_id,aisle,render_no,image_path,width,height,layout,publish_status',publish_status:'eq.ready',order:'render_no'},signal),
+  read('aisle_slots_v',{...scope,select:'store_id,aisle,render_no,slot,product_id,name,shelf_group,price',order:'render_no,slot'},signal),
+  read('aisle_slots',{...scope,select:'store_id,aisle,render_no,slot,product_id,tag_x,tag_y,tag_w,tag_h',order:'render_no,slot'},signal)
+ ]);
+ const owned=new Map((await ownedProducts(slots,signal)).map(p=>[p.id,p]));
+ const exact=r=>r.store_id===id&&r.aisle===door.label;
+ const result=[];
+ for(const r of renders.filter(exact)){
+  const url=media(r.image_path);if(!url||!(r.width>0&&r.height>0))continue;
+  const anchors=new Map(coords.filter(a=>exact(a)&&a.render_no===r.render_no).map(a=>[a.slot,a]));
+  const spots=[];
+  for(const s of slots.filter(s=>exact(s)&&s.render_no===r.render_no)){
+   const product=owned.get(s.product_id),anchor=anchors.get(s.slot);if(!product||anchor?.product_id!==s.product_id)continue;
+   const boxes=calibratedSpot(s,r.layout,anchors);if(!boxes.length)continue;
+   spots.push({id:product.id,name:product.name,price:product.price,boxes});
+  }
+  result.push({url,label:door.label,renderNo:r.render_no,spots});
+ }
+ return result;
+}
 function navigate(door,inside=false,page=0,replace=false){
  const here=new URL(location.href);here.searchParams.set('door',door.label);
  if(inside){here.searchParams.set('view','display');here.searchParams.set('panel',String(page+1));}
@@ -94,7 +172,7 @@ function navigate(door,inside=false,page=0,replace=false){
 }
 function resetScene(){
  $('picture').hidden=true;$('pagination').hidden=true;$('spots').replaceChildren();$('productList').replaceChildren();
- $('status').textContent='';$('retry').hidden=true;
+ $('status').textContent='';$('retry').hidden=true;$('storeRepair').hidden=true;
  if($('sku').open)$('sku').close();
 }
 function drawEntrance(door){
@@ -102,9 +180,14 @@ function drawEntrance(door){
  const art=media(door.art,id===TARGET?'target-entrances':'');
  const img=$('doorPhoto');img.onload=null;img.onerror=null;
  if(art){img.onload=()=>{if(currentDoor===door)img.hidden=false;};img.onerror=()=>{img.hidden=true;};img.hidden=true;img.src=art;}else{img.hidden=true;img.removeAttribute('src');}
+ $('doorProducts').hidden=true;$('doorProducts').replaceChildren();
+ $('doorImage').classList.toggle('catalog-door',Boolean(door.preview));
+ $('doorImage').classList.toggle('dg-door',mode==='dollar-general');
+ if(door.preview)drawProductPreview(door,controller.signal).catch(()=>{});
  $('doorName').textContent=door.label;$('doorImage').setAttribute('aria-label','Enter '+door.label);$('enter').textContent='Enter '+door.label;
 }
 async function loadPanels(door,signal){
+ if(door.kind==='Published aisles')return publishedPanels(door,signal);
  if(door.kind==='Produce'){
   const zones=door.zone==='veg-bins'?['veg-bins','wall']:[door.zone];
   const blocks=await Promise.all(zones.map(zone=>read('produce_render_plan',{select:'zone,grid_col,grid_row,image_path,product_id,zx0,zy0,zx1,zy1,tx0,ty0,tx1,ty1',zone:'eq.'+zone,order:'block_order,grid_row,grid_col,item_no'},signal)));
@@ -149,7 +232,7 @@ function showSku(product,panel,index){
  $('flagNote').value='';$('flagStatus').textContent='';$('flag').disabled=false;$('sku').showModal();
 }
 function drawPanel(index){
- const panel=panels[index];$('status').textContent='';$('retry').hidden=true;
+ const panel=panels[index];$('status').textContent='';$('retry').hidden=true;$('storeRepair').hidden=Boolean(panel.spots.length);
  const names=[currentDoor.label];
  if(panel.layered&&panel.station&&!names.includes(panel.station)&&!(panel.label||'').startsWith(panel.station))names.push(panel.station);
  if(panel.label&&!names.includes(panel.label))names.push(panel.label);
@@ -186,24 +269,27 @@ async function route(){
  const request=++revision;controller?.abort();controller=new AbortController();const signal=controller.signal;
  resetScene();
  try{
-  if(id!==PUBLIX&&id!==TARGET)throw Error('This link does not identify a supported grocery store.');
+  if(!UUID.test(id))throw Error('This link does not identify a store.');
   if(!initialLoaded){
-   const [stores,found]=await Promise.all([read('stores',{id:'eq.'+id,select:'id,name,address,menu_type,category'},signal),id===PUBLIX?Promise.resolve(publixDoors()):targetDoors(signal)]);
+   store=await global.StudioWorkspaceCore.appStoreById(id);
    if(signal.aborted)return;
-   store=stores.find(s=>s.id===id&&(s.menu_type==='grocery'||(id===TARGET&&s.menu_type==='retail'&&s.category==='Grocery')));if(!store)throw Error('This grocery store is unavailable.');
-   doors=found;if(!doors.length)throw Error('No published doors are available for this store.');
+   mode=global.StudioWorkspaceCore.groceryModeForStore(store);
+   if(!mode){const route=global.StudioWorkspaceCore.storeEditorForStore(store);if(route){location.replace(route);return;}throw Error('This store is unavailable.');}
    $('storeName').textContent=store.name;$('address').textContent=store.address||'';
+   $('repairLink').href='store-repairs.html?'+new URLSearchParams({store:id});
+   doors=await doorsForStore(store,signal);if(signal.aborted||request!==revision)return;
+   if(!doors.length){$('entrances').hidden=true;$('display').hidden=true;$('status').textContent='This store has no published aisles or catalog products.';$('storeRepair').hidden=false;return;}
    const select=$('departments');select.replaceChildren();
    for(const group of [...new Set(doors.map(d=>d.kind))]){const opt=document.createElement('optgroup');opt.label=group;for(const door of doors.filter(d=>d.kind===group)){const o=document.createElement('option');o.value=door.label;o.textContent=door.label;opt.append(o);}select.append(opt);}initialLoaded=true;
   }
   const q=args(),requested=q.get('door');
   currentDoor=requested?doors.find(d=>d.label===requested):doors[0];
-  if(!currentDoor)throw Error('This department is unavailable for '+store.name+'.');
+  if(!currentDoor){$('storeRepair').hidden=false;throw Error('This department is unavailable for '+store.name+'.');}
   if(q.get('view')!=='display'||currentDoor.kind==='Aisles'){drawEntrance(currentDoor);return;}
   $('entrances').hidden=true;$('display').hidden=false;$('sectionName').textContent=currentDoor.label;$('status').textContent='Loading shopping displays…';
   const key=currentDoor.label;
   if(!panelCache.has(key)){const collection=await loadPanels(currentDoor,signal);if(signal.aborted||request!==revision)return;panelCache.set(key,collection);}
-  panels=panelCache.get(key);if(!panels.length){$('status').textContent='No published product display is available for this department.';return;}
+  panels=panelCache.get(key);if(!panels.length){$('status').textContent='No published product display is available for this department.';$('storeRepair').hidden=false;return;}
   const wanted=Number(q.get('panel'));const page=Number.isSafeInteger(wanted)&&wanted>0?Math.min(wanted-1,panels.length-1):0;
   try{await loadScales(panels[page],signal);}catch(error){if(signal.aborted)return;for(const item of panels[page].spots)appliedScales.delete(item.id);}
   if(signal.aborted||request!==revision)return;drawPanel(page);
@@ -235,7 +321,7 @@ $('saveScale').onclick=async()=>{
 $('flag').onclick=async()=>{
  if(!activeSku||!$('sku').open)return;
  const selection=activeSku,product=selection.product,btn=$('flag');btn.disabled=true;$('flagStatus').textContent='Saving repair flag…';
- try{const row=await global.StudioJobs.request('/rest/v1/rpc/studio_flag_grocery_product',{method:'POST',body:{p_store_id:id,p_product_id:product.id,p_aisle:selection.door.kind==='Produce'?'Produce':selection.door.label,p_version:null,p_page_key:selection.door.label+' / '+(selection.index+1),p_note:$('flagNote').value.trim()}});
+ try{const row=await global.StudioJobs.request('/rest/v1/rpc/studio_flag_grocery_product',{method:'POST',body:{p_store_id:id,p_product_id:product.id,p_aisle:selection.door.kind==='Produce'?'Produce':selection.door.label,p_version:null,p_page_key:selection.door.label+' / '+(selection.panel.renderNo??(selection.index+1)),p_note:$('flagNote').value.trim()}});
  if(activeSku===selection)$('flagStatus').textContent=row?.id?'Flag saved for '+product.name+'.':'The flag was submitted.';
  }catch(error){if(activeSku===selection){$('flagStatus').textContent=error.message;btn.disabled=false;}}
 };
