@@ -25,6 +25,9 @@
 .sl-tools button { min-height: 40px; color: inherit; font-size: .9rem; }
 .sl-tools .sl-step button, .sl-tools .sl-nudges button { min-width: 42px; font-size: 1.1rem; }
 .sl-tools .sl-step output { min-width: 2ch; text-align: center; }
+.sl-tools .sl-row-stock { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(9rem,100%),1fr)); gap:.6rem; }
+.sl-tools .sl-row-stock label { display:grid; align-content:end; gap:.25rem; }
+.sl-tools .sl-row-stock select { width:100%; }
 .sl-tools .sl-modes { flex-wrap: wrap; }
 .sl-tools .sl-modes button[aria-pressed="true"] { color: var(--accent,#86dfda); border-color: var(--accent,#86dfda); background: #193a42; }
 .sl-tools .sl-range { display: grid; grid-template-columns: 1fr auto; align-items: center; }

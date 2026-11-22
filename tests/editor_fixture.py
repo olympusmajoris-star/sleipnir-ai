@@ -78,7 +78,7 @@ class Fixture:
             versions = {}
             for digest in [SHA, LEGACY_SHA]:
                 versions[digest] = {'path':f'{digest}/index.html','artifactSha256':'af'*32,'filename':FILENAME,
-                    'default':digest==SHA,'aisleRouting':{'standard':['Snacks','Canned Goods & Soups','Condiments & Sauces','Dairy & Eggs','Baby','Bread & Rolls'],
+                    'default':digest==SHA,'capabilities':['focus-product'],'aisleRouting':{'standard':['Snacks','Canned Goods & Soups','Condiments & Sauces','Dairy & Eggs','Baby','Bread & Rolls'],
                     'targetStoreId':TARGET,'dynamicStoreIds':[TARGET,ALDI,DOLLAR],
                     'otherStores':'catalog' if digest==SHA else 'standard','dollarGeneralByName':digest==SHA,'editableStoreIds':None if digest==SHA else [PUBLIX,TARGET]}}
             return route.fulfill(json={'versions':versions})

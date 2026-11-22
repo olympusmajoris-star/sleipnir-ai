@@ -25,6 +25,40 @@ class ShelfEditorTests(unittest.TestCase):
         cls.browser.close()
         cls.engine.stop()
 
+    def test_shelf_thickness_resizes_digital_tag_and_both_text_sizes(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.route('https://**/*', lambda route: route.abort())
+        page.set_content('<div id="bay"></div>')
+        root = Path(__file__).resolve().parents[1]
+        page.add_style_tag(path=root/'shelf-layout-canvas.css')
+        page.add_script_tag(path=root/'shelf-layout-canvas.js')
+        for width in (320, 390):
+            for rows in (3, 4, 8):
+                def measure(rail):
+                    return page.evaluate('''([width,rows,rail]) => {
+                      const host = document.querySelector('#bay');
+                      host.style.width = width + 'px';
+                      ShelfLayoutCanvas.render(host, {fixture:'cooler',rows,rail,items:[
+                        {id:'milk',name:'Organic whole milk',size:'Half gallon',price:1234.95}
+                      ]});
+                      const tag = host.querySelector('.sl-label');
+                      const name = tag.querySelector('.sl-tag-name'), price = tag.querySelector('.sl-tag-price');
+                      const rect = tag.getBoundingClientRect(), amount = price.getBoundingClientRect();
+                      return {height:rect.height, name:parseFloat(getComputedStyle(name).fontSize),
+                        price:parseFloat(getComputedStyle(price).fontSize), amount:price.textContent,
+                        fits:amount.left >= rect.left && amount.right <= rect.right &&
+                          amount.top >= rect.top && amount.bottom <= rect.bottom};
+                    }''', [width, rows, rail])
+                previous = measure(1)
+                for rail in (4, 8, 12, 15):
+                    current = measure(rail)
+                    for field in ('height','name','price'):
+                        self.assertGreater(current[field],previous[field],(width,rows,rail,field))
+                    self.assertEqual(current['amount'], '$1,234.95')
+                    self.assertTrue(previous['fits'] and current['fits'], (width,rows,rail,current))
+                    previous = current
+
     def launch(self, width=1280, height=900, *, url=None, expect_frame=True, **permissions):
         self.fixture = Fixture(**permissions)
         self.context = self.browser.new_context(viewport={'width':width,'height':height},
@@ -177,6 +211,50 @@ class ShelfEditorTests(unittest.TestCase):
         self.assertEqual(float(self.page.locator('#scale-range').input_value()),size)
         self.assertTrue(all(m['mode']=='select' for m in self.received('set-mode')))
         self.assertEqual(self.fixture.scales,{})
+
+    def test_saved_shopping_shelves_open_exact_product_and_return_to_same_bay(self):
+        self.launch(store=PUBLIX, signed_in=False, authorized=False,
+                    url=PAGE+'?'+urlencode({'store':PUBLIX,'aisle':'Snacks','layout':0}))
+        ids = [f'10000000-0000-4000-8000-{n:012d}' for n in range(5)]
+        stock = [dict(id=sku,store_id=PUBLIX,category='Snacks',name=f'Snack {index}',
+                      price=1+index,image_url='https://studio.test/pack.png',
+                      shelf_group='Nuts' if index==0 else 'Chips')
+                 for index,sku in enumerate(ids)]
+        rows = {'revision':3, 'layout':{'rows':1,'rail':10,'tabHeight':24,'groupBy':'type',
+                'productsPerRow':2,'facings':3,'products':{ids[-1]:{'facings':1}}}}
+        self.context.route('**/rpc/studio_grocery_shelf_layout',lambda r:r.fulfill(json=rows))
+        self.context.route('**/rpc/studio_grocery_aisle_original_stock?**',
+                           lambda r:r.fulfill(json=[{'product_id':sku} for sku in ids]))
+        self.context.route('**/rest/v1/products?**',lambda r:r.fulfill(json=stock))
+        self.context.route('**/shelf-product-kinds.json',lambda r:r.fulfill(json={}))
+        self.context.route('**/pack.png',lambda r:r.fulfill(content_type='image/svg+xml',
+                           body='<svg xmlns="http://www.w3.org/2000/svg" width="20" height="40"><rect width="20" height="40" fill="green"/></svg>'))
+        self.page.get_by_role('button',name='Preview shopping').click()
+        shelf=self.page.locator('#layout-workspace')
+        expect(shelf.get_by_role('button',name='Chips')).to_be_visible()
+        shelf.get_by_role('button',name='Chips').click()
+        shelf.get_by_role('button',name='Next bay').click()
+        expect(shelf.locator('#layout-page')).to_have_text('Chips · Bay 2 of 2')
+        cells=shelf.locator('.sl-slot')
+        expect(cells).to_have_count(2)
+        expect(cells.nth(0).locator('.sl-face')).to_have_count(3)
+        expect(cells.nth(1).locator('.sl-face')).to_have_count(1)
+        expect(shelf.locator('#layout-inspector')).to_be_hidden()
+        for index,control in enumerate(('.sl-label','.sl-faces')):
+            expected=ids[3+index]
+            cells.nth(index).locator(control).click()
+            shopper=self.page.locator('#shopping-frame').element_handle().content_frame()
+            shopper.wait_for_function("window.received?.some(x=>x.type==='focus-product')")
+            messages=shopper.evaluate('window.received')
+            self.assertEqual([m['mode'] for m in messages if m['type']=='set-mode'],['shop'])
+            focus=[(m['product_id'],m['aisle']) for m in messages if m['type']=='focus-product']
+            self.assertEqual(focus,[(expected,'Snacks')])
+            self.page.get_by_role('button',name='Back to shelves').click()
+            expect(self.page.locator('#shopping-frame')).to_have_count(0)
+            expect(shelf.locator('#layout-page')).to_have_text('Chips · Bay 2 of 2')
+            expect(cells.nth(index)).to_have_attribute('data-product-id',expected)
+        self.assertEqual(self.fixture.failures,[])
+        self.assertEqual(self.errors,[])
 
     def test_delayed_catalog_response_cannot_switch_the_selected_sku(self):
         self.launch()

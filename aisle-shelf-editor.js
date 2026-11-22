@@ -43,10 +43,11 @@
     part:state.selected?.id||'',label:state.selected?.name||state.aisle,
     parts:state.selected?[{id:state.selected.id,label:state.selected.name}]:[]
   });
-  function openLayout(group, anchorId, saved) {
+  function openLayout(group, anchorId, saved, shopping = false) {
     if (!state.storeReady || !state.catalogReady || (!state.authoredId && !state.stockedShelves.includes(state.aisle))) return;
     window.ShelfLayoutWorkspace.open({
       store, aisle: state.aisle, authoredId: state.authoredId, group, anchorId, saved,
+      onShopProduct: shopping ? openCompiledShopping : null,
       getScales: () => ({
         ...Object.fromEntries([...state.saved].filter(([,r])=>r.revision>0).map(([id,r])=>[id,r.scale])),
         ...Object.fromEntries(state.drafts)
@@ -87,10 +88,24 @@
     else src.searchParams.set('aisle',state.aisle);
     return src;
   }
-  function previewShopping() {
+  async function previewShopping() {
+    if (!state.ready || state.readOnly || !state.previewURL) return;
+    const sha = state.selectedSha, key = state.authoredId ? 'studio:'+state.authoredId : state.aisle;
+    if (sha === state.defaultSha && state.hosted.get(sha)?.capabilities?.includes('focus-product')) {
+      let saved;
+      try { saved = await window.ShelfLayoutStore.load(store,key); }
+      catch { setNotice('Could not load the saved shelf layout. Opening the compiled aisle.'); }
+      if (state.selectedSha !== sha || key !== (state.authoredId ? 'studio:'+state.authoredId : state.aisle)) return;
+      if (saved?.layout) { openLayout('',state.selected?.id,saved,true); return; }
+    }
+    openCompiledShopping();
+  }
+  function openCompiledShopping(productId) {
     const dialog = el('shopping-preview');
     if (!state.ready || state.readOnly || !state.previewURL || dialog.open) return;
     const url = previewRoute(), sha = state.selectedSha, frame = make('iframe');
+    const aisle = state.authoredId ? 'studio:'+state.authoredId : state.aisle;
+    message('close-shopping',productId ? 'Back to shelves' : 'Back to editing');
     frame.id = 'shopping-frame';
     frame.title = 'Shop this aisle';
     frame.setAttribute('sandbox','allow-scripts allow-same-origin');
@@ -108,6 +123,7 @@
         clearTimeout(timer);
         post('set-mode',{mode:'shop'});
         post('sync',{scales:scaleMap()});
+        if (productId) post('focus-product',{product_id:productId,aisle});
         frame.inert = false;
         message('shopping-status','');
       }

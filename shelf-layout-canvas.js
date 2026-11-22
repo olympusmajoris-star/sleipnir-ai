@@ -20,15 +20,27 @@
     if (p.source?.[2] > 0 && p.source?.[3] > 0) return p.source[2]/p.source[3];
     return photoMetrics.get(photoKey(p))?.aspect || 1;
   }
+  function stockHeight(rows,rail) {
+    const rowH = (H-TOP-BOTTOM)/Math.round(clamp(finite(rows,4),1,8));
+    return rowH-Math.min(31,rowH*.12)-rowH*clamp(finite(rail,4),1,15)/100;
+  }
   function layout(config) {
     const cold = /cool|fridge|refrigerat|freez/i.test(config.fixture || '');
     const edge = W*(cold ? .085 : .043);
-    const bayW = W - 2*edge, laneW = bayW/3;
+    const fixedColumns = Number.isInteger(config.productsPerRow);
+    const columns = fixedColumns ? clamp(config.productsPerRow,1,6) : 3;
+    const defaultFacings = clamp(Math.round(finite(config.facings,2)),1,3);
+    const bayW = W - 2*edge, laneW = bayW/columns;
     const rows = Math.round(clamp(finite(config.rows,4),1,8));
     const rowH = (H - TOP - BOTTOM)/rows;
-    const railH = rowH*clamp(finite(config.rail,4),1,15)/100;
-    const tagH = Math.min(31,rowH*.12);
-    const stockH = rowH - railH - tagH;
+    const stockH = stockHeight(rows,config.rail);
+    const frontH = rowH-stockH;
+    const tagH = frontH*.84;
+    const railH = frontH-tagH;
+    // The initial shelf opening determines horizontal allocation in Auto.
+    // Editing rows or rails can resize art inside its reserved lanes, without
+    // advancing or compressing any other product's absolute shelf position.
+    const packingHeight = clamp(finite(config.autoStockHeight,stockHeight(4,3)),100,1500);
     const moves = config.transforms || config.products || {};
     let line = 0, used = 0;
     const allSlots = [], locations = new Map();
@@ -36,35 +48,47 @@
       if (!item?.id) continue;
       const aspect = clamp(getAspect(item),.04,32);
       const move = moves instanceof Map ? moves.get(item.id) : moves[item.id];
-      const baseW = Math.min(laneW*.45,aspect*stockH*.72);
+      const facings = clamp(Math.round(finite(move?.facings,defaultFacings)),1,3);
+      const faceGaps = (facings-1)*GAP;
+      const baseWidthLimit = Math.min(laneW*.90,laneW-2*EDGE-faceGaps)/facings;
+      const baseW = Math.min(baseWidthLimit,aspect*stockH*.72);
       const baseH = baseW/aspect;
-      const maxScale = Math.max(.1,Math.min(6,(bayW-2*EDGE-GAP)/(2*baseW),(stockH-2*EDGE)/baseH));
-      const scale = clamp(finite(move?.scale,finite(item.scale,1)),.1,maxScale);
-      const packW = 2*baseW*scale+GAP, packH = baseH*scale;
-      const span = clamp(Math.ceil((packW+EDGE*2)/laneW - 1e-9),1,3);
-      if (used && used+span>3) { line++; used=0; }
+      const availableW = fixedColumns ? laneW : bayW;
+      const maxScale = Math.max(.1,Math.min(6,(availableW-2*EDGE-faceGaps)/(facings*baseW),(stockH-2*EDGE)/baseH));
+      const requestedScale = finite(move?.scale,finite(item.scale,1));
+      const scale = clamp(requestedScale,.1,maxScale);
+      let span = 1;
+      if (!fixedColumns) {
+        const refW = Math.min(baseWidthLimit,aspect*packingHeight*.72);
+        const maxRefScale = Math.min(6,(bayW-2*EDGE-faceGaps)/(facings*refW),(packingHeight-2*EDGE)*aspect/refW);
+        const referencePack = facings*refW*clamp(requestedScale,.1,maxRefScale)+faceGaps;
+        span = clamp(Math.ceil((referencePack+2*EDGE)/laneW-1e-9),1,columns);
+      }
+      if (used && used+span>columns) { line++; used=0; }
       const page = Math.floor(line/rows), row = line%rows;
       const cellLeft = edge+used*laneW, cellTop = TOP+row*rowH, cellW = span*laneW;
+      const faceW = Math.min(baseW*scale,(cellW-2*EDGE-faceGaps)/facings);
+      const packW = facings*faceW+faceGaps, packH = faceW/aspect;
       const maxX = Math.max(0,(cellW-packW-2*EDGE)/(2*cellW));
       const minY = Math.min(0,-(stockH-packH-2*EDGE)/rowH);
       const x = clamp(finite(move?.x,0),-maxX,maxX), y = clamp(finite(move?.y,0),minY,0);
       const left = cellLeft+(cellW-packW)/2+x*cellW;
       const bottom = cellTop+stockH-EDGE+y*rowH;
       const limits = {minX:-maxX,maxX,minY,maxY:0,minScale:.1,maxScale};
-      const slot = {id:item.id,item,page,row,span,x,y,scale,...limits,limits,
+      const slot = {id:item.id,item,page,row,span,facings,x,y,scale,...limits,limits,
         ...fractionBox(left,bottom-packH,packW,packH),
-        cell:fractionBox(cellLeft,cellTop,cellW,rowH), faceWidth:baseW*scale/W,
+        cell:fractionBox(cellLeft,cellTop,cellW,rowH), faceWidth:faceW/W,
         tag:fractionBox(cellLeft+2,cellTop+stockH,cellW-4,tagH)};
       allSlots.push(slot);
       if (!locations.has(item.id)) locations.set(item.id,page);
       used+=span;
-      if (used===3) { used=0; line++; }
+      if (used===columns) { used=0; line++; }
     }
     const pages=allSlots.length ? allSlots[allSlots.length-1].page+1 : 0;
     const pageFor=id=>locations.get(id) ?? -1;
     const page=locations.has(config.anchorId) ? pageFor(config.anchorId) :
       clamp(Math.floor(finite(config.page,0)),0,Math.max(0,pages-1));
-    return {page,pages,slots:allSlots.filter(s=>s.page===page),allSlots,pageFor,rows,railH,rowH,tagH,stockH,cold};
+    return {page,pages,slots:allSlots.filter(s=>s.page===page),allSlots,pageFor,rows,productsPerRow:columns,railH,rowH,tagH,stockH,cold};
   }
   const styleRect = (node,x,y,w,h) => {
     node.style.left=x*100+'%'; node.style.top=y*100+'%';
@@ -207,7 +231,7 @@
       const atlas=imageURL(p.atlas);
       const key=photoKey(p), photo=imageURL(key);
       if (atlas && Array.isArray(p.source) && p.source[2]>0 && p.source[3]>0) {
-        for(let i=0;i<2;i++) {
+        for(let i=0;i<slot.facings;i++) {
           const face=element('span','sl-face');
           face.style.width=slot.faceWidth/slot.width*100+'%';
           photoCrop(face,atlas,p.source,p.atlasWidth||1152,p.atlasHeight||1536);
@@ -218,7 +242,7 @@
         if(!info) {
           measurePhoto(key,photo).then(loaded=>{if(loaded)notifyMetrics(host,key);});
         }
-        for(let i=0;i<2;i++) {
+        for(let i=0;i<slot.facings;i++) {
           const face=element(info?.crop?'span':'img','sl-face');
           face.style.width=slot.faceWidth/slot.width*100+'%';
           if(info?.crop)photoCrop(face,photo,info.crop,info.w,info.h);
@@ -253,13 +277,16 @@
       name.textContent=[p.name,p.size].filter(Boolean).join(' · ');
       const n=p.price==null || p.price==='' ? NaN : Number(p.price);
       price.textContent=Number.isFinite(n)?currency.format(n):'';
-      tag.setAttribute('aria-label',[name.textContent,price.textContent].filter(Boolean).join(', '));
+      // Keep the whole price readable on narrow holders, including long amounts.
+      tag.style.setProperty('--price-width-units',price.textContent.length+2.5);
+      tag.title=[name.textContent,price.textContent].filter(Boolean).join(', ');
+      tag.setAttribute('aria-label',tag.title);
       tag.append(name,price);cell.append(faces,tag);fragment.append(cell);
     }
     host.replaceChildren(fragment);
     return m;
   }
-  const api={render,layout};
+  const api={render,layout,stockHeight};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.ShelfLayoutCanvas=api;
 })(typeof window==='undefined'?globalThis:window);

@@ -5,7 +5,13 @@
   const dialog = el('layout-workspace');
   const drafts = new Map();
   let session = null, activity = 0;
-  const defaults = () => ({rows:4,rail:3,tabHeight:24,groupBy:'type',products:{}});
+  function defaults(savedLayout) {
+    const layout={rows:4,rail:3,tabHeight:24,groupBy:'type',facings:2,products:{},...savedLayout};
+    // Record the original room above each shelf. Changing shelf height should not shuffle its products.
+    if(!Number.isFinite(layout.autoStockHeight))
+      layout.autoStockHeight=window.ShelfLayoutCanvas.stockHeight(layout.rows,layout.rail);
+    return layout;
+  }
   const keyFor = s => [s.store,s.key].join('/');
   const groupOf = (s,p) => s.layout.groupBy === 'type'
     ? s.layout.products[p.id]?.group || p.kind || p.group || s.aisle
@@ -60,7 +66,9 @@
     const items = grouped ? s.groups.get(s.group) : s.items;
     const receipt=window.ShelfLayoutCanvas.render(el('layout-surface'),{
       items, fixture:s.data.fixture, plate:s.data.plate, rows:s.layout.rows, rail:s.layout.rail,
-      tabHeight:s.layout.tabHeight, transforms:s.layout.products, page:s.page, anchorId
+      tabHeight:s.layout.tabHeight,productsPerRow:s.layout.productsPerRow,facings:s.layout.facings,
+      autoStockHeight:s.layout.autoStockHeight,
+      transforms:s.layout.products, page:s.page, anchorId
     });
     s.geometry=receipt;
     s.page=receipt.page;
@@ -85,7 +93,7 @@
       s.page=delta<0?Number.MAX_SAFE_INTEGER:0;
     } else return;
     paint(s);
-    s.controls.refresh({groupChanged:oldGroup!==s.group});
+    s.controls?.refresh({groupChanged:oldGroup!==s.group});
   }
   function setDraft(s,layout,meta={}) {
     if (session!==s || !layout) return;
@@ -133,7 +141,7 @@
       s.items=data.items.map(p=>({...p,scale:baseScales[p.id]??p.scale??1}));
       s.byId=new Map(s.items.map(p=>[p.id,p]));
       if(!s.items.length){status('This aisle has no stocked products.');return;}
-      s.saved={...defaults(),...snapshot.layout};
+      s.saved=defaults(snapshot.layout);
       if (!snapshot.layout) {
         // Wide cartons need a second lane to read at phone size. Preserve previous SKU size decisions.
         for (const item of s.items) {
@@ -143,7 +151,7 @@
       }
       s.published=Boolean(snapshot.layout);
       s.revision=snapshot.revision;
-      const local=drafts.get(keyFor(s));
+      const local=!s.options.onShopProduct && drafts.get(keyFor(s));
       const resume=local && local.revision===s.revision;
       s.layout=structuredClone(resume ? local.layout : s.saved);
       s.dirty=Boolean(resume) || !s.published;
@@ -155,6 +163,7 @@
       el('layout-panels').hidden=false;
       status(local&&!resume?'The store has a newer saved layout.':resume?'Unsaved layout':!s.published?'Save this layout to use it in the aisle.':'');
       paint(s,anchor || (s.layout.groupBy==='original' ? s.groups.get(s.group)?.[0]?.id : null));
+      if (s.options.onShopProduct) return;
       s.controls=window.ShelfLayoutControls.mount({
         surface:el('layout-surface'),inspector:el('layout-inspector'),getLayout:()=>s.layout,
         getItems:()=>s.items,getGroupItems:()=>s.groups.get(s.group)||[],getGeometry:()=>s.geometry,onChange:(value,meta)=>setDraft(s,value,meta),
@@ -171,12 +180,21 @@
     activity++;
     const s=session={store:options.store,aisle:options.aisle,key:options.authoredId?'studio:'+options.authoredId:options.aisle,
       options,abort:new AbortController(),items:[],page:0,dirty:false};
+    dialog.classList.toggle('shelf-shopping',Boolean(options.onShopProduct));
+    el('layout-mode').textContent=options.onShopProduct ? 'Shopping preview' : 'Aisle organizer';
+    el('layout-surface').setAttribute('aria-label',options.onShopProduct ? 'Shop this shelf' : 'Editable shelf');
     el('layout-heading').textContent=s.aisle;
     el('layout-inspector').replaceChildren();
     el('layout-groups').replaceChildren();
     dialog.showModal();
     load(s);
   }
+  el('layout-surface').addEventListener('click',event=>{
+    const s=session, button=event.target.closest('button[data-product-id], .sl-slot button');
+    if(!s?.options.onShopProduct || !button) return;
+    const id=button.closest('.sl-slot')?.dataset.productId;
+    if(id && s.byId.has(id)) s.options.onShopProduct(id);
+  });
   el('layout-surface').addEventListener('shelf-layout-metrics',event=>{
     event.preventDefault();
     if(session?.geometry)paint(session);

@@ -12,6 +12,17 @@
           <output data-field="rows" aria-label="Shelf count"></output>
           <button type="button" data-action="row-plus" aria-label="Add a shelf">+</button></div>
       </div>
+      <div class="sl-row-stock">
+        <label>Different products per row
+          <select data-field="productsPerRow">
+            <option value="">Auto (fit product sizes)</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+          </select>
+        </label>
+        <label>Copies per product
+          <select data-field="facings"><option>1</option><option>2</option><option>3</option></select>
+        </label>
+      </div>
       <label class="sl-range">Shelf thickness <output data-field="rail-value"></output>
         <input data-field="rail" type="range" min="1" max="15" step="0.25"></label>
       <label class="sl-range">Quick-jump tab height <output data-field="tabs-value"></output>
@@ -27,6 +38,12 @@
       <p data-field="help" class="sl-hint"></p>
       <p data-field="selection" class="sl-selected-name" aria-live="polite"></p>
       <fieldset data-field="product-controls" disabled>
+        <label>Copies for selection
+          <select data-field="product-facings">
+            <option value="mixed" disabled hidden>Mixed</option><option value="">Use aisle default</option>
+            <option>1</option><option>2</option><option>3</option>
+          </select>
+        </label>
         <label>Move selection to group
           <input data-field="group-name" type="text" maxlength="80" autocomplete="off" placeholder="Choose or type a group">
         </label>
@@ -112,7 +129,9 @@
     function update(next, kind) {
       dirty=true; generation++;
       fields.status.textContent='';
-      onChange(next,{kind,anchorId:selected.values().next().value || null});
+      const visible=geometry().slots || [];
+      const anchor=visible.find(slot=>selected.has(slot.id)) || visible[0];
+      onChange(next,{kind,anchorId:anchor?.id || null});
       refresh();
     }
     function changeProducts(items, alter, kind) {
@@ -128,25 +147,33 @@
       }
       if(changed) update({...l,products:next},kind);
     }
-    function moveGroup(raw) {
-      const name=raw.trim().slice(0,80);
+    function setSelectionOption(key,value,kind,changes={}) {
       const l=layout(), edits={...l.products};
       let changed=false;
       for(const id of selected){
-        const current=edits[id] || {}, {scale,x,y}=snapshot(id);
-        if(name===(current.group||''))continue;
-        const next={scale,x,y,...current};
-        if(name)next.group=name;
-        else delete next.group;
-        if(!Object.hasOwn(next,'group') && next.x===0 && next.y===0 && next.scale===(itemById(id)?.scale || 1))delete edits[id];
+        const current=edits[id] || {};
+        if(value===(current[key]??null))continue;
+        const baseScale=itemById(id)?.scale || 1;
+        const next={scale:baseScale,x:0,y:0,...current};
+        if(value!==null)next[key]=value;
+        else delete next[key];
+        if(!next.group && !next.facings && next.x===0 && next.y===0 && next.scale===baseScale)delete edits[id];
         else edits[id]=next;
         changed=true;
       }
-      if(changed || (name && l.groupBy==='original'))update({...l,groupBy:name ? 'type' : l.groupBy,products:edits},'group');
+      if(changed || Object.keys(changes).some(k=>changes[k]!==l[k]))update({...l,...changes,products:edits},kind);
+    }
+    function moveGroup(raw) {
+      const name=raw.trim().slice(0,80);
+      setSelectionOption('group',name || null,'group',name ? {groupBy:'type'} : {});
     }
     function changeFixture(key,value) {
       const l=layout();
-      if(l[key]!==value)update({...l,[key]:value},'fixture');
+      if(l[key]===value)return;
+      const next={...l};
+      if(value===undefined)delete next[key];
+      else next[key]=value;
+      update(next,'fixture');
     }
     function sizeRange(items) {
       if (items.length===1) return {value:items[0].scale,min:items[0].minScale,max:items[0].maxScale};
@@ -201,6 +228,12 @@
       actions['catalog-group'].disabled=!Array.from(selected,id=>l.products?.[id]?.group).some(Boolean);
       fields.groupBy.value=l.groupBy==='original'?'original':'type';
       fields.rows.textContent=rows; actions['row-minus'].disabled=rows<=1; actions['row-plus'].disabled=rows>=8;
+      fields.productsPerRow.value=l.productsPerRow??'';
+      fields.facings.value=l.facings??2;
+      const selectedFacings=new Set(Array.from(selected,id=>l.products?.[id]?.facings??''));
+      const selectedCopies=fields['product-facings'];
+      selectedCopies.options[1].textContent='Use aisle default ('+(l.facings??2)+')';
+      selectedCopies.value=selectedFacings.size>1 ? 'mixed' : selectedFacings.values().next().value??'';
       fields.rail.value=rail; fields['rail-value'].textContent=rail+'%';
       fields.tabs.value=tabHeight; fields['tabs-value'].textContent=tabHeight+' px';
       actions.multi.setAttribute('aria-pressed',mode==='multi');
@@ -372,6 +405,14 @@
       if(e.key==='Enter' && fields['group-name'].value.trim()){e.preventDefault();moveGroup(fields['group-name'].value);}
     });
     listen(fields.groupBy,'change',()=>changeFixture('groupBy',fields.groupBy.value));
+    for(const key of ['productsPerRow','facings'])listen(fields[key],'change',()=>{
+      const value=fields[key].value;
+      changeFixture(key,value==='' ? undefined : Number(value));
+    });
+    listen(fields['product-facings'],'change',()=>{
+      const value=fields['product-facings'].value;
+      setSelectionOption('facings',value ? Number(value) : null,'fixture');
+    });
     listen(fields.rail,'input',()=>changeFixture('rail',fields.rail.valueAsNumber));
     listen(fields.tabs,'input',()=>changeFixture('tabHeight',fields.tabs.valueAsNumber));
     for(const key of ['x','y'])listen(fields[key],'change',()=>{

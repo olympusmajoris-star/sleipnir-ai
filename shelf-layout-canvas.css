@@ -43,22 +43,33 @@
   margin: auto; font-size: .65rem; color: #e7e9e7; background: #303634; padding: .25em;
 }
 .sl-bay button.sl-label {
+  container-type: size;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: .24em;
-  padding-inline: .24em;
+  gap: 1%;
+  padding-inline: 1%;
   box-sizing: border-box;
   text-align: left;
   background: #f3f0e6;
   color: #11130e;
   border-block: 1px solid #a4a297;
-  font: 500 clamp(6px,1.7cqw,13px)/1 system-ui,sans-serif;
+  font: 500 1em/1 system-ui,sans-serif;
   white-space: nowrap;
   overflow: hidden;
 }
-.sl-bay .sl-tag-name { overflow: hidden; text-overflow: ellipsis; }
-.sl-bay .sl-tag-price { flex: none; font-size: 1.18em; font-weight: 750; }
+.sl-bay .sl-tag-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: min(65cqh, calc(12cqw + 8cqh));
+}
+.sl-bay .sl-tag-price {
+  flex: none;
+  font-size: min(78cqh, calc((100cqw + 15cqh) / var(--price-width-units)));
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
 .sl-bay .sl-faces:focus-visible, .sl-bay .sl-slot[data-selected="true"] .sl-faces,
 .sl-bay .sl-slot.is-selected .sl-faces, .sl-bay .sl-faces[aria-pressed="true"] {
   outline: 2px solid #91f3ed;
