@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 from build import D, NAMES, surround
+from menu import integrate as menu_integrate
 
 METHODS = """
   Map<String, double> _studioProductScales = {};
@@ -85,7 +86,7 @@ def main():
         if hashlib.sha256(raw).hexdigest()!=baseline[widget]:raise ValueError('Unrecorded source for '+widget)
         ids=[r['id'] for r in scopes if r['menu_type']==kind and r['category']!='Grocery']
         if not ids:raise ValueError('Missing verified app locations for '+kind)
-        out=shopper(raw.decode(),kind,ids).encode();path=a.out/(widget+'.dart');path.write_bytes(out)
+        out=menu_integrate(shopper(raw.decode(),kind,ids),kind,False).encode();path=a.out/(widget+'.dart');path.write_bytes(out)
         records.append({'widget':widget,'file':path.name,'sha256':hashlib.sha256(out).hexdigest(),'baseline_sha256':baseline[widget],'baseline_inventory_date':inventory['receivedAt'],'app_store_ids':sorted(ids)})
     (a.out/'manifest.json').write_text(json.dumps(records,indent=2))
 if __name__=='__main__':main()

@@ -19,7 +19,7 @@ const OLD_GROUPS=[
 ];
 const STORE_TYPES=[['grocery','Groceries'],['retail','Retail stores'],['vbrowse','Valhalla streets and storefronts'],['fast_food','Fast food'],['fast_casual','Fast casual'],['sit_down','Sit-down restaurants'],['cafe','Cafés and coffee shops'],['bakery','Bakeries and pastry shops'],['dessert','Dessert and ice cream shops'],['deli','Delis and sandwich shops'],['food_truck','Food trucks and walk-up stands'],['bar','Bars and pubs'],['buffet','Buffets']];
 const GROUPS=[
- {id:'shopping',name:'Sleipnir',pages:[['shome','Shopping home','Your existing shopping home','pages.html?page=shome'],...STORE_TYPES.map(([id,name])=>[id,name,'Choose city and store',null])]},
+ {id:'shopping',name:'Sleipnir',pages:[['shome','Shopping home','Your existing shopping home','pages.html?page=shome'],['aisle-workshop','Aisles & shelves','Entrances, blackboards and product placement','grocery-aisle-builder.html'],['menu-workshop','Menu boards & books','Page designs and dish photos','store-directory.html?type=menus'],...STORE_TYPES.map(([id,name])=>[id,name,'Choose city and store',null])]},
  {id:'social',name:'Asgard',pages:OLD_GROUPS.filter(g=>['sky','social','messages'].includes(g.id)).flatMap(g=>g.pages)}
 ];
 function storeTypeMatches(section,store){

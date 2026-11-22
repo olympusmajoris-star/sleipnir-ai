@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aisle workshop · Sleipnir Studio</title>
+<link rel="stylesheet" href="grocery-aisle-builder.css?v=product-tools">
+<script defer src="studio-transfer-config.js"></script><script defer src="workspace-core.js?v=pc-aisles"></script><script defer src="studio-auth-core.js"></script><script defer src="studio-jobs.js"></script><script defer src="grocery-entrance.js?v=authored-1"></script><link rel="stylesheet" href="grocery-door-preview.css"><script defer src="studio-media.js"></script><script defer src="grocery-door-preview.js"></script><script defer src="grocery-aisle-builder.js?v=product-tools"></script>
+</head><body>
+<header><a href="store-directory.html?type=grocery" id="back">‹ Grocery stores</a><strong id="store-name">Aisle workshop</strong><button id="owner">Connect owner</button></header>
+<main><section class="preview"><div class="preview-bar"><button id="door-tab" aria-pressed="true">Entrance</button><button id="shelf-tab" aria-pressed="false">Inside aisle</button></div>
+<div class="phone"><div id="door"><img id="door-art" alt="" hidden><div class="door-title" id="door-title"></div><button id="board" title="Edit blackboard"><b id="board-title"></b><span id="board-body"></span></button></div>
+<iframe id="frame" title="Flutter aisle preview" hidden></iframe></div>
+<p id="preview-status" role="status"></p><div class="actions" id="preview-modes" role="group" aria-label="Aisle preview mode" hidden><button id="select-mode" aria-pressed="true">Select products</button><button id="shop-mode" aria-pressed="false">Shop this aisle</button></div><div id="panel-nav" hidden><button id="prev">‹ Previous panel</button><button id="next">Next panel ›</button></div></section>
+<section class="inspector"><h1 id="heading">Aisle workshop</h1><p id="status" role="status">Opening store…</p>
+<div id="pick-store" hidden></div>
+<div id="work" hidden><label>Your aisles<select id="aisles"><option value="">New aisle</option></select></label>
+<nav aria-label="Aisle components" id="tabs"><button data-tab="entrance" aria-pressed="true">Entrance</button><button data-tab="sign">Blackboard</button><button data-tab="fixture">Shelf &amp; tags</button><button data-tab="stock">Stock shelves</button><button data-tab="versions">Versions</button></nav>
+<div data-pane="entrance"><label>Aisle name<input id="title" maxlength="120" placeholder="Aisle name"></label><label>Entrance heading<input id="entrance_title" maxlength="120" placeholder="Use aisle name"></label>
+<label>Store entrance artwork<select id="door-gallery"><option value="">Use original artwork</option></select></label>
+<label>Upload entrance artwork<input type="file" id="photo-file" accept="image/png,image/jpeg,image/webp,image/avif"></label><label>Studio image URL<input type="url" id="entrance_url" placeholder="https://…"></label></div>
+<div data-pane="sign" hidden><label>Blackboard heading<input id="board_title" maxlength="120"></label><label>Blackboard copy<textarea id="board_body" rows="4" maxlength="500"></textarea></label>
+<div class="pair"><label>Board color<input type="color" id="board_color" value="#242825"></label><label>Lettering<input type="color" id="ink_color" value="#ffffff"></label></div><button id="clear-sign">Use original blackboard</button></div>
+<div data-pane="fixture" hidden><label>Fixture<select id="fixture"><option value="shelf">Shelf</option><option value="cooler">Glass cooler</option><option value="freezer">Freezer</option></select></label>
+<label>Shelf sign<input id="shelf_sign" maxlength="120"></label><div class="pair"><label>Digital tag color<input id="ticket_color" type="color" value="#f6f4e9"></label><label>Tag lettering<input id="ticket_ink" type="color" value="#202020"></label></div><p>Each panel holds three product slots across and four rows. Each slot shows two matching fronts and reads its price from the store catalog.</p></div>
+<div data-pane="stock" hidden><section id="selected-sku" aria-labelledby="sku-heading" hidden>
+<h2 id="sku-heading" tabindex="-1">Selected product</h2><p id="sku-detail"></p><p id="sku-placement"></p>
+<div class="scale-controls" id="sku-size"><label for="sku-scale">Product size <output id="sku-percent" for="sku-scale"></output></label><input id="sku-scale" type="range" step="0.001">
+<div class="actions"><button id="sku-smaller" aria-label="Make product smaller">−</button><button id="sku-larger" aria-label="Make product larger">+</button><button id="sku-reset">Original size</button><button id="sku-save">Save product size</button></div></div>
+<p id="sku-fixed" hidden>This product has a fixed size on this display.</p>
+<label>Repair note<textarea id="sku-note" maxlength="1000" rows="2"></textarea></label><button id="sku-flag">Flag product for repair</button><p id="sku-status" role="status"></p>
+</section><div id="source-stock" hidden><p id="stock-msg"></p><button id="load-stock">Load original products for placement</button> <button id="empty-stock">Start empty</button> <button id="keep-stock" hidden>Keep original arrangement</button></div>
+<form id="search-form"><label>Find products in this store<input type="search" id="search" placeholder="Product name" autocomplete="off"></label><button>Search</button></form><div id="results"></div><button id="more" hidden>More results</button>
+<h2>Product placement</h2><p id="stock-count"></p><ol id="slots"></ol><div class="actions" id="stock-pages" hidden><button id="stock-prev">Previous 12</button><button id="stock-next">Next 12</button></div></div>
+<div data-pane="versions" hidden><label>Saved versions<select id="history"></select></label><button id="restore">Restore as draft</button> <button id="reload-draft">Load saved draft</button> <button id="unpublish" hidden>Take aisle off display</button></div>
+<footer><div class="actions"><button id="undo">Undo</button><button id="redo">Redo</button><button id="save">Save draft</button><button id="publish" class="primary">Publish aisle</button></div><small id="state" aria-live="polite"></small></footer>
+</div></section></main></body></html>

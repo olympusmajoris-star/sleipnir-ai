@@ -15,10 +15,11 @@ import 'custom_code/widgets/retail.dart';
 class CatalogClient extends http.BaseClient {
   final transport=http.Client();
   // The original widgets use per-product lookups for modifiers and size choices.
-  static const tables={'stores','products','store_categories','dayparts','store_board_panels','store_drive_thru_board','combo_meta','modifier_groups','modifier_options','product_modifier_groups','product_size_prices','product_sizes'};
+  static const tables={'rpc/studio_menu_designs','stores','products','store_categories','dayparts','store_board_panels','store_drive_thru_board','combo_meta','modifier_groups','modifier_options','product_modifier_groups','product_size_prices','product_sizes'};
   @override Future<http.StreamedResponse> send(http.BaseRequest req){
     final u=req.url;
     if(u.origin!=Uri.parse(supabaseUrl).origin || !{'HEAD','GET'}.contains(req.method) || !u.path.startsWith('/rest/v1/') || !tables.contains(u.path.substring(9)))return Future.error(StateError('Store preview uses read-only catalog data.'));
+    if(u.path.endsWith('/rpc/studio_menu_designs') && u.queryParameters['p_store_id']!=nativeStore)return Future.error(StateError('Store changed.'));
     final store=u.queryParameters['store_id'];
     if((store!=null && store!='eq.$nativeStore')||(u.path.endsWith('/stores')&&u.queryParameters['id']!='eq.$nativeStore'))return Future.error(StateError('Store changed.'));
     return transport.send(req);
@@ -34,6 +35,11 @@ class _ShopState extends State<Shop>{
  String renderer=''; String error=''; int panel=1;int maxPanel=1;
  late final StreamSubscription<html.Event> sub;
  @override void initState(){super.initState();sub=html.document.on['sleipnir-preview-down'].listen((e){if(e is! html.CustomEvent)return;final dynamic q=jsonDecode(e.detail);if(q is! Map)return;
+   if(q['type']=='menu-design' && q['store_id']==nativeStore && ['menu','page','product'].contains(q['target_kind']) && q['target_key'] is String && q['settings'] is Map){
+     final k=q['target_kind'].toString()+'/'+q['target_key'].toString();
+     nativeMenuDrafts.value={...nativeMenuDrafts.value,k:Map<String,dynamic>.from(q['settings'])};
+   }
+   if(q['type']=='move'&&renderer!='fast_food')nativeMenuMove?.call(q['direction']=='next'?1:-1);
    if(q['type']=='focus-product' && q['product_id'] is String)nativeItems[q['product_id']]?.call();
    if(q['type']=='set-mode')nativeEditing.value=q['mode']=='select';
    if(q['type']=='set-scale'||q['type']=='sync'){

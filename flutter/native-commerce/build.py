@@ -1,6 +1,7 @@
 """Build verified private app widgets for the read-only shopping surface inside Studio."""
 from pathlib import Path
 import argparse,hashlib,json,shutil,re,subprocess,os
+from menu import integrate as menu_integrate
 D=Path(__file__).resolve().parent
 NAMES={'retail':'RetailStore','fast_food':'McDonaldsComboPanel','fast_casual':'FastCasualMenuBoard','sit_down':'SitDownRestaurantMenu'}
 def replace_one(s,start,extra):
@@ -85,7 +86,7 @@ def main():
    uploaded=a.shopper_widgets/(n+'.dart')
    if hashlib.sha256(uploaded.read_bytes()).hexdigest()!=private[n]['sha256'] or private[n]['baseline_sha256']!=digest:raise ValueError('Shopper source digest mismatch')
    shutil.copyfile(uploaded,path)
-  else:path.write_text(instrument(f.read_text(),k))
+  else:path.write_text(menu_integrate(instrument(f.read_text(),k),k,True))
   staged[k]=hashlib.sha256(path.read_bytes()).hexdigest()
  for k in ('main.dart','bridge.dart'):shutil.copyfile(D/k,a.work/'lib'/k)
  if a.shopper_widgets:

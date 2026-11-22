@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark">
   <title>Grocery aisle editor · Sleipnir Studio</title>
   <link rel="stylesheet" href="aisle-shelf-editor.css">
-</head>
+<link rel="stylesheet" href="product-details-editor.css"></head>
 <body>
   <header id="editor-header">
     <div><a href="store-directory.html?type=grocery" class="back-link" id="store-back">‹ Stores</a><h1>Grocery aisle editor</h1></div>
@@ -34,7 +34,7 @@
     <aside id="inspector" aria-label="Aisle editing controls">
       <section class="editor-card" id="product-card" aria-labelledby="product-heading">
         <h2 id="product-heading" tabindex="-1">Selected product</h2>
-        <div id="product-detail" aria-live="polite"><p>Select a product in the preview to adjust its size or flag it for repair.</p></div>
+        <div id="product-detail" aria-live="polite"><p>Select a product to edit its details, adjust its image size or flag a repair.</p></div>
         <div class="control-label"><label for="scale-range">Product scale</label><output id="scale-value" for="scale-range">—</output></div>
         <div class="scale-controls">
           <button type="button" id="scale-minus" aria-label="Decrease product scale" disabled>−</button>
@@ -69,6 +69,6 @@
   <script src="studio-auth-core.js"></script>
   <script src="studio-jobs.js"></script>
   <script src="grocery-private-build.js"></script>
-  <script src="aisle-shelf-editor.js"></script>
+  <script src="product-details-editor.js"></script><script src="aisle-shelf-editor.js"></script>
 </body>
 </html>

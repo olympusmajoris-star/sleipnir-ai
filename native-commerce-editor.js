@@ -23,6 +23,7 @@
     const repairs=el('a','Flag store or display'); repairs.href='store-repairs.html?'+new URLSearchParams({store:id});head.append(repairs);
     if(!readers[store.menu_type]){status.textContent='This location has no supported native display.';return;}
     const isStreet=store.native_renderer==='ValhallaStreet'||store.app_surface==='valhalla';
+    if(isStreet){const street=el('a','Edit street and storefronts');street.href='valhalla-street-editor.html?'+new URLSearchParams({store:id});head.append(street);}
     const source=new URL(isStreet?'native-valhalla/index.html':'native-commerce-preview/index.html',location.href);source.search=new URLSearchParams({store:id});
     const frame=el('iframe');frame.title=store.name+' shopper display';frame.setAttribute('referrerpolicy','same-origin');
     const viewer=el('section');viewer.className='commerce-viewer';
@@ -35,6 +36,7 @@
     const body=el('div');body.className='commerce-body';body.append(viewer,inspector);shell.append(body);
     frame.hidden=true;nav.hidden=true;selection.inert=true;
     let loadedView='studio', shopperView=false, confirmedBuild=false, editing=true, product=null, owner=false, sequence=0, scalable=false, sourceDigest='', panel=1, maxPanel=1, renderer='', busy=false;
+    let menuEditor=null,latestMenuPage=null;
     const saved=new Map(), drafts=new Map(), notes=new Map();
     const query=(table,params)=>jobs.request('/rest/v1/'+table+'?'+new URLSearchParams(params),{auth:false});
     const rpc=(name,body)=>jobs.request('/rest/v1/rpc/'+name,{method:'POST',body});
@@ -66,6 +68,16 @@
       cue.textContent=p.category||readers[store.menu_type];
       selection.append(el('h3',p.name));
       if(p.price!=null && Number.isFinite(Number(p.price)))selection.append(el('p',new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(p.price))));
+      selection.append(global.StudioProductDetails.button({
+        storeId:id,productId:pid,current:()=>confirmedBuild && editing && product?.id===pid,
+        surface:isStreet?'This updates the item’s catalog details and base price. Menu option prices, availability and embedded dish photos use separate records.':
+          'This updates the catalog item and its base price. Printed menu artwork and separately priced sizes use their own sources.',
+        onSaved(row){
+          if(!confirmedBuild || shopperView)return;
+          if(product?.id===pid){product={...product,...row};showProduct();}
+          panel=1;frame.src=source.href;
+        }
+      }));
       const baseline=()=>saved.get(pid)||{scale:1,revision:0};
       if(scalable){
         const label=el('label','Product image scale'), output=el('output'), range=el('input');
@@ -82,7 +94,7 @@
           saved.set(pid,{scale:value,revision:Number(r.revision)});if(drafts.get(pid)===value)drafts.delete(pid);
           status.textContent='Scale saved for '+p.name+'.';
         }));
-      }else selection.append(el('p',renderer==='fast_food'?'This menu uses a shared board image. Flag the item to request a board artwork edit.':'This product has no individual photo to resize.'));
+      }else if(!menuEditor)selection.append(el('p',renderer==='fast_food'?'This menu uses a shared board image. Flag the item to request a board artwork edit.':'This product has no individual photo to resize.'));
       const note=el('textarea');note.maxLength=4000;note.rows=3;note.value=notes.get(pid)||'';note.setAttribute('aria-label','Product repair note');note.placeholder='Describe the product or display problem';
       note.oninput=()=>notes.set(pid,note.value);
       const flag=action('Flag product',async()=>{
@@ -100,17 +112,28 @@
         const rows=await query('products',{id:'eq.'+pid,store_id:'eq.'+id,select:'id,name,category,price',limit:1});
         if(token!==sequence)return;
         if(rows[0]?.id!==pid){cue.textContent='This item has no matching product in this store.';return;}
-        product=rows[0];scalable=canScale;showProduct();
+        product=rows[0];scalable=canScale;showProduct();menuEditor?.choose(product);
       }catch{if(token===sequence)cue.textContent='Product details could not be loaded.';}
     }
-    function drawPanel(){panelLabel.textContent=maxPanel>1?'Panel '+panel+' of '+maxPanel:'';prev.hidden=next.hidden=maxPanel<2;prev.disabled=panel<=1;next.disabled=panel>=maxPanel;}
+    if(isStreet||['fast_food','drive_thru','fast_casual','sit_down','restaurant'].includes(store.menu_type)){
+      const menuHost=el('section');inspector.prepend(menuHost);
+      if(global.StudioRestaurantMenus){
+        menuEditor=global.StudioRestaurantMenus.mount(menuHost,{store,send,confirmOwner,current:()=>confirmedBuild&&!shopperView&&editing,chooseProduct:pid=>choose(pid,false)});
+        const shortcut=el('button',isStreet?'Edit menu':(['sit_down','restaurant'].includes(store.menu_type)?'Edit menu book':'Edit menu board'));
+        shortcut.onclick=()=>menuEditor.open();head.append(shortcut);
+      }
+    }
+    function drawPanel(){panelLabel.textContent=maxPanel>1?((!isStreet && ['sit_down','restaurant'].includes(store.menu_type))?'Page ':'Panel ')+panel+' of '+maxPanel:'';prev.hidden=next.hidden=maxPanel<2;prev.disabled=panel<=1;next.disabled=panel>=maxPanel;}
     function move(forward){if(panel+(forward?1:-1)<1||panel+(forward?1:-1)>maxPanel)return;panel+=forward?1:-1;send('move',{direction:forward?'next':'previous'});drawPanel();}
     prev.onclick=()=>move(false);next.onclick=()=>move(true);
-    mode.onclick=()=>{editing=!editing;mode.textContent=editing?'Browse store':'Select products';mode.setAttribute('aria-pressed',String(!editing));send('set-mode',{mode:editing?'select':'browse'});};
+    mode.onclick=()=>{editing=!editing;mode.textContent=editing?'Browse store':'Select products';mode.setAttribute('aria-pressed',String(!editing));send('set-mode',{mode:editing?'select':'browse'});menuEditor?.state(confirmedBuild&&editing&&!shopperView);if(editing&&latestMenuPage)menuEditor?.page(latestMenuPage);};
     global.addEventListener('message',event=>{
       const m=event.data;
       if(event.origin!==source.origin||event.source!==frame.contentWindow||m?.channel!==channel||m.store_id!==id)return;
-      if(m.type==='ready'){renderer=m.renderer;maxPanel=Number(m.panels)||1;drawPanel();send('set-mode',{mode:editing&&!shopperView?'select':'browse'});if(!shopperView)sync();}
+      if(m.type==='menu-page' && !shopperView){
+        latestMenuPage=m;if(confirmedBuild){panel=Number(m.page)||1;maxPanel=Number(m.pages)||1;drawPanel();menuEditor?.page(m);}
+      }
+      if(m.type==='ready'){renderer=m.renderer;maxPanel=Number(latestMenuPage?.pages)||Number(m.panels)||1;drawPanel();send('set-mode',{mode:editing&&!shopperView?'select':'browse'});if(!shopperView)sync();}
       if(m.type==='error')status.textContent=m.message||'The native display could not open.';
       if(m.type==='select'&&editing&&confirmedBuild&&uuid.test(m.product_id))choose(m.product_id,m.scalable===true);
     });
@@ -129,12 +152,13 @@
             exact.search=new URLSearchParams({store:id});
             let approved;
             try {approved=new URL(state.previewURL,location.href);}catch{}
-            if(approved?.origin===exact.origin&&approved.pathname===exact.pathname&&approved.searchParams.get('store')===id){
+            if(approved?.origin===exact.origin&&['native-shopper-preview/index.html','native-shopper-preview-v1/index.html','native-commerce-preview-v1/index.html'].some(path=>new URL(path,location.href).pathname===approved.pathname)&&approved.searchParams.get('store')===id&&[...approved.searchParams].length===1){
               shopperView=true;
-              if(loadedView!=='shopper'){loadedView='shopper';panel=1;frame.src=exact.href;}
+              if(loadedView!=='shopper'||frame.src!==approved.href){loadedView='shopper';panel=1;frame.src=approved.href;}
             }
           }
           confirmedBuild=state.status==='published'||state.status==='verified';
+          menuEditor?.state(confirmedBuild&&!shopperView);if(confirmedBuild && latestMenuPage)menuEditor?.page(latestMenuPage);
           if(loadedView==='shopper'&&confirmedBuild){loadedView='studio';panel=1;frame.src=source.href;}
           frame.hidden=nav.hidden=!confirmedBuild&&!shopperView;
           mode.hidden=shopperView; selection.inert=!confirmedBuild;

@@ -11,7 +11,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $base = Join-Path $env:LOCALAPPDATA 'GroceryAisleCompiler'
 $dist = Join-Path $base 'downloads'
 $packages = Join-Path $base 'tools'
-$kitHash = '7a8060a84acb0738a38232eadbb276d05917826eebdd5615dd1b9ec0d16b3114'
+$kitHash = '0d2834134cdcd6d3c0f77c4ca2d320e8109aa7acf204ec66cee8e2abb9baf979'
 $brokerHash = '37aff7b07e05c6503f41240a8f589f128745b26337f62850e7e35e74ed787f4d'
 $site = 'https://olympusmajoris-star.github.io'
 $zipUrl = $site + '/sleipnir-ai/aisle-preview/compiler-kit.zip'

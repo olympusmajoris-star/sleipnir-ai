@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Valhalla Street editor</title><link rel="stylesheet" href="valhalla-street-editor.css"><link rel="stylesheet" href="studio-media.css"></head>
+<body><header><a id="back" href="store-directory.html">Store directory</a><h1>Valhalla Street</h1><button id="owner">Connect owner</button></header>
+<main><section><iframe id="scene" title="Palm Coast street preview" hidden></iframe><p id="position" aria-live="polite"></p></section>
+<section><p id="status" role="status">Opening Palm Coast storefronts…</p><form id="fields">
+<fieldset><legend>Street and sky</legend>
+<label>Curb height <input name="curb_y" type="number" step="any" min=".4" max=".95"></label>
+<label>Day sky image URL <input name="day_url" type="text"></label><label>Night sky image URL <input name="night_url" type="text"></label>
+<label>Day starts <input name="day_start" type="number" min="0" max="23"></label><label>Night starts <input name="night_start" type="number" min="0" max="23"></label>
+<small>Hours follow the shopper’s device clock.</small><label>Preview lighting <select name="lighting"><option value="local">Local time</option><option value="day">Day</option><option value="night">Night</option></select></label>
+</fieldset><fieldset id="front"><legend>Storefront</legend><label>Store <select name="merchant"></select></label>
+<label>Scale <input name="scale" type="number" min=".5" max="2" step=".01"></label><label>Horizontal offset <input name="offset_x" type="number" min="-.4" max=".4" step="any"></label>
+<label>Vertical offset <input name="offset_y" type="number" min="-.4" max=".4" step="any"></label>
+<label>Source curb height <input name="source_curb_y" type="number" min="0" max="1" step="any"></label>
+</fieldset><fieldset><legend>Window artwork</legend><label>Window <select name="window"></select></label><label>Image URL <input name="window_url" type="text"></label><label>Label <input name="window_label" maxlength="150"></label>
+<div class="numbers"><label>Left <input name="x" type="number" min="0" max="1" step=".01"></label><label>Top <input name="y" type="number" min="0" max="1" step=".01"></label><label>Width <input name="w" type="number" min=".01" max="1" step=".01"></label><label>Height <input name="h" type="number" min=".01" max="1" step=".01"></label></div>
+<button id="putWindow" type="button">Set window artwork</button><button id="removeWindow" type="button">Remove window artwork</button></fieldset>
+<fieldset><legend>Between-store advertisement</legend><label>Street position <select name="gap"></select></label><label>Advertisement <select name="ad"></select></label>
+<label>Image URL <input name="ad_url" type="text"></label><label>Label <input name="ad_label" maxlength="150"></label>
+<button id="putAd" type="button">Set advertisement</button><button id="removeAd" type="button">Remove advertisement</button></fieldset></form>
+<div class="actions"><button id="preview">Preview changes</button><button id="save" disabled>Save draft</button><button id="publish" disabled>Publish saved draft</button></div>
+</section></main><script src="studio-transfer-config.js"></script><script src="studio-auth-core.js"></script><script src="studio-jobs.js"></script><script src="workspace-core.js"></script><script src="studio-media.js"></script><script src="valhalla-street-editor.js"></script></body></html>

@@ -23,3 +23,13 @@ void nativeCatalog(Map<String,VoidCallback> items){
  nativeItems..clear()..addAll(items);
  nativeEmit({'type':'inventory','count':items.length,'first':items.keys.where(skuPattern.hasMatch).take(8).toList()});
 }
+
+final nativeMenuDrafts = ValueNotifier<Map<String,Map<String,dynamic>>>({});
+void Function(int delta)? nativeMenuMove;
+String _nativeLastMenu='';
+void nativeMenuReport({required String key,required String label,required int page,required int pages,required String photoSurface,required List<String> supports,List<String> products=const[]}){
+ final message={'type':'menu-page','key':key,'label':label,'page':page,'pages':pages,'photo_surface':photoSurface,'supports':supports,'products':products};
+ final signature=jsonEncode(message);
+ if(signature==_nativeLastMenu)return;
+ _nativeLastMenu=signature;WidgetsBinding.instance.addPostFrameCallback((_){if(_nativeLastMenu==signature)nativeEmit(message);});
+}

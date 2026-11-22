@@ -3,16 +3,20 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Grocery entrances · Sleipnir Studio</title>
-<link rel="stylesheet" href="grocery-entrance.css?v=1">
-</head>
+<link rel="stylesheet" href="grocery-entrance.css?v=authored-aisles-1"><link rel="stylesheet" href="grocery-door-preview.css?v=1">
+<link rel="stylesheet" href="product-details-editor.css"></head>
 <body>
 <main>
 <header><div><h1 id="storeName">Grocery entrances</h1><p id="address"></p></div><a id="stores" href="pages.html?page=browse&amp;type=grocery">Stores</a></header>
+<p class="aisle-tools"><a id="createAisle" hidden>Create aisle</a></p>
 <section id="entrances" hidden aria-label="Choose a department or aisle">
 <label for="departments">Department or aisle</label><select id="departments"></select>
-<div class="door-frame"><button id="doorImage" aria-label="Enter selected department"><img id="doorPhoto" alt="" hidden><span id="doorProducts" hidden></span><span id="doorName"></span></button></div>
+<div id="publishedDoor" hidden></div>
+<div class="door-frame" id="originalDoor"><button id="doorImage" aria-label="Enter selected department"><span id="doorVisual"><img id="doorPhoto" alt="" hidden><span id="doorProducts" hidden></span><span id="doorName"></span></span><span id="doorBoard" hidden><strong id="boardName"></strong><span id="boardBody"></span></span></button></div>
 <nav><button id="previousDoor" aria-label="Previous entrance">←</button><button id="enter" class="action">Enter</button><button id="nextDoor" aria-label="Next entrance">→</button></nav>
+<p class="aisle-tools"><a id="editAisle">Edit this aisle</a></p>
 </section>
+<p id="authoredError" role="status" hidden>Published aisle edits could not be loaded. <button id="retryAuthored" type="button">Retry</button></p>
 <section id="display" hidden aria-label="Shopping display">
 <div class="display-header"><button id="backDoors">← Entrances</button><h2 id="sectionName"></h2></div>
 <div id="picture" hidden><img id="scene" alt=""><div id="spots"></div></div>
@@ -21,9 +25,9 @@
 </section>
 <p id="storeRepair" hidden><a id="repairLink">Flag this store or display</a></p>
 <p id="status" role="status" aria-live="polite"></p><button id="retry" hidden>Try again</button>
-<dialog id="sku"><form method="dialog"><button class="close" aria-label="Close product details">×</button></form><h2 id="skuName"></h2><p id="skuPrice"></p><p id="skuContext"></p><p id="skuSource"></p>
+<dialog id="sku"><form method="dialog"><button class="close" aria-label="Close product details">×</button></form><h2 id="skuName"></h2><p id="skuPrice"></p><p id="skuContext"></p><p id="skuSource"></p><div id="skuCatalogEdit"></div>
 <section id="sizeEditor" hidden><label for="scale">Product photo size <output id="scaleText" for="scale"></output></label><div id="sizePreview"><img id="sizePhoto" alt=""></div><input id="scale" type="range" min=".1" max="4" step=".05"><button id="saveScale">Save product size</button><p id="scaleStatus" role="status" aria-live="polite"></p></section>
 <label for="flagNote">Repair note</label><textarea id="flagNote" maxlength="4000" rows="3"></textarea><button id="flag" class="action">Flag product</button><p id="flagStatus" role="status" aria-live="polite"></p></dialog>
 </main>
-<script src="workspace-core.js?v=store-routing-20261122"></script><script src="studio-transfer-config.js"></script><script src="studio-auth-core.js"></script><script src="studio-jobs.js"></script><script src="grocery-station-fixtures.js?v=1"></script><script src="grocery-entrance.js?v=allstores-20261122"></script>
+<script src="workspace-core.js?v=store-routing-20261122"></script><script src="studio-transfer-config.js"></script><script src="studio-auth-core.js"></script><script src="studio-jobs.js"></script><script src="grocery-station-fixtures.js?v=1"></script><script src="product-details-editor.js"></script><script src="grocery-door-preview.js?v=1"></script><script src="grocery-entrance.js?v=authored-aisles-1"></script>
 </body></html>

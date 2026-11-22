@@ -4,8 +4,8 @@
   "sources": {
     "valhalla": "4a769e447a92def95f3932aec3f8a0131a4d0568eca80da63913d5d63a69f2c3"
   },
-  "studioSourceSHA256": "005a994e88d0e598afebeafd5b2478309ecf5a10b2059bab6ab6de46b834719e",
-  "artifactSHA256": "95e6ddedaa246df0f9f31016ae4f4fdc31dbc3ec8b5c639f499c0cd3c08b5635",
+  "studioSourceSHA256": "558d2e238e0bb55c07678938655036706909a95fb1b89c916c3c11e3cb582a95",
+  "artifactSHA256": "be6ab2df32cc4a91ebe24de197d7dc9605afe7974ddaf55610d4cc56e1697716",
   "activeLocations": 15,
   "menuItems": 1531,
   "orderableItems": 1183,
@@ -120,5 +120,15 @@
     "store-scoped, read-only network client",
     "browser-only Studio event bridge; same-origin public static frontend"
   ],
-  "independentDishPhotoProducts": 30
+  "independentDishPhotoProducts": 30,
+  "capabilities": [
+    "street-curb-registration",
+    "street-front-transform",
+    "store-window-art",
+    "between-store-ad",
+    "shared-device-local-sky",
+    "menu-design",
+    "menu-page",
+    "photo-fit-crop-zoom"
+  ]
 }

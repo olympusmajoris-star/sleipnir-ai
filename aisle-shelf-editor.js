@@ -4,6 +4,8 @@
   const start = new URLSearchParams(location.search);
   const store = (start.get('store') || '').trim().toLowerCase();
   const channel = 'sleipnir-aisle-editor-v1';
+  const requestedAuthored = start.has('authored') ? (start.get('authored') || '').trim().toLowerCase() : null;
+  const authoredFeature = 'preview-authored-aisle';
   const requestedAisle = (start.get('aisle') || '').trim().slice(0,140);
   const hashPattern = /^[0-9a-f]{64}$/;
   const idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -31,7 +33,7 @@
   const state = {
     hosted: new Map(), versions: new Map(), local: new Map(), saved: new Map(), drafts: new Map(),
     notes: new Map(), productNames: new Map(), defaultSha: '', selectedSha: '', selected: null, aisle: requestedAisle,
-    mode:'', catalog:[], stockedShelves:[], breadAlias:false, storeReady:false, catalogReady:false,
+    authoredId:requestedAuthored, authoredRows:new Map(), mode:'', catalog:[], stockedShelves:[], breadAlias:false, storeReady:false, catalogReady:false,
     editing: true, owner: false, authPending: false, uploading: false, building: false, previewURL: null,
     ready: false, readOnly: false, frameSequence: 0, selectionSequence: 0, versionSequence: 0, flagSequence: 0,
     saveBusy: new Set(), flagBusy: new Set(), flags: [], sourceFile: null, frameTimer: null
@@ -66,15 +68,54 @@
     if (state.breadAlias && state.mode !== 'dollar-general' && (dynamic || standard.has('Bread & Rolls'))) groups.push('Bread & Rolls');
     return Array.from(new Set(groups)).sort((a,b) => a.localeCompare(b));
   }
+  const authoredRow = () => state.authoredRows.get(state.authoredId);
+  function hasAuthored(build) { return build?.capabilities?.includes(authoredFeature) === true; }
+  async function loadPublishedAisles() {
+    let rows;
+    try { rows = await rpc('studio_grocery_aisles',{p_store_id:store},false); }
+    catch (error) { if (state.authoredId !== null) throw error; return; }
+    const authorized=new Map();
+    for(const r of Array.isArray(rows)?rows:[]) {
+      if(r?.store_id!==store||!idPattern.test(r.aisle_id||'')||(typeof r.title!=='string'||!r.title.trim())||
+          !Number.isInteger(r.published_revision)||r.published_revision<1||
+          !['native','custom'].includes(r.stock_mode)||!Array.isArray(r.product_ids)||
+          !r.product_ids.every(id=>typeof id==='string'&&idPattern.test(id))||
+          new Set(r.product_ids).size!==r.product_ids.length)continue;
+      authorized.set(r.aisle_id,{...r,title:r.title.trim()});
+    }
+    state.authoredRows=authorized;
+    if(state.authoredId!==null) {
+      const r=authoredRow();
+      if(!r)throw Error('This published aisle is unavailable for the selected store.');
+      state.aisle=r.title;
+      if(r.stock_mode==='native') {
+        if(!r.source_aisle?.trim())throw Error('The published aisle has no native source.');
+        state.authoredId=null;state.aisle=r.source_aisle;writeAisleRoute();
+      }
+    }
+  }
+  function writeAisleRoute(){
+    const url=new URL(location.href);url.searchParams.set('store',store);
+    if(state.authoredId){url.searchParams.set('authored',state.authoredId);url.searchParams.delete('aisle');}
+    else{url.searchParams.delete('authored');url.searchParams.set('aisle',state.aisle);}
+    try{history.replaceState(null,'',url);}catch(_){}
+  }
   function chooseShelves(build) {
     const groups = state.stockedShelves = availableShelves(build);
     const preferred = state.mode === 'target' ? 'Canned Goods & Soups' : 'Snacks';
     if (!state.aisle) state.aisle = groups.includes(preferred) ? preferred : groups[0] || '';
-    const supported = groups.includes(state.aisle);
+    const authored=authoredRow();
+    const back=new URL('grocery-entrance.html',location.href);
+    back.searchParams.set('store',store);
+    if(authored)back.searchParams.set('door',authored.source_aisle||'studio:'+authored.aisle_id);
+    else if(state.aisle)back.searchParams.set('door',state.aisle);
+    el('store-back').href=back.href;
+    const supported = state.authoredId!==null ? Boolean(authored&&hasAuthored(build)) : groups.includes(state.aisle);
     const options = groups.map(g => [g,g]);
+    for(const r of state.authoredRows.values())if(r.stock_mode==='custom'&&(hasAuthored(build)||r.aisle_id===state.authoredId))options.push(['studio:'+r.aisle_id,r.title+' · published aisle']);
     if (!supported) options.unshift(['',groups.length ? 'Choose an available aisle' : 'No stocked aisles']);
-    setOptions(el('department'),options,supported ? state.aisle : '');
-    el('department').disabled = !groups.length;
+    setOptions(el('department'),options,authored?'studio:'+authored.aisle_id:supported?state.aisle:'');
+    el('department').disabled = !options.some(entry=>entry[0]);
     return supported;
   }
   function getVersionLabel(v) {
@@ -100,7 +141,7 @@
       const expected = new URL(digest + '/index.html', previewRoot);
       if (url.href !== expected.href) continue;
       const version = {sha256:digest, filename:item.filename, label:item.label,buildFlavor:item.buildFlavor,
-        artifactSha256:item.artifactSha256, url, readOnly:!!item.readOnly,aisleRouting:item.aisleRouting || null};
+        artifactSha256:item.artifactSha256, capabilities:Array.isArray(item.capabilities)?item.capabilities:[], url, readOnly:!!item.readOnly,aisleRouting:item.aisleRouting || null};
       latest.set(digest, version);
       if (item.default === true) preferred = digest;
     }
@@ -208,7 +249,7 @@
       link.disabled = !state.ready;
       link.addEventListener('click', () => {
         const dest = state.versions.has(f.version) ? f.version : state.selectedSha;
-        state.focus = {product_id:f.product_id, aisle:f.aisle};
+        state.focus = {product_id:f.product_id, aisle:f.aisle, pageKey:f.page_key};
         if (dest !== state.selectedSha) selectVersion(dest);
         else navigateToFlag();
       });
@@ -218,11 +259,18 @@
   }
   function navigateToFlag() {
     if (!state.focus || !state.ready) return;
-    const {product_id,aisle} = state.focus;
-    state.focus = null;
-    if (!state.stockedShelves.includes(aisle)) { setNotice('This flagged aisle is unavailable in the selected version.'); return; }
-    changeAisle(aisle);
-    send('focus-product',{product_id,aisle});
+    const {product_id,aisle,pageKey} = state.focus;
+    const key = typeof pageKey==='string' && /^studio:([a-f0-9-]+)\/page\/(\d+)\/slot\/(\d+)$/i.exec(pageKey);
+    const r=key && state.authoredRows.get(key[1]);
+    if(key ? (!r || !hasAuthored(state.hosted.get(state.selectedSha)||state.local.get(state.selectedSha)) ||
+        r.product_ids[(Number(key[2])-1)*12+Number(key[3])-1]!==product_id) : !state.stockedShelves.includes(aisle)){
+      state.focus=null;setNotice('This flagged aisle is unavailable in the selected version.');return;
+    }
+    const target=r?'studio:'+r.aisle_id:aisle;
+    if(state.authoredId!==(r?.aisle_id??null)){changeAisle(target);return;}
+    state.focus=null;
+    if(!r && state.aisle!==aisle)changeAisle(aisle);
+    send('focus-product',{product_id,aisle:r?target:aisle});
   }
   async function connectOwner(interactive) {
     if (!state.storeReady || state.authPending) return;
@@ -256,7 +304,7 @@
     state.selected = null;
     ++state.selectionSequence;
     el('repair-note').value = '';
-    el('product-detail').replaceChildren(make('p', state.editing ? 'Select a product in the preview to adjust its size or flag it for repair.' : 'Shopping mode opens the normal product details in the preview.'));
+    el('product-detail').replaceChildren(make('p', state.editing ? 'Select a product to edit its details, adjust its image size or flag a repair.' : 'Shopping mode opens the normal product details in the preview.'));
     updateControls();
   }
   function selectVersion(digest) {
@@ -286,7 +334,8 @@
       message('frame-status','Starting the compiled Flutter preview…');
       const src = new URL(build.url);
       src.searchParams.set('store',store);
-      src.searchParams.set('aisle',state.aisle);
+      if(state.authoredId)src.searchParams.set('authored',state.authoredId);
+      else src.searchParams.set('aisle',state.aisle);
       frame.addEventListener('load',() => {
         if (state.frameSequence === serial)
           frame.contentWindow.postMessage({channel,type:'hello'},build.url.origin);
@@ -297,7 +346,7 @@
           message('frame-status','The compiled preview has not connected. Reload this version to retry.');
       }, 25000);
     } else {
-      const text = !supported && state.catalogReady ?
+      const text = state.authoredId && !hasAuthored(build) ? 'This Dart version does not support published aisles. Select a compatible compiled version or return to the store entrance.' : !supported && state.catalogReady ?
         (state.stockedShelves.length ? 'This aisle is unavailable in the selected version. Choose another aisle or return to the store entrance.' : 'This store has no stocked aisles available in the selected version.') :
         v ? 'This Dart version needs a compiled preview.' : 'A verified Flutter preview is unavailable.';
       message('frame-status',text);
@@ -306,16 +355,16 @@
     updateControls();
   }
   function changeAisle(aisle) {
-    if (!state.stockedShelves.includes(aisle)) return;
-    state.aisle = aisle;
-    el('department').value = aisle;
-    const route = new URL(location.href);
-    route.searchParams.set('store',store);
-    route.searchParams.set('aisle',aisle);
-    try { history.replaceState(null,'',route); } catch (_) {}
+    const authored=aisle.startsWith('studio:') ? state.authoredRows.get(aisle.slice(7)) : null;
+    if(authored ? authored.stock_mode!=='custom' : !state.stockedShelves.includes(aisle))return;
+    const oldAuthored=state.authoredId;
+    state.authoredId=authored?.aisle_id??null;
+    state.aisle=authored?.title??aisle;
+    el('department').value=aisle;
+    writeAisleRoute();
     clearSelection();
-    if (!state.previewURL && state.selectedSha) selectVersion(state.selectedSha);
-    else send('set-aisle',{aisle});
+    if ((oldAuthored!==state.authoredId || !state.previewURL) && state.selectedSha)selectVersion(state.selectedSha);
+    else if(!state.authoredId)send('set-aisle',{aisle});
   }
   function currentScale() {
     const p = state.selected;
@@ -366,10 +415,30 @@
   function showProduct(p) {
     const box = el('product-detail');
     box.replaceChildren(make('h3',p.name),make('p',[p.size, p.price !== null ? new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(p.price) : 'Price unavailable'].filter(Boolean).join(' · ')));
-    const detail = make('small',[p.render != null ? 'Shelf ' + p.render : p.aisle, p.slot != null ? 'Spot ' + p.slot : '', 'SKU ' + p.id].filter(Boolean).join(' · '));
+    const detail = make('small',[p.authoredId ? p.aisle+' · Shelf '+p.page : p.render != null ? 'Shelf ' + p.render : p.aisle, p.slot != null ? 'Spot ' + p.slot : '', 'SKU ' + p.id].filter(Boolean).join(' · '));
     box.append(detail);
+    if(!p.verified || !state.editing || state.readOnly)return;
+    const savedAisle=state.aisle, savedSha=state.selectedSha;
+    const dynamicAisle=!state.authoredId && state.mode==='grocery';
+    box.append(window.StudioProductDetails.button({
+      storeId:store,productId:p.id,
+      aisles:dynamicAisle ? state.catalog.filter(name=>!(state.breadAlias && name==='Bread & Rolls')) : [],
+      current:()=>state.selected?.id===p.id && state.editing && state.ready && !state.readOnly && state.selectedSha===savedSha,
+      surface:dynamicAisle?'The shopper aisle uses this catalog category. The app reads the product name, description, base price and primary photo from the catalog.':
+        'The app can read updated catalog details and base prices. Stock already painted into a shelf or floor photograph must be updated in that display’s artwork.',
+      async onSaved(row,patch){
+        if(state.selectedSha!==savedSha || state.aisle!==savedAisle)return;
+        state.productNames.set(row.id,row.name);
+        if(Object.hasOwn(patch,'category'))await loadAisles();
+        selectVersion(savedSha);
+      }
+    }));
   }
   async function matchesShelf(product, spot) {
+    if(state.authoredId!==null){
+      const r=authoredRow();
+      return Boolean(r && spot.authoredId===r.aisle_id && r.product_ids[(spot.page-1)*12+spot.slot-1]===product.id);
+    }
     if (product.category === spot.aisle) return true;
     if (state.mode !== 'target')
       return state.breadAlias && spot.aisle === 'Bread & Rolls' && product.category === 'Bakery' && product.shelf_group === 'Bread & Rolls';
@@ -386,12 +455,17 @@
   async function selectProduct(data) {
     if (!state.editing || state.readOnly || data.store_id !== store || data.aisle !== state.aisle || !idPattern.test(data.product_id || '')) return;
     const id = data.product_id.toLowerCase();
+    if(state.authoredId!==null){
+      const r=authoredRow();
+      if(!r || data.aisle_id!==r.aisle_id || !Number.isInteger(data.page)||data.page<1 ||
+          !Number.isInteger(data.slot)||data.slot<1||data.slot>12||r.product_ids[(data.page-1)*12+data.slot-1]!==id) return;
+    } else if(data.aisle_id) return;
     const min = Math.ceil(100 * Math.max(0.1, number(data.min_scale) ? data.min_scale : 0.5) - 0.000001) / 100;
     const max = Math.floor(100 * Math.min(4, number(data.max_scale) ? data.max_scale : 1.5) + 0.000001) / 100;
     if (min > max) return;
     const previous = state.selected;
     // The widget echoes the selected SKU when its preview scale changes.
-    if (previous?.id === id && previous.verified && previous.render === (data.render_no ?? null) && previous.slot === (data.slot ?? null)) {
+    if (previous?.id === id && previous.verified && previous.authoredId===state.authoredId && previous.page===(data.page??null) && previous.render === (data.render_no ?? null) && previous.slot === (data.slot ?? null)) {
       previous.min = min;
       previous.max = max;
       previous.scalable = data.editable !== false;
@@ -399,7 +473,7 @@
       return;
     }
     const seq = ++state.selectionSequence;
-    const p = {id,aisle:state.aisle,name:String(data.name || 'Selected product').slice(0,220),
+    const p = {id,aisle:state.aisle,authoredId:state.authoredId,page:data.page??null,name:String(data.name || 'Selected product').slice(0,220),
       size:String(data.size || '').slice(0,100),price:null,render:Number.isInteger(data.render_no) ? data.render_no:null,
       slot:Number.isInteger(data.slot) ? data.slot:null,min,max,initial:number(data.scale) ? data.scale:1,
       scalable:data.editable !== false,verified:false,status:'Checking the store product…'};
@@ -459,7 +533,7 @@
     updateControls();
     try {
       const f = row(await rpc('studio_flag_grocery_product', {p_store_id:store,p_product_id:p.id,p_aisle:p.aisle,p_version:version,
-        p_page_key:p.render != null ? 'r' + p.render + (p.slot != null ? '/slot/' + p.slot : '') : null,p_note:note}));
+        p_page_key:p.authoredId ? 'studio:'+p.authoredId+'/page/'+p.page+'/slot/'+p.slot : p.render != null ? 'r' + p.render + (p.slot != null ? '/slot/' + p.slot : '') : null,p_note:note}));
       if (!f || !f.id || f.store_id !== store || f.product_id !== p.id || f.aisle !== p.aisle) throw Error('The store did not confirm this repair flag.');
       if (state.notes.get(p.id)?.trim() === note) {
         state.notes.delete(p.id);
@@ -516,7 +590,7 @@
       const url = new URL(result.url);
       const expected = new URL('/preview/' + sha + '/index.html',privateOrigin);
       if (result.sha256 !== sha || url.href !== expected.href) throw Error('The private compiler returned a different source or preview location.');
-      state.local.set(sha,{url,readOnly:!!result.readOnly,aisleRouting:result.aisleRouting || null});
+      state.local.set(sha,{url,capabilities:Array.isArray(result.capabilities)?result.capabilities:[],readOnly:!!result.readOnly,aisleRouting:result.aisleRouting || null});
       if (serial === state.versionSequence) {
         selectVersion(sha);
         setNotice(result.readOnly ? 'Private build ready in shopping mode. This source has no product editing bridge.' : 'Private compiled preview ready.');
@@ -547,11 +621,15 @@
         return;
       }
       if (state.ready) return;
+      if(state.authoredId && (!Array.isArray(data.capabilities)||!data.capabilities.includes(authoredFeature))){
+        clearTimeout(state.frameTimer);el('editor-frame').hidden=true;el('frame-status').hidden=false;
+        message('frame-status','The compiled preview did not confirm published aisle support.');return;
+      }
       clearTimeout(state.frameTimer);
       state.ready = true;
       if (state.readOnly) state.editing = false;
       el('frame-status').hidden = true;
-      send('set-aisle',{aisle:state.aisle});
+      if(!state.authoredId)send('set-aisle',{aisle:state.aisle});
       send('set-mode',{mode:state.editing ? 'select':'shop'});
       send('sync',{scales:scaleMap()});
       updateControls();
@@ -587,7 +665,7 @@
     try {
       const stores = await window.StudioWorkspaceCore.loadAppStores({force:true});
       if (!stores.some(row => row.id === store)) { location.reload(); return; }
-      await Promise.all([loadManifest(),loadAisles()]);
+      await Promise.all([loadManifest(),loadAisles(),loadPublishedAisles()]);
       await loadVersions();
       selectVersion(state.versions.has(sha) ? sha : state.defaultSha);
     }
@@ -602,6 +680,7 @@
   updateControls();
   const openStore = async () => {
     if (!idPattern.test(store)) { message('frame-status','This store link contains an invalid store ID.'); return; }
+    if(requestedAuthored!==null&&!idPattern.test(requestedAuthored))throw Error('Invalid published aisle link.');
     const core = window.StudioWorkspaceCore;
     if (!core?.appStoreById || !core.groceryModeForStore) throw Error('The store directory could not load.');
     const info = await core.appStoreById(store);
@@ -617,8 +696,10 @@
     message('preview-heading',info.name + ' aisle');
     el('store-back').href = 'grocery-entrance.html?store=' + encodeURIComponent(store);
     message('store-back','‹ ' + info.name + ' entrance');
-    await Promise.all([loadManifest(),loadAisles()]);
-    selectVersion(state.defaultSha);
+    await Promise.all([loadManifest(),loadAisles(),loadPublishedAisles()]);
+    const compatible=state.authoredId&&!hasAuthored(state.hosted.get(state.defaultSha))?
+      [...state.hosted.values()].find(hasAuthored):null;
+    selectVersion(compatible?.sha256??state.defaultSha);
     loadScales().catch(() => {}); // Each selection also requires a fresh store-scoped read.
     connectOwner(false);
   };

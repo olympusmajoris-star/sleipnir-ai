@@ -28,6 +28,8 @@
     const folder = key === 'valhalla' ? 'native-valhalla' : 'native-commerce-preview';
     const manifestURL = new URL(folder + '/release.json',location.href);
     const shopperManifest = new URL('native-shopper-preview/release.json',location.href);
+    const previousShopperManifest=new URL('native-shopper-preview-v1/release.json',location.href);
+    const previousStudioManifest=new URL('native-commerce-preview-v1/release.json',location.href);
     const releaseURL = new URL(config.releaseURL,location.href);
     const currentDigest = config.expectedArtifactSHA256 || '';
     const storageKey = 'studio-selected-native-dart-v1/' + config.storeId + '/' + key;
@@ -54,16 +56,16 @@
       retry.hidden=state!=='error';
       config.onState?.({status:state,sourceSha256:digest,artifactSha256:artifact,previewURL});
     }
-    async function readRelease(complete,shopper=false) {
+    async function readRelease(complete,shopper=false,previous=null) {
       if(releaseURL.href!==manifestURL.href) throw Error('The source record is outside this display’s release.');
-      const url=shopper?shopperManifest:manifestURL;
+      const url=previous||(shopper?shopperManifest:manifestURL);
       const res=await fetch(url,{cache:'no-store',credentials:'omit'});
-      if(shopper && res.status===404) return null;
+      if((shopper||previous) && res.status===404) return null;
       if(!res.ok) throw Error('The source record is unavailable.');
       const release=await res.json();
       const original=release.sources?.[key],artifact=release.artifactSHA256;
       if(!hash.test(original || '') || !hash.test(artifact || '')) throw Error('This widget has no complete source and build record.');
-      if(!shopper && currentDigest && currentDigest!==artifact) throw Error('The published build changed. Reload the store before comparing this file.');
+      if(!shopper && !previous && currentDigest && currentDigest!==artifact) throw Error('The published build changed. Reload the store before comparing this file.');
       const accepted=[original];
       if(!shopper && key!=='valhalla' && hash.test(release.studioSources?.[key] || '')) accepted.push(release.studioSources[key]);
       if(!shopper && key==='valhalla' && hash.test(release.studioSourceSHA256 || '')) accepted.push(release.studioSourceSHA256);
@@ -71,7 +73,7 @@
         const js=await fetch(new URL('main.dart.js',url),{cache:'no-store',credentials:'omit'});
         if(!js.ok || await sha256(await js.arrayBuffer())!==artifact) throw Error('The compiled display does not match its published build record.');
       }
-      return {original,accepted,artifact};
+      return {original,accepted,artifact,url};
     }
     async function verify(choice,serial,recheckPublished=false) {
       try {
@@ -82,19 +84,25 @@
           return;
         }
         const shopper = !release.accepted.includes(choice.sha) && key!=='valhalla';
-        const candidate = shopper ? await readRelease(false,true) : release;
+        let candidate = shopper ? await readRelease(false,true) : release, previous=null;
+        if(shopper && !candidate?.accepted.includes(choice.sha)){
+          for(const saved of [previousShopperManifest,previousStudioManifest]){
+            const historical=await readRelease(false,saved===previousShopperManifest,saved);
+            if(historical?.accepted.includes(choice.sha)){candidate=historical;previous=saved;break;}
+          }
+        }
         if(disposed || serial!==sequence) return;
         if(!candidate?.accepted.includes(choice.sha)) {
           notify('unbuilt',choice.filename+' has no matching compiled build for '+widgetName+'.',choice.sha);
           return;
         }
-        const checked=await readRelease(true,shopper);
+        const checked=await readRelease(true,previous?previous===previousShopperManifest:shopper,previous);
         if(disposed || serial!==sequence) return;
         if(!checked?.accepted.includes(choice.sha) || checked.artifact!==candidate.artifact) throw Error('The published source changed during verification.');
         if(shopper) {
-          const preview=new URL('index.html',shopperManifest);
+          const preview=new URL('index.html',candidate.url);
           preview.searchParams.set('store',config.storeId);
-          notify('shopper',choice.filename+' matches the compiled shopper widget. Browse this store or return to Studio to edit products.',
+          notify('shopper',choice.filename+(previous?' matches the archived compiled widget. Browse this version or return to the current Studio.':' matches the compiled shopper widget. Browse this store or return to Studio to edit products.'),
             choice.sha,checked.artifact,preview.href);
         } else {
           notify('verified',choice.filename+' matches the compiled '+widgetName+' display.',choice.sha,checked.artifact);

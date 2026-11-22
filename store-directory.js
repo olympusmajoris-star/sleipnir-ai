@@ -19,12 +19,14 @@
     if(core.groceryModeForStore(s))return 'grocery';
     return s.menu_type||'retail';
   }
+  const menus=new Set(['fast_food','drive_thru','fast_casual','sit_down','restaurant','valhalla']);
   function searchText(v){return String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
   function make(tag,cls,value){
     const e=document.createElement(tag);if(cls)e.className=cls;if(value!=null)e.textContent=value;return e;
   }
   function storeCard(s){
     const a=make('a','store');a.href=core.storeEditorForStore(s);
+    if(kind.value==='menus'){const href=new URL(a.href);href.searchParams.set('tab','menu');a.href=href.href;}
     const mark=make('span','mark',String(s.name||'Store').trim().slice(0,1).toUpperCase());
     mark.setAttribute('aria-hidden','true');
     try{
@@ -52,7 +54,7 @@
   function repaint(){
     if(!loaded)return;
     const words=searchText(q.value).trim().split(/\s+/).filter(Boolean);
-    selected=stores.filter(s=>(!kind.value||category(s)===kind.value)&&words.every(w=>s.search.includes(w)));
+    selected=stores.filter(s=>(!kind.value||(kind.value==='menus'?menus.has(category(s)):category(s)===kind.value))&&words.every(w=>s.search.includes(w)));
     cards.replaceChildren();drawn=0;append();
     status.textContent=selected.length ? selected.length.toLocaleString()+(selected.length===1?' location':' locations') :
       'No matching stores. Try another name or city.';
@@ -64,7 +66,7 @@
       if(me!==ticket)return;
       stores=out.map(s=>({...s,search:searchText([s.name,s.address,s.category].filter(Boolean).join(' '))}));
       stores.sort((a,b)=>Number(b.product_count>0)-Number(a.product_count>0)||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
-      const kinds=new Set(stores.map(category));
+      const kinds=new Set(stores.map(category));if([...kinds].some(k=>menus.has(k)))kinds.add('menus');
       for(const o of kind.options){if(o.value)o.hidden=!kinds.has(o.value);}
       if(kind.value&&!kinds.has(kind.value))kind.value='';
       loaded=true;repaint();

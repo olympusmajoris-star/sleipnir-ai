@@ -7,10 +7,10 @@
   },
   "studioSources": {
     "retail": "81cfbbead7994969ff3bdaea6bef9b6a15c35168099002187573d3ac26ae8aa8",
-    "fast_food": "b21163cd5b9fd763294bac60006ea1f3c9f2f6ded1ec0cdc8f23f05d6f26138d",
-    "fast_casual": "3dacd19e07b259a0aae43c357598acfc359ce730ee8277baaf59fa57b86f7974",
-    "sit_down": "7829eefdfb76c16f8422f45596b7ca33ad73e33fb08f670d5c368a5315f359a0"
+    "fast_food": "b283951572a8d98aa080a6baceaa277c393648593a8da1a739d83b5a2ce1ad66",
+    "fast_casual": "f2699b496848ce13700552fae214fdb269dff8cb893e3e58d56f7b7598471a79",
+    "sit_down": "bcc15cf145acd428fc64d7db00daf1e688fda66fb0de8ec692750029d11fb921"
   },
-  "artifactSHA256": "900996d1bedd10ca6f8d46a4a6ae2adca3b6a49196bed4ca8d3677b4b40b1efa",
-  "bootstrapSHA256": "dafdee87f212934fc7fcc7311b1c3e48caf03f8f8cf2a2e8f3efa7b7b55c2960"
+  "artifactSHA256": "582f6025f4cf20c0f503ebd97bca5efee23de0254564b8bdf1ce6e390273f8fc",
+  "bootstrapSHA256": "407d38d173d24b1508f0a77ca6102572d75f1f51d227f98026810fe078b0f40a"
 }

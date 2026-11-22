@@ -1,0 +1,47 @@
+{
+  "sourceSha256": "f846b1e7c0a71d63849e796527d5a89700fe326988985f277b9c3c11af43b3c4",
+  "artifactSha256": "9a6ccb4079d2cd7eb6855ef478fc79bca5d98e001d6a317922aeeeeb86c5bb05",
+  "path": "f846b1e7c0a71d63849e796527d5a89700fe326988985f277b9c3c11af43b3c4/index.html",
+  "buildSignature": "f004f1dfc86c9f3700b53a528f27f1f31e38259bdcfda7f2afb5689d82673538",
+  "buildFlavor": "widget-with-studio-scope",
+  "filename": "GroceryAisle_AllStores_Studio.dart",
+  "aisleRouting": {
+    "standard": [
+      "Snacks",
+      "Beverages",
+      "Breakfast",
+      "Canned Goods & Soups",
+      "Dry Goods & Pasta",
+      "Condiments & Sauces",
+      "Personal Care",
+      "Health Care",
+      "Household",
+      "Baby",
+      "Pet Care",
+      "Bread & Rolls"
+    ],
+    "targetStoreId": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+    "dynamicStoreIds": [
+      "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+      "e5a01340-424a-4a41-b0e6-99cb9e944733",
+      "0600cb61-45f9-402b-a209-134abdaef10f"
+    ],
+    "otherStores": "catalog",
+    "dollarGeneralByName": true,
+    "editableStoreIds": null,
+    "studioStoreIds": [
+      "03dbd8fa-ed64-4236-85be-206c952da024",
+      "189581c9-d728-4e5d-9e02-ae4de19a15af",
+      "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+      "e5a01340-424a-4a41-b0e6-99cb9e944733"
+    ]
+  },
+  "capabilities": [
+    "select",
+    "scale",
+    "set-aisle",
+    "move",
+    "search",
+    "focus-product"
+  ]
+}

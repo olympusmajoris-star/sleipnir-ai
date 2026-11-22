@@ -110,3 +110,15 @@ test('the full directory bounds candidate batches and retries a timed-out batch 
  assert.deepEqual(Array.from(managed,row=>row.id),ids);
  assert.deepEqual(calls.map(c=>c.length).sort((a,b)=>a-b),[6,16,16,32,32]);
 });
+test('published aisle appearances update the exact original door and authored UUIDs survive duplicate display names',()=>{
+ const {mergeAuthoredDoors,doorKey,authoredImage}=require('../grocery-entrance.js');
+ const original=[{label:'Produce',art:'produce.png',kind:'Aisles'}];
+ const authored={aisle_id:street,store_id:PUBLIX,title:'Market produce',published_revision:2,source_aisle:'Produce',stock_mode:'native',appearance:{board_title:'Fresh today'}};
+ const extra={...authored,aisle_id:empty,title:'Produce',source_aisle:null,stock_mode:'custom'};
+ const doors=mergeAuthoredDoors(original,[authored,extra,{...extra,store_id:TARGET}],PUBLIX);
+ assert.equal(doors.length,2);assert.equal(doors[0].art,'produce.png');assert.equal(doors[0].authored.appearance.board_title,'Fresh today');
+ assert.deepEqual(doors.map(doorKey),['Produce','studio:'+empty]);assert.equal(original[0].authored,undefined);
+ assert.ok(authoredImage(source+'/storage/v1/object/public/menu-images/entrance/review.png',source));
+ assert.equal(authoredImage('https://example.com/entrance.png',source),'');
+ assert.equal(authoredImage(source+'/storage/v1/object/public/menu-images/bad%2Fpath.png',source),'');
+});

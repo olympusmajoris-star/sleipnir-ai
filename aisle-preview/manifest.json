@@ -1,8 +1,105 @@
 {
   "version": 1,
-  "default": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee",
-  "defaultSourceSha256": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee",
+  "default": "fce6c712ff6dfbe638f7ca321fc0f63030b3d43c36e36a871b1686508dc2cde6",
+  "defaultSourceSha256": "fce6c712ff6dfbe638f7ca321fc0f63030b3d43c36e36a871b1686508dc2cde6",
   "versions": {
+    "fce6c712ff6dfbe638f7ca321fc0f63030b3d43c36e36a871b1686508dc2cde6": {
+      "sourceSha256": "fce6c712ff6dfbe638f7ca321fc0f63030b3d43c36e36a871b1686508dc2cde6",
+      "artifactSha256": "33ce8390143c154240c2a5232b0db11782f0f983585207d7765ed4b24a45afb0",
+      "path": "fce6c712ff6dfbe638f7ca321fc0f63030b3d43c36e36a871b1686508dc2cde6/index.html",
+      "buildSignature": "57fe5d9850abcdf9e2669f29f448d3b129dce456d9cf379d06945931a7dea7aa",
+      "buildFlavor": "widget-with-studio-scope",
+      "filename": "GroceryAisle_Authored_Studio.dart",
+      "aisleRouting": {
+        "standard": [
+          "Snacks",
+          "Beverages",
+          "Breakfast",
+          "Canned Goods & Soups",
+          "Dry Goods & Pasta",
+          "Condiments & Sauces",
+          "Personal Care",
+          "Health Care",
+          "Household",
+          "Baby",
+          "Pet Care",
+          "Bread & Rolls"
+        ],
+        "targetStoreId": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+        "dynamicStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733",
+          "0600cb61-45f9-402b-a209-134abdaef10f"
+        ],
+        "otherStores": "catalog",
+        "dollarGeneralByName": true,
+        "editableStoreIds": null,
+        "studioStoreIds": [
+          "03dbd8fa-ed64-4236-85be-206c952da024",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af",
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733"
+        ]
+      },
+      "capabilities": [
+        "select",
+        "scale",
+        "set-aisle",
+        "move",
+        "search",
+        "focus-product",
+        "preview-authored-aisle"
+      ],
+      "default": true
+    },
+    "f846b1e7c0a71d63849e796527d5a89700fe326988985f277b9c3c11af43b3c4": {
+      "sourceSha256": "f846b1e7c0a71d63849e796527d5a89700fe326988985f277b9c3c11af43b3c4",
+      "artifactSha256": "9a6ccb4079d2cd7eb6855ef478fc79bca5d98e001d6a317922aeeeeb86c5bb05",
+      "path": "f846b1e7c0a71d63849e796527d5a89700fe326988985f277b9c3c11af43b3c4/index.html",
+      "buildSignature": "f004f1dfc86c9f3700b53a528f27f1f31e38259bdcfda7f2afb5689d82673538",
+      "buildFlavor": "widget-with-studio-scope",
+      "filename": "GroceryAisle_AllStores_Studio.dart",
+      "aisleRouting": {
+        "standard": [
+          "Snacks",
+          "Beverages",
+          "Breakfast",
+          "Canned Goods & Soups",
+          "Dry Goods & Pasta",
+          "Condiments & Sauces",
+          "Personal Care",
+          "Health Care",
+          "Household",
+          "Baby",
+          "Pet Care",
+          "Bread & Rolls"
+        ],
+        "targetStoreId": "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+        "dynamicStoreIds": [
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733",
+          "0600cb61-45f9-402b-a209-134abdaef10f"
+        ],
+        "otherStores": "catalog",
+        "dollarGeneralByName": true,
+        "editableStoreIds": null,
+        "studioStoreIds": [
+          "03dbd8fa-ed64-4236-85be-206c952da024",
+          "189581c9-d728-4e5d-9e02-ae4de19a15af",
+          "35ef70d0-3d20-4599-96a3-648ee3c7c340",
+          "e5a01340-424a-4a41-b0e6-99cb9e944733"
+        ]
+      },
+      "capabilities": [
+        "select",
+        "scale",
+        "set-aisle",
+        "move",
+        "search",
+        "focus-product"
+      ],
+      "default": false
+    },
     "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee": {
       "sourceSha256": "9dbf905bbcfceeb6a1b6e5fa5a86c94beb8bc057659b7f73706e57a1d4fbc8ee",
       "artifactSha256": "f6d7ce3b43691ee7052f82c34da8c04346dd045490003a4a54d74578ad74dd1e",
@@ -49,7 +146,7 @@
         "search",
         "focus-product"
       ],
-      "default": true
+      "default": false
     },
     "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657": {
       "sourceSha256": "aab270bacdfeb675495505795727f425707cc6989df05b5c4198795755f96657",
