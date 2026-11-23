@@ -203,6 +203,64 @@
       if(host.dispatchEvent(event))render(host,current.config);
     });
   }
+  // Shelf tags carry a two-word label. The full name, size and price open in a pop-up.
+  const sizeWord=/^\d+(?:\.\d+)?(?:ct|oz|pk|lbs?|g|kg|ml|l|fl|gal|pc|pcs|count)?$/i;
+  function shortName(p) {
+    const clean=s=>String(s||'').replace(/[™®]/g,'').split(/\s+/)
+      .filter(w=>w && !/^[&+\-–—:,|/]+$/.test(w) && !sizeWord.test(w) && !/^(the|a|an)$/i.test(w))
+      .map(w=>w.replace(/[,:;]+$/,''));
+    const words=clean(String(p.name||'').split(' - ')[0]);
+    return (words.length ? words : clean(p.name)).slice(0,2).join(' ');
+  }
+  function closeDetail(host) {
+    host.querySelector(':scope > .sl-detail')?.remove();
+    delete host.dataset.detailId;
+  }
+  function openDetail(host,id) {
+    const record=surfaces.get(host), slot=record?.model.slots.find(s=>s.id===id);
+    if(!slot) {closeDetail(host);return;}
+    closeDetail(host);
+    const p=slot.item, layer=element('div','sl-detail'), card=element('div','sl-detail-card');
+    layer.setAttribute('role','dialog');layer.setAttribute('aria-label',p.name||'Product details');
+    const close=element('button','sl-detail-close');close.type='button';close.textContent='×';close.setAttribute('aria-label','Close');
+    const pic=element('div','sl-detail-photo');
+    const atlas=imageURL(p.atlas), key=photoKey(p), photo=imageURL(key), info=photoMetrics.get(key);
+    if(atlas && Array.isArray(p.source) && p.source[2]>0 && p.source[3]>0) {
+      const face=element('span','sl-detail-crop');face.style.aspectRatio=String(p.source[2]/p.source[3]);
+      photoCrop(face,atlas,p.source,p.atlasWidth||1152,p.atlasHeight||1536);pic.append(face);
+    } else if(photo && info?.crop) {
+      const face=element('span','sl-detail-crop');face.style.aspectRatio=String(info.crop[2]/info.crop[3]);
+      photoCrop(face,photo,info.crop,info.w,info.h);pic.append(face);
+    } else if(photo) {
+      const img=element('img','sl-detail-img');img.alt='';img.draggable=false;img.src=photo;pic.append(img);
+    }
+    const name=element('div','sl-detail-name');name.textContent=p.name||'';
+    const meta=element('div','sl-detail-meta');meta.textContent=[p.size,p.group].filter(Boolean).join(' · ');
+    const n=p.price==null || p.price==='' ? NaN : Number(p.price);
+    const price=element('div','sl-detail-price');price.textContent=Number.isFinite(n)?currency.format(n):'';
+    card.append(close,pic,name,meta,price);layer.append(card);host.append(layer);
+    host.dataset.detailId=id;
+  }
+  const detailHosts=new WeakSet();
+  function bindDetail(host) {
+    if(detailHosts.has(host))return;
+    detailHosts.add(host);
+    host.addEventListener('pointerdown',e=>{if(e.target.closest?.('.sl-detail'))e.stopPropagation();},true);
+    host.addEventListener('click',e=>{
+      const layer=e.target.closest?.('.sl-detail');
+      if(layer) {
+        e.stopPropagation();
+        if(e.target===layer || e.target.closest('.sl-detail-close'))closeDetail(host);
+        return;
+      }
+      const tag=e.target.closest?.('.sl-label'), face=e.target.closest?.('.sl-faces');
+      // While organizing, a product click selects it for editing; its tag opens the details.
+      const shopping=host.closest('.shelf-shopping') || !host.closest('#layout-workspace');
+      const target=tag || (shopping ? face : null);
+      if(target?.dataset.productId)openDetail(host,target.dataset.productId);
+    });
+    host.addEventListener('keydown',e=>{if(e.key==='Escape' && host.dataset.detailId)closeDetail(host);});
+  }
   function render(host,config) {
     const m=layout(config);
     const active = config.selected instanceof Set ? config.selected : new Set(config.selected || []);
@@ -274,19 +332,22 @@
       tag.type='button';tag.tabIndex=-1;tag.dataset.productId=p.id;
       styleRect(tag,(slot.tag.left-c.left)/c.width,(slot.tag.top-c.top)/c.height,slot.tag.width/c.width,slot.tag.height/c.height);
       const name=element('span','sl-tag-name'), price=element('b','sl-tag-price');
-      name.textContent=[p.name,p.size].filter(Boolean).join(' · ');
+      name.textContent=shortName(p);
       const n=p.price==null || p.price==='' ? NaN : Number(p.price);
       price.textContent=Number.isFinite(n)?currency.format(n):'';
       // Keep the whole price readable on narrow holders, including long amounts.
       tag.style.setProperty('--price-width-units',price.textContent.length+2.5);
-      tag.title=[name.textContent,price.textContent].filter(Boolean).join(', ');
+      tag.title=[[p.name,p.size].filter(Boolean).join(' · '),price.textContent].filter(Boolean).join(', ');
       tag.setAttribute('aria-label',tag.title);
       tag.append(name,price);cell.append(faces,tag);fragment.append(cell);
     }
+    const openId=host.dataset.detailId;
     host.replaceChildren(fragment);
+    bindDetail(host);
+    if(openId)openDetail(host,openId);
     return m;
   }
-  const api={render,layout,stockHeight};
+  const api={render,layout,stockHeight,shortName};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.ShelfLayoutCanvas=api;
 })(typeof window==='undefined'?globalThis:window);
