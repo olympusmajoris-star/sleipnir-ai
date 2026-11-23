@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<base href="./">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sleipnir app page preview</title>
+<style>
+html,body{margin:0;height:100%;background:#0b0e12;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#phone{position:relative;width:402px;height:874px;border-radius:52px;overflow:hidden;background:#11151c;box-shadow:0 0 0 9px #16191e,0 0 0 11px #3a3f47,0 30px 80px rgba(0,0,0,.6)}
+#boot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b8c0cb;font-size:14px}
+#note{position:fixed;left:0;right:0;bottom:6px;text-align:center;color:#6f7884;font-size:11px;pointer-events:none}
+@media (max-width:520px){#phone{width:100vw!important;height:100vh!important;border-radius:0;box-shadow:none}#note{display:none}}
+</style>
+</head>
+<body>
+<div id="stage"><div id="phone"><div id="boot">Opening the page…</div></div></div>
+<div id="note">Studio preview · test accounts · nothing is saved</div>
+<script>
+(function(){
+  var p=document.getElementById('phone');
+  function fit(){
+    if(innerWidth<=520)return;
+    var h=Math.min(874,innerHeight-44), w=Math.round(h*402/874);
+    if(w>innerWidth-44){w=innerWidth-44;h=Math.round(w*874/402);}
+    p.style.width=w+'px';p.style.height=h+'px';
+  }
+  addEventListener('resize',fit);fit();
+})();
+</script>
+<script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+name: sleipnir_app_pages
+description: Studio preview of the real Sleipnir app pages, running on test data.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase: ^2.7.0
+  http: ^1.2.2
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+  image_picker: ^1.1.2
+
+flutter:
+  uses-material-design: true
