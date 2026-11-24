@@ -7,6 +7,22 @@ const vm = require('node:vm');
 const Model = require('../asgard-post-model.js');
 const root = path.join(__dirname, '..');
 
+test('symbol controls are optional on existing layouts and imported settings stay bounded', () => {
+  for (const preset of Model.PRESETS) {
+    for (const piece of Model.createDocument(preset.id).elements) {
+      assert.equal(piece.symbolSource, 'none'); assert.equal(piece.symbolId, '');
+    }
+  }
+  const symbol = Model.createElement('symbol', { symbolSource: 'library', symbolId: 'ph:share-network', symbolWeight: 'duotone', symbolFinish: 'hologram', symbolSize: 1e9, symbolScaleX: 0, symbolScaleY: Infinity, symbolOpacity: -1, symbolGlow: 99, symbolColor: 'url(javascript:alert(1))', symbolSrc: 'javascript:alert(1)' });
+  assert.equal(symbol.type, 'symbol'); assert.equal(symbol.action, 'none'); assert.equal(symbol.text, '');
+  assert.equal(symbol.symbolId, 'ph:share-network'); assert.equal(symbol.symbolWeight, 'duotone');
+  assert.equal(symbol.symbolFinish, 'hologram'); assert.equal(symbol.symbolPlacement, 'only');
+  assert.equal(symbol.symbolSize, 240); assert.equal(symbol.symbolScaleX, .25); assert.equal(symbol.symbolScaleY, 1);
+  assert.equal(symbol.symbolOpacity, 0); assert.equal(symbol.symbolGlow, 40);
+  assert.equal(symbol.symbolColor, '#d9effa'); assert.equal(symbol.symbolSrc, '');
+  for (const id of ['ph:../../script', 'javascript:alert(1)', '<svg>', 'ph:bookmark\"']) assert.equal(Model.createElement('symbol', { symbolId: id }).symbolId, '');
+});
+
 test('blank is genuinely empty while every starting layout preserves Keep wording', () => {
   assert.deepEqual(Model.createDocument('blank').elements, []);
   for (const { id } of Model.PRESETS) {

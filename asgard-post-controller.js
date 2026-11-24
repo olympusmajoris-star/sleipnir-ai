@@ -39,7 +39,7 @@ function createController(options) {
   }
   function hasTemporaryMedia(doc) {
     return /^blob:/.test(doc.page.backgroundImage || '') || /^blob:/.test(doc.page.previewBackdrop || '') ||
-      doc.elements.some(e => /^blob:/.test(e.src || '') || /^blob:/.test(e.poster || ''));
+      doc.elements.some(e => /^blob:/.test(e.src || '') || /^blob:/.test(e.poster || '') || /^blob:/.test(e.symbolSrc || ''));
   }
   function persist() {
     clearTimeout(draftTimer);
@@ -85,6 +85,7 @@ function createController(options) {
     if (element.locked && Object.keys(patch).some(k => !['locked', 'visible'].includes(k))) {
       C.setStatus('Unlock this piece before changing it.'); return;
     }
+    if (Object.hasOwn(patch, 'symbolSrc') && M.safeURL(patch.symbolSrc) && !Object.hasOwn(patch, 'symbolSource')) patch = Object.assign({}, patch, { symbolSource: 'custom' });
     const doc = M.clone(C.doc);
     doc.elements[i] = Object.assign({}, element, patch, { id: element.id });
     C.doc = M.normalize(doc); changed('document');
@@ -136,6 +137,26 @@ function createController(options) {
     const frame = (M.FRAMES || []).find(f => f.id === id);
     if (!C.selectedId || !frame) return;
     C.updateElement(C.selectedId, M.clone(frame.values));
+  };
+  function placeSymbol(selection, name, targetId) {
+    const element = C.doc.elements.find(e => e.id === targetId);
+    if (!element || !['button', 'symbol'].includes(element.type)) {
+      if (C.doc.elements.length >= 150) { C.setStatus('Remove a piece before adding another.'); return; }
+      const symbol = M.createElement('symbol', { name, ...selection, x: 24, y: 100 + (C.doc.elements.length % 6) * 24 });
+      C.doc.elements.push(symbol); C.selectedId = symbol.id; changed('structure'); C.checkpoint(); return;
+    }
+    C.updateElement(element.id, selection);
+  }
+  C.chooseSymbol = (id, settings) => {
+    const catalog = options.symbols || G.AsgardSymbols;
+    const item = catalog && catalog.get(id);
+    if (!item) { C.setStatus('That symbol is unavailable. Choose another from the library.'); return; }
+    const selection = { symbolSource: 'library', symbolId: id, ...(settings && settings.weight ? { symbolWeight: settings.weight } : {}) };
+    placeSymbol(selection, item.name + ' symbol', C.selectedId);
+  };
+  C.clearSymbol = () => {
+    const element = C.doc.elements.find(e => e.id === C.selectedId);
+    if (element) C.updateElement(element.id, { symbolSource: 'none', symbolId: '', symbolSrc: '' });
   };
   C.undo = () => {
     if (!C.canUndo) return;
@@ -291,17 +312,22 @@ function createController(options) {
   C.browseAssets = field => {
     field = field || 'src';
     const page = ['backgroundImage', 'previewBackdrop'].includes(field);
-    const id = C.selectedId; if (!page && !id) return;
+    const id = C.selectedId; if (!page && !id && field !== 'symbolSrc') return;
     try { sharedMedia().open({
-      accept: page || field === 'poster' ? 'image/*' : 'image/*,video/*',
+      accept: page || ['poster', 'symbolSrc'].includes(field) ? 'image/*' : 'image/*,video/*',
       onSelect(asset) {
         if (page) {
           if (asset.kind === 'video') { C.setStatus('Choose an image for the page background.'); return; }
           C.updatePage({ [field]: asset.url }); return;
         }
         const patch = { [field]: asset.url };
+        if (field === 'symbolSrc') {
+          if (asset.kind === 'video') { C.setStatus('Choose an image for the symbol artwork.'); return; }
+          if (!M.safeURL(asset.url)) { C.setStatus('Choose artwork with a valid image URL.'); return; }
+          placeSymbol({ symbolSrc: asset.url, symbolSource: 'custom' }, 'Your symbol', id); return;
+        }
         const layer = C.doc.elements.find(e => e.id === id);
-        if (layer && field !== 'poster' && ['image', 'video'].includes(layer.type)) patch.type = asset.kind;
+        if (layer && field === 'src' && ['image', 'video'].includes(layer.type)) patch.type = asset.kind;
         C.updateElement(id, patch);
       },
     }); } catch (e) { C.setStatus(e.message); }
@@ -312,16 +338,17 @@ function createController(options) {
     const id = C.selectedId, layer = C.doc.elements.find(e => e.id === id);
     if (!page && (!layer || layer.locked)) return;
     if (!file || !/^(image|video)\//.test(file.type)) { C.setStatus('Choose an image or video file.'); return; }
-    if ((page || field === 'poster') && !file.type.startsWith('image/')) { C.setStatus('Choose an image for this background or poster.'); return; }
+    if ((page || ['poster', 'symbolSrc'].includes(field)) && !file.type.startsWith('image/')) { C.setStatus('Choose an image for this background, poster, or symbol.'); return; }
     if (file.size > 50 * 1024 * 1024) { C.setStatus('Choose a file below 50 MB, or use a hosted media URL.'); return; }
     const uploadKey = (page ? 'page' : id) + ':' + field;
     const previous = uploads.get(uploadKey);
-    const original = previous ? previous.original : page ? { [field]: C.doc.page[field] } : { [field]: layer[field], type: layer.type };
+    const original = previous ? previous.original : page ? { [field]: C.doc.page[field] } : { [field]: layer[field], type: layer.type, ...(field === 'symbolSrc' ? { symbolSource: layer.symbolSource } : {}) };
     const temporary = URL.createObjectURL(file);
     uploads.set(uploadKey, { id, page, field, temporary, original });
     const update = (value, settings) => page ? C.updatePage(value, settings) : C.updateElement(id, value, settings);
     const currentSource = () => (page ? C.doc.page : C.doc.elements.find(e => e.id === id))?.[field];
     const patch = { [field]: temporary };
+    if (field === 'symbolSrc') patch.symbolSource = 'custom';
     if (!page && field === 'src' && ['image', 'video'].includes(layer.type)) patch.type = file.type.startsWith('video/') ? 'video' : 'image';
     C.pendingUploads++; update(patch, { history: false }); C.setStatus('Previewing your file now. Uploading it for saving…');
     try {

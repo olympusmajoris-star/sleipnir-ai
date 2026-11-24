@@ -54,7 +54,7 @@ function fixture(t, options = {}) {
     calls.push(call);
     return intercept ? intercept(call, () => apply(call)) : apply(call);
   };
-  const C = createController({ model: Model, storage, fetch, config: CONFIG, now: () => Date.parse('2026-11-23T20:00:00.000Z') });
+  const C = createController({ model: Model, storage, fetch, config: CONFIG, symbols: options.symbols, now: () => Date.parse('2026-11-23T20:00:00.000Z') });
   t.after(() => C.dispose());
   return {
     C, storage, calls,
@@ -262,6 +262,7 @@ test('temporary media on either page backplate or backdrop cannot be saved or ex
     ['preview backdrop', doc => { doc.page.previewBackdrop = temporary; }],
     ['element source', doc => { doc.elements.find(e => e.type === 'image').src = temporary; }],
     ['video poster', doc => { doc.elements.find(e => e.type === 'image').poster = temporary; }],
+    ['custom symbol', doc => { doc.elements.find(e => e.type === 'button').symbolSrc = temporary; }],
   ];
   for (const [label, mutate] of cases) {
     C.doc = copy(baseline); mutate(C.doc);
@@ -319,4 +320,80 @@ test('page media pickers update only the requested page field, even with another
   assert.match(C.status, /choose an image/i);
   assert.deepEqual(C.doc.elements, elements);
   assert.equal(C.dirty, true); assert.equal(h.writes.length, 0);
+});
+
+test('choosing and clearing symbols preserves wording, behavior, placement, and style without saving', async t => {
+  const symbols = { get: id => id === 'ph:paper-plane-tilt' ? { id, name: 'Paper plane tilt' } : null };
+  const h = fixture(t, { row: sharedRow(), symbols }), { C } = h;
+  await C.load();
+  const button = C.doc.elements.find(e => e.action === 'share');
+  C.select(button.id);
+  C.updateElement(button.id, { symbolWeight: 'duotone', symbolFinish: 'metal', symbolSize: 23, positionMode: 'fixed', shadowMode: 'silhouette' });
+  const before = copy(C.doc.elements.find(e => e.id === button.id));
+  C.chooseSymbol('ph:paper-plane-tilt');
+  const after = C.doc.elements.find(e => e.id === button.id);
+  assert.deepEqual(after, { ...before, symbolSource: 'library', symbolId: 'ph:paper-plane-tilt' });
+  assert.equal(after.text, 'Pass Along'); assert.equal(after.action, 'share');
+  C.undo(); assert.deepEqual(C.doc.elements.find(e => e.id === button.id), before);
+  C.redo(); C.clearSymbol();
+  assert.deepEqual(C.doc.elements.find(e => e.id === button.id), before);
+  C.updateElement(button.id, { locked: true });
+  C.chooseSymbol('ph:paper-plane-tilt');
+  assert.equal(C.doc.elements.find(e => e.id === button.id).symbolSource, 'none');
+  assert.match(C.status, /unlock/i);
+  assert.equal(h.writes.length, 0);
+});
+
+test('choosing a symbol without a button target adds one complete undoable piece', async t => {
+  const symbols = { get: id => id === 'ph:bookmark' ? { id, name: 'Bookmark' } : null };
+  const h = fixture(t, { row: sharedRow(), symbols }), { C } = h;
+  await C.load();
+  C.select(C.doc.elements.find(e => e.type === 'image').id);
+  const before = copy(C.doc);
+  C.chooseSymbol('ph:bookmark', { weight: 'bold' });
+  assert.equal(C.doc.elements.length, before.elements.length + 1);
+  assert.deepEqual(C.doc.elements.slice(0, -1), before.elements);
+  const symbol = C.doc.elements.at(-1);
+  assert.equal(symbol.type, 'symbol'); assert.equal(symbol.symbolId, 'ph:bookmark');
+  assert.equal(symbol.symbolWeight, 'bold');
+  assert.equal(symbol.action, 'none'); assert.equal(symbol.text, '');
+  assert.equal(C.selectedId, symbol.id);
+  C.undo(); assert.deepEqual(C.doc, before);
+  C.chooseSymbol('ph:missing'); assert.deepEqual(C.doc, before);
+  assert.equal(h.writes.length, 0);
+});
+
+test('custom symbol URLs change only the graphic and survive save/load with symbol settings', async t => {
+  const h = fixture(t, { row: sharedRow() }), { C } = h;
+  await C.load();
+  const button = C.doc.elements.find(e => e.action === 'keep');
+  C.updateElement(button.id, { symbolSrc: 'runes/own-mark.png', symbolPlacement: 'above', symbolWeight: 'bold', symbolScaleX: 1.5, symbolRotation: 15 });
+  const saved = copy(C.doc.elements.find(e => e.id === button.id));
+  assert.equal(saved.symbolSource, 'custom'); assert.equal(saved.type, 'button');
+  assert.equal(saved.text, 'Keep'); assert.equal(saved.action, 'keep');
+  assert.equal(await C.save(), true);
+  C.updateElement(button.id, { symbolSize: 80 });
+  await C.reload();
+  assert.deepEqual(C.doc.elements.find(e => e.id === button.id), saved);
+});
+
+test('opening the shared symbol picker is inert and choosing creates only one undoable symbol', async t => {
+  const originalMedia = globalThis.SharedStudioMedia, opened = [];
+  globalThis.SharedStudioMedia = { create: () => ({ open: options => opened.push(options) }) };
+  t.after(() => { if (originalMedia === undefined) delete globalThis.SharedStudioMedia; else globalThis.SharedStudioMedia = originalMedia; });
+  const h = fixture(t, { row: sharedRow() }), { C } = h;
+  await C.load(); C.select(null);
+  const before = copy(C.doc);
+  C.browseAssets('symbolSrc');
+  assert.deepEqual(C.doc, before, 'Opening or canceling the shared picker creates nothing');
+  assert.equal(opened[0].accept, 'image/*');
+  opened[0].onSelect({ kind: 'video', url: 'clip.mp4' });
+  assert.deepEqual(C.doc, before);
+  opened[0].onSelect({ kind: 'image', url: 'icons/chosen.svg' });
+  assert.equal(C.doc.elements.length, before.elements.length + 1);
+  const symbol = C.doc.elements.at(-1);
+  assert.equal(symbol.type, 'symbol'); assert.equal(symbol.symbolSource, 'custom');
+  assert.equal(symbol.symbolSrc, 'icons/chosen.svg');
+  C.undo(); assert.deepEqual(C.doc, before);
+  assert.equal(h.writes.length, 0);
 });

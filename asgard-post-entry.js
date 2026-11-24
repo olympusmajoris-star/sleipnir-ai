@@ -9,7 +9,7 @@ function open() {
   if (location.hash !== '#posts') previous = location.hash || '#sky';
   document.getElementById('extTitle').textContent = 'Asgard · Post page';
   frame.title = 'Asgard post page editor';
-  frame.src = new URL('asgard-post-editor.html?embed=1', location.href).href;
+  frame.src = new URL('asgard-post-editor.html?embed=1&v=1123symbols1', location.href).href;
   opening = true;
   G.StudioKit.previewCovered = true;
   if (!dialog.open) dialog.showModal();

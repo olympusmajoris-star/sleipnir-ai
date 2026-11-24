@@ -1,0 +1,56 @@
+.ap-inspector[data-symbol-picker=open] > :not(.ap-symbol-picker-host) { display: none !important; }
+.ap-symbol-picker-host { display: none; }
+.ap-inspector[data-symbol-picker=open] > .ap-symbol-picker-host { display: block; }
+.apsp-head { padding-bottom: 8px; }
+.apsp-head > .ap-button { width: 100%; min-height: 34px; padding: 5px 9px; margin-bottom: 8px; text-align: left; }
+.apsp-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.apsp-heading h2 { font-size: 22px; }
+.apsp-total { font-size: 12px; color: var(--ap-muted); white-space: nowrap; }
+.apsp-target { color: #b3eedf; font-size: 14px; font-weight: 550; margin-top: 5px !important; overflow-wrap: anywhere; }
+.apsp-head .apsp-help { margin-top: 3px !important; }
+.apsp-help { color: var(--ap-muted); font-size: 13px; line-height: 1.5; margin-top: 8px !important; }
+.apsp-shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.apsp-none[aria-pressed=true] { border-color: #75cfbf; background: #193e3d; }
+.apsp-selected { color: #d2e7ee; font-size: 13px; padding: 7px 0; }
+.apsp-filters { padding-top: 8px; border-top: 1px solid var(--ap-line); }
+.apsp-search, .apsp-filter, .apsp-artwork-url { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.apsp-search input, .apsp-filter select, .apsp-artwork-url input { width: 100%; min-width: 0; }
+.apsp-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.apsp-more-filters { margin-top: 6px; }
+.apsp-more-filters > summary { color: #b5cbd7; font-size: 14px; cursor: pointer; padding: 5px 0; }
+.apsp-more-filters[open] { padding-bottom: 6px; }
+.apsp-weight-note { color: var(--ap-muted); font-size: 12px; line-height: 1.5; margin-top: 9px !important; }
+.apsp-results-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 0; }
+.apsp-result-count { color: #d3e7ef; font-size: 13px; }
+.apsp-results-head .ap-button { min-height: 36px; padding: 6px 9px; }
+.apsp-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.apsp-icon { min-width: 0; display: flex; align-items: center; flex-direction: column; justify-content: flex-start; padding: 10px 7px 9px; min-height: 122px; background: #101d29; }
+.apsp-icon.is-selected { background: #1b3b3c; border-color: #7cddc9; box-shadow: inset 0 0 0 1px #7cddc9; }
+.apsp-icon-preview { width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; color: #b7e9e2; }
+.apsp-icon-preview svg { width: 42px; height: 42px; display: block; overflow: visible; }
+.apsp-icon-preview img { width: 54px; height: 54px; object-fit: contain; display: block; }
+.apsp-icon-name { color: #e4f2f7; font-size: 14px; line-height: 1.3; margin-top: 7px; overflow-wrap: anywhere; text-align: center; }
+.apsp-icon-source { color: #93adbe; font-size: 11px; font-weight: 400; margin-top: 4px; }
+.apsp-loading { color: #94afbe; font-size: 12px; }
+.apsp-empty { padding: 18px 8px; text-align: center; border: 1px dashed #3e5b6b; border-radius: 10px; }
+.apsp-empty p { font-size: 14px; color: #b4c9d6; margin-bottom: 12px; }
+.apsp-more { width: 100%; margin-top: 12px; }
+.apsp-custom { margin-top: 20px; border: 1px solid #355265; border-radius: 10px; overflow: hidden; }
+.apsp-custom > summary { cursor: pointer; padding: 13px; font-size: 15px; font-weight: 600; }
+.apsp-custom[open] > summary { background: #19313e; border-bottom: 1px solid #355265; }
+.apsp-custom-body { padding: 0 13px 14px; }
+.apsp-artwork-url { margin-top: 13px; }
+.apsp-artwork-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ap-symbol-current { display: flex; align-items: center; gap: 10px; padding: 9px; min-height: 58px; border: 1px solid #365261; border-radius: 8px; background: #0b1821; margin-bottom: 8px; }
+.ap-symbol-current-preview { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: #b1e7dc; flex: 0 0 auto; }
+.ap-symbol-current-preview svg, .ap-symbol-current-preview img { width: 34px; height: 34px; object-fit: contain; }
+.ap-symbol-current-label { font-size: 14px; color: #d2e8ee; overflow-wrap: anywhere; }
+.ap-symbol-choose { width: 100%; }
+.ap-symbols-button { color: #c3f0e4; border-color: #4a8b80; background: #173a3b; }
+.ap-piece-actions { flex-wrap: wrap; }
+.ap-piece-actions > .ap-button { min-width: calc(50% - 8px); }
+@media (max-width: 680px) {
+  .apsp-gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .apsp-icon { padding-left: 5px; padding-right: 5px; }
+  .apsp-heading h2 { font-size: 20px; }
+}

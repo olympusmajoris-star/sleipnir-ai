@@ -11,7 +11,7 @@
   const VOCABULARY = Object.freeze({ keep: 'Keep', kept: 'Kept', keeps: 'Your Keeps' });
   const TYPES = Object.freeze([
     { id: 'text', label: 'Text' }, { id: 'image', label: 'Image' },
-    { id: 'video', label: 'Video' }, { id: 'button', label: 'Button' },
+    { id: 'video', label: 'Video' }, { id: 'button', label: 'Button' }, { id: 'symbol', label: 'Symbol' },
     { id: 'shape', label: 'Shape' }, { id: 'avatar', label: 'Avatar' },
     { id: 'divider', label: 'Divider' }
   ].map(Object.freeze));
@@ -152,6 +152,17 @@
     shadowX: numberField('Shadow left / right', 0, -200, 200), shadowY: numberField('Shadow up / down', 0, -200, 200), shadowSpread: numberField('Shadow spread', 0, -100, 100),
     backdropBlur: numberField('Background blur', 0, 0, 80), blendMode: selectField('Blend mode', 'normal', ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'soft-light', 'hard-light', 'difference', 'exclusion', 'color-dodge', 'color-burn', 'hue', 'saturation', 'color', 'luminosity']),
     effectMask: selectField('Media mask', 'none', ['none', 'edge']), edgeWidth: numberField('Edge width', 12, 1, 60), edgeSoftness: numberField('Edge softness', 0, 0, 24),
+    symbolSource: selectField('Symbol source', 'none', ['none', 'library', 'custom']),
+    symbolId: { label: 'Symbol', type: 'symbolid', default: '' }, symbolSrc: { label: 'Your symbol artwork', type: 'url', default: '' },
+    symbolWeight: selectField('Symbol weight', 'regular', ['thin', 'light', 'regular', 'bold', 'fill', 'duotone']),
+    symbolSize: numberField('Symbol size', 32, 8, 240), symbolRotation: numberField('Symbol rotation', 0, -360, 360),
+    symbolScaleX: numberField('Symbol width scale', 1, .25, 4, .05), symbolScaleY: numberField('Symbol height scale', 1, .25, 4, .05),
+    symbolFlipX: { label: 'Flip symbol horizontally', type: 'boolean', default: false }, symbolFlipY: { label: 'Flip symbol vertically', type: 'boolean', default: false },
+    symbolColor: { label: 'Symbol color', type: 'color', default: '#d9effa' }, symbolAccent: { label: 'Symbol accent', type: 'color', default: '#67d9ca' },
+    symbolOpacity: numberField('Symbol opacity', 1, 0, 1, .01), symbolGap: numberField('Symbol and label gap', 8, 0, 80),
+    symbolPlacement: selectField('Symbol and label', 'before', ['before', 'after', 'above', 'below', 'only', 'label']),
+    symbolFinish: selectField('Symbol finish', 'plain', ['plain', 'metal', 'glass', 'carved', 'hologram']),
+    symbolGlow: numberField('Symbol glow', 0, 0, 40), symbolGlowColor: { label: 'Symbol glow color', type: 'color', default: '#67d9ca' },
     text: { label: 'Text', type: 'text', default: 'Your text' }, fontFamily: { label: 'Font', type: 'font', default: 'system-ui, sans-serif' },
     fontSize: numberField('Font size', 18, 8, 160, .5), fontWeight: numberField('Font weight', 500, 100, 900, 100), lineHeight: numberField('Line height', 1.4, .8, 3, .05), letterSpacing: numberField('Letter spacing', 0, -5, 30, .1),
     textAlign: selectField('Text alignment', 'left', ['left', 'center', 'right', 'justify']), verticalAlign: selectField('Vertical alignment', 'top', ['top', 'middle', 'bottom']),
@@ -173,6 +184,7 @@
     { id: 'mask', label: 'Media edge mask', fields: ['effectMask', 'edgeWidth', 'edgeSoftness'] },
     { id: 'text', label: 'Text', fields: ['text', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'textAlign', 'verticalAlign', 'italic', 'underline', 'uppercase'] },
     { id: 'media', label: 'Image & video', fields: ['src', 'poster', 'fit', 'focalX', 'focalY', 'brightness', 'contrast', 'saturation', 'grayscale', 'blur', 'autoplay', 'loop', 'muted', 'playbackRate'] },
+    { id: 'symbol', label: 'Symbol', fields: ['symbolSource', 'symbolId', 'symbolSrc', 'symbolWeight', 'symbolSize', 'symbolRotation', 'symbolScaleX', 'symbolScaleY', 'symbolFlipX', 'symbolFlipY', 'symbolColor', 'symbolAccent', 'symbolOpacity', 'symbolPlacement', 'symbolGap', 'symbolFinish', 'symbolGlow', 'symbolGlowColor'] },
     { id: 'shadow', label: 'Shadow & light', fields: ['shadowMode', 'shadowOpacity', 'shadowColor', 'shadowBlur', 'shadowX', 'shadowY', 'shadowSpread'] },
     { id: 'interaction', label: 'Action & motion', fields: ['action', 'motion', 'duration', 'delay', 'distance', 'easing'] }
   ].map(g => Object.freeze({ ...g, fields: Object.freeze(g.fields) })));
@@ -184,7 +196,8 @@
     if (type === 'image') Object.assign(values, { width: 326, height: 320, src: 'bg/bg04.jpg', text: '', radius: 16 });
     if (type === 'video') Object.assign(values, { width: 326, height: 240, src: 'lib/clips/v1-feed-swirl.mp4', poster: 'lib/stills/v1-feed-swirl.jpg', text: '', background: '#05090e', radius: 16 });
     if (type === 'avatar') Object.assign(values, { width: 44, height: 44, src: 'asgard/avatars/a17.jpg', text: '', radius: 1000, background: '#203149' });
-    if (type === 'button') Object.assign(values, { width: 128, height: 44, text: 'Button', background: '#1a2b3e', color: '#d9effa', borderWidth: 1, radius: 12, padding: 8, fontSize: 14, fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', lineHeight: 1.15 });
+    if (type === 'button') Object.assign(values, { width: 128, height: 44, text: 'Button', background: '#1a2b3e', color: '#d9effa', borderWidth: 1, radius: 12, padding: 8, fontSize: 14, fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', lineHeight: 1.15, symbolSize: 24 });
+    if (type === 'symbol') Object.assign(values, { width: 64, height: 64, text: '', name: 'Symbol', symbolPlacement: 'only', padding: 4, fontSize: 14, textAlign: 'center', verticalAlign: 'middle', lineHeight: 1.15 });
     if (type === 'shape') Object.assign(values, { width: 180, height: 120, text: '', background: '#132235', radius: 16 });
     if (type === 'divider') Object.assign(values, { width: 342, height: 1, text: '', background: '#29394b' });
     return values;
@@ -203,6 +216,7 @@
       else if (field.type === 'url') out[key] = value === undefined ? base[key] : safeURL(value);
       else if (field.type === 'font') out[key] = typeof value === 'string' && /^[a-z0-9\s,'"._-]{1,160}$/i.test(value) ? value : base[key];
       else if (field.type === 'text') out[key] = text(value, base[key], key === 'text' ? LIMITS.text : 120);
+      else if (field.type === 'symbolid') out[key] = typeof value === 'string' && /^(?:ph|as):[a-z0-9][a-z0-9-]{0,100}$/.test(value) ? value : '';
     }
     out.type = type;
     out.id = identifier(source.id) || uid(type);

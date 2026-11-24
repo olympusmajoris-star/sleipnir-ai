@@ -19,6 +19,10 @@
     .apr-body{box-sizing:border-box;width:100%;height:100%;overflow:hidden;transform-origin:center;position:relative}.apr-copy{display:flex;flex-direction:column;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}.apr-copy>span{width:100%;box-sizing:border-box}
     .apr-press{appearance:none;display:flex;width:100%;height:100%;align-items:center;justify-content:center;margin:0;box-sizing:border-box;color:inherit;background:transparent;border:0;border-radius:inherit;font:inherit;letter-spacing:inherit;white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;text-transform:inherit;text-decoration:inherit;box-shadow:none;line-height:inherit}
     .apr-press:hover{background:#ffffff0c}.apr-press:active{background:#ffffff18}.apr-press:focus-visible{outline:2px solid #f3c56a;outline-offset:-3px}.apr-press[aria-pressed=true]{box-shadow:inset 0 0 0 1px #7ad8bf;background:#72c7ae18}
+    .apr-label{display:block;flex:0 1 auto;min-width:min-content;max-width:100%;overflow-wrap:normal;word-break:normal;text-align:inherit}.apr-label[hidden],.apr-symbol[hidden],.apr-symbol-hint[hidden],.apr-symbol-image-tint[hidden]{display:none!important}
+    .apr-symbol{display:block;position:relative;flex:0 0 auto;box-sizing:border-box;overflow:visible;pointer-events:none;line-height:0;text-transform:none;text-decoration:none}.apr-symbol-ink{display:block;position:absolute;inset:0;transform-origin:center;overflow:visible;isolation:isolate;line-height:0}.apr-symbol-ink>svg,.apr-symbol-ink>img{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;user-select:none;-webkit-user-drag:none;overflow:visible}
+    .apr-symbol-image-tint{display:block;position:absolute;inset:0;pointer-events:none;mask-size:contain;mask-position:center;mask-repeat:no-repeat;-webkit-mask-size:contain;-webkit-mask-position:center;-webkit-mask-repeat:no-repeat}.apr-symbol-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:1px;font:500 9px/1.15 system-ui,sans-serif;color:#a8bfce;text-align:center;white-space:normal;overflow-wrap:normal;text-transform:none;letter-spacing:0;background:#11212a99;border:1px dashed #45616f;border-radius:5px}
+    .apr-symbol-control:hover,.apr-symbol-control:active{background:transparent}.apr-symbol-control[aria-pressed=true]{background:transparent;box-shadow:none}.apr-symbol-control[aria-pressed=true] .apr-symbol{filter:brightness(1.18)}.apr-press:disabled{opacity:1;cursor:default}
     .apr-edit .apr-press{pointer-events:none}.apr-media{display:block;box-sizing:border-box;width:100%;height:100%;border:0;user-select:none;-webkit-user-drag:none}.apr-media-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;font:500 14px/1.4 system-ui,sans-serif;color:#9bb3c5;background:linear-gradient(145deg,#162531,#0b151f)}
     .apr-media-fallback[hidden]{display:none}.apr-selection{box-sizing:border-box;position:absolute;z-index:10001;border:1.5px solid #eac379;pointer-events:none;transform-origin:center;box-shadow:0 0 0 1px #0a1118cc}
     .apr-selection[hidden]{display:none}.apr-selection-name{position:absolute;left:-1px;top:-24px;max-width:220px;background:#eac379;color:#15202a;padding:3px 7px;font:650 11px/16px system-ui,sans-serif;border-radius:4px 4px 0 0;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
@@ -68,6 +72,24 @@
   }
   function tint(color, amount, towards = 'white') { return 'color-mix(in srgb, ' + color + ' ' + amount + '%, ' + towards + ')'; }
   function shadowColor(element) { return tint(element.shadowColor || '#000000', clamp(num(element.shadowOpacity, .5), 0, 1) * 100, 'transparent'); }
+  function symbolStops(finish, color, accent) {
+    const pale = tint(color, 28), light = tint(color, 58), dark = tint(color, 42, 'black'), deep = tint(color, 20, 'black');
+    if (finish === 'metal') return [[0, pale, 1], [18, color, 1], [35, dark, 1], [48, pale, 1], [52, light, 1], [68, deep, 1], [85, color, 1], [100, pale, 1]];
+    if (finish === 'glass') return [[0, pale, .95], [17, color, .45], [42, light, .2], [48, pale, .85], [53, accent, .28], [78, color, .45], [100, pale, .88]];
+    if (finish === 'carved') return [[0, deep, 1], [22, dark, 1], [72, color, 1], [90, light, 1], [100, pale, 1]];
+    if (finish === 'hologram') return [[0, color, .92], [19, accent, .78], [36, color, .35], [39, pale, .95], [42, color, .38], [61, accent, .65], [64, pale, .9], [67, accent, .42], [88, color, .7], [100, accent, .95]];
+    return [[0, color, 1], [100, color, 1]];
+  }
+  function symbolFinishFilter(element) {
+    const filters = [], color = element.symbolColor || '#d9effa', accent = element.symbolAccent || '#67d9ca';
+    if (element.symbolFinish === 'metal') filters.push('drop-shadow(0 1px .5px #071018a6)');
+    else if (element.symbolFinish === 'glass') filters.push('drop-shadow(0 .6px .2px ' + tint(color, 75, 'transparent') + ')');
+    else if (element.symbolFinish === 'carved') filters.push('drop-shadow(0 -1px .35px #02070bd9)', 'drop-shadow(0 1px .3px ' + tint(color, 45, 'transparent') + ')');
+    else if (element.symbolFinish === 'hologram') filters.push('drop-shadow(.45px 0 0 ' + tint(accent, 65, 'transparent') + ')');
+    const glow = clamp(num(element.symbolGlow, 0), 0, 40);
+    if (glow > 0) { const ink = element.symbolGlowColor || accent; filters.push('drop-shadow(0 0 ' + px(glow / 3) + ' ' + ink + ')', 'drop-shadow(0 0 ' + px(glow) + ' ' + tint(ink, 60, 'transparent') + ')'); }
+    return filters.length ? filters.join(' ') : 'none';
+  }
   function frameCSS(style, element) {
     element = element || {};
     const width = Math.max(0, num(element.borderWidth, 2)), radius = Math.max(0, num(element.radius, 12)), color = element.borderColor || '#8ba4b8';
@@ -199,7 +221,7 @@
 
     const cache = new Map(), kept = new Map(), appreciated = new Set(), replies = new Map();
     let disposed = false, scale = 1, fitted = true, showGrid = false, drag = null, sheet = null, sheetTrigger = null, toastTimer = 0, previousMode = C.mode, requestedFrame = 0;
-    let documentIdentity = C.doc;
+    let documentIdentity = C.doc, symbolSerial = 0, previousSelectionId = null;
     const doc = () => C.doc || { page: {}, elements: [], vocabulary: {} };
     const currentLayer = id => (doc().elements || []).find(item => item.id === id);
     const words = () => Object.assign({ keep: 'Keep', kept: 'Kept', keeps: 'Your Keeps' }, doc().vocabulary || {});
@@ -356,13 +378,16 @@
       for (const element of doc().elements || []) {
         const entry = cache.get(element.id); if (!entry || !entry.press) continue;
         const post = postFor(element), keptOn = kept.has(post.id), appreciatedOn = appreciated.has(post.id);
-        let label = element.text || element.name || 'Button';
-        if (C.mode === 'try' && element.action === 'keep' && keptOn) label = words().kept;
-        if (C.mode === 'try' && element.action === 'keeps' && kept.size) label += ' (' + kept.size + ')';
-        setText(entry.press, label);
+        const supplied = String(element.text || '');
+        let label = supplied;
+        if (supplied && C.mode === 'try' && element.action === 'keep' && keptOn) label = words().kept;
+        if (supplied && C.mode === 'try' && element.action === 'keeps' && kept.size) label += ' (' + kept.size + ')';
+        setText(entry.pressLabel, label);
+        entry.pressLabel.hidden = !label || element.symbolPlacement === 'only';
         if (element.action === 'keep' || element.action === 'appreciate') entry.press.setAttribute('aria-pressed', String(C.mode === 'try' && (element.action === 'keep' ? keptOn : appreciatedOn)));
         else entry.press.removeAttribute('aria-pressed');
-        entry.press.setAttribute('aria-label', label);
+        const actionName = { appreciate: 'Appreciate', reply: 'Reply', share: 'Pass Along', keep: C.mode === 'try' && keptOn ? words().kept : words().keep, keeps: words().keeps, create: 'Create Saga' }[element.action];
+        entry.press.setAttribute('aria-label', label || actionName || element.name || (element.type === 'symbol' ? 'Symbol' : 'Button'));
       }
     }
     function makeLayer(element) {
@@ -370,11 +395,16 @@
       const body = node('div', 'apr-body'); layer.append(body);
       const frame = node('div', 'apr-frame'), frameRing = node('div', 'apr-frame-ring'), detail = svg('svg', { class: 'apr-frame-detail', 'aria-hidden': 'true', focusable: 'false', preserveAspectRatio: 'none' });
       frame.append(frameRing, detail); layer.append(frame); frame.hidden = true;
-      const entry = { node: layer, body, frame, frameRing, detail, frameKey: '', shadowKey: '', shadowFilter: null, maskKey: '', type: element.type, src: null, poster: null, animated: '', press: null, media: null, text: null, fallback: null };
+      const entry = { node: layer, body, frame, frameRing, detail, frameKey: '', shadowKey: '', shadowFilter: null, maskKey: '', type: element.type, src: null, poster: null, animated: '', press: null, pressLabel: null, media: null, text: null, fallback: null,
+        symbolBox: null, symbolInk: null, symbolHint: null, symbolNode: null, symbolTint: null, symbolPaint: null, symbolPaintKey: '', symbolKey: '', symbolRequest: 0, symbolState: 'empty', symbolLibraryMissing: false };
       if (element.type === 'text') {
         body.classList.add('apr-copy'); entry.text = node('span'); body.append(entry.text);
-      } else if (element.type === 'button') {
-        const button = node('button', 'apr-press'); button.type = 'button'; entry.press = button; body.append(button);
+      } else if (element.type === 'button' || element.type === 'symbol') {
+        const button = node('button', 'apr-press' + (element.type === 'symbol' ? ' apr-symbol-control' : '')); button.type = 'button'; entry.press = button;
+        entry.symbolBox = node('span', 'apr-symbol'); entry.symbolBox.setAttribute('aria-hidden', 'true');
+        entry.symbolInk = node('span', 'apr-symbol-ink'); entry.symbolHint = node('span', 'apr-symbol-hint');
+        entry.symbolBox.append(entry.symbolInk, entry.symbolHint);
+        entry.pressLabel = node('span', 'apr-label'); button.append(entry.symbolBox, entry.pressLabel); body.append(button);
         button.onclick = event => { if (C.mode === 'try') { event.stopPropagation(); const current = currentLayer(element.id); if (current) act(current); } };
       } else if (element.type === 'image' || element.type === 'avatar' || element.type === 'video') {
         entry.media = node(element.type === 'video' ? 'video' : 'img', 'apr-media'); entry.media.draggable = false;
@@ -391,13 +421,134 @@
       layer.addEventListener('click', event => {
         if (C.mode === 'edit') return;
         const current = currentLayer(element.id);
-        if (current && current.type !== 'button' && current.action && current.action !== 'none') { event.stopPropagation(); act(current); }
+        if (current && !entry.press && current.action && current.action !== 'none') { event.stopPropagation(); act(current); }
       });
       layer.addEventListener('keydown', event => {
         const current = currentLayer(element.id);
-        if (C.mode === 'try' && current && current.type !== 'button' && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); act(current); }
+        if (C.mode === 'try' && current && !entry.press && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); act(current); }
       });
       (element.positionMode === 'fixed' ? fixedPlane : page).insertBefore(layer, element.positionMode === 'fixed' ? null : guide); cache.set(element.id, entry); return entry;
+    }
+
+    function updateGradient(gradient, stops) {
+      while (gradient.children.length > stops.length) gradient.lastElementChild.remove();
+      for (let i = 0; i < stops.length; i++) {
+        let stop = gradient.children[i]; if (!stop) { stop = svg('stop'); gradient.append(stop); }
+        stop.setAttribute('offset', stops[i][0] + '%'); stop.setAttribute('stop-color', stops[i][1]); stop.setAttribute('stop-opacity', String(stops[i][2]));
+      }
+    }
+    function prepareSymbolSVG(entry, graphic) {
+      // The catalog creates a safe, fresh SVG. Preserve its geometry and secondary opacity.
+      const targets = [graphic].concat(Array.from(graphic.querySelectorAll('path,circle,ellipse,rect,line,polyline,polygon,g'))).map(item => ({
+        node: item, fill: item.getAttribute('fill'), stroke: item.getAttribute('stroke'), secondary: item.getAttribute('data-secondary') === 'true'
+      }));
+      const id = 'apr-symbol-' + instance + '-' + (++symbolSerial), defs = svg('defs');
+      const primary = svg('linearGradient', { id: id + '-primary', x1: '0%', y1: '0%', x2: '28%', y2: '100%' });
+      const secondary = svg('linearGradient', { id: id + '-secondary', x1: '0%', y1: '0%', x2: '28%', y2: '100%' });
+      defs.append(primary, secondary); graphic.insertBefore(defs, graphic.firstChild);
+      entry.symbolPaint = { targets, primary, secondary };
+    }
+    function paintSymbol(entry, element) {
+      const graphic = entry.symbolNode; if (!graphic) return;
+      const finish = ['metal', 'glass', 'carved', 'hologram'].includes(element.symbolFinish) ? element.symbolFinish : 'plain';
+      const color = element.symbolColor || '#d9effa', accent = element.symbolAccent || '#67d9ca';
+      const key = JSON.stringify([finish, color, accent]); if (entry.symbolPaintKey === key) return;
+      entry.symbolPaintKey = key;
+      if (entry.symbolPaint) {
+        const { primary, secondary, targets } = entry.symbolPaint;
+        if (finish !== 'plain') {
+          const endX = finish === 'hologram' ? '100%' : finish === 'glass' ? '65%' : '28%';
+          primary.setAttribute('x2', endX); secondary.setAttribute('x2', endX);
+          updateGradient(primary, symbolStops(finish, color, accent)); updateGradient(secondary, symbolStops(finish, accent, color));
+        }
+        for (const target of targets) {
+          const fill = finish === 'plain' ? (target.secondary ? accent : 'currentColor') : 'url(#' + (target.secondary ? secondary.id : primary.id) + ')';
+          if (target.secondary || target.fill === 'currentColor') target.node.setAttribute('fill', fill);
+          else if (target.fill == null) target.node.removeAttribute('fill');
+          if (target.stroke === 'currentColor') target.node.setAttribute('stroke', fill);
+        }
+      } else if (entry.symbolTint) {
+        const themed = finish !== 'plain';
+        entry.symbolTint.hidden = !themed;
+        graphic.style.opacity = themed ? '0' : '1';
+        if (themed) {
+          const gradient = symbolStops(finish, color, accent).map(stop => (stop[2] === 1 ? stop[1] : tint(stop[1], stop[2] * 100, 'transparent')) + ' ' + stop[0] + '%').join(',');
+          setStyle(entry.symbolTint, { backgroundImage: 'linear-gradient(' + (finish === 'hologram' ? '115deg' : '160deg') + ',' + gradient + ')' });
+        }
+      }
+    }
+    function symbolHint(entry, text, detail) {
+      setText(entry.symbolHint, text); entry.symbolHint.hidden = !text;
+      entry.symbolBox.title = detail || text || '';
+    }
+    function installSymbol(entry, element, graphic, request) {
+      if (disposed || cache.get(element.id) !== entry || entry.symbolRequest !== request) return;
+      const type = graphic && String(graphic.localName || graphic.tagName || '').toLowerCase();
+      if (type !== 'svg' && type !== 'img') {
+        entry.symbolState = 'error'; symbolHint(entry, 'Unavailable', 'This symbol could not load. Choose it again, try another weight, or check the artwork URL.'); return;
+      }
+      entry.symbolNode = graphic; entry.symbolPaintKey = '';
+      graphic.setAttribute('aria-hidden', 'true'); graphic.setAttribute('focusable', 'false');
+      entry.symbolInk.append(graphic);
+      if (type === 'svg') {
+        prepareSymbolSVG(entry, graphic); entry.symbolState = 'ready'; symbolHint(entry, '');
+      } else {
+        graphic.setAttribute('alt', ''); graphic.draggable = false; graphic.decoding = 'async';
+        const url = safeURL(element.symbolSource === 'custom' ? element.symbolSrc : graphic.getAttribute('src'));
+        if (!url) { graphic.remove(); entry.symbolNode = null; entry.symbolState = 'error'; symbolHint(entry, 'No image', 'Add a valid symbol artwork URL.'); return; }
+        entry.symbolTint = node('span', 'apr-symbol-image-tint'); entry.symbolTint.hidden = true;
+        setStyle(entry.symbolTint, { maskImage: imageCSS(url), WebkitMaskImage: imageCSS(url), maskMode: 'alpha' }); entry.symbolInk.append(entry.symbolTint);
+        const active = () => !disposed && cache.get(element.id) === entry && entry.symbolRequest === request;
+        const loaded = () => { if (active()) { entry.symbolState = 'ready'; symbolHint(entry, ''); } };
+        const failed = () => { if (active()) { entry.symbolState = 'error'; graphic.style.visibility = 'hidden'; entry.symbolTint.style.visibility = 'hidden'; symbolHint(entry, 'No image', 'Symbol artwork could not load. Check its URL or choose another image.'); } };
+        graphic.addEventListener('load', loaded, { once: true }); graphic.addEventListener('error', failed, { once: true });
+        entry.symbolState = 'loading'; symbolHint(entry, 'Loading…', 'Loading symbol artwork');
+        if (graphic.getAttribute('src') !== url) graphic.setAttribute('src', url);
+        if (graphic.complete && graphic.naturalWidth > 0) loaded();
+        else if (graphic.complete && graphic.naturalWidth === 0) failed();
+      }
+      const latest = currentLayer(element.id); if (latest) paintSymbol(entry, latest);
+    }
+    function updateSymbol(entry, element, align, vAlign) {
+      const source = ['library', 'custom'].includes(element.symbolSource) ? element.symbolSource : 'none';
+      const id = source === 'library' ? String(element.symbolId || '') : source === 'custom' ? safeURL(element.symbolSrc) : '';
+      const weight = ['thin', 'light', 'regular', 'bold', 'fill', 'duotone'].includes(element.symbolWeight) ? element.symbolWeight : 'regular';
+      const key = JSON.stringify([source, id, source === 'library' ? weight : '']);
+      const hasArtwork = source !== 'none' && !!id;
+      const placement = ['before', 'after', 'above', 'below', 'only', 'label'].includes(element.symbolPlacement) ? element.symbolPlacement : 'before';
+      const showGraphic = placement !== 'label' && (hasArtwork || element.type === 'symbol' && C.mode === 'edit');
+      entry.symbolBox.hidden = !showGraphic;
+      const vertical = placement === 'above' || placement === 'below';
+      const hAlign = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center';
+      const mainAlign = vertical ? vAlign : hAlign, reversed = placement === 'after' || placement === 'below';
+      setStyle(entry.press, {
+        flexDirection: placement === 'after' ? 'row-reverse' : placement === 'above' ? 'column' : placement === 'below' ? 'column-reverse' : 'row',
+        justifyContent: reversed && mainAlign !== 'center' ? (mainAlign === 'flex-start' ? 'flex-end' : 'flex-start') : mainAlign, alignItems: vertical ? hAlign : vAlign, textAlign: align,
+        gap: showGraphic && String(element.text || '') && placement !== 'only' ? px(element.symbolGap, 8) : '0px'
+      });
+      const size = clamp(num(element.symbolSize, element.type === 'button' ? 24 : 32), 8, 240), rotation = num(element.symbolRotation, 0);
+      const sx = clamp(num(element.symbolScaleX, 1), .25, 4), sy = clamp(num(element.symbolScaleY, 1), .25, 4), angle = rotation * Math.PI / 180;
+      const width = Math.abs(Math.cos(angle)) * size * sx + Math.abs(Math.sin(angle)) * size * sy;
+      const height = Math.abs(Math.sin(angle)) * size * sx + Math.abs(Math.cos(angle)) * size * sy;
+      setStyle(entry.symbolBox, { width: px(width), height: px(height), opacity: String(clamp(num(element.symbolOpacity, 1), 0, 1)), color: element.symbolColor || '#d9effa' });
+      setStyle(entry.symbolInk, {
+        inset: 'auto', left: '50%', top: '50%', width: px(size), height: px(size),
+        transform: 'translate(-50%,-50%) rotate(' + rotation + 'deg) scale(' + (element.symbolFlipX ? -sx : sx) + ',' + (element.symbolFlipY ? -sy : sy) + ')',
+        filter: symbolFinishFilter(element)
+      });
+      if (entry.symbolKey !== key || entry.symbolLibraryMissing && global.AsgardSymbols && typeof global.AsgardSymbols.createIcon === 'function') {
+        entry.symbolKey = key; const request = ++entry.symbolRequest;
+        entry.symbolNode = null; entry.symbolTint = null; entry.symbolPaint = null; entry.symbolPaintKey = ''; entry.symbolInk.replaceChildren(); entry.symbolLibraryMissing = false;
+        if (!hasArtwork) { entry.symbolState = 'empty'; symbolHint(entry, element.type === 'symbol' ? 'Choose' : '', 'Choose a library symbol or add your own artwork.'); }
+        else if (source === 'custom') installSymbol(entry, element, node('img'), request);
+        else if (!global.AsgardSymbols || typeof global.AsgardSymbols.createIcon !== 'function') {
+          entry.symbolLibraryMissing = true; entry.symbolState = 'error'; symbolHint(entry, 'Unavailable', 'The symbol library has not loaded.');
+        } else {
+          entry.symbolState = 'loading'; symbolHint(entry, 'Loading…', 'Loading library symbol');
+          Promise.resolve().then(() => global.AsgardSymbols.createIcon(id, weight)).then(graphic => installSymbol(entry, element, graphic, request)).catch(() => installSymbol(entry, element, null, request));
+        }
+      }
+      paintSymbol(entry, element);
     }
     function shadowFilter(entry, element) {
       if (element.shadowMode !== 'silhouette' || num(element.shadowOpacity, .5) <= 0) return 'none';
@@ -430,8 +581,8 @@
       if (layer.parentNode !== plane) plane.insertBefore(layer, plane === page ? guide : null);
       layer.hidden = element.visible === false;
       layer.dataset.locked = String(!!element.locked);
-      layer.tabIndex = C.mode === 'edit' || (element.type !== 'button' && element.action && element.action !== 'none') ? 0 : -1;
-      if (C.mode === 'edit' || (element.type !== 'button' && element.action && element.action !== 'none')) layer.setAttribute('role', 'button'); else layer.removeAttribute('role');
+      layer.tabIndex = C.mode === 'edit' || (!entry.press && element.action && element.action !== 'none') ? 0 : -1;
+      if (C.mode === 'edit' || (!entry.press && element.action && element.action !== 'none')) layer.setAttribute('role', 'button'); else layer.removeAttribute('role');
       layer.setAttribute('aria-label', C.mode === 'edit' ? (element.name || element.type) + (element.locked ? ', locked piece' : ', editable piece') : (element.name || element.type));
       if (C.mode === 'edit') layer.setAttribute('aria-pressed', String(C.selectedId === element.id)); else layer.removeAttribute('aria-pressed');
       const shadow = element.shadowMode === 'box' && num(element.shadowOpacity, .5) > 0 && (num(element.shadowBlur, 0) || num(element.shadowSpread, 0) || num(element.shadowX, 0) || num(element.shadowY, 0));
@@ -449,7 +600,7 @@
         lineHeight: String(num(element.lineHeight, 1.4)), letterSpacing: px(element.letterSpacing), textAlign: align,
         fontStyle: element.italic ? 'italic' : 'normal', textDecoration: element.underline ? 'underline' : 'none', textTransform: element.uppercase ? 'uppercase' : 'none'
       });
-      setStyle(body, { borderRadius: px(element.radius), background: masked ? element.background || 'transparent' : 'transparent', padding: px(element.padding), justifyContent: vAlign });
+      setStyle(body, { borderRadius: px(element.radius), background: masked ? element.background || 'transparent' : 'transparent', padding: px(element.padding), justifyContent: vAlign, overflow: entry.press ? 'visible' : 'hidden' });
       const maskKey = JSON.stringify([element.effectMask, element.edgeWidth, element.edgeSoftness, element.width, element.height, element.radius]);
       if (entry.maskKey !== maskKey) { entry.maskKey = maskKey; const mask = edgeMaskCSS(element); setStyle(body, { maskImage: mask, WebkitMaskImage: mask, maskSize: '100% 100%', WebkitMaskSize: '100% 100%', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }); }
       entry.frame.hidden = !decorated || num(element.borderWidth, 0) <= 0;
@@ -460,7 +611,7 @@
       if (entry.text) setText(entry.text, element.text || '');
       if (entry.press) {
         entry.press.tabIndex = C.mode === 'try' ? 0 : -1;
-        setStyle(entry.press, { padding: '0px', justifyContent: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center', alignItems: vAlign });
+        setStyle(entry.press, { padding: '0px' }); updateSymbol(entry, element, align, vAlign);
       }
       if (entry.media) {
         const source = safeURL(element.src), poster = safeURL(element.poster);
@@ -504,6 +655,22 @@
       resizeHandle.hidden = !!element.locked;
       resizeHandle.setAttribute('aria-label', 'Resize ' + (element.name || element.type));
     }
+    function revealSelection() {
+      const id = C.selectedId || null;
+      if (id === previousSelectionId) return;
+      previousSelectionId = id;
+      const element = currentLayer(id);
+      if (C.mode !== 'edit' || !element || element.visible === false || element.positionMode === 'fixed') return;
+      const margin = 12, d = dimensions(), viewHeight = viewport.clientHeight || d.height;
+      const top = num(element.y, 0), height = Math.max(0, num(element.height, 40)), bottom = top + height;
+      const current = viewport.scrollTop || 0;
+      let next = current;
+      if (top < current + margin) next = top - margin;
+      else if (bottom > current + viewHeight - margin) next = height + margin * 2 > viewHeight ? top - margin : bottom + margin - viewHeight;
+      next = clamp(next, 0, Math.max(0, d.contentHeight - viewHeight));
+      // Only the phone scrolls, once per selection. Live edits and drag updates keep their view.
+      if (next !== current) viewport.scrollTop = next;
+    }
     function refresh(kind) {
       if (disposed) return;
       const data = doc(), d = dimensions(), p = data.page || {};
@@ -524,7 +691,7 @@
       const ids = new Set((data.elements || []).map(item => item.id));
       for (const [id, entry] of cache) if (!ids.has(id)) { if (entry.media && entry.type === 'video') entry.media.pause(); if (entry.shadowFilter) entry.shadowFilter.remove(); entry.node.remove(); cache.delete(id); }
       (data.elements || []).forEach(updateLayer);
-      refreshActions(); selectionState(); resize();
+      refreshActions(); selectionState(); resize(); revealSelection();
     }
     function startDrag(event, id, resizing) {
       if (C.mode !== 'edit' || event.button !== 0 || disposed) return;

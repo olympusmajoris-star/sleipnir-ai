@@ -15,7 +15,8 @@
   ];
   const EASING_OPTIONS = ['ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out'];
   const BLEND_OPTIONS = ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'difference', 'exclusion', 'color-dodge', 'luminosity'];
-  const TYPE_WORDS = { text: 'Text', image: 'Image', video: 'Video', button: 'Button', shape: 'Shape', avatar: 'Avatar', divider: 'Divider' };
+  const TYPE_WORDS = { text: 'Text', image: 'Image', video: 'Video', button: 'Button', symbol: 'Symbol', shape: 'Shape', avatar: 'Avatar', divider: 'Divider' };
+  const SYMBOL_WEIGHTS = [['thin', 'Thin'], ['light', 'Light'], ['regular', 'Regular'], ['bold', 'Bold'], ['fill', 'Fill'], ['duotone', 'Duotone']];
 
   function node(tag, className, text) {
     const element = document.createElement(tag);
@@ -41,10 +42,11 @@
   const color = (key, label, transparent = false) => field(key, label, 'color', { transparent });
 
   function elementGroups(element) {
-    const text = ['text', 'button', 'avatar'].includes(element.type);
+    const text = ['text', 'button', 'avatar', 'symbol'].includes(element.type);
     const media = ['image', 'avatar', 'video'].includes(element.type);
+    const hasSymbol = ['button', 'symbol'].includes(element.type);
     const content = [field('name', 'Piece name', 'text')];
-    if (['text', 'button'].includes(element.type)) content.push(field('text', 'Words', 'textarea'));
+    if (['text', 'button', 'symbol'].includes(element.type)) content.push(field('text', 'Words', 'textarea'));
     if (media) content.push(field('src', element.type === 'video' ? 'Video source' : 'Image source', 'asset', { accept: element.type === 'video' ? 'video/*' : 'image/*' }));
     if (element.type === 'video') content.push(field('poster', 'Video cover image', 'asset', { accept: 'image/*' }));
     content.push(field('postId', 'Post group', 'text', { help: 'Use the same group for a post and its buttons. Keeps and replies stay with that post.' }));
@@ -73,6 +75,26 @@
         number('shadowSpread', 'Spread', -30, 60, 1, 'px'),
       ] },
     ];
+    if (hasSymbol) groups.splice(1, 0,
+      { id: 'symbol', title: 'Symbol', help: 'Choose from the complete library or use your own artwork. None leaves the words and action alone.', fields: [
+        choices('symbolSource', 'Symbol source', [['none', 'None'], ['library', 'Symbol library'], ['custom', 'Your artwork']]),
+        field('symbolId', 'Choose from the library', 'symbol-picker'),
+        field('symbolSrc', 'Your artwork image', 'asset', { accept: 'image/*' }),
+        choices('symbolWeight', 'Symbol weight', SYMBOL_WEIGHTS),
+        choices('symbolPlacement', 'Symbol and words', [['before', 'Symbol before words'], ['after', 'Symbol after words'], ['above', 'Symbol above words'], ['below', 'Symbol below words'], ['only', 'Symbol only'], ['label', 'Words only']]),
+        number('symbolGap', 'Space from words', 0, 80, 1, 'px'),
+      ] },
+      { id: 'symbol-shape', title: 'Symbol size & shape', fields: [
+        number('symbolSize', 'Symbol size', 8, 240, 1, 'px'), number('symbolRotation', 'Symbol rotation', -360, 360, 1, '°'),
+        number('symbolScaleX', 'Symbol width scale', 0.25, 4, 0.05, '×'), number('symbolScaleY', 'Symbol height scale', 0.25, 4, 0.05, '×'),
+        toggle('symbolFlipX', 'Flip horizontally'), toggle('symbolFlipY', 'Flip vertically'),
+      ] },
+      { id: 'symbol-material', title: 'Symbol finish & light', help: 'Library symbols use these colors. Plain artwork keeps its original colors; the other finishes color its silhouette.', fields: [
+        choices('symbolFinish', 'Finish', [['plain', 'Plain'], ['metal', 'Metal'], ['glass', 'Glass'], ['carved', 'Carved'], ['hologram', 'Hologram']]),
+        color('symbolColor', 'Symbol color'), color('symbolAccent', 'Accent color'), number('symbolOpacity', 'Symbol opacity', 0, 1, 0.01),
+        number('symbolGlow', 'Symbol glow', 0, 40, 1, 'px'), color('symbolGlowColor', 'Glow color'),
+      ] },
+    );
     if (text) groups.push({ id: 'type', title: 'Text style', fields: [
       choices('fontFamily', 'Typeface', FONT_OPTIONS), number('fontSize', 'Text size', 8, 100, 1, 'px'),
       choices('fontWeight', 'Weight', [[300, 'Light'], [400, 'Regular'], [500, 'Medium'], [600, 'Semibold'], [700, 'Bold'], [800, 'Heavy'], [900, 'Black']], { numeric: true }),
@@ -132,9 +154,9 @@
     if (!M) throw new Error('AsgardPostModel must be loaded before the workspace.');
     root.className = 'ap-editor'; root.dataset.pane = 'properties';
     root.textContent = '';
-    let disposed = false, inspectorKey = '', layerKey = '', pendingPreset = null;
+    let disposed = false, inspectorKey = '', layerKey = '', pendingPreset = null, symbolPicker = null;
     let fieldViews = [], frameViews = [], inspectorGroups = [], layerViews = new Map();
-    const expanded = { content: true, position: true, page: true, backdrop: true };
+    const expanded = { content: true, symbol: true, position: true, page: true, backdrop: true };
     const cleanup = [];
     const run = action => {
       try {
@@ -164,6 +186,7 @@
     modeGroup.append(edit, tryPage);
     const undo = button('Undo', () => run(() => C.undo()), 'ap-quiet');
     const redo = button('Redo', () => run(() => C.redo()), 'ap-quiet');
+    const symbols = button('Symbols', () => openSymbolPicker(), 'ap-symbols-button');
     const files = node('details', 'ap-file-tools');
     const summary = node('summary', '', 'Design file');
     const fileMenu = node('div', 'ap-file-menu');
@@ -174,7 +197,7 @@
     const reloadButton = button('Reload saved design', () => { files.open = false; askPreset('__reload__'); });
     fileMenu.append(exportButton, importButton, reloadButton); files.append(summary, fileMenu, importFile);
     const save = button('Save design', () => run(() => C.save()), 'ap-primary');
-    actions.append(modeGroup, undo, redo, files, save); header.append(identity, actions);
+    actions.append(modeGroup, symbols, undo, redo, files, save); header.append(identity, actions);
     root.append(header);
 
     const mobileTabs = node('nav', 'ap-mobile-tabs'); mobileTabs.setAttribute('aria-label', 'Editor panels');
@@ -222,7 +245,7 @@
     const addRow = node('div', 'ap-add-row');
     const addType = node('select'); addType.setAttribute('aria-label', 'Type of piece to add');
     M.TYPES.forEach(type => addType.append(option(type.id, type.label)));
-    const add = button('Add', () => { run(() => C.add(addType.value)); root.dataset.pane = 'properties'; mobileTabsUpdate(); }, 'ap-primary');
+    const add = button('Add', () => { run(() => C.add(addType.value)); root.dataset.pane = 'properties'; mobileTabsUpdate(); if (addType.value === 'symbol') openSymbolPicker(); }, 'ap-primary');
     addRow.append(addType, add); layers.append(addRow);
     const pageButton = button('Page & background', () => { C.select(null); root.dataset.pane = 'properties'; mobileTabsUpdate(); }, 'ap-page-button');
     layers.append(pageButton);
@@ -248,7 +271,8 @@
     }, 'ap-frames-button');
     const duplicate = button('Duplicate', () => { if (C.selectedId) run(() => C.duplicate(C.selectedId)); });
     const remove = button('Remove', () => { if (C.selectedId) run(() => C.remove(C.selectedId)); }, 'ap-danger');
-    selectedActions.append(framesButton, duplicate, remove); inspector.append(selectedActions);
+    const symbolButton = button('Symbols', () => openSymbolPicker(), 'ap-symbols-button');
+    selectedActions.append(framesButton, symbolButton, duplicate, remove); inspector.append(selectedActions);
     const orderActions = node('div', 'ap-order-actions');
     for (const [label, direction] of [['Forward', 'up'], ['Back', 'down'], ['To front', 'front'], ['To back', 'back']]) {
       const b = button(label, () => { if (C.selectedId) run(() => C.reorder(C.selectedId, direction)); });
@@ -262,6 +286,13 @@
     const propertyBody = node('div', 'ap-property-body'); inspector.append(propertyBody);
     const noProperties = node('p', 'ap-no-properties', 'No matching properties.'); noProperties.hidden = true; inspector.append(noProperties);
     filter.addEventListener('input', filterProperties);
+    const symbolPickerHost = node('div', 'ap-symbol-picker-host'); inspector.append(symbolPickerHost);
+    function openSymbolPicker() {
+      if (!window.AsgardSymbolPicker) { C.setStatus?.('The symbol browser could not load. Reload the editor to try again.'); return; }
+      if (!symbolPicker) symbolPicker = window.AsgardSymbolPicker.mount(symbolPickerHost, C, { onClose() { delete inspector.dataset.symbolPicker; } });
+      inspector.dataset.symbolPicker = 'open'; root.dataset.pane = 'properties'; mobileTabsUpdate();
+      inspector.scrollTop = 0; symbolPicker.open();
+    }
 
     workspace.append(layers, previewPanel, inspector); root.append(workspace);
     const footer = node('footer', 'ap-footer');
@@ -364,6 +395,29 @@
           const hex = /^#[0-9a-f]{6}$/i.test(value || '') ? value : /^#[0-9a-f]{3}$/i.test(value || '') ? '#' + value.slice(1).split('').map(c => c + c).join('') : '#000000';
           if (document.activeElement !== picker) picker.value = hex;
         };
+      } else if (spec.type === 'symbol-picker') {
+        const summary = node('div', 'ap-symbol-current');
+        const preview = node('span', 'ap-symbol-current-preview'); preview.setAttribute('aria-hidden', 'true');
+        const label = node('span', 'ap-symbol-current-label'); summary.append(preview, label);
+        const choose = button('Choose symbol', () => openSymbolPicker(), 'ap-symbol-choose'); choose.id = inputId;
+        box.append(summary, choose); inputs.push(choose);
+        let previous = '', revision = 0;
+        writeValue = value => {
+          const element = selected(); if (!element) return;
+          const key = [element.symbolSource, value, element.symbolWeight, element.symbolSrc].join('|');
+          if (key === previous) return; previous = key; const currentRevision = ++revision;
+          preview.textContent = '';
+          const library = window.AsgardSymbols;
+          if (element.symbolSource === 'custom') {
+            label.textContent = element.symbolSrc ? 'Your artwork' : 'Choose your artwork';
+            if (element.symbolSrc) { const image = node('img'); image.alt = ''; image.src = element.symbolSrc; preview.append(image); }
+          } else if (element.symbolSource === 'library') {
+            label.textContent = library?.get(value)?.name || 'Choose a library symbol';
+            if (value && library) Promise.resolve(library.createIcon(value, element.symbolWeight || 'regular')).then(art => {
+              if (art && currentRevision === revision && !disposed && preview.isConnected) preview.append(art);
+            }).catch(() => { /* The selected name stays readable when artwork is unavailable. */ });
+          } else label.textContent = 'No symbol';
+        };
       } else {
         const input = node(spec.type === 'textarea' ? 'textarea' : 'input');
         if (input.tagName === 'INPUT') input.type = 'text';
@@ -408,6 +462,7 @@
       inspectorTitle.textContent = current ? current.name || TYPE_WORDS[current.type] || 'Piece' : 'Page & background';
       inspectorEyebrow.textContent = current ? TYPE_WORDS[current.type] || current.type : 'PAGE';
       selectedActions.hidden = !current; orderActions.hidden = !current;
+      symbolButton.hidden = !current || !['button', 'symbol'].includes(current.type);
       remove.disabled = Boolean(current?.locked); duplicate.disabled = !current || (C.doc.elements.length >= 150);
       [...orderActions.querySelectorAll('button')].forEach(item => { item.disabled = Boolean(current?.locked); });
       lockNote.hidden = !current?.locked;
@@ -502,7 +557,7 @@
     refresh();
     return {
       previewHost,
-      dispose() { disposed = true; cleanup.forEach(fn => { if (typeof fn === 'function') fn(); }); root.textContent = ''; },
+      dispose() { disposed = true; symbolPicker?.dispose(); cleanup.forEach(fn => { if (typeof fn === 'function') fn(); }); root.textContent = ''; },
     };
   }
 

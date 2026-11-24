@@ -1,0 +1,114 @@
+Phosphor Icons — vendored catalog
+
+Source: https://github.com/phosphor-icons/core
+Pinned commit: 2b75f3ad12b420c9504ef05df8d2564a28f8500e
+Package: @phosphor-icons/core 2.1.1
+License: MIT (full upstream license in LICENSE)
+Copyright (c) 2023 Phosphor Icons
+
+This directory contains 1,512 canonical icons in six weights: thin, light,
+regular, bold, fill, and duotone (9,072 SVG variants). The upstream assets/
+SVG files are stored without artwork changes in compact JSON shards of up to
+128 icons, ordered by the Phosphor entries in asgard-symbols-data.js. Each
+weight has 12 shards (11 of 128 icons and one of 104), for 72 shipped files.
+No upstream alias is duplicated as a second catalog entry.
+
+asgard-symbols-data.js derives names, categories, tags, and alias search
+terms from the pinned src/icons.ts metadata. Asgard action tags and display
+labels were added locally. Runtime parsing accepts only svg/path elements
+and the trusted collection's geometry, viewBox, fill, and opacity fields.
+The secondary duotone path receives a local data-secondary marker so the
+editor may apply an accent color without changing the source geometry.
+
+Existing Asgard artwork is referenced in place from this repository:
+asgard/wayfinder.webp, asgard/saga.webp, asgard/gjallarhorn.webp,
+asgard/raven.webp, asgard/horn.webp, home/odin.webp, launch/emblem.webp.
+These assets are not part of Phosphor and are not covered by its MIT license.
+They retain the repository owner's existing rights and attribution.
+They were visually reviewed before inclusion; no new artwork was generated.
+
+Shipped shard integrity (SHA-256 of each compact JSON including final newline):
+thin/part-00.json: 128 icons; 53616 bytes; 07681289268f6670f3615b9e08b1e487b7c38f6d99d86c4afddbc27454471d84
+thin/part-01.json: 128 icons; 74808 bytes; 6d892cf80435ac584fe4f2025d53cbee6a3028bc55696fb5ff49221ab224372a
+thin/part-02.json: 128 icons; 63676 bytes; 22506ff11f785658fd62f8e281a5c7d802ac65e5095ccb28803442946b71620e
+thin/part-03.json: 128 icons; 65826 bytes; 57719ccb87e338cea69a16dd174944aaa0d647f8f86a20fddc21137746d4edb3
+thin/part-04.json: 128 icons; 86701 bytes; e74bf62dd746734c390d29a707d71f1d574aece1aeac5a49eb371bf4f7e1cd41
+thin/part-05.json: 128 icons; 82679 bytes; eaf5fb7fb838ebfd5a615a46d89108849d78866de06aec8f3b27919ea8a4d433
+thin/part-06.json: 128 icons; 68590 bytes; fa6fad94313859312adbf3d05997f34eed5d7fb20b770141745fe131379105f2
+thin/part-07.json: 128 icons; 65297 bytes; 202ad9ffe0cf4951bfdfa16f793d019f10cdf7cedce26ff3beae12712c86b85b
+thin/part-08.json: 128 icons; 80847 bytes; 774120ad315a5f63adb8b1c3ad2e353bfe32d7ac8281d00245415578073e5911
+thin/part-09.json: 128 icons; 80606 bytes; 4c96ffdb937667c4ad7e5c32bc9abaa5ded4e4d25497f0bbc98f302243c7ffe8
+thin/part-10.json: 128 icons; 66462 bytes; b064325d0b0d9a1efc80cfafef1999a15e4e45934539da97add4ab9cb7ec7ddd
+thin/part-11.json: 104 icons; 58936 bytes; 177067251ff3a411feb0c9058290d4d80da5223d1cb327cf8c1ec396dc774997
+light/part-00.json: 128 icons; 53778 bytes; 9e10a3ae6b0b767cf1b1c5b8aaa514fc2bc47e728d9ba4babf241cfcdd9ac8b7
+light/part-01.json: 128 icons; 74581 bytes; beb76ea88d21ebb807d60f93c224b0a1f980206438774460b89f979455a222a3
+light/part-02.json: 128 icons; 64060 bytes; a8420a9e25c245d70b3e2fbc41382eaefd15684550ff30dcf25a648203e03ffd
+light/part-03.json: 128 icons; 66568 bytes; 21b645c9626172ee2ff9cd7f3629b345bbc6c63a48e531bae9a74ec8e6c669d3
+light/part-04.json: 128 icons; 85338 bytes; d85a47db941911107e352dbfa9df45aaa3a0387bab13f9ac48e552b4528d1496
+light/part-05.json: 128 icons; 83662 bytes; 6fdf23f1d062ea23b54d3e15017ed5c14da3eee24d545cd0c2d287911979178d
+light/part-06.json: 128 icons; 68760 bytes; 306c5c644f45a956835d1007857cd7f977d6a712bcba50bf994b9033b104f044
+light/part-07.json: 128 icons; 65367 bytes; f9eb5e94eac75d90e92729fb9979e6870b9621345ec645a2e8a4d25360e8a5e7
+light/part-08.json: 128 icons; 80594 bytes; 44660d29aa9d676bf2efc7a7531e0698f711c311a2aafd1ef743eb399523b4cc
+light/part-09.json: 128 icons; 80724 bytes; 266c7cda8fbb032711ec493f631e9c2539b775a702562c6bd68dca46794edd26
+light/part-10.json: 128 icons; 65895 bytes; 85c82b60d2e26d197e30b0f1a135265212cf9c87e205309c37b523d776851ee8
+light/part-11.json: 104 icons; 58669 bytes; 969b6428c9c6365c74f173cbdff3458db8b588754fd3e8f1e8be3aeac6f0ec80
+regular/part-00.json: 128 icons; 52003 bytes; 558e81de2b54495a7b636a181b0ae1e8759893d8f83d6725d20642934a658356
+regular/part-01.json: 128 icons; 70876 bytes; a49f2c86302e7e66c08b1293413fbde1927fd4a06882e9522ece03fcf13e6b47
+regular/part-02.json: 128 icons; 60727 bytes; 576f7cfb189537cd21cae992c21a8afe4e5c49fe563e8e958468bab525b15932
+regular/part-03.json: 128 icons; 62670 bytes; 8d4606838296643927949ea77a47c65df87b1fc60368976a91259abba6cb1116
+regular/part-04.json: 128 icons; 80935 bytes; 5e28093025d765cce45387e6c26e692558b50708d4caa77cab714849a29391cd
+regular/part-05.json: 128 icons; 78583 bytes; 305442afd1d9d1f40e156127374a160141e8d686eae36c43de6d67ec58e1bd28
+regular/part-06.json: 128 icons; 64355 bytes; b8464c8ae47c30ea79f432fdc5af6971ff1562c6b87aa6a39bffa8ced9ed37af
+regular/part-07.json: 128 icons; 61220 bytes; 505c96500610bd947302f7ddd75a21c39d1080f59274b424705bb6cf1c791927
+regular/part-08.json: 128 icons; 74491 bytes; bbec308a9d2b4bb96a79223550080e5507dfe5c2a740a576dbd4700653981100
+regular/part-09.json: 128 icons; 76700 bytes; 0e65947e41248adedb4bf4e8b00176d03489292edbaddff5164d8e39ce3686b3
+regular/part-10.json: 128 icons; 63217 bytes; 17c990f4a3bf24b680a5856c6ad7f67f42366cb17f8787186a221380ed670c8b
+regular/part-11.json: 104 icons; 56267 bytes; e01f4c4a3655a65f30bcbf427846751f87068a182f2b88bcd1a115846f999fe8
+bold/part-00.json: 128 icons; 51522 bytes; f9c9d7e14fdfd8c512a480eadb746f7938555d596aff6d5d2c1539dcdb9bc5f8
+bold/part-01.json: 128 icons; 71577 bytes; dd54253c8c0cba11f6d4f103553d4f823f1559dbbae2a791ae1354ef6a992724
+bold/part-02.json: 128 icons; 59785 bytes; 848ec682fd3f4a2a78af4c559792aca1b880c466d8d0b1bc4cc2e8e37fd4d06a
+bold/part-03.json: 128 icons; 63584 bytes; 55dbd8ac9974f3654f1b2b91e8916f6923a2e26fc7461304270285740ec14ab2
+bold/part-04.json: 128 icons; 80735 bytes; e41c2c8316013fb89609227ed5ef0f41b7d5fc4c52841b90cdbbfe944e16849a
+bold/part-05.json: 128 icons; 78209 bytes; b667afec5f86a57cdd4e450a92edbc540a375113a0b38e1d2dc42a2ca3b903f1
+bold/part-06.json: 128 icons; 63979 bytes; 86f67bb83bb0e5757d17aaff95111fd7ebf0212ca26aa38cea2e4b07502bcb6c
+bold/part-07.json: 128 icons; 60300 bytes; 952fdc5ac9fba3d31b33b1be5a0a90c392a70358c1f767d4014cede078e6fd27
+bold/part-08.json: 128 icons; 73535 bytes; bcef10cfcda4686b0dea2acbfd2b84e2c60122dc5a18e5f77a07396ff8307d5f
+bold/part-09.json: 128 icons; 77193 bytes; 79ae1bb4de9971e70fd24013d7eb7523d1bb7db4fd449fcea07d9d9fabe43926
+bold/part-10.json: 128 icons; 62770 bytes; 687ba5c5752157441ec103c638936b998c6d0735d78274da725984cf16db48a9
+bold/part-11.json: 104 icons; 55890 bytes; b66e949cdb68b2bfa90fa04665bce7d229f10f6e95fa5f4b3d53e621c58e8c96
+fill/part-00.json: 128 icons; 46412 bytes; f9bbed23e466bd8c57a795ba07436909929eed69f9e21500e0db012cf8393592
+fill/part-01.json: 128 icons; 67136 bytes; a1a49b99619aaee09f08cc19e701a762425925ccc8a11ca5165096d8156b378e
+fill/part-02.json: 128 icons; 53310 bytes; dabb9224bfa26c0444c2aa0b7793677ac7b4b4cece0b39adfeeb0a9ccdb89a04
+fill/part-03.json: 128 icons; 58896 bytes; ae5808af17a4943805fde9cf8238b9a41047ad7b73927f6857655dbad2df0796
+fill/part-04.json: 128 icons; 74874 bytes; 860e994fb012ca1c5efd70048360e0d1b91d5f90b0dcd3168734590948e2bb2a
+fill/part-05.json: 128 icons; 68619 bytes; 71a74131fccc745e14051fd5e742bcbb2bf087e3108d46ea29024a31308fadd4
+fill/part-06.json: 128 icons; 58127 bytes; dbda679eeabaaed06538818f45c973331bbe3e3bdb92b0e40c613ded6a109a46
+fill/part-07.json: 128 icons; 55733 bytes; 5099b73e0ec4c5bc5a21c661ff6df7202fe25d27dfc2193576978d6e219ceea2
+fill/part-08.json: 128 icons; 64292 bytes; b2cc1d05fd3fd71391fff9673a4b87348d0112458082b732ffd596d71288ce65
+fill/part-09.json: 128 icons; 66387 bytes; c4c302038b746d8137af79a7ac7eac4e8656da456e55ac5ec40d1570bab12836
+fill/part-10.json: 128 icons; 58576 bytes; 553ac753ee32485d3c54e4b99ea33affd56afac572d8aaecc50d78beee0099bc
+fill/part-11.json: 104 icons; 50337 bytes; 12a5cb8ed655e368a97ac94e74b1ac71fafeaba91ece6ac0377eb168cca18140
+duotone/part-00.json: 128 icons; 64109 bytes; 01414734865ab873891cfac62473f604944f6144bbee393c91df628cd06ef1a4
+duotone/part-01.json: 128 icons; 86255 bytes; a84cebcd73eaf1ba44c5141df3ce39283ca280fd06aea3596592f70e7e286916
+duotone/part-02.json: 128 icons; 73649 bytes; 250598e7798a2b87373d1851e71c840718f077c69752ed517c5262cf2a142547
+duotone/part-03.json: 128 icons; 78020 bytes; 0d8e6eea1075acf89e82f722fdbfc449136d31431e63353a5b12a18d1e36b2b5
+duotone/part-04.json: 128 icons; 94803 bytes; 08a9d89ac4106931d95c4e396d033d94812c26eeeb3fc9a21b62265e09c6eb1b
+duotone/part-05.json: 128 icons; 96910 bytes; c75f15cf91159a3839d73273a50b681e283c1cf3ce9eef27a164969ccde74dc7
+duotone/part-06.json: 128 icons; 79353 bytes; 81bc7fd34aacbbe11ef6dd73559e1194da94022faf82d6eaf4836cb3409a731e
+duotone/part-07.json: 128 icons; 76217 bytes; fdc7f8838fdef0aa964870687e50bc10d7839c7cf84583a3980a8b1995228b32
+duotone/part-08.json: 128 icons; 93958 bytes; d268d9f337ae904377cf9bad300c024d0ae0db5b80f1705bf32f4fbd481efe3c
+duotone/part-09.json: 128 icons; 93512 bytes; 8d748bfff29221dcd8ee6a10af86a0c9df73a5847574491e45ee6ebe5f59af0d
+duotone/part-10.json: 128 icons; 77275 bytes; b8d71ae27ed59f220c3d4bf1b8c827b69ec12f2cc32b3b1bb88bb26ce8a4df1a
+duotone/part-11.json: 104 icons; 69822 bytes; c31cfac5d421f1532091b8fc5859790aaeb69394b3194afe3adccfc66c76da6e
+
+Pre-sharding catalog checksums (provenance only; these large files are no longer shipped):
+thin.json: 1512 icons; 848022 bytes; 6b807156e6edf08b2a7066670c91864ac507d567cc9927cae63cede7ed81ff56
+light.json: 1512 icons; 847974 bytes; 7fb8013e21a6b7852ca5e4fcfbb37d0df0dbf6803691eb20f11e5aa15064731a
+regular.json: 1512 icons; 802022 bytes; 86f2a939d25050b9e8fc39914d5386933dfacdc54e8bc6eb0c9575a5d3e66448
+bold.json: 1512 icons; 799057 bytes; 85486abd48e6c431b522867cebf21d824f2cd66d4835237c33e92399166d54a9
+fill.json: 1512 icons; 722677 bytes; 7bba7c73f0ea8e8e0aa371dc97f6df15fc1ca06c7f8d6556bd37bbc1cfe698cc
+duotone.json: 1512 icons; 983861 bytes; f15859a3c2bf6911cc0a6220f8478ac02ed34d9e662fcae47c0a7c586fe20081
+
+No runtime network dependency on a CDN: only the local 128-icon shard for
+the requested symbol and weight is fetched. Each weight/shard pair is cached
+independently. All catalog metadata remains local and unchanged.
