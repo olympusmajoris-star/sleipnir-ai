@@ -1,0 +1,19 @@
+#raven-cabin .rce-visual{position:absolute;display:block;box-sizing:border-box;pointer-events:none;overflow:visible;isolation:isolate}
+#raven-cabin .rce-visual[data-style=glass]{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #ffffff59}
+#raven-cabin .rce-visual[data-style=tile]::after,
+#raven-cabin .rce-visual[data-style=glass]::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(155deg,#ffffff24,transparent 46%,#00000012);pointer-events:none}
+#raven-cabin .rce-visual svg{z-index:1;display:block;pointer-events:none}
+#raven-cabin .rce-handle,
+#raven-cabin .rce-resize{position:absolute;z-index:30;display:block;box-sizing:border-box;min-width:44px;min-height:44px;margin:0!important;padding:0!important;background:none!important;box-shadow:none!important;border:1px dashed #5fd8ff66!important;border-radius:7px!important;color:#5fd8ff!important;touch-action:none;user-select:none;-webkit-user-select:none}
+#raven-cabin .rce-handle[data-selected=true]{z-index:32;border:1px solid #5fd8ff!important;background:#5fd8ff0a!important}
+#raven-cabin .rce-handle[data-locked=true]{border-style:dotted!important;border-color:#b7c4cc80!important}
+#raven-cabin .rce-handle[data-locked=true]::after{content:"";position:absolute;right:3px;top:3px;width:4px;height:4px;background:#b7c4cc;border-radius:50%}
+#raven-cabin .rce-resize{z-index:34;border:0!important;border-radius:0!important}
+#raven-cabin .rce-resize::after{content:"";position:absolute;left:1px;top:1px;width:10px;height:10px;background:#092431;border:2px solid #5fd8ff;border-radius:2px;box-shadow:0 1px 4px #0008}
+#raven-cabin .rce-resize[data-horizontal=left]::after{left:33px}
+#raven-cabin .rce-resize[data-vertical=top]::after{top:33px}
+#raven-cabin .rce-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#raven-cabin[data-rce-editing=true] [data-rce-control]{pointer-events:none}
+#raven-cabin[data-rce-editing=false] .rce-handle,
+#raven-cabin[data-rce-editing=false] .rce-resize{display:none!important}
+#raven-cabin .rce-handle[hidden],#raven-cabin .rce-resize[hidden]{display:none!important}

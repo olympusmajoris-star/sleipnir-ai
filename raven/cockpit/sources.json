@@ -1,0 +1,96 @@
+{
+  "kind": "Raven cabin interaction concept",
+  "status": "Cabin designer for the existing Studio. Messaging, calls and shared media remain local demonstrations.",
+  "cabin": {
+    "type": "Generated original unbranded cabin concept; not a manufacturer photograph",
+    "generator": "Built-in image generation",
+    "master": "raven-cabin-master.png",
+    "size": [
+      1926,
+      817
+    ],
+    "sourceReference": "Prior continuous cabin concept used for framing and broad digital dashboard proportions; hardware redesigned following the user request",
+    "manufacturerReferences": [
+      "https://media.mercedes-benz.com/article/3aa3919b-1a8d-4227-9663-72c8f7ade077",
+      "https://media.mbusa.com/news/the-eqs-design-for-all-the-senses"
+    ],
+    "changes": [
+      "Original unbranded four-spoke wheel and blank matte hub",
+      "New rounded-rectangle vents, overhead controls, and door hardware",
+      "Preserved low broad windshield, upper typing strip, and continuous passenger door geometry",
+      "Cyan accent line matched to Asgard #5FD8FF",
+      "Fixed mirror removed; runtime folding self-view and passenger side-view self camera"
+    ],
+    "runtimeEncoding": "JPEG quality80; no creative image changes after generation",
+    "alternative": {
+      "master": "raven-cabin-lit-master.png",
+      "runtime": "raven-cabin-lit.jpg",
+      "source": "Exact user-selected illuminated cabin image",
+      "purpose": "Separate editable illuminated workspace"
+    }
+  },
+  "road": {
+    "source": "https://www.pexels.com/video/driving-on-a-road-in-a-mountain-landscape-14347457/",
+    "creator": "Anna Mitsu",
+    "segmentSeconds": [
+      0,
+      6
+    ],
+    "crop": "1080:300:0:1360",
+    "playback": "Original forward motion, normal repeat cut",
+    "content": "Same approved source and first six seconds; no replacement footage"
+  },
+  "controls": {
+    "cyan": "#5FD8FF",
+    "source": "Asgard project color definition",
+    "icons": "Vendored Lucide 0.468.0"
+  },
+  "preview": {
+    "calls": "Local device/layout previews only; no recipient contacted",
+    "sharing": "Incoming sample or selected local media activates the passenger-window view; no upload or recipient delivery. Side-view mirror uses the same optional local camera stream.",
+    "messaging": "Local sample thread; no server message writes"
+  },
+  "assets": {
+    "raven-cabin.jpg": {
+      "bytes": 105756,
+      "sha256": "a051a44f34c1c85437ad3ee854fce123ab1ca965039d18883ec5d2fbe4ec5a92"
+    },
+    "raven-cabin-lit.jpg": {
+      "bytes": 112851,
+      "sha256": "4df014b61efb14feee338e61663aafd9b352cbbefeae3ec7ee13d52a8290028c"
+    },
+    "raven-cabin-master.png": {
+      "bytes": 1934360,
+      "sha256": "87e75baeda4964addd3fe17ade141a5b8efae0fc7744d942151064581d0c283d"
+    },
+    "raven-cabin-lit-master.png": {
+      "bytes": 1902806,
+      "sha256": "983dc598e8949985cfc70423d373258992f04167b51939bed84914a29cad2f2f"
+    },
+    "road-wide.mp4": {
+      "bytes": 1085499,
+      "sha256": "6dc9d5462338b315a2cc69ac02f7c01affdf1de7507e134e506ec2336ce4b25d"
+    },
+    "road-wide-poster.jpg": {
+      "bytes": 27650,
+      "sha256": "b9b677f33a2badc2a2dc08794c4337af46201340dbbedf065494d49b4c939420"
+    }
+  },
+  "camera": {
+    "technique": "Perspective rotation of rays over a continuous photographic cabin environment",
+    "model": "A source photograph with a calibrated virtual pinhole camera; not a fully modeled 3D vehicle",
+    "sourceIntrinsics": {
+      "cx": 630,
+      "cy": 300,
+      "f": 700
+    },
+    "viewYawDegrees": {
+      "chat": 0,
+      "video": 10,
+      "sharing": 35
+    },
+    "road": "Source-space windshield mask and video composited before perspective projection",
+    "sharedMedia": "DOM homographies use the same projector as the photographic environment",
+    "verification": "Analytic projection, offline pixel diagnostics, and explicit media/DOM/WebGL stubs; no browser or physical-device verification"
+  }
+}
