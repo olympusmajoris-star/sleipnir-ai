@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Raven · Windshield</title>
+<link rel="stylesheet" href="raven-windshield-console.css?v=1124road1">
+<style>
+:root{color-scheme:dark;font:400 16px/1.5 system-ui,sans-serif;background:#0d151b;color:#e5edf2}*{box-sizing:border-box}body{margin:0;padding:20px max(18px,env(safe-area-inset-right)) 30px max(18px,env(safe-area-inset-left))}a{color:#acd9ec;text-underline-offset:3px}.rr-shell{max-width:930px;margin:0 auto}.rr-heading{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;margin-bottom:20px}.rr-heading h1{font-size:24px;line-height:1.25;font-weight:550;margin:0 0 7px}.rr-heading p{color:#a9bdc9;font-size:14px;margin:0}.rr-links{display:flex;gap:15px;flex-wrap:wrap;font-size:14px;padding-top:5px}.rr-choices{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}.rr-choices button{font:inherit;font-size:15px;min-height:44px;border:1px solid #3b5362;border-radius:8px;padding:8px 16px;color:#d9e7ef;background:#172732;cursor:pointer}.rr-choices button[aria-pressed=true]{color:#092232;background:#b4dce9;border-color:#b4dce9}.rr-layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:32px;align-items:start}.rr-preview{min-width:0}.rr-settings{border:1px solid #314551;border-radius:12px;background:#13222b;padding:15px}.rr-settings summary{cursor:pointer;font-size:17px;font-weight:500;min-height:30px}.rr-settings>p{font-size:13px;color:#acc0cd;margin:6px 0 18px}.rr-setting{display:grid;grid-template-columns:1fr auto;column-gap:10px;font-size:14px;margin:0 0 18px}.rr-setting:last-child{margin-bottom:0}.rr-setting output{color:#b9e3f2;font-variant-numeric:tabular-nums}.rr-setting input{grid-column:1/-1;width:100%;min-height:32px;margin:2px 0 0;accent-color:#9fd5e9}.rr-note{margin:15px 0 0;padding:12px 15px;border:1px solid #806b45;border-radius:8px;background:#2e271b;color:#ecd9ae;font-size:14px}.rr-credit{font-size:12px;color:#8ea8b8;margin:16px auto 0;max-width:390px}.rr-footer{font-size:13px;color:#9bb2c0;margin-top:20px}.rr-shell button:focus-visible,.rr-shell a:focus-visible,.rr-shell summary:focus-visible,.rr-shell input:focus-visible{outline:3px solid #e3c27a;outline-offset:3px}.wb-help{width:min(500px,calc(100vw - 28px));max-height:85dvh;overflow:auto;border:1px solid #56778d;border-radius:12px;background:#13232e;color:#e3edf2;padding:22px;font:400 16px/1.5 system-ui,sans-serif}.wb-help::backdrop{background:#000a}.wb-help input{display:block;width:100%;min-height:44px;border:1px solid #56778d;border-radius:6px;padding:8px 10px;margin:10px 0;background:#091923;color:#fff;font:inherit}.wb-help button{min-height:44px;margin:6px 8px 6px 0;border:1px solid #5c8095;border-radius:6px;background:#23465c;color:#fff;padding:8px 12px;font:inherit}.wb-help h2{font-size:20px;line-height:1.3}#raven-windshield-console>section[hidden],[hidden]{display:none!important}
+@media(max-width:660px){body{padding:14px max(10px,env(safe-area-inset-right)) 24px max(10px,env(safe-area-inset-left))}.rr-heading{gap:12px;flex-wrap:wrap;margin-bottom:15px}.rr-heading h1{font-size:22px}.rr-layout{grid-template-columns:minmax(0,1fr);gap:20px}.rr-settings{width:100%;max-width:390px;justify-self:center}.rr-choices{gap:6px;justify-content:center;margin-bottom:14px}.rr-choices button{padding:8px 12px;font-size:14px}.rr-links{padding:0}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main class="rr-shell">
+  <header class="rr-heading"><div><h1>Raven · Windshield</h1><p>Sample conversation · messages stay in this preview.</p></div><nav class="rr-links" aria-label="Preview links"><a id="rr-back" href="sleipnir-studio-1120.html#conversation" target="_top">Back to Studio</a><a id="rr-full-screen" href="raven-road-studio.html" target="_blank" rel="noopener">Open full screen</a></nav></header>
+  <div class="rr-choices" role="group" aria-label="Choose car interior"><button type="button" data-car-choice="maybach" aria-pressed="true">Maybach S-Class</button><button type="button" data-car-choice="g63" aria-pressed="false">G-Class</button><button type="button" data-car-choice="range" aria-pressed="false">Range Rover</button></div>
+  <div class="rr-layout"><div class="rr-preview">
+<div id="raven-windshield-console" class="viz-carousel viz-dotted-background" aria-label="Raven windshield and dashboard previews">
+  <section data-variant="Maybach" aria-label="Maybach S-Class windshield conversation"><div class="rw-mount" data-car="maybach"></div><div class="rw-credit">Maybach S-Class · <a href="https://www.carexpert.com.au/car-news/2027-mercedes-maybach-s-class-facelift-revealed-here-in-australia-in-q4-2026" target="_blank" rel="noopener noreferrer">Mercedes-Benz photograph</a></div></section>
+  <section data-variant="G-Class" aria-label="G-Class windshield conversation" hidden><div class="rw-mount" data-car="g63"></div><div class="rw-credit">Mercedes-AMG G63 · <a href="https://www.caranddriver.com/photos/g60297571/2025-mercedes-amg-g63-revealed-gallery/" target="_blank" rel="noopener noreferrer">Mercedes-AMG photograph</a></div></section>
+  <section data-variant="Range Rover" aria-label="Range Rover windshield conversation" hidden><div class="rw-mount" data-car="range"></div><div class="rw-credit">Range Rover SV · <a href="https://www.repubblica.it/motori/2023/10/13/news/range_rover_sv_un_viaggio_in_prima_classe_1200_km_sulla_ibrida_plug-in_da_510_cv_ecco_come_e_andata-417689390/" target="_blank" rel="noopener noreferrer">La Repubblica photograph</a></div></section>
+</div>
+<template id="rw-phone-template">
+  <div class="rw-phone">
+    <header class="rw-header"><span class="rw-brand">RAVEN</span><div><strong>Alex</strong><span class="rw-preview-label">Sample conversation</span></div><button class="rw-motion cursor-interaction" type="button" aria-pressed="false">Pause road</button></header>
+    <div class="rw-scene">
+      <video class="rw-road" muted playsinline loop preload="metadata" aria-hidden="true"></video>
+      <div class="rw-glass" aria-hidden="true"></div>
+      <div class="rw-thread" role="log" aria-label="Conversation with Alex" aria-live="polite"></div>
+      <button type="button" class="rw-latest cursor-interaction" hidden>Latest messages</button>
+      <img class="rw-dash" alt="Original car dashboard and steering-wheel emblem" draggable="false">
+      <button type="button" class="rw-launch rw-write cursor-interaction" data-open="message" aria-expanded="false"><span class="rw-launch-label">Write</span><span class="rw-launch-detail">Message</span></button>
+      <button type="button" class="rw-launch rw-image cursor-interaction" data-open="image" aria-expanded="false"><span class="rw-launch-label">Photos</span><span class="rw-launch-detail">Attach</span></button>
+      <button type="button" class="rw-launch rw-radio cursor-interaction" data-open="radio" aria-expanded="false"><span class="rw-launch-label">Radio</span><span class="rw-launch-detail">Voice</span></button>
+      <button type="button" class="rw-launch rw-call cursor-interaction" data-open="call" aria-expanded="false"><span class="rw-launch-label">Call</span></button>
+      <button type="button" class="rw-launch rw-video cursor-interaction" data-open="video" aria-expanded="false"><span class="rw-launch-label">Video</span></button>
+      <div class="rw-console" role="region" aria-label="Expanded dashboard display" hidden>
+        <div class="rw-console-top"><span class="rw-display-name">RAVEN / MESSAGE</span><button type="button" class="rw-close cursor-interaction" aria-label="Close dashboard display">Done</button></div>
+        <div class="rw-console-tabs" role="group" aria-label="Dashboard features"><button type="button" class="cursor-interaction" data-tab="message" aria-pressed="true">Message</button><button type="button" class="cursor-interaction" data-tab="image" aria-pressed="false">Photos</button><button type="button" class="cursor-interaction" data-tab="radio" aria-pressed="false">Radio</button><button type="button" class="cursor-interaction" data-tab="language" aria-pressed="false">Language</button></div>
+        <div class="rw-panel rw-panel-message">
+          <form class="rw-compose" aria-label="Dashboard message composer">
+            <div class="rw-attachment" hidden><img alt="Selected photo preview"><span class="rw-attachment-name"></span><button type="button" class="rw-remove cursor-interaction" aria-label="Remove attached photo">Remove</button></div>
+            <label class="rw-label">Message<textarea rows="2" maxlength="4000" placeholder="Write to Alex…" aria-label="Message to Alex"></textarea></label>
+            <div class="rw-compose-actions"><button type="button" class="rw-dictate-short cursor-interaction">Talk to text</button><span class="rw-draft-status" aria-live="polite"></span><button type="submit" class="rw-send cursor-interaction" disabled>Send</button></div>
+          </form>
+        </div>
+        <div class="rw-panel rw-panel-image" hidden>
+          <div class="rw-photo-actions"><button type="button" class="rw-pick-photo cursor-interaction">Choose photo</button><button type="button" class="rw-camera cursor-interaction">Take photo</button></div>
+          <input class="rw-file-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden>
+          <input class="rw-camera-input" type="file" accept="image/*" capture="environment" hidden>
+          <div class="rw-sample-photo"><img alt="Road scene sample"><button type="button" class="rw-use-sample cursor-interaction">Try this photo</button></div>
+        </div>
+        <div class="rw-panel rw-panel-radio" hidden>
+          <div class="rw-radio-display"><span class="rw-radio-mode">VOICE</span><span class="rw-radio-status" role="status">Ready</span></div>
+          <div class="rw-radio-keys"><button type="button" class="rw-dictate cursor-interaction" aria-pressed="false">Talk to text</button><button type="button" class="rw-read cursor-interaction" aria-pressed="false">Read messages</button><button type="button" class="rw-pause-speech cursor-interaction" disabled>Pause</button><button type="button" class="rw-stop-speech cursor-interaction" disabled>Stop</button></div>
+          <div class="rw-audio-settings"><label class="rw-label">Voice<select class="rw-voice"><option value="">Device default</option></select></label><label class="rw-label">Speed <output class="rw-rate-value">1×</output><input class="rw-rate" type="range" min="0.5" max="1.5" step="0.1" value="1" aria-label="Reading speed"></label></div>
+          <label class="rw-check"><input class="rw-auto-read" type="checkbox">Read new incoming messages</label>
+        </div>
+        <div class="rw-panel rw-panel-language" hidden>
+          <div class="rw-language-settings"><label class="rw-label">Read and translate into<select class="rw-language"><option value="en-US">English</option><option value="es-ES">Español</option><option value="fr-FR">Français</option><option value="de-DE">Deutsch</option><option value="it-IT">Italiano</option><option value="pt-BR">Português</option><option value="ar-SA">العربية</option><option value="hi-IN">हिन्दी</option><option value="ja-JP">日本語</option><option value="ko-KR">한국어</option><option value="zh-CN">中文</option></select></label><label class="rw-label">Speak in<select class="rw-dictation-language"><option value="en-US">English</option><option value="es-ES">Español</option><option value="fr-FR">Français</option><option value="de-DE">Deutsch</option><option value="it-IT">Italiano</option><option value="pt-BR">Português</option><option value="ar-SA">العربية</option><option value="hi-IN">हिन्दी</option><option value="ja-JP">日本語</option><option value="ko-KR">한국어</option><option value="zh-CN">中文</option></select></label></div>
+          <label class="rw-check"><input class="rw-auto-translate" type="checkbox">Automatically translate incoming messages</label>
+          <button type="button" class="rw-translate-now cursor-interaction">Translate this conversation</button>
+          <div class="rw-translation-status" role="status">Original messages stay available.</div>
+        </div>
+        <div class="rw-panel rw-panel-call" hidden>
+          <div class="rw-call-preview"><video class="rw-self-video" muted playsinline hidden></video><div class="rw-call-avatar" aria-hidden="true">A</div><strong>Alex</strong><span class="rw-call-status" role="status">Call layout preview · no one contacted</span></div>
+          <div class="rw-call-keys"><button type="button" class="rw-device-test cursor-interaction">Test microphone</button><button type="button" class="rw-call-mute cursor-interaction" disabled>Mute</button><button type="button" class="rw-call-end cursor-interaction">Close preview</button></div>
+        </div>
+        <div class="rw-console-status" role="status"></div>
+      </div>
+      <div class="rw-toast" role="status" hidden></div>
+    </div>
+  </div>
+</template>
+
+  </div><details class="rr-settings" open><summary>Preview settings</summary><p>Changes appear immediately.</p><div id="rr-settings-fields"></div></details></div>
+  <p id="rr-service-note" class="rr-note" role="status" hidden></p>
+  <footer class="rr-footer">Composite scene with original car photographs. Road footage by <a href="https://www.pexels.com/video/point-of-view-of-a-car-driving-on-a-road-11367262/" target="_blank" rel="noopener noreferrer">caner cevirgen / Pexels</a>. Call and video buttons let you test this device; no one is contacted.</footer>
+</main>
+<script src="studio-transfer-config.js"></script>
+<script src="studio-auth-core.js"></script>
+<script src="studio-jobs.js?v=1124road1"></script>
+<script type="application/json" id="rw-media">{"maybach":"raven/road/maybach-s-class.jpg","g63":"raven/road/g63.webp","range":"raven/road/range-rover-sv.jpg","road":"raven/road/road-soft.mp4","poster":"raven/road/road-poster.jpg"}</script>
+<script src="raven-road-services.js?v=1124road1"></script>
+<script src="raven-road-shell.js?v=1124road1"></script>
+<script src="raven-voice-controls.js?v=1124road1"></script>
+<script src="raven-windshield-console.js?v=1124road1"></script>
+</body>
+</html>
