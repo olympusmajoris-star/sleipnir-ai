@@ -1,0 +1,28 @@
+{
+  "purpose": "Raven windshield Studio sample; original car photographs with a separate moving road layer.",
+  "assets": [
+    {
+      "file": "maybach-s-class.jpg",
+      "source": "https://www.carexpert.com.au/car-news/2027-mercedes-maybach-s-class-facelift-revealed-here-in-australia-in-q4-2026",
+      "credit": "Mercedes-Benz photograph via CarExpert"
+    },
+    {
+      "file": "g63.webp",
+      "source": "https://www.caranddriver.com/photos/g60297571/2025-mercedes-amg-g63-revealed-gallery/",
+      "image": "https://www.carthrottle.com/sites/default/files/uploads/2024-03/24C0078_026.jpg?width=1200&format=webp",
+      "credit": "Mercedes-AMG photograph"
+    },
+    {
+      "file": "range-rover-sv.jpg",
+      "source": "https://www.repubblica.it/motori/2023/10/13/news/range_rover_sv_un_viaggio_in_prima_classe_1200_km_sulla_ibrida_plug-in_da_510_cv_ecco_come_e_andata-417689390/",
+      "credit": "La Repubblica photograph"
+    },
+    {
+      "file": "road-soft.mp4",
+      "poster": "road-poster.jpg",
+      "source": "https://www.pexels.com/video/point-of-view-of-a-car-driving-on-a-road-11367262/",
+      "credit": "Video by caner cevirgen on Pexels",
+      "license": "https://www.pexels.com/license/"
+    }
+  ]
+}

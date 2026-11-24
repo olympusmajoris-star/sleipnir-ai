@@ -4,9 +4,26 @@ const conf=G.StudioTransferConfig,E=(t,s)=>{const n=document.createElement(t);if
 function ownerWindow(){try{if(G.top.location.origin===location.origin)return G.top;}catch{}return G;}
 const current=()=>ownerWindow().__asgardStudioOwnerSession||null;
 function keep(s){ownerWindow().__asgardStudioOwnerSession=s;}
-async function request(path,{auth=true,method='GET',body,headers={}}={}){let s=current();if(auth&&!s)await connect();s=current();if(auth&&s.expires_at<Date.now()/1000+60){const r=await fetch(conf.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:conf.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok){keep(null);throw Error('Owner connection expired. Reconnect to continue.');}s=await r.json();s.expires_at||=Date.now()/1000+s.expires_in;keep(s);}const r=await fetch(conf.url+path,{method,headers:{apikey:conf.key,Authorization:'Bearer '+(auth?s.access_token:conf.key),'Content-Type':'application/json',...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});if(!r.ok){const detail=await r.json().catch(()=>({}));throw Error(detail.message||detail.error_description||'Request failed. Your previous work is kept.');}if(r.status===204)return null;return r.json();}
-function connect(){if(current())return Promise.resolve(current());return new Promise((resolve,reject)=>{
- const d=E('dialog'),h=E('h2','Connect Forge & production'),note=E('p','Use your existing app owner email. Email sign-in works without remembering or changing a password.'),email=E('input'),secret=E('input'),password=E('input'),status=E('p'),send=E('button','Email me a sign-in link'),go=E('button','Connect using email'),passwordBox=E('details'),cancel=E('button','Cancel'),auth=G.StudioOwnerAuth.create({url:conf.url,key:conf.key,owner:conf.owner});
+async function request(path,{auth=true,method='GET',body,headers={},signal,authContext}={}){
+ if(signal?.aborted)throw new DOMException('Request cancelled.','AbortError');
+ let s=current();if(auth&&!s)await connect(authContext);
+ if(signal?.aborted)throw new DOMException('Request cancelled.','AbortError');
+ s=current();
+ if(auth&&s.expires_at<Date.now()/1000+60){
+  const r=await fetch(conf.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:conf.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token}),signal});
+  if(!r.ok){keep(null);throw Error('Owner connection expired. Reconnect to continue.');}
+  s=await r.json();s.expires_at||=Date.now()/1000+s.expires_in;keep(s);
+ }
+ if(signal?.aborted)throw new DOMException('Request cancelled.','AbortError');
+ const form=body!=null&&Object.prototype.toString.call(body)==='[object FormData]';
+ const outgoing=new Headers({apikey:conf.key,Authorization:'Bearer '+(auth?s.access_token:conf.key),'Content-Type':'application/json',...headers});
+ if(form)outgoing.delete('Content-Type');
+ const r=await fetch(conf.url+path,{method,headers:outgoing,signal,...(body!==undefined?{body:form?body:JSON.stringify(body)}:{})});
+ if(!r.ok){const detail=await r.json().catch(()=>({}));throw Error(detail.message||detail.error_description||'Request failed. Your previous work is kept.');}
+ if(r.status===204)return null;return r.json();
+}
+function connect(context={}){if(current())return Promise.resolve(current());return new Promise((resolve,reject)=>{
+ const d=E('dialog'),h=E('h2',typeof context.title==='string'?context.title:'Connect Forge & production'),note=E('p',typeof context.note==='string'?context.note:'Use your existing app owner email. Email sign-in works without remembering or changing a password.'),email=E('input'),secret=E('input'),password=E('input'),status=E('p'),send=E('button','Email me a sign-in link'),go=E('button','Connect using email'),passwordBox=E('details'),cancel=E('button','Cancel'),auth=G.StudioOwnerAuth.create({url:conf.url,key:conf.key,owner:conf.owner});
  d.className='wb-help';email.type='email';email.placeholder='Owner email';email.autocomplete='username';email.setAttribute('aria-label','Owner email');secret.type='password';secret.placeholder='Paste the email’s Log In link or code';secret.autocomplete='off';secret.setAttribute('aria-label','Email sign-in link or code');password.type='password';password.placeholder='Existing app password';password.autocomplete='current-password';password.setAttribute('aria-label','Owner password');email.className=password.className=secret.className='pg-sel';let done=false,busy=false;
  cancel.onclick=()=>d.close();d.addEventListener('close',()=>{secret.value=password.value='';d.remove();if(!done)reject(Error('Owner connection cancelled.'));});
  async function perform(fn,finish){if(busy)return;busy=true;send.disabled=go.disabled=passGo.disabled=true;try{const result=await fn();if(!d.open)return;if(finish){keep(result);done=true;d.close();resolve(result);}else status.textContent='Check your email. Right-click Log In → Copy Link, then paste it above and Connect. Copy the link without opening it.';}catch(e){if(d.open)status.textContent=e.message;}finally{busy=false;send.disabled=go.disabled=passGo.disabled=false;}}
