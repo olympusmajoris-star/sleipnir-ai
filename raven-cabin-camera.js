@@ -9,7 +9,7 @@
     const g=geometry,cfg=g.camera||{},presentation=g.presentation||{},chat=g.views.chat,video=g.views.video,sharing=g.views.sharing;
     const view=Array.isArray(requested)&&requested.length===4&&requested.every(Number.isFinite)&&requested[2]>0&&requested[3]>0?requested.slice():chat.slice();
     width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,width*chat[3]/chat[2]));
-    const studioSurface=presentation.studioSurface||'',phone=studioSurface==='phone'||presentation.device==='iphone',portrait=height>width,zoom=clamp(finite(presentation.zoom,1),1,2.5),controls=!!presentation.controlsVisible;
+    const studioSurface=presentation.studioSurface||'',phone=studioSurface==='phone'||presentation.device==='iphone',portrait=height>width,zoom=clamp(finite(presentation.zoom,1),1,2.5);
     const studioFit=!phone&&['cabin','dashboard','windshield','passenger','pan'].includes(studioSurface);
     const cx=finite(cfg.cx,630),cy=finite(cfg.cy,300),f=Math.max(1,finite(cfg.f,1600));
     let t1=clamp((view[0]-chat[0])/Math.max(1,video[0]-chat[0]),0,1),t2=clamp((view[0]-video[0])/Math.max(1,sharing[0]-video[0]),0,1);
@@ -18,6 +18,10 @@
       else if(studioSurface==='passenger'){t1=1;t2=1;}
       else if(studioSurface==='windshield')t2=0;
     }
+    const videoActive=typeof presentation.videoActive==='boolean'?presentation.videoActive:t1>0&&t2<1;
+    const videoFocusProgress=videoActive?clamp(finite(presentation.videoFocusProgress,presentation.screenOnly?1:0),0,1):0;
+    const screenOnly=(videoActive?videoFocusProgress>=1:!!presentation.screenOnly)&&t2===0&&!['passenger','pan'].includes(studioSurface);
+    const controls=videoActive||!screenOnly&&!!presentation.controlsVisible;
     const videoYaw=finite(cfg.videoYaw,16),sharingYaw=finite(cfg.sharingYaw,58),yaw=(videoYaw*t1+(sharingYaw-videoYaw)*t2)*Math.PI/180,sin=Math.sin(yaw),cos=Math.cos(yaw);
     const z=x=>sin*(x-cx)/f+cos,q=x=>(cos*(x-cx)/f-sin)/z(x),v=(x,y)=>(y-cy)/(f*z(x));
     const mix=(a,b,t)=>a+(b-a)*t;
@@ -26,6 +30,11 @@
       if(which==='sharing'){
         const qa=q(1270),qb=q(g.width),mid=(qa+qb)/2;x=cx+f*(cos*mid+sin)/(cos-sin*mid);y=310;fraction=.45;
         lens=width/(qb-qa)*zoom;
+      }else if(which==='video'&&phone&&controls){
+        x=725;y=390;vertical=700;fraction=.5;
+        // Keep room for native dashboard actions while the phone shows the
+        // caller. The separate screen-only mode can use the full glass.
+        lens=Math.min(height*f*z(x)/vertical*zoom,(height-48)*f*z(x)/565);
       }else if(controls){
         x=810;y=portrait?390:440;vertical=portrait?700:650;lens=height*f*z(x)/vertical*zoom;
       }else if(which==='chat'&&!phone){
@@ -47,22 +56,32 @@
     }
     // Increase the field's sampling density until every visible ray reaches
     // the continuous source photo. No empty outside-photo wedges are exposed.
-    if(studioFit){
+    if(screenOnly&&!videoActive){
+      const [x,y,w,h]=videoActive?(g.videoScreenFrame||[569,116,669,281]):(g.chatScreenFrame||[42,116,1196,281]),xs=[q(x),q(x+w)],ys=[v(x,y),v(x+w,y),v(x,y+h),v(x+w,y+h)],left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+      // Fill the phone from actual windshield rays, without stretching the
+      // photograph. A narrow edge of the glass remains around the call.
+      focal=Math.max(Math.max(1,width-16)/(right-left),Math.max(1,height-16)/(bottom-top))*zoom;
+      principalX=width/2-focal*(left+right)/2;neutral=height/2-focal*(top+bottom)/2;principalY=neutral;
+      sourceClip=[0,0,1260,Math.min(g.height,405)];covered=true;
+    }else if(studioFit||videoActive&&!phone&&studioSurface!=='passenger'&&studioSurface!=='pan'){
       const frames=g.studioFrames||{};
       function fitFrame(name){
-        const r=frames[name]||({cabin:[0,0,1260,817],dashboard:[40,350,1190,415],windshield:[430,105,810,355],passenger:[1260,0,666,680]})[name], [x,y,w,h]=r;
+        if(name==='windshield'&&videoActive&&controls)name='video';
+        const r=name==='videoEntry'?(g.videoEntryFrame||[569,0,691,765]):frames[name]||({cabin:[0,0,1260,817],dashboard:[40,350,1190,415],windshield:[430,105,810,355],video:[430,90,810,570],passenger:[1260,0,666,680]})[name], [x,y,w,h]=r;
         const xs=[q(x),q(x+w)],ys=[v(x,y),v(x+w,y),v(x,y+h),v(x+w,y+h)],left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
         return {qx:(left+right)/2,vy:(top+bottom)/2,lens:Math.min(Math.max(1,width-16)/Math.max(.0001,right-left),Math.max(1,height-16)/Math.max(.0001,bottom-top))};
       }
       let fitted;
-      if(studioSurface==='pan'){
+      if(videoActive&&studioSurface!=='passenger'&&studioSurface!=='pan'){
+        fitted=fitFrame('videoEntry');sourceClip=[569,0,1260-569,g.height];
+      }else if(studioSurface==='pan'){
         const front=fitFrame('cabin'),glass=fitFrame('windshield'),side=fitFrame('passenger');
         fitted={qx:mix(mix(front.qx,glass.qx,t1),side.qx,t2),vy:mix(mix(front.vy,glass.vy,t1),side.vy,t2),lens:Math.exp(mix(mix(Math.log(front.lens),Math.log(glass.lens),t1),Math.log(side.lens),t2))};
         sourceClip=[1260*t2,0,1260+666*t1-1260*t2,g.height];
       }else{
         fitted=fitFrame(studioSurface);sourceClip=studioSurface==='passenger'?[1260,0,g.width-1260,g.height]:[0,0,1260,g.height];
       }
-      focal=fitted.lens*(studioSurface==='windshield'?zoom:1);principalX=width/2-focal*fitted.qx;neutral=height/2-focal*fitted.vy;
+      focal=fitted.lens*(studioSurface==='windshield'&&!videoActive?zoom:1);principalX=width/2-focal*fitted.qx;neutral=height/2-focal*fitted.vy;
       principalY=neutral-(studioSurface==='windshield'?height*lift/100:0);covered=true;
     }else{
       focal=Math.max(focal,width/Math.max(.0001,qW-q0));
@@ -76,10 +95,19 @@
       horizontal();neutral=clamp(height*fraction-focal*v(focusX,focusY),lower,upper);principalY=clamp(neutral-height*lift/100,lower,upper);
       // A call keeps the physical overhead hinge in view even when the phone
       // is zoomed. Chat framing remains unchanged and sharing leaves it behind.
-      if(phone&&t1>0&&t2<1&&!controls){
-        const hinge=g.mirror||[569,110,112,152],hingeY=principalY+focal*v(hinge[0]+hinge[2]/2,hinge[1]);
+      if(phone&&videoActive&&t1>0&&t2<1){
+        const hinge=g.mirror||[569,110,112,152],hingeX=principalX+focal*q(hinge[0]+hinge[2]/2),mirrorMargin=clamp(width*.26,96,122)/2+8;
+        principalX+= (clamp(hingeX,mirrorMargin,width-mirrorMargin)-hingeX)*t1*(1-t2);
+        const hingeY=principalY+focal*v(hinge[0]+hinge[2]/2,hinge[1]);
         principalY=clamp(principalY+Math.max(0,72-hingeY)*t1*(1-t2),lower,upper);
       }
+    }
+    if(videoActive&&!['passenger','pan'].includes(studioSurface)&&t2===0){
+      const progress=videoFocusProgress,[x,y,w,h]=g.videoScreenFrame||[569,116,669,281],xs=[q(x),q(x+w)],ys=[v(x,y),v(x+w,y),v(x,y+h),v(x+w,y+h)],left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+      const endFocal=Math.max(Math.max(1,width-16)/(right-left),Math.max(1,height-16)/(bottom-top))*zoom,startX=(width/2-principalX)/focal,startY=(height/2-principalY)/focal;
+      focal=Math.exp(mix(Math.log(focal),Math.log(endFocal),progress));
+      principalX=width/2-focal*mix(startX,(left+right)/2,progress);principalY=height/2-focal*mix(startY,(top+bottom)/2,progress);neutral=principalY;
+      sourceClip=[569,0,1260-569,mix(g.height,Math.min(g.height,405),progress)];covered=true;
     }
     function point(x,y){const depth=z(x);if(depth<=1e-7)return [NaN,NaN];return [principalX+focal*q(x),principalY+focal*(y-cy)/(f*depth)];}
     function unproject(x,y){const u=(x-principalX)/focal,vv=(y-principalY)/focal,depth=cos-sin*u;if(depth<=1e-7)return [NaN,NaN];return [cx+f*(cos*u+sin)/depth,cy+f*vv/depth];}
@@ -107,11 +135,15 @@
         if(w>0&&w*h>area){area=w*h;best=[left+(right-left-w)/2,ys[i],w,h];}
       }return best;
     }
-    const windshieldPolygon=(g.windshield||[]).map(p=>point(...p)),sideWindowPolygon=(g.sideWindowFull||g.sideWindow||[]).map(p=>point(...p)),visibleWindshield=clip(clip(g.windshield||[],sourceClip).map(p=>point(...p))),visibleSideWindow=clip(clip(g.sideWindowFull||g.sideWindow||[],sourceClip).map(p=>point(...p)));
-    const rawCompose=rect(g.compose),composeWidth=Math.min(width-16,Math.max(100,rawCompose[2])),composeX=clamp(rawCompose[0]+rawCompose[2]/2-composeWidth/2,8,Math.max(8,width-8-composeWidth)),composeY=clamp(rawCompose[1]+rawCompose[3]/2-22,8,Math.max(8,height-52)),composeRect=[composeX,composeY,composeWidth,44];
+    const windshieldPolygon=(g.windshield||[]).map(p=>point(...p)),videoPolygon=(g.videoGlass||g.windshield||[]).map(p=>point(...p)),sideWindowPolygon=(g.sideWindowFull||g.sideWindow||[]).map(p=>point(...p)),visibleWindshield=clip(clip(g.windshield||[],sourceClip).map(p=>point(...p))),visibleVideo=clip(clip(g.videoGlass||g.windshield||[],sourceClip).map(p=>point(...p))),visibleSideWindow=clip(clip(g.sideWindowFull||g.sideWindow||[],sourceClip).map(p=>point(...p)));
+    const rawCompose=rect(g.compose),composeWidth=Math.min(width-16,Math.max(100,rawCompose[2])),composeX=clamp(rawCompose[0]+rawCompose[2]/2-composeWidth/2,8,Math.max(8,width-8-composeWidth)),composeY=clamp(rawCompose[1]+rawCompose[3]/2-22,8,Math.max(8,height-52));
+    let composeRect=[composeX,composeY,composeWidth,44];
+    if(videoActive){const left=Math.max(8,rawCompose[0]),right=Math.min(width-8,rawCompose[0]+rawCompose[2]);if(right-left>=100)composeRect=[left,composeY,right-left,44];}
+    if(screenOnly||videoFocusProgress>0){const usable=inner(videoActive?visibleVideo:visibleWindshield,width-20),target=[usable[0],Math.max(usable[1],usable[1]+usable[3]-44),usable[2],44],progress=videoActive?videoFocusProgress:1;composeRect=composeRect.map((value,i)=>i===3?44:mix(value,target[i],progress));}
+    const rawFront=rect(g.frontControls||[500,475,585,150]),frontLeft=Math.max(16,rawFront[0]+8),frontTop=Math.max(composeRect[1]+56,rawFront[1]+8),frontRight=Math.min(width-16,rawFront[0]+rawFront[2]-8),frontBottom=Math.min(height-12,rawFront[1]+rawFront[3]-8),frontControlsRect=screenOnly?[0,0,0,0]:[frontLeft,frontTop,Math.max(0,frontRight-frontLeft),Math.max(0,frontBottom-frontTop)],videoRect=bounds(visibleVideo);
     let threadRect=inner(visibleWindshield,phone?width-20:460);const threadBottom=Math.min(threadRect[1]+threadRect[3],composeRect[1]-8,height-8);threadRect[3]=Math.max(0,threadBottom-threadRect[1]);
     const sharedRect=bounds(visibleSideWindow),rawDoor=rect([1270,490,640,250]),doorTop=clamp(rawDoor[1],height*.58,height-108),doorRect=[8,doorTop,width-16,Math.max(96,height-doorTop-8)];
-    return {point,unproject,quad,rect,scale:width/view[2],width,height,view,studioSurface,progress:t1*.5+t2*.5,threadRect,composeRect,sharedRect,doorRect,windshieldPolygon,sideWindowPolygon,visibleWindshield,visibleSideWindow,tabletRect:rect(g.tabletRect||[514,666,216,72]),tabletBezelRect:rect(g.tabletBezel||[502,653,244,98]),
+    return {point,unproject,quad,rect,scale:width/view[2],width,height,view,studioSurface,videoActive,videoFocusProgress,screenOnly,progress:t1*.5+t2*.5,threadRect,composeRect,frontControlsRect,videoRect,sharedRect,doorRect,windshieldPolygon,videoPolygon,sideWindowPolygon,visibleWindshield,visibleVideo,visibleSideWindow,tabletRect:rect(g.tabletRect||[514,666,216,72]),tabletBezelRect:rect(g.tabletBezel||[502,653,244,98]),
       camera:{cx,cy,f,yaw,sin,cos,focal,principalX,principalY,sourceClip,covered,windshieldLift:lift,windshieldLiftApplied:(neutral-principalY)/height*100}};
   }
   const vertexSource='attribute vec2 position; varying vec2 uv; void main(){ uv=position*.5+.5; gl_Position=vec4(position,0.,1.); }';

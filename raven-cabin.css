@@ -168,3 +168,8 @@
 #raven-cabin .rwc-comparison[hidden]{display:none!important}
 #raven-cabin .rwc-reference-thread,#raven-cabin .rwc-reference-compose{position:absolute;border:2px dotted #ffe39b;border-radius:6px;box-sizing:border-box;background:#fce7a405}
 #raven-cabin .rwc-comparison span{position:absolute;left:5px;top:5px;padding:3px 6px;background:#171a20e8;color:#ffe9af;font:500 11px/15px Arial,sans-serif;border-radius:4px}
+
+/* The typing surface keeps its phone-sized line while the cabin camera moves. */
+#raven-cabin .rw-compose textarea{font:400 17px/22px Arial,sans-serif!important;height:22px!important;min-height:22px;max-height:22px!important}
+#raven-cabin .rw-control[data-cabin-unavailable=true]{display:none!important}
+#raven-cabin[data-screen-only=true]:not([data-cabin-mode=sharing]) .rw-input-surface{border:1px solid #5fd8ff44;border-radius:9px;background:linear-gradient(180deg,#10232af5,#08141cf7);box-shadow:0 2px 12px #0005}

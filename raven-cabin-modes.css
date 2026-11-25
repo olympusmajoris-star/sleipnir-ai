@@ -65,3 +65,6 @@
 #raven-cabin .rc-share-content[data-fit=fill] .rc-shared-image,#raven-cabin .rc-share-content[data-fit=fill] .rc-shared-video{object-fit:cover}
 #raven-cabin .rc-control:focus-visible{outline:2px solid #a5eaff;outline-offset:0;border-radius:6px!important}
 #raven-cabin[data-cabin-mode=sharing] .rw-compose,#raven-cabin[data-cabin-mode=sharing] .rw-input-surface,#raven-cabin[data-cabin-mode=sharing] .rw-tray{display:none!important}
+#raven-cabin .rc-fullscreen{z-index:12}
+#raven-cabin .rc-control[data-cabin-adapted=true] svg{stroke-width:1.9}
+#raven-cabin[data-screen-only=true]:not([data-cabin-mode=sharing]) :is(.rc-camera,.rc-share,.rc-end,.rc-fullscreen){border:1px solid #5fd8ff55!important;border-radius:12px!important;background:#071722e8!important;box-shadow:0 2px 9px #0005!important;backdrop-filter:blur(6px)}

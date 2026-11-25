@@ -13,11 +13,19 @@
     // phone zoom. The passenger view includes the glass and upper door.
     studioFrames: {
       cabin:[0,0,1260,817], dashboard:[40,350,1190,415],
-      windshield:[430,105,810,355], passenger:[1260,0,666,680]
+      windshield:[430,105,810,355], video:[430,90,810,570],
+      passenger:[1260,0,666,680]
     },
     glass: [25, 110, 1235, 290],
     glassPath: 'M 70 122 L 1212 122 Q 1242 122 1238 147 L 1115 365 Q 1104 385 1074 389 L 156 389 Q 138 387 126 360 L 42 151 Q 32 126 70 122 Z',
     windshield: [[70,122],[1212,122],[1238,147],[1115,365],[1074,389],[156,389],[126,360],[42,151]],
+    // The other caller occupies the glass to the right of the folding
+    // self-screen's left edge. The driver's half remains cabin scenery.
+    videoGlass:[[569,122],[1212,122],[1238,147],[1115,365],[1074,389],[569,389]],
+    videoEntryFrame:[569,0,691,765],
+    videoScreenFrame:[569,116,669,281],
+    chatScreenFrame:[42,116,1196,281],
+    frontControls:[500,475,585,150],
     chat: [135, 130, 975, 248],
     compose: [450, 410, 729, 42],
     instrument: [256, 469],

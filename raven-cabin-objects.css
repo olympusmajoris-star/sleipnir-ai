@@ -15,6 +15,20 @@
 #raven-cabin .rco-selection{position:absolute;box-sizing:border-box;z-index:36;border:1px solid #5fd8ff;border-radius:4px;box-shadow:0 0 0 1px #061a26aa;pointer-events:none;transform-origin:50% 50%}
 #raven-cabin .rco-selection[data-visible=false]{border-style:dashed}
 #raven-cabin .rco-selection[data-locked=true]{border-color:#a3b3be;border-style:dotted}
+#raven-cabin .rco-screen-frame{position:absolute;box-sizing:border-box;z-index:28;border:1px dashed #5fd8ff9c;border-radius:4px;pointer-events:none;transform-origin:50% 50%;box-shadow:0 0 0 1px #07192377}
+#raven-cabin .rco-screen-frame[data-active=true]{border:2px solid #77e3ff}
+#raven-cabin .rco-screen-frame[data-locked=true]{border-color:#a3b3be;border-style:dotted}
+#raven-cabin .rco-frame-move,#raven-cabin .rco-frame-resize,#raven-cabin .rco-frame-edge{position:absolute;box-sizing:border-box;display:block;margin:0;padding:0;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:move}
+#raven-cabin .rco-frame-move{z-index:2;left:0;top:0;max-width:calc(100% - 44px);min-height:36px;padding:6px 9px;border:1px solid #5fd8ff99;border-radius:3px 0 5px 0;background:#082432ef;color:#c6f3ff;font:500 11px/16px Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#raven-cabin .rco-frame-resize{z-index:2;right:0;bottom:0;width:44px;height:44px;min-width:44px;min-height:44px;border:0;background:linear-gradient(135deg,transparent 48%,#5fd8ff30 49%);cursor:nwse-resize}
+#raven-cabin .rco-frame-resize::after{content:'';position:absolute;right:4px;bottom:4px;width:13px;height:13px;border-right:3px solid #77e3ff;border-bottom:3px solid #77e3ff}
+#raven-cabin .rco-frame-edge{z-index:1;border:0;border-radius:0;background:transparent;box-shadow:none;min-width:0;min-height:0}
+#raven-cabin .rco-frame-edge[data-edge=top]{left:0;right:0;top:-5px;height:12px;width:100%}
+#raven-cabin .rco-frame-edge[data-edge=bottom]{left:0;right:0;bottom:-5px;height:12px;width:100%}
+#raven-cabin .rco-frame-edge[data-edge=left]{left:-5px;top:0;bottom:0;width:12px;height:100%}
+#raven-cabin .rco-frame-edge[data-edge=right]{right:-5px;top:0;bottom:0;width:12px;height:100%}
+#raven-cabin .rco-frame-move:focus-visible,#raven-cabin .rco-frame-resize:focus-visible{outline:2px solid #e8fbff;outline-offset:2px}
+#raven-cabin .rco-screen-frame[hidden]{display:none!important}
 #raven-cabin .rco-object-move,#raven-cabin .rco-object-resize{position:absolute;display:flex;box-sizing:border-box;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:0;padding:5px 9px;border:1px solid #5fd8ff88;border-radius:5px;background:#082432ef;color:#c6f3ff;font:500 11px/15px Arial,sans-serif;text-shadow:none;box-shadow:none;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 #raven-cabin .rco-object-move{left:-1px;top:-1px;max-width:calc(100% + 2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:move}
 #raven-cabin .rco-object-resize{right:-1px;bottom:-1px;width:44px;height:44px;cursor:nwse-resize;background:#082432c9}

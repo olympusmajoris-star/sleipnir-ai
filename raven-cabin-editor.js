@@ -11,7 +11,7 @@
   const SKINS=['clean','illuminated','wood','woodLit'];
   const fields=['icon','x','y','size','rotation','color','opacity','visible','locked','style','background','radius','shadow'];
   const materialDefaults={leather:null,wood:null,led:null,ledBrightness:1};
-  const presentationDefaults={device:'iphone',orientation:'portrait',zoom:1,compare:false,controlsVisible:false,windshieldLift:0};
+  const presentationDefaults={device:'iphone',orientation:'portrait',zoom:1,compare:false,controlsVisible:false,screenOnly:false,windshieldLift:0};
 
   function mount({controller:c,root,media={},geometry:g,nativeIcon,requestLayout=()=>{},enabled=false}){
     const D=c.scene.ownerDocument,scene=c.scene,catalog=G.RavenCabinIconCatalog?G.RavenCabinIconCatalog.create(G.lucide):[];
@@ -30,6 +30,7 @@
       ['camera','Self camera','Overhead','Camera',g.overhead[0],'.rc-camera','video'],
       ['share','Share','Overhead','Image',g.overhead[1],'.rc-share','video'],
       ['end-call','End call','Overhead','PhoneOff',g.overhead[2],'.rc-end','video'],
+      ['fullscreen','Full screen / show dashboard','Screen','Maximize',[1156,476],'.rc-fullscreen','front'],
       ['return','Return to call','Passenger door','ArrowLeft',g.shareKeys[0],'.rc-return','sharing'],
       ['pick','Choose shared media','Passenger door','ImagePlus',g.shareKeys[1],'.rc-pick','sharing'],
       ['end-share','End call','Passenger door','PhoneOff',g.shareKeys[2],'.rc-end','sharing'],
@@ -55,9 +56,9 @@
       {id:'woodLit',label:'Wood + tablet · instruments lit',image:media.cabinWoodLit,description:'The wood dashboard with its instruments illuminated.'}
     ];
     const workspace=skin=>({controls:clone(defaultsBySkin[skin]),materials:{...materialDefaults},objects:clone(objectDefaults)});
-    const cameraDefaults={duration:900,videoYaw:Number.isFinite(g.camera&&g.camera.videoYaw)?g.camera.videoYaw:16,sharingYaw:Number(g.camera&&g.camera.sharingYaw)||58};
+    const cameraDefaults={duration:900,videoYaw:Number.isFinite(g.camera&&g.camera.videoYaw)?g.camera.videoYaw:16,sharingYaw:Number(g.camera&&g.camera.sharingYaw)||58,videoAutoZoom:true,videoHold:2000,videoZoomDuration:900};
     let design={kind:'asgard-raven-cabin',version:3,skin:'clean',workspaces:Object.fromEntries(SKINS.map(skin=>[skin,workspace(skin)])),motion:{...cameraDefaults},presentation:{...presentationDefaults}};
-    let selected='image',selectedObject=null,selection={kind:'object',id:null,revision:0},editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
+    let selected='image',selectedObject=objectById.has('screenFrame')?'screenFrame':null,selection={kind:'object',id:selectedObject,revision:0},editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
     // Editing the cabin and testing a phone are separate views of one design.
     // This viewport is deliberately absent from exports, storage, and undo.
     let studioViewport=enabled?{surface:'cabin',device:'iphone',orientation:'portrait'}:null;
@@ -109,9 +110,10 @@
       }return out;
     }
     function motionPatch(patch,strict=false){
-      keys(patch,['duration','videoYaw','sharingYaw'],'motion');const out={};
+      keys(patch,Object.keys(cameraDefaults),'motion');const out={};
       for(const [key,value] of Object.entries(patch)){
-        const range=key==='duration'?[150,4000]:key==='videoYaw'?[0,45]:[15,85];
+        if(key==='videoAutoZoom'){if(typeof value!=='boolean')throw Error('Auto zoom must be true or false.');out[key]=value;continue;}
+        const range=key==='duration'||key==='videoZoomDuration'?[150,4000]:key==='videoHold'?[0,10000]:key==='videoYaw'?[0,45]:[15,85];
         if(!number(value)||(strict&&(value<range[0]||value>range[1])))throw Error('That camera setting is outside the supported range.');out[key]=clamp(value,...range);
       }return out;
     }
@@ -132,13 +134,13 @@
       const legacy=value.version===2,motion={...cameraDefaults,...motionPatch(value.motion||{},true)};
       if(legacy){if(motion.videoYaw===10)motion.videoYaw=cameraDefaults.videoYaw;if(motion.sharingYaw===35)motion.sharingYaw=cameraDefaults.sharingYaw;}
       const result={kind:'asgard-raven-cabin',version:3,skin:value.skin,workspaces:{},motion,presentation:{...presentationDefaults,...presentationPatch(legacy&&value.presentation===undefined?{}:value.presentation,true)}};
-      const newControls=new Set(['rewind','forward','keep','follow','more','fit']);
+      const newControls=new Set(['rewind','forward','keep','follow','more','fit']),addedControls=new Set(['fullscreen']);
       for(const skin of SKINS){
         const source=value.workspaces[skin],skinDefaults=defaultsBySkin[skin];
         if(source===undefined&&(skin==='wood'||skin==='woodLit')){result.workspaces[skin]=workspace(skin);continue;}
         keys(source,['controls','materials','objects'],skin+' workspace');keys(source.controls,specs.map(spec=>spec.id),'controls');
         const controls={};for(const spec of specs){
-          if(!source.controls[spec.id]&&!(legacy&&newControls.has(spec.id)))throw Error('Missing control: '+spec.label);
+          if(!source.controls[spec.id]&&!addedControls.has(spec.id)&&!(legacy&&newControls.has(spec.id)))throw Error('Missing control: '+spec.label);
           controls[spec.id]={...skinDefaults[spec.id],...controlPatch(source.controls[spec.id]||{},true)};
           if(legacy&&spec.id==='play'&&controls.play.x===1834&&controls.play.y===384){controls.play.x=skinDefaults.play.x;controls.play.y=skinDefaults.play.y;}
           if(skin==='wood'||skin==='woodLit'){
@@ -156,13 +158,22 @@
       if(stored){const parsed=JSON.parse(stored);design=validate(parsed.design||parsed);lastSaved=serialize();savedAt=parsed.savedAt||null;activeDesign=true;status='Saved design restored from this browser.';}
     }catch(_){status='Browser storage is unavailable or contains an older design. Live editing still works.';}
 
+    function videoFocusState(){
+      const state=c.cabin&&c.cabin.getVideoFocusState?c.cabin.getVideoFocusState():null;
+      const focused=state?!!state.screenOnly:!!design.presentation.screenOnly;
+      return {progress:focused?1:0,phase:'idle',running:!!(state&&['entry','holding','zooming','returning'].includes(state.phase)),focused,screenOnly:focused,...state};
+    }
     function effectivePresentation(){
-      const result={...design.presentation};if(!studioViewport)return result;
+      const focus=videoFocusState(),videoActive=mode()==='video',result={...design.presentation,videoActive};
+      if(c.cabin&&c.cabin.getVideoFocusState){result.screenOnly=focus.screenOnly;if(videoActive)result.videoFocusProgress=focus.progress;}
+      if(videoActive)result.controlsVisible=focus.progress<.999;
+      else if(result.screenOnly)result.controlsVisible=false;
+      if(!studioViewport)return result;
       const {surface,device,orientation}=studioViewport;result.studioSurface=surface;
       if(surface==='phone'){result.device=device;result.orientation=orientation;return result;}
       result.device='wide';result.orientation='landscape';
       if(['cabin','dashboard','passenger','pan'].includes(surface)){result.zoom=1;result.windshieldLift=0;}
-      if(surface==='cabin'||surface==='dashboard')result.controlsVisible=true;
+      if((surface==='cabin'||surface==='dashboard')&&!result.screenOnly)result.controlsVisible=true;
       return result;
     }
     function getState(){return {
@@ -170,7 +181,7 @@
       saved:lastSaved===serialize(),savedAt,status,skin:design.skin,skinAvailable:Object.fromEntries(layouts.map(layout=>[layout.id,!!layout.image])),layouts:clone(layouts),
       controls:specs.map(spec=>({id:spec.id,label:spec.label,group:g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)?((g.tabletControlIds||Object.keys(g.tabletSlots||{})).includes(spec.id)?'Center tablet':'Digital dashboard'):spec.group,...clone(current().controls[spec.id])})),
       objects:objectSpecs.map(spec=>({...spec,...clone(current().objects[spec.id])})),
-      motion:{...design.motion},presentation:{...design.presentation},studioViewport:studioViewport?{...studioViewport}:null,effectivePresentation:effectivePresentation(),comparison:c.comparison?clone(c.comparison):null,materials:{...current().materials},playingPan:!!panFrame
+      motion:{...design.motion},presentation:{...design.presentation},videoFocus:videoFocusState(),studioViewport:studioViewport?{...studioViewport}:null,effectivePresentation:effectivePresentation(),comparison:c.comparison?clone(c.comparison):null,materials:{...current().materials},playingPan:!!panFrame
     };}
     function notify(){
       if(disposed||noticeFrame)return;
@@ -181,17 +192,21 @@
     function notifySelection(kind,id){selection={kind,id,revision:selection.revision+1};for(const fn of selectionSubscribers)try{fn({...selection});}catch(_){} }
     function cancelPan(){if(panFrame)caf(panFrame);panFrame=0;panTime=null;}
     function pushHistory(snapshot){history.push(snapshot);if(history.length>80)history.shift();future=[];}
-    function beginEdit(){if(disposed)return;if(!gestureDepth)gestureStart=serialize();gestureDepth++;lastChangeKey='';}
+    function pauseVideoFocus(){if(c.cabin&&c.cabin.pauseVideoFocus)c.cabin.pauseVideoFocus();notify();return true;}
+    function replayVideoFocus(){if(!c.cabin)return false;cancelPan();if(mode()!=='video')return setView('video');if(c.cabin.replayVideoFocus)c.cabin.replayVideoFocus();requestLayout();notify();return true;}
+    function beginEdit(){if(disposed)return;if(!gestureDepth){pauseVideoFocus();gestureStart=serialize();}gestureDepth++;lastChangeKey='';}
     function endEdit(){if(!gestureDepth)return;if(--gestureDepth)return;const before=gestureStart;gestureStart=null;if(before&&before!==serialize())pushHistory(before);notify();}
     function flushGesture(){while(gestureDepth)endEdit();}
     function applyEnvironment(){
       defaults=defaultsBySkin[design.skin];g.layoutHasTablet=design.skin==='wood'||design.skin==='woodLit';g.materialFamily=g.layoutHasTablet?'wood':'original';
       g.slots=clone(g.layoutHasTablet?g.tabletSlots:originalSlots);g.screens=clone(g.layoutHasTablet?g.woodScreens:originalScreens);
       g.panDuration=design.motion.duration;g.camera={...(g.camera||{}),videoYaw:design.motion.videoYaw,sharingYaw:design.motion.sharingYaw};
+      g.videoHold=design.motion.videoHold;g.videoZoomDuration=design.motion.videoZoomDuration;g.videoAutoZoom=design.motion.videoAutoZoom;
+      if(c.cabin&&c.cabin.setScreenOnly)c.cabin.setScreenOnly(design.presentation.screenOnly,false);
       g.materialColors={...current().materials};g.presentation=effectivePresentation();
       root.dataset.canvasDevice=g.presentation.device;root.dataset.canvasOrientation=g.presentation.orientation;
       root.dataset.studioSurface=studioViewport?studioViewport.surface:'';
-      scene.style.aspectRatio=g.presentation.device==='iphone'?(g.presentation.orientation==='portrait'?'390 / 844':'844 / 390'):studioViewport&&['passenger','pan'].includes(studioViewport.surface)?'1 / 1':'1260 / 817';
+      scene.style.aspectRatio=g.presentation.device==='iphone'?(g.presentation.orientation==='portrait'?'390 / 844':'844 / 390'):studioViewport&&['passenger','pan'].includes(studioViewport.surface)?'1 / 1':mode()==='video'?'691 / 765':'1260 / 817';
       if(c.cabin&&c.cabin.setControlsVisible)c.cabin.setControlsVisible(g.presentation.controlsVisible,false);
       const source=layouts.find(layout=>layout.id===design.skin).image;
       if(source&&source!==lastSkinSource){lastSkinSource=source;c.photo.src=source;c.wheel.src=source;}
@@ -209,39 +224,49 @@
     }
     function updateObject(id,patch){if(!objectById.has(id))throw Error('Choose a cabin object.');const next=objectPatch(patch);return changed('object:'+id+':'+Object.keys(next).sort().join(','),()=>Object.assign(current().objects[id],next));}
     function selectObject(id){
-      if(id!==null&&!objectById.has(id))return false;const previous=selectedObject;selectedObject=id;notifySelection('object',id);
+      if(id!==null&&!objectById.has(id))return false;selectedObject=id;notifySelection('object',id);
       if(id){
         const spec=objectById.get(id),view=mode();
-        if(studioViewport&&studioViewport.surface!=='phone'){
-          if(previous!==id){const surface=spec.view==='sharing'?'passenger':['typingBar','tabletControls'].includes(id)?'dashboard':'windshield';setStudioViewport({surface});if(spec.view==='video')openView('video');}
-        }
-        else if(id==='typingBar'){if(view==='sharing')setView('chat');updatePresentation({controlsVisible:true});}
-        else if(id==='tabletControls'){updatePresentation({controlsVisible:true});if(view!=='chat'&&!(view==='video'&&g.layoutHasTablet))setView('chat');}
-        else if(spec.view&&spec.view!==view)setView(spec.view);
+        // Selecting content must not move the photograph or change the user's
+        // camera crop. Only switch modes when this object is absent there.
+        if(['screenFrame','typingBar','tabletControls'].includes(id)){if(view==='sharing')setView('chat');}
+        else if(spec.view==='sharing'&&view!=='sharing')setView('sharing');
+        else if(spec.view==='video'&&view!=='video')setView('video');
+        else if(spec.view==='chat'&&view!=='chat')setView('chat');
+        if(id==='tabletControls'&&videoFocusState().screenOnly)updatePresentation({screenOnly:false,controlsVisible:true});
       }
       requestLayout();notify();return true;
     }
     function updatePresentation(patch){
       const next=presentationPatch(patch);
-      if(studioViewport&&!['phone','windshield'].includes(studioViewport.surface)&&(Object.hasOwn(next,'zoom')||Object.hasOwn(next,'windshieldLift')))setStudioViewport({surface:'windshield'});
-      return changed('presentation:'+Object.keys(next).sort().join(','),()=>Object.assign(design.presentation,next));
+      // A manual return to the dash is meaningful even when the saved default
+      // is already false: automatic focus is runtime state, not a design edit.
+      if(Object.hasOwn(next,'screenOnly')&&c.cabin&&c.cabin.setScreenOnly)c.cabin.setScreenOnly(next.screenOnly,true);
+      const updated=changed('presentation:'+Object.keys(next).sort().join(','),()=>Object.assign(design.presentation,next));
+      requestLayout();notify();return updated;
     }
     on(root,'raven:controlsvisibility',event=>{if(event.detail&&typeof event.detail.visible==='boolean'){
-      if(studioViewport&&studioViewport.surface!=='phone')setStudioViewport({surface:event.detail.visible?'dashboard':'windshield'});
+      if(mode()==='video')updatePresentation({screenOnly:!event.detail.visible});
+      else if(studioViewport&&studioViewport.surface!=='phone')setStudioViewport({surface:event.detail.visible?'dashboard':'windshield'});
       else updatePresentation({controlsVisible:event.detail.visible});
     }});
+    on(root,'raven:screenmodechange',event=>{if(event.detail&&typeof event.detail.enabled==='boolean'){
+      changed('presentation:screenOnly',()=>{design.presentation.screenOnly=event.detail.enabled;});requestLayout();notify();
+    }});
+    on(root,'raven:screenfocuschange',()=>{requestLayout();notify();});
     on(root,'raven:viewchange',event=>{
-      const detail=event.detail;if(!detail||!studioViewport||studioViewport.surface==='phone')return;
+      const detail=event.detail;if(!detail)return;
+      if(!studioViewport||studioViewport.surface==='phone'){applyEnvironment();requestLayout();notify();return;}
       if(detail.phase==='start'&&suppressStudioViewEvents){ignoredViewTransitions.add(detail.id);return;}
-      if(ignoredViewTransitions.has(detail.id)){if(detail.phase==='end')ignoredViewTransitions.delete(detail.id);return;}
+      if(ignoredViewTransitions.has(detail.id)){if(detail.phase==='end'){ignoredViewTransitions.delete(detail.id);applyEnvironment();requestLayout();notify();}return;}
       if(detail.cancelled){if(activeNativeView===detail.id)activeNativeView=null;return;}
-      if(detail.phase==='start'){activeNativeView=detail.id;studioViewport.surface='pan';}
+      if(detail.phase==='start'){activeNativeView=detail.id;studioViewport.surface=detail.view==='sharing'?'pan':detail.view==='video'?'windshield':'cabin';}
       else if(detail.phase==='end'&&activeNativeView===detail.id){activeNativeView=null;studioViewport.surface=detail.view==='sharing'?'passenger':detail.view==='video'?'windshield':'cabin';}
       else return;
       applyEnvironment();requestLayout();notify();
     });
     function updateMaterials(patch){const next=materialsPatch(patch);return changed('materials:'+Object.keys(next).sort().join(','),()=>Object.assign(current().materials,next));}
-    function updateMotion(patch){const next=motionPatch(patch);return changed('motion:'+Object.keys(next).sort().join(','),()=>Object.assign(design.motion,next));}
+    function updateMotion(patch){const next=motionPatch(patch);if(Object.hasOwn(next,'videoAutoZoom')&&!next.videoAutoZoom)pauseVideoFocus();return changed('motion:'+Object.keys(next).sort().join(','),()=>Object.assign(design.motion,next));}
     function undo(){flushGesture();if(!history.length)return;cancelPan();future.push(serialize());design=JSON.parse(history.pop());lastChangeKey='';status='Edit undone · preview updated.';applyEnvironment();requestLayout();notify();}
     function redo(){flushGesture();if(!future.length)return;cancelPan();history.push(serialize());design=JSON.parse(future.pop());lastChangeKey='';status='Edit restored · preview updated.';applyEnvironment();requestLayout();notify();}
     function openView(view){
@@ -259,8 +284,9 @@
       applyEnvironment();
       const surface=studioViewport.surface;
       if(surface==='passenger'&&mode()!=='sharing')openView('sharing');
-      else if((surface==='cabin'||surface==='dashboard')&&mode()!=='chat')openView('chat');
-      else if(surface==='windshield'&&mode()==='sharing')openView('chat');
+      else if(['cabin','dashboard','windshield'].includes(surface)&&mode()==='sharing')openView('chat');
+      if(surface==='dashboard'&&videoFocusState().screenOnly)updatePresentation({screenOnly:false,controlsVisible:true});
+      applyEnvironment();
       requestLayout();notify();return true;
     }
     function setView(view){
@@ -269,15 +295,15 @@
         studioViewport.surface=view==='sharing'?'passenger':view==='video'?'windshield':['passenger','pan'].includes(studioViewport.surface)?'windshield':studioViewport.surface;
         applyEnvironment();
       }
-      openView(view);requestLayout();notify();return true;
+      openView(view);applyEnvironment();requestLayout();notify();return true;
     }
     function setPanProgress(value){
-      if(!number(value))return false;cancelPan();if(!c.cabin||!c.cabin.previewPan)return false;
+      if(!number(value))return false;cancelPan();pauseVideoFocus();if(!c.cabin||!c.cabin.previewPan)return false;
       if(studioViewport&&studioViewport.surface!=='phone'){studioViewport.surface='pan';applyEnvironment();}
       c.cabin.previewPan(clamp(value,0,1));requestLayout();notify();return true;
     }
     function playPan(){
-      cancelPan();if(!c.cabin||!c.cabin.previewPan)return false;
+      cancelPan();pauseVideoFocus();if(!c.cabin||!c.cabin.previewPan)return false;
       if(studioViewport&&studioViewport.surface!=='phone'){studioViewport.surface='pan';applyEnvironment();requestLayout();}
       const start=progress()>=.99?0:progress(),duration=design.motion.duration*2*(1-start);
       c.cabin.previewPan(start);
@@ -286,13 +312,18 @@
     }
     function select(id){
       if(!specById.has(id))return false;selected=id;selectedObject=null;notifySelection('icon',id);const spec=specById.get(id),node=q(spec.selector);
-      const projected=lastProjector&&lastProjector.point(current().controls[id].x,current().controls[id].y);
+      pauseVideoFocus();
+      const adapted=node&&node.dataset.cabinAdapted==='true'&&Number.isFinite(Number(node.dataset.cabinAnchorX))&&Number.isFinite(Number(node.dataset.cabinAnchorY));
+      const projected=lastProjector&&lastProjector.point(adapted?Number(node.dataset.cabinAnchorX):current().controls[id].x,adapted?Number(node.dataset.cabinAnchorY):current().controls[id].y);
       const offscreen=projected&&(projected[0]<0||projected[0]>lastProjector.width||projected[1]<0||projected[1]>lastProjector.height);
       if(!node||node.hidden||node.closest('[hidden]')||offscreen){
-        if(studioViewport&&studioViewport.surface!=='phone'){
-          setStudioViewport({surface:spec.view==='sharing'?'passenger':spec.view==='video'?'cabin':spec.id==='motion'?'cabin':spec.id==='send'?'windshield':'dashboard'});
-          if(spec.view==='video')openView('video');
-        }else{if(spec.view!=='sharing')updatePresentation({controlsVisible:true});setView(spec.view);}
+        if(spec.view==='sharing'){if(mode()!=='sharing')setView('sharing');}
+        else{
+          if(mode()==='sharing')setView(spec.view==='video'?'video':'chat');
+          else if(spec.view==='video'&&mode()!=='video')setView('video');
+          if(!['send','fullscreen','camera','share','end-call'].includes(id))updatePresentation({screenOnly:false,controlsVisible:true});
+          if(studioViewport&&studioViewport.surface!=='phone'&&mode()==='chat'&&offscreen)setStudioViewport({surface:id==='send'?'windshield':'dashboard'});
+        }
       }
       requestLayout();notify();return true;
     }
@@ -313,9 +344,10 @@
       return config.icon===defaults[spec.id].icon&&(node.dataset.motionIcon||node.dataset.icon)?node.dataset.motionIcon||node.dataset.icon:config.icon;
     }
     function eligible(spec,view){
+      if(spec.view==='front'||spec.id==='send')return view==='chat'||view==='video';
       if(spec.view==='chat'&&view==='video'&&g.presentation&&g.presentation.controlsVisible)return true;
       if(spec.id==='end-call')return view==='video';if(spec.id==='end-share')return view==='sharing';
-      if(spec.id==='send'||spec.id==='image')return view==='chat'||view==='video'&&g.presentation&&g.presentation.controlsVisible;return spec.view===view;
+      return spec.view===view;
     }
     function parentOrigin(node){
       if(node.parentElement===scene)return [0,0];
@@ -391,6 +423,7 @@
       if(!activeDesign)return;
       for(const spec of specs){
         const node=q(spec.selector);if(!node||!eligible(spec,view))continue;
+        if(node.dataset.cabinUnavailable==='true'){node.hidden=true;continue;}
         const config=current().controls[spec.id],def=defaults[spec.id],positioned=config.x!==def.x||config.y!==def.y;
         const parentHidden=!!node.parentElement.closest('[hidden]');
         const playback=['play','rewind','forward'].includes(spec.id);
@@ -403,9 +436,14 @@
         const rootSize=parseFloat(node.style.getPropertyValue('--rw-icon'))||parseFloat(node.style.getPropertyValue('--rc-icon'))||(spec.id==='send'?18:16);
         const initialLeft=parseFloat(node.style.left)||0,initialTop=parseFloat(node.style.top)||0;
         if(!positioned&&initialSvg){const sx=parseFloat(initialSvg.style.left),sy=parseFloat(initialSvg.style.top);if(Number.isFinite(sx)&&Number.isFinite(sy)){x=origin[0]+initialLeft+sx+rootSize/2;y=origin[1]+initialTop+sy+rootSize/2;}}
-        if(!positioned&&Number.isFinite(Number(node.dataset.cabinAnchorX))&&Number.isFinite(Number(node.dataset.cabinAnchorY)))[x,y]=P.point(Number(node.dataset.cabinAnchorX),Number(node.dataset.cabinAnchorY));
+        const anchored=Number.isFinite(Number(node.dataset.cabinAnchorX))&&Number.isFinite(Number(node.dataset.cabinAnchorY));
+        // Fitted phone controls use native-sized hit regions. A customized
+        // source position is kept; when a camera crop puts it outside the
+        // viewport, its fitted anchor keeps the action reachable.
+        const fallback=positioned&&node.dataset.cabinAdapted==='true'&&(x<22||x>P.width-22||y<22||y>P.height-22);
+        if((!positioned||fallback)&&anchored)[x,y]=P.point(Number(node.dataset.cabinAnchorX),Number(node.dataset.cabinAnchorY));
         if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>P.width||y<0||y>P.height){node.hidden=true;continue;}
-        const source=!positioned&&P.unproject?P.unproject(x,y):[config.x,config.y];renderedSources.set(spec.id,source);
+        const source=(!positioned||fallback)&&P.unproject?P.unproject(x,y):[config.x,config.y];renderedSources.set(spec.id,source);
         const size=config.size===def.size?rootSize:config.size,padding=config.style==='glyph'?0:8,extent=size+padding*2;
         let rect={x:origin[0]+initialLeft,y:origin[1]+initialTop,w:parseFloat(node.style.width)||44,h:parseFloat(node.style.height)||44};
         const enlarged=config.style!=='glyph'||config.size!==def.size;
@@ -433,13 +471,13 @@
           }
         }
       }
-      const stamp=view+'|'+progress().toFixed(4)+'|'+JSON.stringify(c.comparison||null);if(stamp!==lastViewStamp){lastViewStamp=stamp;notify();}
+      const focus=videoFocusState(),stamp=view+'|'+progress().toFixed(4)+'|'+focus.phase+'|'+focus.screenOnly+'|'+JSON.stringify(c.comparison||null);if(stamp!==lastViewStamp){lastViewStamp=stamp;notify();}
     }
     applyEnvironment();
     const api={
       getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},subscribeSelection(fn){if(typeof fn!=='function'||disposed)return()=>{};selectionSubscribers.add(fn);if(selection.revision)fn({...selection});return()=>selectionSubscribers.delete(fn);},select,setEditing,setStudioViewport,updateControl,selectObject,updateObject,
       resetObject(id){if(!objectById.has(id))return false;return changed('reset-object:'+id,()=>{current().objects[id]=clone(objectDefaults[id]);});},
-      resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,updateMotion,updatePresentation,updateMaterials,setSkin,save,
+      resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,replayVideoFocus,pauseVideoFocus,updateMotion,updatePresentation,updateMaterials,setSkin,save,
       exportDesign(){return JSON.stringify(design,null,2);},importDesign,
       getCatalog(){const action=selected.startsWith('end-')?'end':selected==='play'?'motion':selected;return {all:catalog,suggestions:catalog.forAction?catalog.forAction(action).map(entry=>entry.name):[]};},
       layout,notifyComparison:notify,

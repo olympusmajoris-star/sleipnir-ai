@@ -132,7 +132,7 @@
         c.thread.appendChild(bubble);
       }if(pinned)c.newest();else c.thread.scrollTop=old;
     };
-    c.syncDraft=()=>{if(c.input.value!==model.draft)c.input.value=model.draft;q('.rw-send').disabled=!model.draft.trim()&&!model.attachment;const a=q('.rw-attachment');a.hidden=!model.attachment;if(model.attachment){a.querySelector('img').src=model.attachment.src;q('.rw-attachment-name').textContent=model.attachment.name;}q('.rw-draft-status').textContent='';c.input.style.height='20px';if(c.layout)c.layout();};
+    c.syncDraft=()=>{if(c.input.value!==model.draft)c.input.value=model.draft;q('.rw-send').disabled=!model.draft.trim()&&!model.attachment;const a=q('.rw-attachment');a.hidden=!model.attachment;if(model.attachment){a.querySelector('img').src=model.attachment.src;q('.rw-attachment-name').textContent=model.attachment.name;}q('.rw-draft-status').textContent='';c.input.style.height='22px';if(c.layout)c.layout();};
     c.layout=()=>{
       const w=c.scene.clientWidth,h=c.scene.clientHeight;if(!w||!h)return;
       const view=c.cabin?c.cabin.getView():car.views.chat;
@@ -143,28 +143,43 @@
       c.scene.dataset.cameraReady=String(!!(c.camera&&c.camera.ready));
       const inCall=!!(c.cabin&&c.cabin.isActive()),mode=root.dataset.cabinMode==='call'?'video':root.dataset.cabinMode||'chat',presentation=car.presentation||{};
       const studioDashboard=['cabin','dashboard'].includes(presentation.studioSurface);
-      const showDashboard=mode!=='sharing'&&(!inCall||!!presentation.controlsVisible||studioDashboard);
+      const focusProgress=projection.screenOnly?1:Number.isFinite(projection.videoFocusProgress)?projection.videoFocusProgress:presentation.screenOnly?1:0;
+      const showDashboard=mode!=='sharing'&&focusProgress<.999;
       const box=(node,left,top,width,height)=>Object.assign(node.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px',right:'auto',bottom:'auto'});
       const polygon=(node,source)=>{if(!node||!source)return;const points=source.map(p=>point(...p)),xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),left=Math.min(...xs),top=Math.min(...ys),width=Math.max(...xs)-left,height=Math.max(...ys)-top;box(node,left,top,width,height);node.style.clipPath='polygon('+points.map(([x,y])=>((x-left)/width*100)+'% '+((y-top)/height*100)+'%').join(',')+')';};
       // Static first-paint layers retain the front view until the camera renderer is ready.
       box(c.photo,...fallback.rect([0,0,car.width,car.height]));box(c.wheel,...fallback.rect([0,0,car.width,car.height]));
       box(c.video,...fallback.rect(car.glass));box(c.glass,...fallback.rect(car.glass));
-      polygon(q('.rw-input-surface'),car.rail);for(const pad of qa('[data-pad]'))polygon(pad,car.pads[pad.dataset.pad]);for(const screen of qa('[data-screen]')){screen.hidden=screen.dataset.screen==='tablet'&&!car.layoutHasTablet;polygon(screen,car.screens[screen.dataset.screen]);}
+      polygon(q('.rw-input-surface'),car.rail);for(const pad of qa('[data-pad]')){pad.hidden=!showDashboard;polygon(pad,car.pads[pad.dataset.pad]);}for(const screen of qa('[data-screen]')){screen.hidden=!showDashboard||screen.dataset.screen==='tablet'&&!car.layoutHasTablet;polygon(screen,car.screens[screen.dataset.screen]);}
 
       // Tap targets stay native-sized; only the photo coordinates scale.
       const [barX,barY,barW,barH]=projection.composeRect||rect(car.compose);
       const composerX=Math.max(8,barX),composerRight=Math.min(w-8,barX+barW),composerY=barY+barH/2;
-      const composerWidth=Math.max(0,composerRight-composerX),sendX=composerRight-15;
+      const composerWidth=Math.max(0,composerRight-composerX),sendX=composerRight-22;
       const sendLeft=clamp(sendX-22,0,w-44),sendTop=projection.composeRect?composerY-22:Math.min(composerY-22,point(0,515)[1]-55),sendBottom=sendTop+44;
       box(c.compose,composerX,composerY-22,composerWidth,44);
-      c.compose.hidden=!showDashboard||composerWidth<100||composerY<0||composerY>h;
-      q('.rw-input-surface').hidden=!showDashboard;
+      c.compose.hidden=mode==='sharing'||composerWidth<100||composerY<22||composerY>h-22;
+      q('.rw-input-surface').hidden=c.compose.hidden;
       if(projection.composeRect){box(q('.rw-input-surface'),composerX-3,composerY-25,composerWidth+6,50);q('.rw-input-surface').style.clipPath='none';}
       c.input.style.width=Math.max(0,sendLeft-composerX-5)+'px';
       const send=q('.rw-send');box(send,sendLeft-composerX,sendTop-(composerY-22),44,44);
+      if(projection.unproject){const anchor=projection.unproject(sendX,composerY);send.dataset.cabinAnchorX=String(anchor[0]);send.dataset.cabinAnchorY=String(anchor[1]);send.dataset.cabinAdapted='true';}
       const sendIcon=send.querySelector('svg');if(sendIcon)Object.assign(sendIcon.style,{left:(sendX-sendLeft-9)+'px',top:(composerY-sendTop-9)+'px'});
 
-      if(car.layoutHasTablet){
+      const front=projection.frontControlsRect||[0,0,0,0],nativeFront=(inCall||!studioDashboard&&(presentation.device==='iphone'||projection.studioSurface==='windshield'||w<600&&h>w))&&front[2]>=264&&front[3]>=104;
+      c.frontControlsAdapted=showDashboard&&nativeFront;
+      for(const button of qa('[data-control]')){delete button.dataset.cabinAdapted;delete button.dataset.cabinUnavailable;}
+      if(c.frontControlsAdapted){
+        const keys=['image','mic','call','video','radio','language'],spacing=Math.min(60,(front[2]-44)/5),center=front[0]+front[2]/2,y=front[1]+28;
+        for(const button of qa('[data-control]')){
+          const index=keys.indexOf(button.dataset.control);if(index<0){button.hidden=true;continue;}
+          const x=center+(index-2.5)*spacing,anchor=projection.unproject?projection.unproject(x,y):car.slots[button.dataset.control];
+          box(button,x-22,y-22,44,44);button.hidden=false;button.style.setProperty('--rw-icon','20px');
+          button.dataset.cabinAnchorX=String(anchor[0]);button.dataset.cabinAnchorY=String(anchor[1]);button.dataset.cabinAdapted='true';delete button.dataset.tabletControl;
+          const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:'12px',top:'12px'});
+          if(button.dataset.control==='image'){button.setAttribute('aria-label',inCall?'Share on passenger window':'Attach photo');button.setAttribute('data-tooltip',inCall?'Share':'Photos');}
+        }
+      }else if(car.layoutHasTablet){
         const keys=car.tabletControlIds||['image','mic','call'],points=keys.map(name=>point(...car.slots[name]));
         const centerX=points.reduce((n,p)=>n+p[0],0)/points.length,centerY=points.reduce((n,p)=>n+p[1],0)/points.length;
         const dx=Math.max(44,Math.abs(points[1][0]-points[0][0]));
@@ -198,6 +213,7 @@
         box(button,left,top,44,44);button.style.setProperty('--rw-icon',iconSize+'px');
         const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:(x-left-iconSize/2)+'px',top:(y-top-iconSize/2)+'px'});
       }
+      if(!showDashboard||inCall&&focusProgress>0&&!c.frontControlsAdapted){for(const button of qa('[data-control]')){button.hidden=true;button.dataset.cabinUnavailable='true';}}
         for(const button of qa('[data-control]')){delete button.dataset.tabletControl;delete button.dataset.cabinAnchorX;delete button.dataset.cabinAnchorY;}
       }
       const [headerX,headerY]=point(...car.instrument),[motionX,motionY]=point(...car.motion);
@@ -205,12 +221,12 @@
       const motionLeft=clamp(motionX-22,0,w-44),motionTop=clamp(motionY-22,0,h-44);
       box(q('.rw-motion'),motionLeft,motionTop,44,44);
       const motionIcon=q('.rw-motion svg');if(motionIcon)Object.assign(motionIcon.style,{position:'absolute',left:(motionX-motionLeft-8)+'px',top:(motionY-motionTop-8)+'px'});
-      q('.rw-header').hidden=inCall;q('.rw-motion').hidden=inCall;
+      q('.rw-header').hidden=inCall||focusProgress>0;q('.rw-motion').hidden=inCall||focusProgress>0;
 
-      const sourceThread=projection.threadRect||rect(car.chat),threadX=Math.max(10,sourceThread[0]),threadY=Math.max(8,sourceThread[1]),threadRight=Math.min(w-10,sourceThread[0]+sourceThread[2]),threadBottom=Math.min(h-8,sourceThread[1]+sourceThread[3],c.compose.hidden?h-8:composerY-28);
+      const sourceThread=projection.threadRect||rect(car.chat),threadX=Math.max(10,sourceThread[0]),threadY=Math.max(8,sourceThread[1]),threadRight=Math.min(w-10,sourceThread[0]+sourceThread[2]),threadBottom=Math.min(h-8,sourceThread[1]+sourceThread[3],c.compose.hidden?h-8:composerY-(focusProgress>0?80:28));
       const chatRect=[threadX,threadY,Math.max(0,threadRight-threadX),Math.max(0,threadBottom-threadY)],threadWidth=Math.min(presentation.device==='iphone'?w-20:460,chatRect[2]),threadLeft=chatRect[0]+(chatRect[2]-threadWidth)/2,threadTop=chatRect[1],threadHeight=chatRect[3];
       c.thread.hidden=inCall;c.thread.style.setProperty('display',inCall?'none':'flex','important');
-      c.tray.hidden=!showDashboard||(!model.attachment&&!q('.rw-draft-status').textContent&&!c.status.textContent);
+      c.tray.hidden=c.compose.hidden||(!model.attachment&&!q('.rw-draft-status').textContent&&!c.status.textContent);
       Object.assign(c.tray.style,{left:Math.max(8,threadLeft)+'px',top:'auto',right:'auto',bottom:Math.max(8,h-chatRect[1]-chatRect[3])+'px',width:Math.min(threadWidth,w-16)+'px',maxHeight:Math.min(90,threadHeight)+'px'});
       const trayHeight=c.tray.hidden?0:Math.min(threadHeight,c.tray.offsetHeight);
       box(c.thread,threadLeft,threadTop,threadWidth,Math.max(0,threadHeight-trayHeight-(trayHeight?4:0)));

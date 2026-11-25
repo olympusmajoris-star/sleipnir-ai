@@ -181,6 +181,14 @@
 .rce-title{font-size:20px}
 .rce-topbar{min-height:50px;padding:5px 14px;justify-content:flex-start;gap:10px}
 .rce-topbar>.rce-live{margin-left:auto}
+.rce-topbar{flex-wrap:wrap}
+.rce-screen-actions,.rce-video-actions{display:flex;align-items:center;gap:6px;flex:none}
+.rce-screen-actions .rce-button,.rce-video-actions .rce-button,.rce-expand-preview,.rce-expanded-phone{min-height:38px;padding:7px 9px;font-size:12px}
+.rce-fullscreen[aria-pressed=true]{border-color:#4aa8c7;background:#143747;color:#c4f2ff}
+.rce-video-phase{color:#8faec1;font-size:10px;white-space:nowrap;min-width:46px}
+.rce-expand-preview{margin-left:auto}
+.rce-expanded-tools{display:contents}
+.rce:not([data-expanded=true]) .rce-expanded-phone{display:none}
 .rce-library-toggle{min-height:38px;padding:7px 10px;font-size:12px}
 .rce-library-toggle[aria-expanded=true]{border-color:#4aa8c7;background:#143747;color:#c4f2ff}
 .rce-workspace{position:relative;grid-template-columns:minmax(0,1fr) 278px;isolation:isolate}
@@ -295,4 +303,55 @@
   .rce-pan-label{min-width:77px;font-size:10px}
   .rce-pan-label output{margin-left:2px}
   .rce-play-pan{min-height:40px;font-size:10px;padding:6px 8px}
+}
+
+/* Expanded preview keeps the actual canvas and essential controls together. */
+.rce[data-expanded=true]{position:fixed;inset:0;z-index:50;width:100%;height:100dvh;min-height:0;overflow:hidden}
+.rce[data-expanded=true]>.rce-header,.rce[data-expanded=true]>.rce-footer,
+.rce[data-expanded=true] .rce-library,.rce[data-expanded=true] .rce-inspector,
+.rce[data-expanded=true] .rce-mobile-tabs,.rce[data-expanded=true] .rce-preview-toolbar,
+.rce[data-expanded=true] .rce-canvas-tools,.rce[data-expanded=true] .rce-preview-hint,
+.rce[data-expanded=true] .rce-pan,.rce[data-expanded=true] .rce-library-toggle,
+.rce[data-expanded=true] .rce-topbar>.rce-live{display:none!important}
+.rce[data-expanded=true] .rce-topbar{position:relative;z-index:4;flex:none;min-height:50px;gap:7px;padding:6px 10px;align-items:center}
+.rce[data-expanded=true] .rce-mode-switch{order:0}
+.rce[data-expanded=true] .rce-view-switch{order:1;width:auto;max-width:none}
+.rce[data-expanded=true] .rce-screen-actions{order:2}
+.rce[data-expanded=true] .rce-video-actions{order:3}
+.rce[data-expanded=true] .rce-expanded-phone{order:4}
+.rce[data-expanded=true] .rce-expand-preview{order:5;margin-left:auto}
+.rce[data-expanded=true] .rce-phone-tools{order:6;flex:0 1 auto;flex-wrap:nowrap;gap:6px;margin:0;padding:0;border:0}
+.rce[data-expanded=true] .rce-phone-tools .rce-canvas-field{flex:none;max-width:none;font-size:10px}
+.rce[data-expanded=true] .rce-phone-tools select{width:180px;min-height:36px;font-size:11px}
+.rce[data-expanded=true] .rce-preview-sizing{margin:0}
+.rce[data-expanded=true] .rce-preview-sizing button{min-width:auto;padding:6px 10px;min-height:32px;font-size:11px}
+.rce[data-expanded=true] .rce-viewport-label{order:7;margin-left:auto;font-size:10px}
+.rce[data-expanded=true] .rce-workspace{display:flex;flex-direction:row;flex:1 1 0;min-height:0;overflow:hidden;background:#080e15}
+.rce[data-expanded=true] .rce-preview-column{position:relative;flex:1 1 0;width:100%;min-width:0;min-height:0;overflow:hidden;border:0}
+.rce[data-expanded=true] .rce-preview-bay{flex:1 1 0;min-height:0;height:auto;padding:8px;overflow:auto}
+.rce[data-expanded=true] .rce-preview-bay[data-sizing=actual]{place-items:start center}
+@media(max-width:1440px){
+  .rce-video-actions .rce-button span{display:none}
+  .rce-video-actions .rce-button{min-width:38px;padding:8px}
+  .rce-topbar>.rce-live{display:none}
+}
+@media(max-width:640px){
+  .rce-topbar{gap:6px}
+  .rce-screen-actions .rce-button,.rce-expand-preview,.rce-expanded-phone{min-height:40px;font-size:11px;padding:7px 8px}
+  .rce-screen-actions{gap:5px}
+  .rce-topbar .rce-mode-switch button{min-width:55px;padding:6px 8px}
+  .rce[data-expanded=true] .rce-topbar{gap:5px;padding:5px 7px}
+  .rce[data-expanded=true] .rce-mode-switch button{min-width:48px;font-size:10px;padding:6px}
+  .rce[data-expanded=true] .rce-mode-switch button svg{display:none}
+  .rce[data-expanded=true] .rce-view-switch button{min-width:44px;min-height:34px;font-size:10px;padding:6px}
+  .rce[data-expanded=true] .rce-screen-actions .rce-button{font-size:10px;min-height:36px}
+  .rce[data-expanded=true] .rce-expand-preview{min-width:36px;min-height:36px;padding:7px}
+  .rce[data-expanded=true] .rce-expand-preview span{display:none}
+  .rce[data-expanded=true] .rce-video-phase{display:none}
+  .rce[data-expanded=true] .rce-phone-tools{width:auto;flex:1 1 270px}
+  .rce[data-expanded=true] .rce-phone-tools .rce-canvas-field{flex:1 1 auto;min-width:0}
+  .rce[data-expanded=true] .rce-phone-tools select{width:100%;min-width:0;font-size:10px;padding:5px}
+  .rce[data-expanded=true] .rce-preview-sizing button{padding:6px;font-size:10px}
+  .rce[data-expanded=true] .rce-viewport-label{font-size:9px;margin-left:0}
+  .rce[data-expanded=true] .rce-preview-bay{padding:5px}
 }
