@@ -47,3 +47,21 @@
 #raven-cabin[data-cabin-mode=video] .rw-latest,
 #raven-cabin[data-cabin-mode=call] .rw-latest{display:none!important}
 @media(prefers-reduced-motion:reduce){#raven-cabin .rc-mirror-panel{transition:none}}
+
+/* Native call and sharing surfaces remain readable at every camera crop. */
+#raven-cabin .rc-side-peer{overflow:visible;background:none;perspective:650px;border:0;border-radius:0}
+#raven-cabin .rc-side-fold{position:absolute;inset:0;transform-origin:15% 55%;transform-style:preserve-3d}
+#raven-cabin .rc-side-shell{position:absolute;inset:0;background-repeat:no-repeat;clip-path:polygon(0 42%,8% 17%,28% 0,61% 2%,83% 21%,100% 50%,98% 86%,88% 100%,20% 100%,0 77%)}
+#raven-cabin .rc-side-face{position:absolute;overflow:hidden;background:#08151f;border-radius:9px}
+#raven-cabin .rc-side-peer-video,#raven-cabin .rc-side-peer-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none}
+#raven-cabin .rc-side-peer-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;background:radial-gradient(ellipse at 45% 40%,#3f626f,#0a1c28);color:#c6f3ff}
+#raven-cabin .rc-side-peer-label{font:10px/13px Arial,sans-serif;white-space:nowrap}
+#raven-cabin .rc-reveal{z-index:11;width:104px;min-width:104px;border:1px solid #5fd8ff44!important;border-radius:7px!important;background:#061722da!important;color:#b6edff!important;backdrop-filter:blur(5px);opacity:.9}
+#raven-cabin .rc-reveal svg{left:10px!important;top:14px!important;width:16px!important;height:16px!important}
+#raven-cabin .rc-reveal-label{position:absolute;left:33px;top:15px;font:11px/14px Arial,sans-serif;color:#c4efff;white-space:nowrap}
+#raven-cabin .rc-reveal:hover,#raven-cabin .rc-reveal:focus-visible{opacity:1}
+#raven-cabin .rc-reveal:focus-visible{outline:2px solid #a5eaff;outline-offset:2px}
+#raven-cabin .rc-sharing .rc-share-content{background:#07111a}
+#raven-cabin .rc-share-content[data-fit=fill] .rc-shared-image,#raven-cabin .rc-share-content[data-fit=fill] .rc-shared-video{object-fit:cover}
+#raven-cabin .rc-control:focus-visible{outline:2px solid #a5eaff;outline-offset:0;border-radius:6px!important}
+#raven-cabin[data-cabin-mode=sharing] .rw-compose,#raven-cabin[data-cabin-mode=sharing] .rw-input-surface,#raven-cabin[data-cabin-mode=sharing] .rw-tray{display:none!important}
