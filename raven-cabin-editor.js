@@ -15,7 +15,7 @@
 
   function mount({controller:c,root,media={},geometry:g,nativeIcon,requestLayout=()=>{},enabled=false}){
     const D=c.scene.ownerDocument,scene=c.scene,catalog=G.RavenCabinIconCatalog?G.RavenCabinIconCatalog.create(G.lucide):[];
-    const listeners=[],subscribers=new Set(),handles=new Map(),decorated=new Set(),renderedSources=new Map();
+    const listeners=[],subscribers=new Set(),selectionSubscribers=new Set(),handles=new Map(),decorated=new Set(),renderedSources=new Map();
     const raf=G.requestAnimationFrame?G.requestAnimationFrame.bind(G):fn=>G.setTimeout(()=>fn(Date.now()),16);
     const caf=G.cancelAnimationFrame?G.cancelAnimationFrame.bind(G):G.clearTimeout.bind(G);
     const q=selector=>scene.querySelector(selector),base=[
@@ -57,7 +57,7 @@
     const workspace=skin=>({controls:clone(defaultsBySkin[skin]),materials:{...materialDefaults},objects:clone(objectDefaults)});
     const cameraDefaults={duration:900,videoYaw:Number.isFinite(g.camera&&g.camera.videoYaw)?g.camera.videoYaw:16,sharingYaw:Number(g.camera&&g.camera.sharingYaw)||58};
     let design={kind:'asgard-raven-cabin',version:3,skin:'clean',workspaces:Object.fromEntries(SKINS.map(skin=>[skin,workspace(skin)])),motion:{...cameraDefaults},presentation:{...presentationDefaults}};
-    let selected='image',selectedObject=null,editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
+    let selected='image',selectedObject=null,selection={kind:'object',id:null,revision:0},editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
     // Editing the cabin and testing a phone are separate views of one design.
     // This viewport is deliberately absent from exports, storage, and undo.
     let studioViewport=enabled?{surface:'cabin',device:'iphone',orientation:'portrait'}:null;
@@ -166,7 +166,7 @@
       return result;
     }
     function getState(){return {
-      selected,selectedObject,editing,view:mode(),pan:progress(),canUndo:history.length>0||!!(gestureStart&&gestureStart!==serialize()),canRedo:future.length>0,
+      selected,selectedObject,selection:{...selection},editing,view:mode(),pan:progress(),canUndo:history.length>0||!!(gestureStart&&gestureStart!==serialize()),canRedo:future.length>0,
       saved:lastSaved===serialize(),savedAt,status,skin:design.skin,skinAvailable:Object.fromEntries(layouts.map(layout=>[layout.id,!!layout.image])),layouts:clone(layouts),
       controls:specs.map(spec=>({id:spec.id,label:spec.label,group:g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)?((g.tabletControlIds||Object.keys(g.tabletSlots||{})).includes(spec.id)?'Center tablet':'Digital dashboard'):spec.group,...clone(current().controls[spec.id])})),
       objects:objectSpecs.map(spec=>({...spec,...clone(current().objects[spec.id])})),
@@ -176,6 +176,9 @@
       if(disposed||noticeFrame)return;
       noticeFrame=raf(()=>{noticeFrame=0;if(disposed)return;const state=getState();for(const fn of subscribers)try{fn(state);}catch(_){} });
     }
+    // A click is a selection even when its ID is unchanged. Send that intent
+    // directly to Studio rather than asking it to infer intent from a redraw.
+    function notifySelection(kind,id){selection={kind,id,revision:selection.revision+1};for(const fn of selectionSubscribers)try{fn({...selection});}catch(_){} }
     function cancelPan(){if(panFrame)caf(panFrame);panFrame=0;panTime=null;}
     function pushHistory(snapshot){history.push(snapshot);if(history.length>80)history.shift();future=[];}
     function beginEdit(){if(disposed)return;if(!gestureDepth)gestureStart=serialize();gestureDepth++;lastChangeKey='';}
@@ -206,7 +209,7 @@
     }
     function updateObject(id,patch){if(!objectById.has(id))throw Error('Choose a cabin object.');const next=objectPatch(patch);return changed('object:'+id+':'+Object.keys(next).sort().join(','),()=>Object.assign(current().objects[id],next));}
     function selectObject(id){
-      if(id!==null&&!objectById.has(id))return false;const previous=selectedObject;selectedObject=id;
+      if(id!==null&&!objectById.has(id))return false;const previous=selectedObject;selectedObject=id;notifySelection('object',id);
       if(id){
         const spec=objectById.get(id),view=mode();
         if(studioViewport&&studioViewport.surface!=='phone'){
@@ -282,7 +285,7 @@
       panFrame=raf(tick);notify();return true;
     }
     function select(id){
-      if(!specById.has(id))return false;selected=id;selectedObject=null;const spec=specById.get(id),node=q(spec.selector);
+      if(!specById.has(id))return false;selected=id;selectedObject=null;notifySelection('icon',id);const spec=specById.get(id),node=q(spec.selector);
       const projected=lastProjector&&lastProjector.point(current().controls[id].x,current().controls[id].y);
       const offscreen=projected&&(projected[0]<0||projected[0]>lastProjector.width||projected[1]<0||projected[1]>lastProjector.height);
       if(!node||node.hidden||node.closest('[hidden]')||offscreen){
@@ -348,8 +351,8 @@
       const point=lastProjector.unproject?lastProjector.unproject(...scenePoint):[scenePoint[0]/lastProjector.scale,scenePoint[1]/lastProjector.scale];return point.every(Number.isFinite)?point:null;
     }
     function startPointer(event,id,kind){
-      if(!editing||disposed||event.button>0)return;event.preventDefault();event.stopPropagation();cancelPan();selected=id;selectedObject=null;const config=current().controls[id];if(config.locked){status='Unlock this control to move or resize it.';requestLayout();notify();return;}
-      const point=sourcePoint(event,id);if(!point)return;flushGesture();beginEdit();const start=clone(config),shown=renderedSources.get(id);if(kind==='move'&&shown){start.x=shown[0];start.y=shown[1];}pointer={id,kind,pointerId:event.pointerId,source:point,start,x:event.clientX,y:event.clientY,target:event.currentTarget};
+      if(!editing||disposed||event.button>0)return;event.preventDefault();event.stopPropagation();cancelPan();selected=id;selectedObject=null;notifySelection('icon',id);const config=current().controls[id];if(config.locked){status='Unlock this control to move or resize it.';requestLayout();notify();return;}
+      const point=sourcePoint(event,id);if(!point){requestLayout();notify();return;}flushGesture();beginEdit();const start=clone(config),shown=renderedSources.get(id);if(kind==='move'&&shown){start.x=shown[0];start.y=shown[1];}pointer={id,kind,pointerId:event.pointerId,source:point,start,x:event.clientX,y:event.clientY,target:event.currentTarget};
       try{event.currentTarget.setPointerCapture(event.pointerId);}catch(_){}requestLayout();notify();
     }
     function movePointer(event){
@@ -363,7 +366,7 @@
       if(event.key==='Enter'||event.key===' '){event.preventDefault();select(id);return;}
       if(config.locked)return;
       if(event.key==='ArrowLeft')patch.x=config.x-amount;else if(event.key==='ArrowRight')patch.x=config.x+amount;else if(event.key==='ArrowUp')patch.y=config.y-amount;else if(event.key==='ArrowDown')patch.y=config.y+amount;else if(event.key==='+'||event.key==='=')patch.size=config.size+(event.shiftKey?4:1);else if(event.key==='-'||event.key==='_')patch.size=config.size-(event.shiftKey?4:1);else return;
-      event.preventDefault();event.stopPropagation();selected=id;selectedObject=null;updateControl(id,patch);
+      event.preventDefault();event.stopPropagation();selected=id;selectedObject=null;notifySelection('icon',id);updateControl(id,patch);
     }
     on(D,'pointermove',movePointer,{passive:false});on(D,'pointerup',endPointer);on(D,'pointercancel',endPointer);
     on(scene,'click',event=>{
@@ -434,13 +437,13 @@
     }
     applyEnvironment();
     const api={
-      getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},select,setEditing,setStudioViewport,updateControl,selectObject,updateObject,
+      getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},subscribeSelection(fn){if(typeof fn!=='function'||disposed)return()=>{};selectionSubscribers.add(fn);if(selection.revision)fn({...selection});return()=>selectionSubscribers.delete(fn);},select,setEditing,setStudioViewport,updateControl,selectObject,updateObject,
       resetObject(id){if(!objectById.has(id))return false;return changed('reset-object:'+id,()=>{current().objects[id]=clone(objectDefaults[id]);});},
       resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,updateMotion,updatePresentation,updateMaterials,setSkin,save,
       exportDesign(){return JSON.stringify(design,null,2);},importDesign,
       getCatalog(){const action=selected.startsWith('end-')?'end':selected==='play'?'motion':selected;return {all:catalog,suggestions:catalog.forAction?catalog.forAction(action).map(entry=>entry.name):[]};},
       layout,notifyComparison:notify,
-      dispose(){if(disposed)return;disposed=true;cancelPan();if(c.objects){c.objects.dispose();delete c.objects;}if(noticeFrame)caf(noticeFrame);if(initialFrame)caf(initialFrame);if(refreshFrame)caf(refreshFrame);if(iconObserver)iconObserver.disconnect();listeners.splice(0).forEach(remove=>remove());handles.forEach(node=>node.remove());resize.remove();live.remove();subscribers.clear();for(const node of decorated){delete node.dataset.rceControl;const visual=node.querySelector('.rce-visual');if(visual){const icon=visual.querySelector('svg');if(icon){icon.removeAttribute('style');node.replaceChildren(icon);}else visual.remove();}node.style.removeProperty('opacity');}delete root.dataset.rceEditing;if(G.RavenCabinEditor===api)delete G.RavenCabinEditor;}
+      dispose(){if(disposed)return;disposed=true;cancelPan();if(c.objects){c.objects.dispose();delete c.objects;}if(noticeFrame)caf(noticeFrame);if(initialFrame)caf(initialFrame);if(refreshFrame)caf(refreshFrame);if(iconObserver)iconObserver.disconnect();listeners.splice(0).forEach(remove=>remove());handles.forEach(node=>node.remove());resize.remove();live.remove();subscribers.clear();selectionSubscribers.clear();for(const node of decorated){delete node.dataset.rceControl;const visual=node.querySelector('.rce-visual');if(visual){const icon=visual.querySelector('svg');if(icon){icon.removeAttribute('style');node.replaceChildren(icon);}else visual.remove();}node.style.removeProperty('opacity');}delete root.dataset.rceEditing;if(G.RavenCabinEditor===api)delete G.RavenCabinEditor;}
     };
     if(G.RavenCabinObjects)c.objects=G.RavenCabinObjects.mount({controller:c,root,geometry:g,getState:()=>({objects:current().objects,selectedObject,editing}),updateObject,selectObject,requestLayout,beginEdit,endEdit});
     G.RavenCabinEditor=api;initialFrame=raf(()=>{initialFrame=0;requestLayout();notify();});return api;

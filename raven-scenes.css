@@ -66,3 +66,19 @@
 .rs-device-preview{display:block;width:100%;max-height:280px;object-fit:cover;border-radius:8px;background:#030a10;transform:scaleX(-1)}
 .rs-file-picker{display:none}
 
+
+/* Scene architecture is one shared clipping surface; all text remains native DOM. */
+.rs-live-layer{display:contents}
+.rs-live-layer[data-physical=true]{position:absolute;inset:0;display:block;z-index:4;pointer-events:none}
+.rs-live-layer[data-physical=true]>.rs-object,.rs-live-layer[data-physical=true]>.rs-control,.rs-live-layer[data-physical=true]>.rs-attachment{pointer-events:auto}
+.rs-live-layer[data-physical=true]>.rs-dock{pointer-events:none}
+.rs-scene[data-physical=true] .rs-header,.rs-scene[data-physical=true] .rs-composer{box-shadow:inset 0 1px 0 #ffffff14}
+
+.rs-surface-layer{display:contents}
+.rs-surface-layer[data-physical=true]{position:absolute;inset:0;display:block;z-index:2;pointer-events:none}
+.rs-surface-layer[data-physical=true]>.rs-surface{pointer-events:auto}
+
+.rs-surface-ad{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:var(--rs-ad-pad,8px);background:linear-gradient(180deg,transparent 8%,#0004 34%,var(--rs-ad-background,#06192B) 100%);color:var(--rs-ad-color,#fff);text-align:left;pointer-events:none;overflow:hidden}
+.rs-ad-brand{display:block;color:var(--rs-ad-accent,#5fd8ff);font:700 var(--rs-ad-brand,10px)/1.15 Arial,sans-serif;letter-spacing:.07em;overflow-wrap:anywhere;text-shadow:0 1px 3px #0008}
+.rs-ad-headline{display:block;white-space:pre-line;color:var(--rs-ad-color,#fff);font:900 var(--rs-ad-headline,20px)/.98 Arial,sans-serif;letter-spacing:-.025em;overflow-wrap:anywhere;text-shadow:0 2px 5px #0006}
+.rs-ad-body{display:block;color:var(--rs-ad-color,#fff);font:400 var(--rs-ad-body,12px)/1.25 Arial,sans-serif;opacity:.86;margin-top:3px}
