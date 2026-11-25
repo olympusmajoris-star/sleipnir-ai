@@ -9,7 +9,7 @@
     {id:'sharedScreen',label:'Passenger window screen',group:'Sharing',kind:'layer',view:'sharing',selector:'.rc-sharing'},
     {id:'sideMirror',label:'Passenger side mirror',group:'Sharing',kind:'layer',view:'sharing',selector:'.rc-side-peer'},
     {id:'doorControls',label:'Door controls',group:'Control groups',kind:'group',view:'sharing',selector:'.rc-control:not(.rc-reveal)'},
-    {id:'tabletControls',label:'Tablet controls',group:'Control groups',kind:'group',view:'chat',selector:'[data-control]'}
+    {id:'tabletControls',label:'Dashboard controls',group:'Control groups',kind:'group',view:'chat',selector:'[data-control]'}
   ];
   const baseline={x:0,y:0,width:100,height:100,rotation:0,opacity:1,visible:true,locked:false};
   const defaults=()=>Object.fromEntries(specs.map(spec=>[spec.id,{...baseline}]));
@@ -73,7 +73,7 @@
       if(disposed||!P||!P.width||!P.height)return;lastP=P;clearDecorations();rendered.clear();inverses.clear();outline.hidden=true;
       const s=state(),view=root.dataset.cabinMode==='call'?'video':root.dataset.cabinMode||'chat',stamp=geometryStamp(P);
       for(const spec of specs){
-        const relevant=spec.id==='typingBar'?view==='chat'||view==='video':spec.id==='tabletControls'?view==='chat'||view==='video'&&!!g.layoutHasTablet:spec.view===view;if(!relevant)continue;
+        const relevant=spec.id==='typingBar'||spec.id==='tabletControls'?view==='chat'||view==='video':spec.view===view;if(!relevant)continue;
         const value=valueFor(spec.id,s);if(spec.kind==='group'){renderGroup(spec,value,P,view,stamp);continue;}
         const node=q(spec.selector);if(!node||!nativeVisible(node))continue;const base=rawRect(node);if(base.w<=0||base.h<=0)continue;
         const A=affine(base,value,P);layer(node,A.rect,value.rotation,value.opacity,value.visible);attr(node,'data-rco-object-id',spec.id);rendered.set(spec.id,{base,rect:A.rect,value,angle:A.angle});

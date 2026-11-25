@@ -58,6 +58,11 @@
     const cameraDefaults={duration:900,videoYaw:Number.isFinite(g.camera&&g.camera.videoYaw)?g.camera.videoYaw:16,sharingYaw:Number(g.camera&&g.camera.sharingYaw)||58};
     let design={kind:'asgard-raven-cabin',version:3,skin:'clean',workspaces:Object.fromEntries(SKINS.map(skin=>[skin,workspace(skin)])),motion:{...cameraDefaults},presentation:{...presentationDefaults}};
     let selected='image',selectedObject=null,editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
+    // Editing the cabin and testing a phone are separate views of one design.
+    // This viewport is deliberately absent from exports, storage, and undo.
+    let studioViewport=enabled?{surface:'cabin',device:'iphone',orientation:'portrait'}:null;
+    let suppressStudioViewEvents=false,activeNativeView=null;
+    const ignoredViewTransitions=new Set();
     let history=[],future=[],lastChangeKey='',lastChangeTime=0,gestureDepth=0,gestureStart=null,pointer=null;
     let panFrame=0,noticeFrame=0,initialFrame=0,refreshFrame=0,panTime=null,lastSaved='',status='Changes preview live. Save keeps this design in this browser.';
     let lastViewStamp='',lastSkinSource='',savedAt=null;
@@ -136,6 +141,10 @@
           if(!source.controls[spec.id]&&!(legacy&&newControls.has(spec.id)))throw Error('Missing control: '+spec.label);
           controls[spec.id]={...skinDefaults[spec.id],...controlPatch(source.controls[spec.id]||{},true)};
           if(legacy&&spec.id==='play'&&controls.play.x===1834&&controls.play.y===384){controls.play.x=skinDefaults.play.x;controls.play.y=skinDefaults.play.y;}
+          if(skin==='wood'||skin==='woodLit'){
+            const oldTablet={image:[552,687],mic:[622,687],call:[692,687],video:[552,718],radio:[622,718],language:[692,718]}[spec.id];
+            if(oldTablet&&controls[spec.id].x===oldTablet[0]&&controls[spec.id].y===oldTablet[1]){controls[spec.id].x=skinDefaults[spec.id].x;controls[spec.id].y=skinDefaults[spec.id].y;}
+          }
         }
         const objects=clone(objectDefaults);
         if(source.objects!==undefined){keys(source.objects,objectSpecs.map(spec=>spec.id),'objects');for(const [id,patch]of Object.entries(source.objects))objects[id]={...objectDefaults[id],...objectPatch(patch,true)};}
@@ -147,12 +156,21 @@
       if(stored){const parsed=JSON.parse(stored);design=validate(parsed.design||parsed);lastSaved=serialize();savedAt=parsed.savedAt||null;activeDesign=true;status='Saved design restored from this browser.';}
     }catch(_){status='Browser storage is unavailable or contains an older design. Live editing still works.';}
 
+    function effectivePresentation(){
+      const result={...design.presentation};if(!studioViewport)return result;
+      const {surface,device,orientation}=studioViewport;result.studioSurface=surface;
+      if(surface==='phone'){result.device=device;result.orientation=orientation;return result;}
+      result.device='wide';result.orientation='landscape';
+      if(['cabin','dashboard','passenger','pan'].includes(surface)){result.zoom=1;result.windshieldLift=0;}
+      if(surface==='cabin'||surface==='dashboard')result.controlsVisible=true;
+      return result;
+    }
     function getState(){return {
       selected,selectedObject,editing,view:mode(),pan:progress(),canUndo:history.length>0||!!(gestureStart&&gestureStart!==serialize()),canRedo:future.length>0,
       saved:lastSaved===serialize(),savedAt,status,skin:design.skin,skinAvailable:Object.fromEntries(layouts.map(layout=>[layout.id,!!layout.image])),layouts:clone(layouts),
-      controls:specs.map(spec=>({id:spec.id,label:spec.label,group:g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)?'Center tablet':spec.group,...clone(current().controls[spec.id])})),
+      controls:specs.map(spec=>({id:spec.id,label:spec.label,group:g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)?((g.tabletControlIds||Object.keys(g.tabletSlots||{})).includes(spec.id)?'Center tablet':'Digital dashboard'):spec.group,...clone(current().controls[spec.id])})),
       objects:objectSpecs.map(spec=>({...spec,...clone(current().objects[spec.id])})),
-      motion:{...design.motion},presentation:{...design.presentation},comparison:c.comparison?clone(c.comparison):null,materials:{...current().materials},playingPan:!!panFrame
+      motion:{...design.motion},presentation:{...design.presentation},studioViewport:studioViewport?{...studioViewport}:null,effectivePresentation:effectivePresentation(),comparison:c.comparison?clone(c.comparison):null,materials:{...current().materials},playingPan:!!panFrame
     };}
     function notify(){
       if(disposed||noticeFrame)return;
@@ -167,10 +185,11 @@
       defaults=defaultsBySkin[design.skin];g.layoutHasTablet=design.skin==='wood'||design.skin==='woodLit';g.materialFamily=g.layoutHasTablet?'wood':'original';
       g.slots=clone(g.layoutHasTablet?g.tabletSlots:originalSlots);g.screens=clone(g.layoutHasTablet?g.woodScreens:originalScreens);
       g.panDuration=design.motion.duration;g.camera={...(g.camera||{}),videoYaw:design.motion.videoYaw,sharingYaw:design.motion.sharingYaw};
-      g.materialColors={...current().materials};g.presentation={...design.presentation};
-      root.dataset.canvasDevice=design.presentation.device;root.dataset.canvasOrientation=design.presentation.orientation;
-      scene.style.aspectRatio=design.presentation.device==='iphone'?(design.presentation.orientation==='portrait'?'390 / 844':'844 / 390'):'1260 / 817';
-      if(c.cabin&&c.cabin.setControlsVisible)c.cabin.setControlsVisible(design.presentation.controlsVisible,false);
+      g.materialColors={...current().materials};g.presentation=effectivePresentation();
+      root.dataset.canvasDevice=g.presentation.device;root.dataset.canvasOrientation=g.presentation.orientation;
+      root.dataset.studioSurface=studioViewport?studioViewport.surface:'';
+      scene.style.aspectRatio=g.presentation.device==='iphone'?(g.presentation.orientation==='portrait'?'390 / 844':'844 / 390'):studioViewport&&['passenger','pan'].includes(studioViewport.surface)?'1 / 1':'1260 / 817';
+      if(c.cabin&&c.cabin.setControlsVisible)c.cabin.setControlsVisible(g.presentation.controlsVisible,false);
       const source=layouts.find(layout=>layout.id===design.skin).image;
       if(source&&source!==lastSkinSource){lastSkinSource=source;c.photo.src=source;c.wheel.src=source;}
       root.dataset.cabinSkin=design.skin;root.dataset.rceEditing=String(editing);
@@ -187,45 +206,97 @@
     }
     function updateObject(id,patch){if(!objectById.has(id))throw Error('Choose a cabin object.');const next=objectPatch(patch);return changed('object:'+id+':'+Object.keys(next).sort().join(','),()=>Object.assign(current().objects[id],next));}
     function selectObject(id){
-      if(id!==null&&!objectById.has(id))return false;selectedObject=id;
+      if(id!==null&&!objectById.has(id))return false;const previous=selectedObject;selectedObject=id;
       if(id){
         const spec=objectById.get(id),view=mode();
-        if(id==='typingBar'){if(view==='sharing')setView('chat');updatePresentation({controlsVisible:true});}
+        if(studioViewport&&studioViewport.surface!=='phone'){
+          if(previous!==id){const surface=spec.view==='sharing'?'passenger':['typingBar','tabletControls'].includes(id)?'dashboard':'windshield';setStudioViewport({surface});if(spec.view==='video')openView('video');}
+        }
+        else if(id==='typingBar'){if(view==='sharing')setView('chat');updatePresentation({controlsVisible:true});}
         else if(id==='tabletControls'){updatePresentation({controlsVisible:true});if(view!=='chat'&&!(view==='video'&&g.layoutHasTablet))setView('chat');}
         else if(spec.view&&spec.view!==view)setView(spec.view);
       }
       requestLayout();notify();return true;
     }
-    function updatePresentation(patch){const next=presentationPatch(patch);return changed('presentation:'+Object.keys(next).sort().join(','),()=>Object.assign(design.presentation,next));}
-    on(root,'raven:controlsvisibility',event=>{if(event.detail&&typeof event.detail.visible==='boolean')updatePresentation({controlsVisible:event.detail.visible});});
+    function updatePresentation(patch){
+      const next=presentationPatch(patch);
+      if(studioViewport&&!['phone','windshield'].includes(studioViewport.surface)&&(Object.hasOwn(next,'zoom')||Object.hasOwn(next,'windshieldLift')))setStudioViewport({surface:'windshield'});
+      return changed('presentation:'+Object.keys(next).sort().join(','),()=>Object.assign(design.presentation,next));
+    }
+    on(root,'raven:controlsvisibility',event=>{if(event.detail&&typeof event.detail.visible==='boolean'){
+      if(studioViewport&&studioViewport.surface!=='phone')setStudioViewport({surface:event.detail.visible?'dashboard':'windshield'});
+      else updatePresentation({controlsVisible:event.detail.visible});
+    }});
+    on(root,'raven:viewchange',event=>{
+      const detail=event.detail;if(!detail||!studioViewport||studioViewport.surface==='phone')return;
+      if(detail.phase==='start'&&suppressStudioViewEvents){ignoredViewTransitions.add(detail.id);return;}
+      if(ignoredViewTransitions.has(detail.id)){if(detail.phase==='end')ignoredViewTransitions.delete(detail.id);return;}
+      if(detail.cancelled){if(activeNativeView===detail.id)activeNativeView=null;return;}
+      if(detail.phase==='start'){activeNativeView=detail.id;studioViewport.surface='pan';}
+      else if(detail.phase==='end'&&activeNativeView===detail.id){activeNativeView=null;studioViewport.surface=detail.view==='sharing'?'passenger':detail.view==='video'?'windshield':'cabin';}
+      else return;
+      applyEnvironment();requestLayout();notify();
+    });
     function updateMaterials(patch){const next=materialsPatch(patch);return changed('materials:'+Object.keys(next).sort().join(','),()=>Object.assign(current().materials,next));}
     function updateMotion(patch){const next=motionPatch(patch);return changed('motion:'+Object.keys(next).sort().join(','),()=>Object.assign(design.motion,next));}
     function undo(){flushGesture();if(!history.length)return;cancelPan();future.push(serialize());design=JSON.parse(history.pop());lastChangeKey='';status='Edit undone · preview updated.';applyEnvironment();requestLayout();notify();}
     function redo(){flushGesture();if(!future.length)return;cancelPan();history.push(serialize());design=JSON.parse(future.pop());lastChangeKey='';status='Edit restored · preview updated.';applyEnvironment();requestLayout();notify();}
+    function openView(view){
+      if(!c.cabin)return false;
+      suppressStudioViewEvents=true;
+      try{if(view==='sharing')c.cabin.receiveShared({src:media.poster,type:'image',name:'Studio shared-photo sample'});else c.cabin.open(view);}
+      finally{suppressStudioViewEvents=false;}return true;
+    }
+    function setStudioViewport(patch){
+      keys(patch,['surface','device','orientation'],'Studio viewport');
+      if(patch.surface!==undefined&&!['cabin','dashboard','windshield','passenger','phone','pan'].includes(patch.surface))throw Error('Choose a cabin, dashboard, windshield, passenger window, or phone view.');
+      if(patch.device!==undefined&&!['iphone','wide'].includes(patch.device))throw Error('Choose an iPhone or wide canvas.');
+      if(patch.orientation!==undefined&&!['portrait','landscape'].includes(patch.orientation))throw Error('Choose portrait or landscape.');
+      cancelPan();studioViewport={surface:'cabin',device:design.presentation.device,orientation:design.presentation.orientation,...studioViewport,...patch};
+      applyEnvironment();
+      const surface=studioViewport.surface;
+      if(surface==='passenger'&&mode()!=='sharing')openView('sharing');
+      else if((surface==='cabin'||surface==='dashboard')&&mode()!=='chat')openView('chat');
+      else if(surface==='windshield'&&mode()==='sharing')openView('chat');
+      requestLayout();notify();return true;
+    }
     function setView(view){
       if(!['chat','video','sharing'].includes(view))return false;cancelPan();if(!c.cabin)return false;
-      if(view==='sharing')c.cabin.receiveShared({src:media.poster,type:'image',name:'Studio shared-photo sample'});
-      else c.cabin.open(view);notify();return true;
+      if(studioViewport&&studioViewport.surface!=='phone'){
+        studioViewport.surface=view==='sharing'?'passenger':view==='video'?'windshield':['passenger','pan'].includes(studioViewport.surface)?'windshield':studioViewport.surface;
+        applyEnvironment();
+      }
+      openView(view);requestLayout();notify();return true;
     }
     function setPanProgress(value){
-      if(!number(value))return false;cancelPan();if(!c.cabin||!c.cabin.previewPan)return false;c.cabin.previewPan(clamp(value,0,1));notify();return true;
+      if(!number(value))return false;cancelPan();if(!c.cabin||!c.cabin.previewPan)return false;
+      if(studioViewport&&studioViewport.surface!=='phone'){studioViewport.surface='pan';applyEnvironment();}
+      c.cabin.previewPan(clamp(value,0,1));requestLayout();notify();return true;
     }
     function playPan(){
       cancelPan();if(!c.cabin||!c.cabin.previewPan)return false;
+      if(studioViewport&&studioViewport.surface!=='phone'){studioViewport.surface='pan';applyEnvironment();requestLayout();}
       const start=progress()>=.99?0:progress(),duration=design.motion.duration*2*(1-start);
       c.cabin.previewPan(start);
-      const tick=time=>{if(disposed)return;if(panTime===null)panTime=time;const t=clamp((time-panTime)/Math.max(150,duration),0,1),smooth=t*t*(3-2*t);c.cabin.previewPan(start+(1-start)*smooth);notify();if(t<1)panFrame=raf(tick);else{panFrame=0;panTime=null;notify();}};
+      const tick=time=>{if(disposed)return;if(panTime===null)panTime=time;const t=clamp((time-panTime)/Math.max(150,duration),0,1),smooth=t*t*(3-2*t);c.cabin.previewPan(start+(1-start)*smooth);notify();if(t<1)panFrame=raf(tick);else{panFrame=0;panTime=null;if(studioViewport&&studioViewport.surface==='pan'){studioViewport.surface='passenger';applyEnvironment();requestLayout();}notify();}};
       panFrame=raf(tick);notify();return true;
     }
     function select(id){
       if(!specById.has(id))return false;selected=id;selectedObject=null;const spec=specById.get(id),node=q(spec.selector);
-      if(!node||node.hidden||node.closest('[hidden]')){if(spec.view!=='sharing')updatePresentation({controlsVisible:true});setView(spec.view);}
+      const projected=lastProjector&&lastProjector.point(current().controls[id].x,current().controls[id].y);
+      const offscreen=projected&&(projected[0]<0||projected[0]>lastProjector.width||projected[1]<0||projected[1]>lastProjector.height);
+      if(!node||node.hidden||node.closest('[hidden]')||offscreen){
+        if(studioViewport&&studioViewport.surface!=='phone'){
+          setStudioViewport({surface:spec.view==='sharing'?'passenger':spec.view==='video'?'cabin':spec.id==='motion'?'cabin':spec.id==='send'?'windshield':'dashboard'});
+          if(spec.view==='video')openView('video');
+        }else{if(spec.view!=='sharing')updatePresentation({controlsVisible:true});setView(spec.view);}
+      }
       requestLayout();notify();return true;
     }
-    function setEditing(value){cancelPan();editing=!!value;activeDesign=activeDesign||editing;root.dataset.rceEditing=String(editing);requestLayout();notify();}
+    function setEditing(value){cancelPan();editing=!!value;activeDesign=activeDesign||editing;root.dataset.rceEditing=String(editing);applyEnvironment();requestLayout();notify();}
     function setSkin(skin){
       if(!SKINS.includes(skin))return false;if(!layouts.find(layout=>layout.id===skin).image){status='That cabin layout is still loading.';notify();return false;}
-      flushGesture();return changed('skin',()=>{design.skin=skin;});
+      flushGesture();const updated=changed('skin',()=>{design.skin=skin;});if(editing&&studioViewport&&studioViewport.surface!=='phone')setStudioViewport({surface:'dashboard'});return updated;
     }
     function save(){
       flushGesture();try{savedAt=new Date().toISOString();G.localStorage.setItem(STORAGE,JSON.stringify({design,savedAt}));lastSaved=serialize();status='Saved in this browser. All four cabin workspaces are kept.';notify();return {ok:true,message:status};}
@@ -239,9 +310,9 @@
       return config.icon===defaults[spec.id].icon&&(node.dataset.motionIcon||node.dataset.icon)?node.dataset.motionIcon||node.dataset.icon:config.icon;
     }
     function eligible(spec,view){
-      if(g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)&&view==='video'&&design.presentation.controlsVisible)return true;
+      if(spec.view==='chat'&&view==='video'&&g.presentation&&g.presentation.controlsVisible)return true;
       if(spec.id==='end-call')return view==='video';if(spec.id==='end-share')return view==='sharing';
-      if(spec.id==='send'||spec.id==='image')return view==='chat'||view==='video'&&design.presentation.controlsVisible;return spec.view===view;
+      if(spec.id==='send'||spec.id==='image')return view==='chat'||view==='video'&&g.presentation&&g.presentation.controlsVisible;return spec.view===view;
     }
     function parentOrigin(node){
       if(node.parentElement===scene)return [0,0];
@@ -350,9 +421,9 @@
           const next={x:Math.min(rect.x,bound.left),y:Math.min(rect.y,bound.top),w:Math.max(rect.x+rect.w,bound.right)-Math.min(rect.x,bound.left),h:Math.max(rect.y+rect.h,bound.bottom)-Math.min(rect.y,bound.top)};
           rect=next;Object.assign(node.style,{left:(rect.x-origin[0])+'px',top:(rect.y-origin[1])+'px',width:rect.w+'px',height:rect.h+'px'});plane(visual,source,extent,config.rotation,P,[rect.x,rect.y]);
         }
-        if(editing&&!selectedObject){
-          const handle=ensureHandle(spec);target(handle,{x:clamp(rect.x,0,P.width-44),y:clamp(rect.y,0,P.height-44),w:Math.max(44,Math.min(rect.w,P.width)),h:Math.max(44,Math.min(rect.h,P.height))});handle.hidden=false;handle.dataset.selected=String(selected===spec.id);handle.dataset.locked=String(config.locked);handle.setAttribute('aria-pressed',String(selected===spec.id));handle.setAttribute('aria-label',(config.locked?'Locked ':'Move ')+spec.label);
-          if(selected===spec.id&&!config.locked){
+        if(editing){
+          const handle=ensureHandle(spec);target(handle,{x:clamp(rect.x,0,P.width-44),y:clamp(rect.y,0,P.height-44),w:Math.max(44,Math.min(rect.w,P.width)),h:Math.max(44,Math.min(rect.h,P.height))});handle.hidden=false;handle.dataset.selected=String(!selectedObject&&selected===spec.id);handle.dataset.locked=String(config.locked);handle.setAttribute('aria-pressed',String(!selectedObject&&selected===spec.id));handle.setAttribute('aria-label',(config.locked?'Locked ':'Move ')+spec.label);
+          if(!selectedObject&&selected===spec.id&&!config.locked){
             const right=rect.x+rect.w+38<=P.width,bottom=rect.y+rect.h+38<=P.height;
             resize.dataset.horizontal=right?'right':'left';resize.dataset.vertical=bottom?'bottom':'top';
             target(resize,{x:clamp(right?rect.x+rect.w-6:rect.x-38,0,P.width-44),y:clamp(bottom?rect.y+rect.h-6:rect.y-38,0,P.height-44),w:44,h:44});resize.hidden=false;
@@ -363,7 +434,7 @@
     }
     applyEnvironment();
     const api={
-      getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},select,setEditing,updateControl,selectObject,updateObject,
+      getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},select,setEditing,setStudioViewport,updateControl,selectObject,updateObject,
       resetObject(id){if(!objectById.has(id))return false;return changed('reset-object:'+id,()=>{current().objects[id]=clone(objectDefaults[id]);});},
       resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,updateMotion,updatePresentation,updateMaterials,setSkin,save,
       exportDesign(){return JSON.stringify(design,null,2);},importDesign,

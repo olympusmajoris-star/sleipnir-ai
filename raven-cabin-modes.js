@@ -10,7 +10,7 @@
     const reduced=G.matchMedia?G.matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
     const raf=G.requestAnimationFrame?G.requestAnimationFrame.bind(G):fn=>G.setTimeout(()=>fn(Date.now()),16);
     const caf=G.cancelAnimationFrame?G.cancelAnimationFrame.bind(G):G.clearTimeout.bind(G);
-    let mode='chat',returnMode='video',view=g.views.chat.slice(),remoteBox=g.remote.slice(),animation=null,frame=0,mirrorFrame=0;
+    let mode='chat',returnMode='video',view=g.views.chat.slice(),remoteBox=g.remote.slice(),animation=null,frame=0,mirrorFrame=0,transitionId=0;
     let disposed=false,stream=null,cameraPending=false,cameraToken=0,objectURL=null,sharedKind='',mediaToken=0,lastProjector=null;
     let controlsVisible=!!(g.presentation&&g.presentation.controlsVisible),moreOpen=false,sharedFit='fill',sharedSource='',sharedName='shared-item',followed=false,remoteStream=null;
 
@@ -85,6 +85,9 @@
 
 
     function active(){return mode!=='chat'&&!disposed;}
+    function viewChange(transition,phase,cancelled=false){
+      if(transition&&typeof G.CustomEvent==='function')root.dispatchEvent(new G.CustomEvent('raven:viewchange',{detail:{id:transition.id,view:transition.name,phase,animated:transition.animated,cancelled}}));
+    }
     function sync(){
       const onCall=active(),inShare=mode==='sharing';root.dataset.cabinMode=mode;
       remote.hidden=!onCall||inShare;remoteLabel.textContent='Call preview';mirror.hidden=!onCall||inShare;sideSelf.hidden=!onCall||!inShare;
@@ -107,13 +110,16 @@
       const t=clamp((time-animation.started)/clamp(Number(g.panDuration)||800,150,4000),0,1),ease=t*t*(3-2*t);
       view=blend(animation.from,animation.to,ease);remoteBox=blend(animation.remoteFrom,animation.remoteTo,ease);
       requestLayout();
-      if(t<1)frame=raf(advance);else{animation=null;frame=0;}
+      if(t<1)frame=raf(advance);else{const completed=animation;animation=null;frame=0;viewChange(completed,'end');}
     }
     function changeView(name){
+      if(animation)viewChange(animation,'end',true);
       if(frame)caf(frame);frame=0;
       const target=g.views[name]||g.views.video,remoteTarget=name==='sharing'&&g.remoteSharing?g.remoteSharing:g.remote;
-      if(reduced.matches){animation=null;view=target.slice();remoteBox=remoteTarget.slice();requestLayout();return;}
-      animation={from:view.slice(),to:target.slice(),remoteFrom:remoteBox.slice(),remoteTo:remoteTarget.slice(),started:null};frame=raf(advance);requestLayout();
+      const transition={id:++transitionId,name,animated:!reduced.matches};
+      animation=null;viewChange(transition,'start');
+      if(reduced.matches){view=target.slice();remoteBox=remoteTarget.slice();requestLayout();viewChange(transition,'end');return;}
+      animation={...transition,from:view.slice(),to:target.slice(),remoteFrom:remoteBox.slice(),remoteTo:remoteTarget.slice(),started:null};frame=raf(advance);requestLayout();
     }
     function releaseShared(){
       ++mediaToken;sharedSource='';sharedName='shared-item';sharedVideo.pause();sharedVideo.onloadedmetadata=null;sharedVideo.onerror=null;sharedImage.onload=null;sharedImage.onerror=null;
@@ -141,6 +147,7 @@
     function previewPan(progress){
       if(disposed)return;
       const t=clamp(Number(progress)||0,0,1);
+      if(animation)viewChange(animation,'end',true);
       if(frame)caf(frame);frame=0;animation=null;
       if(t===0){mode='chat';remoteVideo.pause();}
       else if(t<=.5){mode='video';returnMode='video';}
@@ -231,21 +238,22 @@
     }
     function windowSurface(n,poly,P){const finite=poly.filter(p=>p.every(Number.isFinite));if(finite.length<3){n.hidden=true;return [0,0,0,0];}const r=bounds(finite);n.style.transform='none';box(n,r);n.style.clipPath=polygon(finite,r);return r;}
     function layout(P){
-      if(disposed)return;lastProjector=P;const inShare=mode==='sharing',onCall=active(),editing=root.dataset.rceEditing==='true';
+      if(disposed)return;lastProjector=P;const inShare=mode==='sharing',onCall=active(),editing=root.dataset.rceEditing==='true',studioSurface=(g.presentation||{}).studioSurface;
       for(const button of [camera,share,end,back,pick,play,rewind,forward,keep,follow,more,fit])button.hidden=true;
-      reveal.hidden=inShare;box(reveal,[Math.max(8,P.width-112),Math.max(8,P.height-52),104,44]);reveal.style.setProperty('--rc-icon','16px');
+      reveal.hidden=inShare||!!studioSurface&&studioSurface!=='phone';box(reveal,[Math.max(8,P.width-112),Math.max(8,P.height-52),104,44]);reveal.style.setProperty('--rc-icon','16px');
       if(!onCall){for(const n of [remote,mirror,sideSelf,sharing,statusNode])n.hidden=true;return;}
       remote.hidden=inShare;
       if(!inShare)windowSurface(remote,P.visibleWindshield||g.windshield.map(p=>P.point(...p)),P);
-      const glass=P.sharedRect||P.rect(g.sideContent),mrNative=P.rect(g.mirror),mirrorWidth=clamp(P.width*.26,96,122),mirrorHeight=mirrorWidth*1.22;
-      const mr=[clamp(mrNative[0],8,P.width-mirrorWidth-8),clamp(mrNative[1],8,P.height-mirrorHeight-12),mirrorWidth,mirrorHeight];mirror.style.transform='none';box(mirror,mr);mirror.hidden=inShare;
+      const glass=P.sharedRect||P.rect(g.sideContent),hinge=P.point(g.mirror[0]+g.mirror[2]/2,g.mirror[1]),mirrorWidth=clamp(P.width*.26,96,122),mirrorHeight=mirrorWidth*1.22;
+      const mr=[clamp(hinge[0]-mirrorWidth/2,8,P.width-mirrorWidth-8),clamp(hinge[1],8,P.height-mirrorHeight-12),mirrorWidth,mirrorHeight];mirror.style.transform='none';box(mirror,mr);mirror.hidden=inShare;
       for(let i=0;i<2;i++){const panel=selfVideos[i].parentElement;box(panel,[0,mirrorHeight/2*i,mirrorWidth,mirrorHeight/2]);box(selfVideos[i],[0,-mirrorHeight/2*i,mirrorWidth,mirrorHeight]);}
       sideSelf.hidden=!inShare;sharing.hidden=!inShare||!sharedKind;
       if(inShare){
         const sr=windowSurface(sharing,P.visibleSideWindow||(g.sideWindowFull||g.sideWindow).map(p=>P.point(...p)),P);
         box(content,[0,0,sr[2],sr[3]]);content.style.transform='none';
         sharedImage.style.objectFit=sharedVideo.style.objectFit=sharedFit==='fit'?'contain':'cover';content.dataset.fit=sharedFit;
-        const shell=g.sideMirrorShell||[1260,350,195,105],shellWidth=clamp(P.width*.58,185,275),shellHeight=shellWidth*shell[3]/shell[2],left=clamp(sr[0]+14,8,P.width-shellWidth-8),top=clamp(sr[1]+sr[3]-shellHeight+8,8,P.height-shellHeight-156);
+        const shell=g.sideMirrorShell||[1260,350,195,105],nativeShell=P.rect(shell),shellWidth=clamp(nativeShell[2],185,275),shellHeight=shellWidth*shell[3]/shell[2];
+        const left=clamp(nativeShell[0],8,P.width-shellWidth-8),top=clamp(nativeShell[1],8,P.height-shellHeight-116);
         sideSelf.style.transform='none';box(sideSelf,[left,top,shellWidth,shellHeight]);
         sideShell.style.backgroundImage='url('+JSON.stringify(c.photo.currentSrc||c.photo.src)+')';sideShell.style.backgroundSize=(g.width/shell[2]*100)+'% '+(g.height/shell[3]*100)+'%';sideShell.style.backgroundPosition=(shell[0]/(g.width-shell[2])*100)+'% '+(shell[1]/(g.height-shell[3])*100)+'%';
         const face=g.sideMirrorRect||[1328,367,95,68];Object.assign(sideFace.style,{left:(face[0]-shell[0])/shell[2]*100+'%',top:(face[1]-shell[1])/shell[3]*100+'%',width:face[2]/shell[2]*100+'%',height:face[3]/shell[3]*100+'%',clipPath:polygon(g.sideMirror,face)});
@@ -259,10 +267,13 @@
           hit(button,source,P,18,{x:x-22,y:y-22,w:44,h:44});button.dataset.cabinAnchorX=String(source[0]);button.dataset.cabinAnchorY=String(source[1]);
         });
       }else if(controlsVisible){
-        const y=clamp((P.composeRect?P.composeRect[1]+P.composeRect[3]+8:P.height-64),8,P.height-48),left=clamp(P.width/2-72,8,P.width-152);
-        [camera,share,end].forEach((button,i)=>{const x=left+i*48+22,source=P.unproject?P.unproject(x,y+22):[x/P.scale,(y+22)/P.scale];hit(button,source,P,18,{x:x-22,y,w:44,h:44});button.dataset.cabinAnchorX=String(source[0]);button.dataset.cabinAnchorY=String(source[1]);});
+        const overhead=(g.overhead||[]).map(point=>P.point(...point)),overheadVisible=overhead.length===3&&overhead.every(([x,y])=>x>=22&&x<=P.width-22&&y>=22&&y<=P.height-22);
+        const spacing=overheadVisible?Math.max(44,Math.abs(overhead[1][0]-overhead[0][0])):48;
+        const y=overheadVisible?overhead[1][1]-22:clamp((P.composeRect?P.composeRect[1]+P.composeRect[3]+8:P.height-64),8,P.height-48);
+        const left=clamp((overheadVisible?overhead[1][0]:P.width/2)-spacing-22,8,P.width-spacing*2-52);
+        [camera,share,end].forEach((button,i)=>{const x=left+i*spacing+22,source=P.unproject?P.unproject(x,y+22):[x/P.scale,(y+22)/P.scale];hit(button,source,P,18,{x:x-22,y,w:44,h:44});button.dataset.cabinAnchorX=String(source[0]);button.dataset.cabinAnchorY=String(source[1]);});
       }
-      Object.assign(statusNode.style,{position:'absolute',left:'8px',right:'auto',bottom:'5px',top:'auto',width:Math.max(80,P.width-128)+'px',maxHeight:'36px',overflow:'auto'});statusNode.hidden=!onCall||!statusNode.textContent;
+      Object.assign(statusNode.style,{position:'absolute',left:'8px',right:'auto',bottom:'5px',top:'auto',width:Math.max(80,P.width-128)+'px',maxHeight:'36px',overflow:'auto'});statusNode.hidden=editing||!onCall||!statusNode.textContent;
     }
     on(scene,'keydown',event=>{if(event.key==='Escape'&&active()){event.preventDefault();open(mode==='sharing'?returnMode:'chat');}});
     on(D,'visibilitychange',()=>{if(D.hidden)stopDevices();else if(active()&&!remoteVideo.hidden)safePlay(remoteVideo);});

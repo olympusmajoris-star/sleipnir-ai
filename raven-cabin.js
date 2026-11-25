@@ -139,10 +139,11 @@
       const base=w/car.views.chat[2];
       const fallback={point:(x,y)=>[x*base,y*base],rect:([x,y,width,height])=>[x*base,y*base,width*base,height*base],scale:base,width:w,height:h,view:car.views.chat};
       const projection=c.camera&&c.camera.supported?c.camera.project(view,w,h):fallback;
-      const {point,rect,scale:s}=projection;
+      const {point,rect}=projection;
       c.scene.dataset.cameraReady=String(!!(c.camera&&c.camera.ready));
       const inCall=!!(c.cabin&&c.cabin.isActive()),mode=root.dataset.cabinMode==='call'?'video':root.dataset.cabinMode||'chat',presentation=car.presentation||{};
-      const showDashboard=mode!=='sharing'&&(!inCall||!!presentation.controlsVisible);
+      const studioDashboard=['cabin','dashboard'].includes(presentation.studioSurface);
+      const showDashboard=mode!=='sharing'&&(!inCall||!!presentation.controlsVisible||studioDashboard);
       const box=(node,left,top,width,height)=>Object.assign(node.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px',right:'auto',bottom:'auto'});
       const polygon=(node,source)=>{if(!node||!source)return;const points=source.map(p=>point(...p)),xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),left=Math.min(...xs),top=Math.min(...ys),width=Math.max(...xs)-left,height=Math.max(...ys)-top;box(node,left,top,width,height);node.style.clipPath='polygon('+points.map(([x,y])=>((x-left)/width*100)+'% '+((y-top)/height*100)+'%').join(',')+')';};
       // Static first-paint layers retain the front view until the camera renderer is ready.
@@ -164,17 +165,22 @@
       const sendIcon=send.querySelector('svg');if(sendIcon)Object.assign(sendIcon.style,{left:(sendX-sendLeft-9)+'px',top:(composerY-sendTop-9)+'px'});
 
       if(car.layoutHasTablet){
-        const keys=['image','mic','call','video','radio','language'],points=keys.map(name=>point(...car.slots[name]));
-        const centerX=points.reduce((n,p)=>n+p[0],0)/6,centerY=points.reduce((n,p)=>n+p[1],0)/6;
-        const dx=Math.max(44,Math.abs(points[1][0]-points[0][0])),dy=Math.max(44,Math.abs(points[3][1]-points[0][1]));
-        const left=clamp(centerX-dx-22,0,Math.max(0,w-2*dx-44)),top=clamp(centerY-dy/2-22,0,Math.max(0,h-dy-44));
+        const keys=car.tabletControlIds||['image','mic','call'],points=keys.map(name=>point(...car.slots[name]));
+        const centerX=points.reduce((n,p)=>n+p[0],0)/points.length,centerY=points.reduce((n,p)=>n+p[1],0)/points.length;
+        const dx=Math.max(44,Math.abs(points[1][0]-points[0][0]));
+        const left=clamp(centerX-(keys.length-1)*dx/2-22,0,Math.max(0,w-(keys.length-1)*dx-44));
         for(const button of qa('[data-control]')){
-          const i=keys.indexOf(button.dataset.control);button.hidden=i<0||!showDashboard||!presentation.controlsVisible;if(i<0)continue;
-          const x=left+(i%3)*dx+22,y=top+Math.floor(i/3)*dy+22;
-          box(button,x-22,y-22,44,44);button.style.setProperty('--rw-icon','18px');button.dataset.tabletControl='true';
-          const anchor=projection.unproject?projection.unproject(x,y):car.slots[button.dataset.control];button.dataset.cabinAnchorX=String(anchor[0]);button.dataset.cabinAnchorY=String(anchor[1]);
-          const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:'13px',top:'13px'});
-          if(button.dataset.control==='image'){button.setAttribute('aria-label',inCall?'Share on passenger window':'Attach photo');button.setAttribute('data-tooltip',inCall?'Share':'Photos');}
+          const name=button.dataset.control,slot=car.slots[name],i=keys.indexOf(name);button.hidden=!slot||!showDashboard;if(!slot)continue;
+          const nativePoint=point(...slot);
+          if(!studioDashboard&&(nativePoint[0]<0||nativePoint[0]>w||nativePoint[1]<0||nativePoint[1]>h)){button.hidden=true;continue;}
+          const x=i<0?nativePoint[0]:left+i*dx+22,y=i<0?nativePoint[1]:centerY;
+          if(x<0||x>w||y<0||y>h){button.hidden=true;continue;}
+          const buttonLeft=clamp(x-22,0,w-44),buttonTop=clamp(y-22,0,h-44);
+          box(button,buttonLeft,buttonTop,44,44);button.style.setProperty('--rw-icon','18px');
+          if(i<0)delete button.dataset.tabletControl;else button.dataset.tabletControl='true';
+          const anchor=projection.unproject?projection.unproject(x,y):slot;button.dataset.cabinAnchorX=String(anchor[0]);button.dataset.cabinAnchorY=String(anchor[1]);
+          const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:(x-buttonLeft-9)+'px',top:(y-buttonTop-9)+'px'});
+          if(name==='image'){button.setAttribute('aria-label',inCall?'Share on passenger window':'Attach photo');button.setAttribute('data-tooltip',inCall?'Share':'Photos');}
         }
       }else{
       const lcdKeys=['image','mic','call','video'],lcdPoints=lcdKeys.map(name=>point(...car.slots[name]));
@@ -184,11 +190,11 @@
       for(const button of qa('[data-control]')){
         const name=button.dataset.control,slot=car.slots[name];button.hidden=!slot;if(!slot)continue;
         const [sourceX,sourceY]=slot,[x,y]=point(sourceX,sourceY),lcdIndex=lcdKeys.indexOf(name),wheel=lcdIndex<0;
-        button.hidden=!showDashboard||(inCall&&name!=='image')||x<12||x>w-12||y<12||y>h-12;
+        button.hidden=!showDashboard||x<12||x>w-12||y<12||y>h-12;
         if(name==='image'){button.setAttribute('aria-label',inCall?'Share on passenger window':'Attach photo');button.setAttribute('data-tooltip',inCall?'Share':'Photos');}
         let left=lcdIndex<0?x-22:pack?groupLeft+lcdIndex*44:x-22;
         if(name==='language')left=Math.min(left,firstLcdLeft-48);
-        const top=wheel?y-22:inCall?clamp(y-22,0,h-44):lcdTop,iconSize=wheel?clamp(28*s,10,16):18;
+        const top=wheel?y-22:inCall?clamp(y-22,0,h-44):lcdTop,iconSize=wheel?16:18;
         box(button,left,top,44,44);button.style.setProperty('--rw-icon',iconSize+'px');
         const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:(x-left-iconSize/2)+'px',top:(y-top-iconSize/2)+'px'});
       }
@@ -236,7 +242,7 @@
       if(!viewed&&!section.hidden){c.newest();viewed=true;}
     };
     c.stopDevices=()=>{if(c.cabin)c.cabin.stopDevices();++c.callToken;if(c.mediaStream){c.mediaStream.getTracks().forEach(track=>track.stop());c.mediaStream=null;}const video=q('.rw-self-video');video.pause();video.srcObject=null;video.hidden=true;q('.rw-call-avatar').hidden=false;q('.rw-call-mute').disabled=true;q('.rw-call-mute').textContent='Mute';};
-    if(window.RavenCabinModes)c.cabin=window.RavenCabinModes.mount({controller:c,media,geometry:car,root,requestLayout:()=>c.layout(),cancelVoice:()=>{if(voice){voice.cancelListening();voice.stopSpeaking();}},toast,nativeIcon});
+    if(window.RavenCabinModes)c.cabin=window.RavenCabinModes.mount({controller:c,media,geometry:car,root,requestLayout:()=>c.layout(),cancelVoice:()=>{if(voice){const state=voice.getState();if(state.mic&&state.mic!=='idle')voice.cancelListening();if(state.speech&&state.speech!=='idle')voice.stopSpeaking();}},toast,nativeIcon});
     c.open=tab=>{
       if(c.camera&&!c.camera.ready&&(tab==='video'||tab==='call')){active=c;toast(c.camera.supported?'The cabin is loading. Try the call control in a moment.':'The perspective cabin is unavailable in this view. Text messaging is still available.');return;}
       if(c.cabin&&(tab==='video'||tab==='call')){active=c;c.panel=null;c.console.hidden=true;c.cabin.open(tab);return;}
