@@ -56,28 +56,68 @@ function presentationPatch(value,strict=false){
  }return out;
 }
 function definitions(scene){
- const bounds=scene.bounds||{},thread=(bounds.thread||[7,12,86,62]).slice(),composer=(bounds.composer||[7,78,86,6]).slice(),dock=(bounds.controls||[7,90,86,6]).slice();
- composer[1]=Math.min(composer[1],84.5);composer[3]=Math.max(5.3,composer[3]);dock[1]=Math.min(dock[1],90.5);dock[3]=Math.max(5.3,dock[3]);
- if(dock[2]<82){dock[0]-=(82-dock[2])/2;dock[2]=82;}
- if(dock[1]<composer[1]&&dock[1]+dock[3]+1>composer[1])dock[1]=composer[1]-dock[3]-1;
- const bottom=thread[1]+thread[3];thread[1]=Math.max(11.5,thread[1]);thread[3]=Math.max(20,Math.min(bottom-thread[1],composer[1]-thread[1]-1));
+ const physical=!!scene.physical,bounds=scene.bounds||{},thread=(bounds.thread||[7,12,86,62]).slice(),composer=(bounds.composer||[7,78,86,6]).slice(),dock=(bounds.controls||[7,90,86,6]).slice();
+ if(!physical){
+  composer[1]=Math.min(composer[1],84.5);composer[3]=Math.max(5.3,composer[3]);dock[1]=Math.min(dock[1],90.5);dock[3]=Math.max(5.3,dock[3]);
+  if(dock[2]<82){dock[0]-=(82-dock[2])/2;dock[2]=82;}
+  if(dock[1]<composer[1]&&dock[1]+dock[3]+1>composer[1])dock[1]=composer[1]-dock[3]-1;
+  const bottom=thread[1]+thread[3];thread[1]=Math.max(11.5,thread[1]);thread[3]=Math.max(20,Math.min(bottom-thread[1],composer[1]-thread[1]-1));
+ }
  const make=(id,label,kind,b,extra={})=>({id,label,kind,defaults:{...objectBase,x:b[0],y:b[1],width:b[2],height:b[3],...extra}});
  const out=[
  make('thread','Message thread','thread',thread),
- make('composer','Typing bar','composer',composer,{background:'#091822',opacity:.94,radius:8,border:1}),
- make('header','Conversation header','text',[thread[0],Math.max(5.5,thread[1]-4.8),Math.min(thread[2],70),4.4],{text:'Alex',background:'#081923',opacity:.92,radius:8,textAlign:'left'}),
+ make('composer','Typing bar','composer',composer,{background:'#091822',opacity:.94,radius:physical?3:8,border:1}),
+ make('header','Conversation header','text',bounds.header||[thread[0],Math.max(5.5,thread[1]-4.8),Math.min(thread[2],70),4.4],{text:'Alex',background:'#081923',opacity:.92,radius:physical?3:8,textAlign:'left'}),
  make('controls','Control group','group',dock)
  ];
- (scene.surfaces||[]).slice(0,3).forEach((s,i)=>out.push(make('sign'+(i+1),s.label||'Display artwork '+(i+1),'surface',s.bounds||[10+i*25,6,20,8],{rotation:s.rotation||0,visible:false,background:'#0B1725',text:'',radius:2})));
+ (scene.surfaces||[]).slice(0,physical?8:3).forEach((s,i)=>out.push(make('sign'+(i+1),s.label||'Display artwork '+(i+1),'surface',s.bounds||[10+i*25,6,20,8],{rotation:s.rotation||0,visible:physical&&!!s.adSlot,background:physical&&s.adSlot?'#00000000':'#0B1725',text:'',radius:2})));
  while(out.length<7){const i=out.length-3;out.push(make('sign'+i,'Display artwork '+i,'surface',[10+i*20,8,18,8],{visible:false,background:'#0B1725'}));}
  return out;
 }
+function layoutDefinition(scene,revision){return scene.physical&&revision<(scene.layoutRevision||2)?{...scene,physical:null,layoutRevision:1,image:scene.legacyImage||scene.image,dimensions:scene.legacyDimensions||scene.dimensions,bounds:scene.legacyBounds||scene.bounds,surfaces:scene.legacySurfaces||scene.surfaces}:scene;}
 function workspace(scene){
- const defs=definitions(scene),objects=Object.fromEntries(defs.map(s=>[s.id,clone(s.defaults)])),dock=objects.controls,bar=objects.composer;
- const controls=Object.fromEntries(actions.map(([id],i)=>[id,{icon:actions[i][2],x:id==='send'?bar.x+bar.width-5:dock.x+dock.width*(i+.5)/7,y:id==='send'?bar.y+bar.height/2:dock.y+dock.height/2,size:20,rotation:0,color:'#5FD8FF',opacity:1,visible:true,locked:false,style:'glyph',background:'#007AFF',radius:24,shadow:.3}]));
- return {objects,controls,appearance:{...appearance},background:{...background}};
+ const defs=definitions(scene),objects=Object.fromEntries(defs.map(s=>[s.id,clone(s.defaults)])),dock=objects.controls,bar=objects.composer,rows=scene.physical?.controlRows===2?2:1;
+ const controls=Object.fromEntries(actions.map(([id],i)=>{const row=rows===2&&i>=4?1:0,count=rows===2?(row?3:4):7,column=rows===2&&row?i-4:i;return[id,{icon:actions[i][2],x:id==='send'?bar.x+bar.width-5:dock.x+dock.width*(column+.5)/count,y:id==='send'?bar.y+bar.height/2:dock.y+dock.height*(row+.5)/rows,size:20,rotation:0,color:'#5FD8FF',opacity:1,visible:true,locked:false,style:'glyph',background:'#007AFF',radius:24,shadow:.3}];}));
+ const out={objects,controls,appearance:{...appearance},background:{...background}};
+ if(scene.physical){out.layoutRevision=scene.layoutRevision||2;Object.assign(out.background,scene.physical.initial||{});}
+ return out;
+}
+/* Physical scenes use the same cover/crop/zoom transform as their photograph.
+   Positions and viewport dimensions move; text and touch-target sizes stay native. */
+function projector(scene,presentation,bg=background,options={}){
+ const width=presentation.width,height=presentation.height,enabled=options.physical===undefined?!!scene.physical:!!options.physical;
+ const dims=options.dimensions||scene.dimensions||[width,height],iw=Math.max(1,dims[0]),ih=Math.max(1,dims[1]);
+ const zoom=enabled?bg.zoom||1:1,scale=enabled?Math.max(width/iw,height/ih):1,px=(bg.x??50)/100,py=(bg.y??50)/100;
+ const sx=enabled?iw*scale*zoom/100:width/100,sy=enabled?ih*scale*zoom/100:height/100;
+ const ox=enabled?width*px+((width-iw*scale)*px-width*px)*zoom:0,oy=enabled?height*py+((height-ih*scale)*py-height*py)*zoom:0;
+ const point=(x,y)=>[ox+x*sx,oy+y*sy],inverse=(x,y)=>[(x-ox)/sx,(y-oy)/sy],delta=(x,y)=>[x/sx,y/sy];
+ const rect=value=>{const at=point(value.x,value.y);return{x:at[0],y:at[1],w:value.width*sx,h:value.height*sy};};
+ const bounds=scene.physical?.screen,source=scene.physical?.clip||(bounds?[[bounds[0],bounds[1]],[bounds[0]+bounds[2],bounds[1]],[bounds[0]+bounds[2],bounds[1]+bounds[3]],[bounds[0],bounds[1]+bounds[3]]]:[]);
+ const clip=enabled?source.map(p=>point(p[0],p[1])):[],composerClip=enabled?(scene.physical?.composerClip||source).map(p=>point(p[0],p[1])):[],controlsClip=enabled?(scene.physical?.controlsClip||source).map(p=>point(p[0],p[1])):[],surfaceClips={};
+ if(enabled)(scene.surfaces||[]).slice(0,8).forEach((s,i)=>{const r=s.bounds,poly=s.clip||(r?[[r[0],r[1]],[r[0]+r[2],r[1]],[r[0]+r[2],r[1]+r[3]],[r[0],r[1]+r[3]]]:[]);surfaceClips['sign'+(i+1)]=poly.map(p=>point(p[0],p[1]));});
+ return{enabled,point,inverse,delta,rect,clip,composerClip,controlsClip,surfaceClips,sx,sy,offset:[ox,oy],sourceDimensions:[iw,ih]};
+}
+function clipPolygon(subject,boundary){
+ if(!boundary||boundary.length<3)return subject;
+ let out=subject.slice();const orientation=Math.sign(boundary.reduce((sum,a,i)=>{const b=boundary[(i+1)%boundary.length];return sum+a[0]*b[1]-b[0]*a[1];},0))||1;
+ for(let i=0;i<boundary.length&&out.length;i++){
+  const a=boundary[i],b=boundary[(i+1)%boundary.length],cross=p=>orientation*((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0])),input=out;out=[];
+  let previous=input[input.length-1],pd=cross(previous);
+  for(const current of input){const cd=cross(current),inside=cd>=-1e-7,wasInside=pd>=-1e-7;if(inside!==wasInside){const t=pd/(pd-cd);out.push([previous[0]+(current[0]-previous[0])*t,previous[1]+(current[1]-previous[1])*t]);}if(inside)out.push(current);previous=current;pd=cd;}
+ }
+ return out;
 }
 function design(catalog){return {kind:'asgard-raven-scenes',version:1,scene:catalog[0].id,presentation:{device:'iphone',orientation:'portrait',width:390,height:844,compare:false},sample:clone(sample),workspaces:Object.fromEntries(catalog.map(scene=>[scene.id,workspace(scene)]))};}
+function validateWorkspace(input,scene,validIcon,allowPrevious=true){
+ const active=layoutDefinition(scene,input?.layoutRevision||1),base=workspace(active),allowed=['objects','controls','appearance','background','layoutRevision'];if(allowPrevious)allowed.push('previousLayout');keys(input,allowed,scene.label+' workspace');
+ keys(input.objects,Object.keys(base.objects),'objects');keys(input.controls,actions.map(a=>a[0]),'controls');
+ for(const id of Object.keys(base.objects)){if(!input.objects[id]){if(active.physical&&/^sign[4-8]$/.test(id))continue;throw Error('Missing object: '+id);}base.objects[id]={...base.objects[id],...patch(input.objects[id],'object',true,validIcon)};}
+ for(const [id]of actions){if(!input.controls[id])throw Error('Missing control: '+id);base.controls[id]={...base.controls[id],...patch(input.controls[id],'control',true,validIcon)};}
+ base.appearance={...appearance,...patch(input.appearance,'appearance',true)};base.background={...background,...patch(input.background,'background',true)};
+ if(scene.physical||Object.hasOwn(input,'layoutRevision')){const revision=input.layoutRevision??1;if(!Number.isInteger(revision)||revision<1||revision>(scene.layoutRevision||(scene.physical?2:1)))throw Error('Unsupported scene layout revision.');base.layoutRevision=revision;}
+ if(Object.hasOwn(input,'previousLayout')){if(!allowPrevious)throw Error('Nested previous layouts are unsupported.');base.previousLayout=validateWorkspace(input.previousLayout,scene,validIcon,false);}
+ return base;
+}
 function validate(value,catalog,validIcon=()=>true){
  keys(value,['kind','version','scene','presentation','sample','workspaces'],'design');
  if(value.kind!=='asgard-raven-scenes'||value.version!==1)throw Error('Choose a Raven scene design exported by this Studio.');
@@ -86,15 +126,21 @@ function validate(value,catalog,validIcon=()=>true){
  const result={kind:'asgard-raven-scenes',version:1,scene:value.scene,presentation:{...design(catalog).presentation,...presentationPatch(value.presentation,true)},sample:[],workspaces:{}};
  if(!Array.isArray(value.sample)||value.sample.length>100)throw Error('Use up to 100 sample messages.');
  result.sample=value.sample.map(m=>{keys(m,['direction','text'],'sample message');if(!['in','out'].includes(m.direction)||typeof m.text!=='string'||m.text.length>4000)throw Error('Invalid sample message.');return {...m};});
- for(const scene of catalog){
-  const input=value.workspaces[scene.id],base=workspace(scene);keys(input,['objects','controls','appearance','background'],scene.label+' workspace');
-  keys(input.objects,Object.keys(base.objects),'objects');keys(input.controls,actions.map(a=>a[0]),'controls');
-  for(const id of Object.keys(base.objects)){if(!input.objects[id])throw Error('Missing object: '+id);base.objects[id]={...base.objects[id],...patch(input.objects[id],'object',true,validIcon)};}
-  for(const [id]of actions){if(!input.controls[id])throw Error('Missing control: '+id);base.controls[id]={...base.controls[id],...patch(input.controls[id],'control',true,validIcon)};}
-  base.appearance={...appearance,...patch(input.appearance,'appearance',true)};base.background={...background,...patch(input.background,'background',true)};result.workspaces[scene.id]=base;
- }
+ for(const scene of catalog)result.workspaces[scene.id]=validateWorkspace(value.workspaces[scene.id],scene,validIcon);
  return result;
 }
-G.RavenScenesModel={clone,clamp,MAX_JSON,actions,sample,appearance,background,definitions,workspace,design,validate,patch,presentationPatch,url};
+function migrate(value,catalog){
+ const result=clone(value),previous=clone(value),changed=[];
+ for(const scene of catalog){const old=result.workspaces[scene.id],target=scene.layoutRevision||(scene.physical?2:1);if(!scene.physical||!old||(old.previousLayout&&(old.layoutRevision||1)<(old.previousLayout.layoutRevision||1))||(old.layoutRevision||1)>=target)continue;
+  const next=workspace(scene),oldDefaults=workspace(layoutDefinition(scene,old.layoutRevision||1));next.appearance=clone(old.appearance);
+  for(const [id,object]of Object.entries(old.objects)){if(!next.objects[id])continue;for(const [key,value]of Object.entries(object))if(!['x','y','width','height','rotation'].includes(key)&&JSON.stringify(value)!==JSON.stringify(oldDefaults.objects[id]?.[key]))next.objects[id][key]=clone(value);}
+  for(const [id,control]of Object.entries(old.controls))for(const [key,value]of Object.entries(control))if(!['x','y'].includes(key)&&JSON.stringify(value)!==JSON.stringify(oldDefaults.controls[id]?.[key]))next.controls[id][key]=clone(value);
+  const archive=clone(old);delete archive.previousLayout;archive.layoutRevision=old.layoutRevision||1;next.previousLayout=archive;
+  const newer=clone(next);delete newer.previousLayout;previous.workspaces[scene.id].previousLayout=newer;
+  result.workspaces[scene.id]=next;changed.push(scene.id);
+ }
+ return{design:result,previous,changed};
+}
+G.RavenScenesModel={clone,clamp,MAX_JSON,actions,sample,appearance,background,definitions,layoutDefinition,workspace,design,validate,migrate,projector,clipPolygon,patch,presentationPatch,url};
 })(window);
 
