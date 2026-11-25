@@ -166,11 +166,12 @@
       if(projection.unproject){const anchor=projection.unproject(sendX,composerY);send.dataset.cabinAnchorX=String(anchor[0]);send.dataset.cabinAnchorY=String(anchor[1]);send.dataset.cabinAdapted='true';}
       const sendIcon=send.querySelector('svg');if(sendIcon)Object.assign(sendIcon.style,{left:(sendX-sendLeft-9)+'px',top:(composerY-sendTop-9)+'px'});
 
-      const front=projection.frontControlsRect||[0,0,0,0],nativeFront=(inCall||!studioDashboard&&(presentation.device==='iphone'||projection.studioSurface==='windshield'||w<600&&h>w))&&front[2]>=264&&front[3]>=104;
+      const front=projection.frontControlsRect||[0,0,0,0],nativeFront=(inCall||!studioDashboard&&(presentation.device==='iphone'||projection.studioSurface==='windshield'||w<600&&h>w))&&front[2]>=264&&front[3]>=96;
       c.frontControlsAdapted=showDashboard&&nativeFront;
+      c.frontControlsRows=c.frontControlsAdapted?{feature:front[1]+26,call:front[1]+Math.min(84,front[3]-26)}:null;
       for(const button of qa('[data-control]')){delete button.dataset.cabinAdapted;delete button.dataset.cabinUnavailable;}
       if(c.frontControlsAdapted){
-        const keys=['image','mic','call','video','radio','language'],spacing=Math.min(60,(front[2]-44)/5),center=front[0]+front[2]/2,y=front[1]+28;
+        const keys=['image','mic','call','video','radio','language'],spacing=Math.min(60,(front[2]-44)/5),center=front[0]+front[2]/2,y=c.frontControlsRows.feature;
         for(const button of qa('[data-control]')){
           const index=keys.indexOf(button.dataset.control);if(index<0){button.hidden=true;continue;}
           const x=center+(index-2.5)*spacing,anchor=projection.unproject?projection.unproject(x,y):car.slots[button.dataset.control];
@@ -213,9 +214,9 @@
         box(button,left,top,44,44);button.style.setProperty('--rw-icon',iconSize+'px');
         const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:(x-left-iconSize/2)+'px',top:(y-top-iconSize/2)+'px'});
       }
-      if(!showDashboard||inCall&&focusProgress>0&&!c.frontControlsAdapted){for(const button of qa('[data-control]')){button.hidden=true;button.dataset.cabinUnavailable='true';}}
         for(const button of qa('[data-control]')){delete button.dataset.tabletControl;delete button.dataset.cabinAnchorX;delete button.dataset.cabinAnchorY;}
       }
+      if(!showDashboard||inCall&&focusProgress>0&&!c.frontControlsAdapted){for(const button of qa('[data-control]')){button.hidden=true;button.dataset.cabinUnavailable='true';}}
       const [headerX,headerY]=point(...car.instrument),[motionX,motionY]=point(...car.motion);
       box(q('.rw-header'),headerX-45,headerY-10,90,20);
       const motionLeft=clamp(motionX-22,0,w-44),motionTop=clamp(motionY-22,0,h-44);

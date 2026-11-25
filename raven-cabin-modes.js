@@ -309,7 +309,7 @@
       reveal.hidden=true;
       const compose=P.composeRect||P.rect(g.compose),dash=P.frontControlsRect||[0,0,0,0],compact=!!c.frontControlsAdapted;
       if(!inShare){
-        if(compact){nativeHit(fullscreen,dash[0]+dash[2]/2+84,Math.min(dash[1]+84,dash[1]+dash[3]-26),P);}
+        if(compact){nativeHit(fullscreen,dash[0]+dash[2]/2+84,c.frontControlsRows.call,P);}
         else if(progress>0||dash[2]<44||dash[3]<44){nativeHit(fullscreen,P.width-34,clamp(compose[1]-30,30,P.height-30),P);}
         else{nativeHit(fullscreen,clamp(dash[0]+dash[2]-26,30,P.width-30),clamp(dash[1]+dash[3]-26,30,P.height-30),P,20,true);}
       }
@@ -341,7 +341,7 @@
           hit(button,source,P,18,{x:x-22,y:y-22,w:44,h:44});button.dataset.cabinAnchorX=String(source[0]);button.dataset.cabinAnchorY=String(source[1]);
         });
       }else if(compact){
-        const y=Math.min(dash[1]+84,dash[1]+dash[3]-26);
+        const y=c.frontControlsRows.call;
         [camera,share,end,fullscreen].forEach((button,i)=>nativeHit(button,dash[0]+dash[2]/2+(i-1.5)*56,y,P));
       }else if(progress>0||dash[2]<44||dash[3]<44){
         const y=clamp(compose[1]-30,30,P.height-30);

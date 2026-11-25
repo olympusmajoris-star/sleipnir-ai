@@ -16,7 +16,7 @@
 #raven-cabin .rco-selection[data-visible=false]{border-style:dashed}
 #raven-cabin .rco-selection[data-locked=true]{border-color:#a3b3be;border-style:dotted}
 #raven-cabin .rco-screen-frame{position:absolute;box-sizing:border-box;z-index:28;border:1px dashed #5fd8ff9c;border-radius:4px;pointer-events:none;transform-origin:50% 50%;box-shadow:0 0 0 1px #07192377}
-#raven-cabin .rco-screen-frame[data-active=true]{border:2px solid #77e3ff}
+#raven-cabin .rco-screen-frame[data-active=true]{z-index:35;border:2px solid #77e3ff}
 #raven-cabin .rco-screen-frame[data-locked=true]{border-color:#a3b3be;border-style:dotted}
 #raven-cabin .rco-frame-move,#raven-cabin .rco-frame-resize,#raven-cabin .rco-frame-edge{position:absolute;box-sizing:border-box;display:block;margin:0;padding:0;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:move}
 #raven-cabin .rco-frame-move{z-index:2;left:0;top:0;max-width:calc(100% - 44px);min-height:36px;padding:6px 9px;border:1px solid #5fd8ff99;border-radius:3px 0 5px 0;background:#082432ef;color:#c6f3ff;font:500 11px/16px Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

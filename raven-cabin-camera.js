@@ -67,7 +67,14 @@
       const frames=g.studioFrames||{};
       function fitFrame(name){
         if(name==='windshield'&&videoActive&&controls)name='video';
-        const r=name==='videoEntry'?(g.videoEntryFrame||[569,0,691,765]):frames[name]||({cabin:[0,0,1260,817],dashboard:[40,350,1190,415],windshield:[430,105,810,355],video:[430,90,810,570],passenger:[1260,0,666,680]})[name], [x,y,w,h]=r;
+        let r=name==='videoEntry'?(g.videoEntryFrame||[569,0,691,765]):frames[name]||({cabin:[0,0,1260,817],dashboard:[40,350,1190,415],windshield:[430,105,810,355],video:[430,90,810,570],passenger:[1260,0,666,680]})[name];
+        if(name==='videoEntry'&&width<520){
+          // Crop the lower console gradually in a compact Studio bay so the
+          // photographed digital dash can still hold two native 44px rows.
+          const compact=g.videoCompactEntryFrame||[569,65,560,570],amount=clamp((520-width)/120,0,1);
+          r=r.map((value,i)=>mix(value,compact[i],amount));
+        }
+        const [x,y,w,h]=r;
         const xs=[q(x),q(x+w)],ys=[v(x,y),v(x+w,y),v(x,y+h),v(x+w,y+h)],left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
         return {qx:(left+right)/2,vy:(top+bottom)/2,lens:Math.min(Math.max(1,width-16)/Math.max(.0001,right-left),Math.max(1,height-16)/Math.max(.0001,bottom-top))};
       }
@@ -138,7 +145,7 @@
     const windshieldPolygon=(g.windshield||[]).map(p=>point(...p)),videoPolygon=(g.videoGlass||g.windshield||[]).map(p=>point(...p)),sideWindowPolygon=(g.sideWindowFull||g.sideWindow||[]).map(p=>point(...p)),visibleWindshield=clip(clip(g.windshield||[],sourceClip).map(p=>point(...p))),visibleVideo=clip(clip(g.videoGlass||g.windshield||[],sourceClip).map(p=>point(...p))),visibleSideWindow=clip(clip(g.sideWindowFull||g.sideWindow||[],sourceClip).map(p=>point(...p)));
     const rawCompose=rect(g.compose),composeWidth=Math.min(width-16,Math.max(100,rawCompose[2])),composeX=clamp(rawCompose[0]+rawCompose[2]/2-composeWidth/2,8,Math.max(8,width-8-composeWidth)),composeY=clamp(rawCompose[1]+rawCompose[3]/2-22,8,Math.max(8,height-52));
     let composeRect=[composeX,composeY,composeWidth,44];
-    if(videoActive){const left=Math.max(8,rawCompose[0]),right=Math.min(width-8,rawCompose[0]+rawCompose[2]);if(right-left>=100)composeRect=[left,composeY,right-left,44];}
+    if(videoActive){const photoLeft=phone?8:point(sourceClip[0],g.compose[1])[0],photoRight=phone?width-8:point(sourceClip[0]+sourceClip[2],g.compose[1])[0],left=Math.max(8,rawCompose[0],photoLeft),right=Math.min(width-8,rawCompose[0]+rawCompose[2],photoRight);if(right-left>=100)composeRect=[left,composeY,right-left,44];}
     if(screenOnly||videoFocusProgress>0){const usable=inner(videoActive?visibleVideo:visibleWindshield,width-20),target=[usable[0],Math.max(usable[1],usable[1]+usable[3]-44),usable[2],44],progress=videoActive?videoFocusProgress:1;composeRect=composeRect.map((value,i)=>i===3?44:mix(value,target[i],progress));}
     const rawFront=rect(g.frontControls||[500,475,585,150]),frontLeft=Math.max(16,rawFront[0]+8),frontTop=Math.max(composeRect[1]+56,rawFront[1]+8),frontRight=Math.min(width-16,rawFront[0]+rawFront[2]-8),frontBottom=Math.min(height-12,rawFront[1]+rawFront[3]-8),frontControlsRect=screenOnly?[0,0,0,0]:[frontLeft,frontTop,Math.max(0,frontRight-frontLeft),Math.max(0,frontBottom-frontTop)],videoRect=bounds(visibleVideo);
     let threadRect=inner(visibleWindshield,phone?width-20:460);const threadBottom=Math.min(threadRect[1]+threadRect[3],composeRect[1]-8,height-8);threadRect[3]=Math.max(0,threadBottom-threadRect[1]);

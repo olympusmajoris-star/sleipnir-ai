@@ -23,6 +23,7 @@
     // self-screen's left edge. The driver's half remains cabin scenery.
     videoGlass:[[569,122],[1212,122],[1238,147],[1115,365],[1074,389],[569,389]],
     videoEntryFrame:[569,0,691,765],
+    videoCompactEntryFrame:[569,65,560,570],
     videoScreenFrame:[569,116,669,281],
     chatScreenFrame:[42,116,1196,281],
     frontControls:[500,475,585,150],
