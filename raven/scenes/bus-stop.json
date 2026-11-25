@@ -1,0 +1,72 @@
+{
+  "id": "bus-stop",
+  "label": "Bus stop bench",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/bus-stop.jpg",
+  "thumbnail": "raven/scenes/bus-stop-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-a0531863-56ae-421a-8708-407ee4c874ab.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original vertical environmental photograph, tallportrait approximately1024\u00d72048.\nPrimary request: sitting on a city bus-stop bench and looking straight through the shelter's single broad tall glass panel toward an early-evening street. A passing city bus with a side advertising panel, a backlit shelter poster, a small route display, and the actual bench are visible.\nComposition: thin dark powder-coated shelter frame at the edges, shallow roof band at the very top. The large uninterrupted glass panel dominates x5\u201395% and y10\u201380%, with no central mullion. Through the glass, a quiet cool-blue street and the approaching/passing bus toward the lower-right part, with soft lights and restrained reflections. Keep the upper two-thirds of the glass calm and open, showing the dim real street/sky rather than a blank screen. A narrow horizontal sill at y81\u201387% will serve as a natural space for a live typing bar, and the charcoal bench's front upper surface at the bottom is wide and uncluttered for later controls. Place a compact backlit poster toward an edge and a small route display in the roof band.\nLighting: blue-hour sky, warm amber shelter light, rich but realistic street colors, a subtle pink reflection, detailed glass, brushed metal, textured bench, wet pavement.\nConstraints: single coherent photoreal photograph, not a collage or illustration. No phone, app frame, speech bubbles, interface buttons, labels, message text, commercial logos, or watermark. The bus and shelter poster may carry tasteful abstract imagery but no readable ads. Keep nearby people out of the foreground. Preserve a generous empty physical glass area for native readable message UI later."
+  },
+  "bounds": {
+    "thread": [
+      13,
+      12,
+      82,
+      66
+    ],
+    "composer": [
+      8,
+      81.5,
+      88,
+      5
+    ],
+    "controls": [
+      9,
+      88,
+      86,
+      5.5
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "route-display",
+      "label": "Route display",
+      "bounds": [
+        72,
+        4,
+        24,
+        3.9
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "shelter-poster",
+      "label": "Shelter poster",
+      "bounds": [
+        1.2,
+        22,
+        6.5,
+        34
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "bus-ad",
+      "label": "Passing bus advert",
+      "bounds": [
+        68,
+        58,
+        13,
+        3.4
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "7e44f5fe010320542eb07b33b81782b5e231d680fe91cdb72882e25b0d03c9d6"
+}

@@ -1,0 +1,69 @@
+{
+  "id": "coffee-shop",
+  "label": "Coffee shop window seat",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. One tall 1:2 portrait photograph-style background for an immersive coffee-shop window seat, approximately 1024 x 2048. Eye-level camera almost square-on to a large single-pane cafe window. The window glass should dominate from x5–95% and y8–76% of the picture, with only slim dark walnut window framing and no crossbars obstructing the center. Through the glass: a believable quiet city street at blue hour after rain, softly focused warm storefronts, a few subtle posters on a wall across the street, street lights and wet reflections. Natural depth and detail, softly exposed so native text can later sit clearly on the window; no blank white void. A small chalkboard cafe menu occupies a narrow strip at the top/left periphery, believable hand-lettering but no large branding. A continuous deep walnut window ledge lies at y77–83% with a smooth dark inset strip spanning most of the width. The bottom 84–100% shows a rich-grained wood table and two realistically photographed ceramic coffee cups at the lower corners, one with crema, leaving the middle of the table clear for later live controls. Keep mugs modestly sized, not towering into the window. Warm amber interior light meets cool slate-blue evening; premium yet lived-in cafe photography, authentic wood grain, subtle glass reflections, natural ceramic highlights. No people blocking the window, no phone device frame, no app interface, no icons, no chat bubbles, no conversation text, no commercial logos or watermark."
+  ],
+  "surface": {
+    "thread": [
+      13,
+      8,
+      81,
+      57.2
+    ],
+    "composer": [
+      8,
+      69.5,
+      88,
+      5.5
+    ],
+    "controls": [
+      8,
+      75.5,
+      84,
+      5.8
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Chalkboard menu",
+      "rect": [
+        0.6,
+        17.5,
+        8,
+        31
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Posters across the street",
+      "rect": [
+        80,
+        39.6,
+        15,
+        7.4
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Coffee cup decal",
+      "rect": [
+        2,
+        82,
+        12,
+        4
+      ]
+    }
+  ],
+  "description": "Warm wood cafe window seat with coffee cups, a chalkboard menu and a rain-lit street beyond the glass.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/coffee-shop.jpg",
+  "thumbnail": "raven/scenes/coffee-shop-thumb.jpg",
+  "sha256": "e4afd140a637de77b02250a11284358659f8ee03396081a5475e05126dcbf731",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

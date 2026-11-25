@@ -1,0 +1,69 @@
+{
+  "id": "gas-station",
+  "label": "Gas station at night",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. Create one tall 1:2 portrait environment photograph for a messaging scene, approximately 1024 x 2048. Subject: a real-looking upscale gasoline station at night, viewed very close and almost perfectly straight-on to the front of a modern fuel dispenser. The dispenser has an unusually generous but physically plausible integrated advertising glass display: its near-frontal dark reflective screen must occupy x7–93% of the image and y10–72%, with a slim metal frame. This is a close crop of the large display and surrounding pump hardware, not an app mockup. On the idle display there is only subtle low-contrast midnight blue and teal reflected light from the canopy, very faint glass texture and ambient reflections, no numbers, text, interface, messages or icons. Along the bottom y76–95%, show an authentic smooth charcoal metal utility panel integrated into the pump, a horizontal dark recessed strip near its top, and physical card-reader/fuel-selection details at the extreme sides, leaving a wide clean center for later controls. A black hose and part of a nozzle at one edge establish fuel dispenser identity without blocking the screen. Narrow background glimpses show a brightly lit convenience store window with modest signs, rain-wet pavement reflecting amber and cyan light, the canopy above and a distant price sign at the upper right edge. No commercial branding. Exceptional material realism: brushed metal, lightly worn plastic, condensation, natural LED exposure, believable wet night photography. No phone border, no UI boxes, no pasted controls, no cartoon styling, no text conversation. Keep the screen occupying most of the photo rather than showing the whole distant gas station."
+  ],
+  "surface": {
+    "thread": [
+      12,
+      13,
+      76,
+      60
+    ],
+    "composer": [
+      21,
+      79.5,
+      59,
+      5.5
+    ],
+    "controls": [
+      7,
+      94,
+      86,
+      5.5
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Price-sign display",
+      "rect": [
+        94,
+        27,
+        5.5,
+        6
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Store window sign",
+      "rect": [
+        0,
+        31,
+        7,
+        8
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Pump utility label",
+      "rect": [
+        24,
+        88,
+        52,
+        4
+      ]
+    }
+  ],
+  "description": "Rain-lit gasoline station, close to a large glass pump display with canopy reflections, store windows and a distant price sign.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/gas-station.jpg",
+  "thumbnail": "raven/scenes/gas-station-thumb.jpg",
+  "sha256": "7dd169d3b43929272a4bc8c2f933eb98011b41f129697416c105a42596f575f7",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

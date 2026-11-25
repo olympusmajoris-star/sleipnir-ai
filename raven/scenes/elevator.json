@@ -1,0 +1,69 @@
+{
+  "id": "elevator",
+  "label": "Elevator",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. Create one original tall 1:2 portrait photograph-style background, approximately 1024 x 2048. Subject: the interior of an elegant real elevator, viewed square-on to its information wall. The dominant element is a large, flush, nearly full-height dark glass information display built into the elevator wall, covering about x9–91% and y10–73% of the portrait frame. It has a slim brushed champagne-metal border, realistic reflections of warm ceiling lights, and a very subtle low-contrast blue-gray city-at-night image behind tinted glass; no readable screen content or interface. Above it a small authentic elevator floor indicator reads only '12' with an upward triangle, physically integrated into the top metal fascia. At the extreme side edges are narrow glimpses of authentic elevator wall posters in slim frames, tasteful neutral colors and minimal indistinct print. Below the main display, y77–94%, show a continuous horizontal dark metal inset within a real elevator control/handrail area. Keep a long clean dark band at y78–84% for a future typing strip and clear metal or dark-glass space below for small controls. A short row of tactile elevator buttons at one extreme edge establishes elevator function without occupying the center. Subtle polished metal grain, warm bronze, graphite glass, fine scratches, believable reflected light, restrained cyan status illumination. Show a little stone floor at the bottom. No occupants, no phone frame, no generic floating app rectangles, no speech bubbles, no messages or icons baked into the main display, no commercial logos or watermark. Do not waste the upper half on ceiling; the large screen must dominate the composition."
+  ],
+  "surface": {
+    "thread": [
+      8,
+      11,
+      84,
+      56.5
+    ],
+    "composer": [
+      6,
+      72,
+      82,
+      6
+    ],
+    "controls": [
+      7,
+      83,
+      86,
+      6
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Floor indicator",
+      "rect": [
+        40,
+        3.5,
+        20,
+        3.2
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Wall notice area",
+      "rect": [
+        10,
+        90,
+        36,
+        3.5
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Right wall poster",
+      "rect": [
+        97.5,
+        24,
+        2.5,
+        28
+      ]
+    }
+  ],
+  "description": "Bronze elevator information wall with a large tinted city-view display, floor indicator, poster edges and a physical control strip.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/elevator.jpg",
+  "thumbnail": "raven/scenes/elevator-thumb.jpg",
+  "sha256": "8a6b5ad7a5937834a436c62c1f2f4419b7855828bfd1ce1854ff34c4097cc201",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

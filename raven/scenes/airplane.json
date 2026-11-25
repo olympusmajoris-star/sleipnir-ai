@@ -1,0 +1,72 @@
+{
+  "id": "airplane",
+  "label": "Airplane window seat",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/airplane.jpg",
+  "thumbnail": "raven/scenes/airplane-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-d0520310-fd78-41c3-bc4f-033533d6dd89.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original tall portrait environmental photograph, approximately 1024 \u00d7 2048, for an editable messaging scene.\nPrimary request: a luxurious but believable airplane window seat at the gate, seen from the seated passenger. A close-up of the seatback's large portrait-oriented entertainment display dominates the view, with a narrow view of the oval cabin window and airport terminal beyond at the right edge. A small snack-cart corner and one restrained paper cup sit near the lower-left edge, a folded tray table and real seat controls below.\nComposition: nearly straight-on to the seatback display, not a diagonal angle. The integrated glass display fills roughly x6\u201394% and y10\u201376% of the tall photograph. It is physically set into premium charcoal and warm-gray seat trim, with a thin realistic bezel, not a free-floating tablet. Show a calm dim image of clouds at blue hour on the display with very low contrast and subtle reflections, so a live text thread can later remain readable over it. Keep everything below the display compact in the bottom22%; include a horizontal dark control ledge immediately beneath it and a clean tray-table surface across the bottom. The partial airplane window clearly shows a terminal gate, aircraft wing and airport sign outside; no close people.\nLighting and materials: real cabin photography, soft warm reading lights, cool airport-blue evening light, fine upholstery grain, matte molded trim, believable screen reflections and brushed-metal tray hardware.\nCritical constraints: no phone bezel, app interface, chat messages, message bubbles, fake giant labeled buttons, icons, commercial logos, advertising copy or watermark. Do not put words on the large display. Avoid a science-fiction cabin. This is one coherent photographic scene; the eventual message thread and all controls will be live editable UI."
+  },
+  "bounds": {
+    "thread": [
+      9.5,
+      16.5,
+      66,
+      45.5
+    ],
+    "composer": [
+      9.5,
+      63,
+      66,
+      5.4
+    ],
+    "controls": [
+      18,
+      84,
+      76,
+      6.5
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "gate-sign",
+      "label": "Gate sign",
+      "bounds": [
+        94.5,
+        32.2,
+        4.4,
+        1.8
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "seat-display",
+      "label": "Seat control panel",
+      "bounds": [
+        16.5,
+        73.8,
+        65,
+        3.4
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "cup-decal",
+      "label": "Cup decal",
+      "bounds": [
+        0.6,
+        74.3,
+        8.1,
+        4.2
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "c73be0b15996fb5009c8c8539bf5143f7483f942e834a103f5588f0a4be633e7"
+}

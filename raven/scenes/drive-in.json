@@ -1,0 +1,69 @@
+{
+  "id": "drive-in",
+  "label": "Drive-in movie",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. Create one original tall 1:2 portrait environment photograph, approximately 1024 x 2048, of an atmospheric outdoor drive-in cinema at dusk turning to night. Camera is straight-on from a front-row picnic seating area, close enough that the center of a huge genuine widescreen outdoor projection occupies almost the entire width and extends beyond both left and right crops. The screen must run from about y7% to y70% of the portrait; do not make it a narrow portrait-shaped sign. On the physical projection screen show only calm low-contrast dusky navy, indigo and soft lavender pre-show light, with subtle authentic projection texture; no movie characters, no messages, no readable text, no user interface. Above is only a small strip of darkening sky with a few stars. Immediately below the screen is a narrow band of realistic outdoor cinema context: steel supports, a few classic parked cars with no logos, low warm parking lights, and a small illuminated snack shack at one side with a restrained 'SNACKS' sign. The lower 82–100% contains a near-frontal weathered dark wood picnic tabletop/ledge with a smooth dark inset horizontal strip and enough empty surface for later typing and seven small controls. Keep all foreground objects very small and peripheral so the giant screen has priority. Rich photographic realism, late-evening cool blues against amber shack lighting, slight humid summer haze, believable painted metal and wood grain. No people blocking the screen, no phone border, no app or chat bubbles, no floating mockup rectangles, no commercial brands, no watermark."
+  ],
+  "surface": {
+    "thread": [
+      5,
+      12,
+      90,
+      56.5
+    ],
+    "composer": [
+      6,
+      88.6,
+      88,
+      5.5
+    ],
+    "controls": [
+      6,
+      94,
+      88,
+      5.5
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Snack-shack sign",
+      "rect": [
+        89.5,
+        74,
+        8,
+        1.7
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Pre-show title area",
+      "rect": [
+        20,
+        12,
+        60,
+        4
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Table ticket placard",
+      "rect": [
+        4,
+        86.2,
+        24,
+        2.5
+      ]
+    }
+  ],
+  "description": "Open-air drive-in with a huge pre-show projection, parked classic cars, snack shack and weathered picnic ledge.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/drive-in.jpg",
+  "thumbnail": "raven/scenes/drive-in-thumb.jpg",
+  "sha256": "57d37a424bb2c1b5d50d42d0372bc0166d3d56eb20df047d1aff989d292bc649",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

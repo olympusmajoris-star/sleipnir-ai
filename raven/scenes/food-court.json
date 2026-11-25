@@ -1,0 +1,69 @@
+{
+  "id": "food-court",
+  "label": "Mall food court",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. One original 1:2 tall portrait environment photo, approximately 1024 x 2048. Subject: a contemporary mall food court, seated eye-level near a large freestanding digital directory/menu kiosk. Camera faces the kiosk glass almost perfectly head-on. Its elegant slim charcoal frame and quiet blue-gray reflective screen dominate x8–92% and y9–72% of the image; fill the main screen with only low-contrast soft reflections of the food hall and daylight, not text, maps, app interface or menus. The food-court setting must remain clearly identifiable at the narrow sides and top: warm timber shopfronts with short generic store signs, hanging pendant lights, modern food kiosks, light stone floor, scattered pastel chairs and tables in the distance. No recognizable brands. The bottom 77–95% should contain a realistic near-frontal pale oak table ledge and a smooth inset dark service strip across most of its width, clean and unoccupied in the middle so a future live typing bar and small controls can sit naturally there. Keep a hint of a molded chair or small kiosk accessory at the lower edges, not a big food pile. Bright but sophisticated editorial interior photography, genuine wood texture, subtle reflections, believable depth, warm amber mixed with cool skylight, charcoal glass. Large screen and usable lower surfaces must have priority over broad ceiling or empty floors. No phone mockup, no dialogue, no message bubbles, no pasted-on buttons, no logos, no watermark."
+  ],
+  "surface": {
+    "thread": [
+      16,
+      8,
+      68,
+      65
+    ],
+    "composer": [
+      6,
+      90.5,
+      88,
+      5.2
+    ],
+    "controls": [
+      8,
+      80,
+      84,
+      5.8
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Bistro storefront sign",
+      "rect": [
+        3,
+        28,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Noodle storefront sign",
+      "rect": [
+        89,
+        30.5,
+        9,
+        4
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Kiosk lower display label",
+      "rect": [
+        19,
+        76.5,
+        62,
+        3
+      ]
+    }
+  ],
+  "description": "Sunlit food court with store signs, a large reflective directory kiosk, pastel seating and a pale oak table.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/food-court.jpg",
+  "thumbnail": "raven/scenes/food-court-thumb.jpg",
+  "sha256": "5493a13debda6a89ec1245f7d4bbddc27e7422707e6df58973ab57e8aa9de714",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

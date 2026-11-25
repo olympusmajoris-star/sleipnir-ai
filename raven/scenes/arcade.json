@@ -1,0 +1,69 @@
+{
+  "id": "arcade",
+  "label": "Arcade",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. One original tall 1:2 portrait photograph-style environment background, approximately 1024 x 2048. Subject: an immersive neon arcade seen straight-on at a premium upright arcade cabinet with a real large portrait-oriented gaming display. The cabinet's physical glass display occupies about x9–91% and y10–73% of the frame, in a slim dark frame with subtle cyan and magenta edge lighting. The idle game display contains only a subdued indigo starfield/nebula and faint pixel-like glow, with realistic glass reflections, no characters, score, text, menus or icons. The center must stay low contrast for a live conversation to be added later. At the top, a compact believable illuminated arcade marquee, mainly abstract colored artwork, no commercial game brands. Narrow background glimpses contain neighboring machine marquees on the left and a softly lit prize counter with plush prizes on the right. The bottom y77–95% is the actual cabinet control deck, rich matte charcoal and brushed metal, with a long clean dark-glass inset strip near its top for a future typing bar, and broad empty central space below for small controls. Put a real joystick and a few colored tactile buttons only at the outer corners, not across the clean center. Light wear on the control deck, authentic hardware, glass, neon reflections, deep saturated-but-believable arcade photography, dimensional cabinet construction. No humans blocking the screen, no phone device or app frame, no floating labels, no conversation text or message bubbles, no watermark. Prioritize a large readable physical screen, not a distant view of the whole room."
+  ],
+  "surface": {
+    "thread": [
+      15,
+      13,
+      70,
+      57
+    ],
+    "composer": [
+      12,
+      73.6,
+      76,
+      5.3
+    ],
+    "controls": [
+      8,
+      85.7,
+      84,
+      5.5
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Cabinet marquee",
+      "rect": [
+        16,
+        2,
+        68,
+        5.7
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Prize-counter sign",
+      "rect": [
+        91.5,
+        20.5,
+        8,
+        2.8
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Lower cabinet decal",
+      "rect": [
+        20,
+        92,
+        55,
+        4.5
+      ]
+    }
+  ],
+  "description": "Cyan-and-magenta arcade cabinet with a broad portrait display, tactile joystick deck, neighboring marquees and a prize counter.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/arcade.jpg",
+  "thumbnail": "raven/scenes/arcade-thumb.jpg",
+  "sha256": "b962a10903759d7e7644660f7f0708add01950fdff74346b727cce780e7e39ba",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

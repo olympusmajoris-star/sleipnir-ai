@@ -1,0 +1,72 @@
+{
+  "id": "city-night",
+  "label": "City screens at night",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/city-night.jpg",
+  "thumbnail": "raven/scenes/city-night-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-833280e9-5e01-4428-9f94-fcfb8b6d7f83.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original tall portrait city-night photograph, approximately1024\u00d72048, composed as a messaging environment.\nPrimary request: a vivid Times Square-style urban street at night, with real-looking giant LED screens, glass storefronts, a yellow taxi with a small rooftop advertising panel, wet pavement and rich electric light. Do not reproduce any real brand or exact building.\nComposition: the camera faces one enormous vertical street-side LED display almost dead-on. Its uninterrupted luminous screen fills x6\u201394% and y9\u201377% of the portrait image, with a very thin dark structural frame. This selected giant display shows a calm dark midnight-blue photographic night-sky gradient with subtle cloud texture and real LED surface detail\u2014no words, no app design, no pure empty black. Surround its edges with glimpses of additional bright cyan, magenta and amber city screens and storefront light. Beneath the large display is a broad thin black metal display base/ledge across x6\u201394% at y79\u201389%, empty and clean so later live controls can be placed there. The taxi and pavement remain visible across the lowest strip; the taxi-top advertising panel should be noticeable but not cover the main display or ledge.\nAtmosphere: sophisticated cinematic commercial-street photography, restrained exposure, believable architectural geometry, reflections on wet asphalt, rich deep shadows and crisp materials. A little distant city life, no close face.\nConstraints: no commercial logos, readable advertisements, phone frame, app interface, chat bubbles, labels, floating controls, watermark, or text anywhere on the large screen. This is a real-looking physical screen within a city, not a UI mockup or a collage. The conversation and buttons will be native editable elements added later."
+  },
+  "bounds": {
+    "thread": [
+      7,
+      5,
+      86,
+      65
+    ],
+    "composer": [
+      7,
+      72,
+      86,
+      5.4
+    ],
+    "controls": [
+      7,
+      78.5,
+      86,
+      5.4
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "taxi-ad",
+      "label": "Taxi-top display",
+      "bounds": [
+        69,
+        85.2,
+        13,
+        2.2
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "storefront",
+      "label": "Storefront sign",
+      "bounds": [
+        26,
+        84.7,
+        18,
+        2.4
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "side-display",
+      "label": "Side LED screen",
+      "bounds": [
+        94,
+        9,
+        5.4,
+        28
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "3ec4a1abe12f1465500448de5fbe938bb5717bc7260ac32d0aba0688a35b9b17"
+}

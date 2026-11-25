@@ -1,0 +1,70 @@
+{
+  "id": "cinema",
+  "label": "Movie theater",
+  "method": "built-in image generation",
+  "prompts": [
+    "Use case: photorealistic-natural. Asset type: a single original photograph-style environment background for a portrait smartphone messaging scene, approximately 1024 x 2048, tall 1:2 composition. Primary request: an immersive movie theater viewed straight ahead from a plush premium cinema seat, with the pre-show projection screen filling most of the upper image, popcorn and a drink in the foreground. Composition: camera close enough that the large physically widescreen cinema projection extends beyond the left and right crop; its softly lit center is visible from about 8% to 73% down this portrait image. Do not turn it into a narrow portrait display. The projection shows only a calm dark blue and plum cinematic atmospheric gradient with subtle light haze and fine natural projector texture, no movie characters, no words, no interface. Preserve faint screen edges and black velvet surroundings so it reads as a real cinema. Below it, a few burgundy leather seat backs and warm aisle lighting. Across the lower 78–94% of the image is a near-frontal matte dark seat tray/armrest ledge with a wide clean middle band; a realistic striped popcorn carton and soda cup sit at the lower corners, leaving the center ledge usable for later live controls. Realistic plush upholstery, paper fibers, condensation, restrained cyan accents from aisle lighting, rich photographic texture, elegant exposure, no oversaturated CGI. A small physical pre-show placard or dark inset panel near the lower edge may remain blank for later editable content. No humans blocking the projection, no logos, no phone mockup, no app UI, no icons, no message bubbles, no baked conversation text, no watermark. Keep the central screen low contrast to support a readable live text thread that will be overlaid in code.",
+    "Use case: precise-object-edit. Edit this cinema photograph solely to give the projection screen much more of the portrait frame. Preserve its realistic photographic style, blue/plum pre-show light, burgundy seating, popcorn, drink, and tray. The projection screen must now occupy the entire width, extending out of both side crops, and run vertically from 5% down to 70% down the image. This is the close-cropped center of a huge wide cinema screen, not a portrait display. Reduce the visible top curtain/ceiling strip to only the top 5%. Compress the visible cinema seats and aisle to a narrow context band between 71% and 81% down; keep the tray and the smaller popcorn/drink at bottom corners from 82% down to 100%, with a clean center tray band. Keep camera straight ahead. No text or icons or interface on the screen. Main purpose is a huge low-contrast physical projection area for a live scrollable conversation to be added later. Do not leave the giant empty seat backs consuming half of the frame."
+  ],
+  "surface": {
+    "thread": [
+      5,
+      8,
+      90,
+      62
+    ],
+    "composer": [
+      10,
+      82.7,
+      80,
+      5.3
+    ],
+    "controls": [
+      8,
+      89,
+      84,
+      6
+    ]
+  },
+  "extras": [
+    {
+      "id": "sign",
+      "label": "Pre-show card",
+      "rect": [
+        18,
+        6,
+        64,
+        4
+      ]
+    },
+    {
+      "id": "poster",
+      "label": "Popcorn carton decal",
+      "rect": [
+        0.5,
+        85,
+        10,
+        7
+      ]
+    },
+    {
+      "id": "decal",
+      "label": "Drink cup decal",
+      "rect": [
+        91.5,
+        84,
+        8,
+        8
+      ]
+    }
+  ],
+  "description": "Premium cinema with a broad pre-show projection, burgundy seating, popcorn and soda.",
+  "dimensions": [
+    887,
+    1774
+  ],
+  "image": "raven/scenes/cinema.jpg",
+  "thumbnail": "raven/scenes/cinema-thumb.jpg",
+  "sha256": "137c034d8526e232eb97fba7eaabc08b9f8525baab86e0eeff5ff2c42471d181",
+  "packaging": "JPEG quality90; no crop or creative edits. Thumbnail resized proportionally to 240px wide."
+}

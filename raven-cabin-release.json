@@ -1,8 +1,8 @@
 {
-  "version": "raven-cabin-20261124-2",
+  "version": "raven-cabin-20261124-3",
   "entry": "raven-cabin-studio.html",
   "files": {
-    "asgard-studio-1120.html": "1bac16a9fe44afbbc9de33a87d7486c94d4f24f20c105e950a978f9744732f8b",
+    "asgard-studio-1120.html": "b22775628eaa8a5ec0e3d248bfb37ab2e69911e9357293478ddda6f982c2e567",
     "raven-cabin-camera.js": "0745e106cd15945a8ffe4b5ea7c7b5518d1e2d39546b5a036035785dea8e4d6f",
     "raven-cabin-comparison.js": "e58eabfbe27b4137a0de5ffd688841e246d47c26124ae4687da8da9bb4910eb7",
     "raven-cabin-editor.css": "b20ac714320c5be5cf1dbb1ea479c67b818a4e7b6d3d71f1d3bf11b69e85acf3",
@@ -16,12 +16,12 @@
     "raven-cabin-objects.js": "28d9a157b34b65dd8d046c8971e6a2ac44e44a8ac528738b719b3b0e7aa1641d",
     "raven-cabin-shell.js": "03d1bfe60c24106bbaffa893c8d5f0f0a28eefd126ad5fc3991b2a2a91c77355",
     "raven-cabin-studio.css": "98d8e45c7b00d54b3a700e0a3f8de88b467a47c09629bb4bfc968241a611acec",
-    "raven-cabin-studio.html": "d95e625d8a8a0ff7b514a8fb70ee95c5f6b87fca805ef7bc4ebf8c20e110d473",
-    "raven-cabin-studio.js": "5593d448bfe1c1b6164144e30e360dc7b8390f913554e206fe39ce92ab4fddad",
+    "raven-cabin-studio.html": "a3ea693d1d2b2741c54be378430c28af0f19a2f0630240afe73ef8ac5df8f207",
+    "raven-cabin-studio.js": "cc320455ed6a8a4b9ce1755d6bbf69a4a7265fc7042494d4da3698f3b128f2af",
     "raven-cabin.css": "80e6d15cab6c0a073fe7643775ec704159497e965f0c543b2818b158f56897f0",
     "raven-cabin.html": "59af1052e1e233d1bfeac37710bd8c26eb141baec3344d3b39a6d2a946cae745",
     "raven-cabin.js": "b4c5ddb5c4aae81ad5075fcb0834d7ac32844e2df291735f95d475499d162dda",
-    "raven-road-entry.js": "50ce60d6c6659dc7c2a78a161182875a335e5c3bf1e54fd41a726b042e847159",
+    "raven-road-entry.js": "a70d02287364b3b4985d7adb58fd31474e43d88e123ea533fef27c62142b5a74",
     "raven-road-icons.js": "bf6f08fd1f118254227ca13f8e06608e9f8e19fc0e4456b170eb0b87c895d126",
     "raven-road-services.js": "fc9b3a9af87bda061c04ec81001ac5788321d97cce3081852021d9b60a0c1222",
     "raven-voice-controls.js": "d52035169a9cccd681839a865c97fdc1f9f92f44a7c0b49d82268c8369602cdf",
@@ -34,11 +34,11 @@
     "raven/cockpit/road-wide-poster.jpg": "b9b677f33a2badc2a2dc08794c4337af46201340dbbedf065494d49b4c939420",
     "raven/cockpit/road-wide.mp4": "6dc9d5462338b315a2cc69ac02f7c01affdf1de7507e134e506ec2336ce4b25d",
     "raven/cockpit/sources.json": "2a4cf88e2b8803abb43b6b74b928002f09cbfd5966b84dc24cbfa31901c90ef8",
-    "sleipnir-studio-1120.html": "14c89b05b2a9b15ecbf3960b41e2caa013f12f5a3c035d38b23fc719de2d6cc5",
+    "sleipnir-studio-1120.html": "6c26b7e813a06fde415557b2b46afe59d39dc2efe93a2433db1bbca900e99ede",
     "vendor/lucide/LICENSE": "1e7290b35280a048667bbf0ebabac1c7fd52a75300e8b2946ac165715997f2bc",
     "vendor/lucide/README.md": "40e59f307e30f32b969a7f3b90d1c939394b77000ace031dbf254b2e1637fbfd",
     "vendor/lucide/lucide-0.468.0.min.js": "3411692820cb8d47543f69496aa25fd603a358f4498046f41c508a5a3342210e",
-    "workshop.html": "cae53e8dd207e98275fbca835c151d12b92750e3ddc7a7d1b827c9e326b8d92b",
-    "workspace-core.js": "3320fd09a4fe85a9df145e74271285468638e70f7582b1c693536ae1f963359a"
+    "workshop.html": "b2423eb4d85b802728c47b61e53d1993ec10a695183bc855a3dc95ea74398476",
+    "workspace-core.js": "90a02b73a75c9848e61275723d0fc184bb03648ae76d7cb74db5049d462a86bf"
   }
 }

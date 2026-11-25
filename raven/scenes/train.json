@@ -1,0 +1,75 @@
+{
+  "id": "train",
+  "label": "Train or subway window",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/train.jpg",
+  "thumbnail": "raven/scenes/train-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-6bfff613-7d40-4932-a274-43d7e9acf063.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original tall portrait photograph, approximately 1024 \u00d7 2048, for an immersive messaging scene.\nPrimary request: seated inside a modern subway or commuter train, facing a very large carriage window nearly straight on. Brushed stainless steel, charcoal rubber window gasket, a trace of dark teal upholstered seats at the lower corners. Outside is a night station platform with tiled pillars, softly lit billboard and poster panels, and another train beyond.\nComposition: one continuous window with no center divider occupies roughly x5\u201395%, y11\u201375%. The camera is close enough that this broad real window dominates. The station view is atmospheric, low contrast and slightly softened through the glass, with visible real reflections and a few quiet lights, never a flat empty black panel. Across the top, a slim carriage information display. Beneath the window, a broad horizontal brushed-metal ledge and a restrained dark inset service panel, clear enough for later live controls. Keep the bottom center uncluttered; place a small route/map card near one lower corner and a station poster visible near the other side.\nLighting: cool blue station light with warm interior strips, subtle amber light reflections, realistic material wear and convincing photographic exposure.\nConstraints: no people close to the camera, no recognizable transport branding, commercial logos, phone frame, app interface, message bubbles, floating buttons, watermarks or written messages. All actual conversation text and controls will be native editable UI later. Small contextual station markings may be abstract; do not generate readable advertisements. This is a single coherent photograph, not a collage, not a render.",
+    "editPrompts": [
+      "Use case: precise-object-edit. Edit this train photograph only to improve its vertical composition for a readable live message thread. Keep its photographic realism, stainless steel, cool station through the glass, soft lit posters, and warm lighting. The main window must become MUCH taller: its clear glass starts at about 13% of the total image height and ends at 77%, covering roughly 64% of the image height and 94% of image width. Reduce the ceiling and information strip to the top 10%, remove the visible floor entirely, remove the big empty metal panel at the bottom, and reduce everything below the window to a shallow ledge plus a compact metal control strip within the bottom 20%. Keep small seat corners only. This should look like a believable modern train with a tall panoramic carriage window, viewed straight on, close to the window. Extend the real station scene naturally in the taller window, retaining platform posters. Leave one thin dark information display at the top and two small poster/map cards near the bottom corners. No app interface, message bubbles, UI buttons, readable ads, logos, phone frame, or watermark. Tall portrait, same size and aspect ratio."
+    ]
+  },
+  "bounds": {
+    "thread": [
+      6,
+      14,
+      88,
+      69
+    ],
+    "composer": [
+      8,
+      88,
+      84,
+      5.2
+    ],
+    "controls": [
+      8,
+      94,
+      84,
+      5.2
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "information",
+      "label": "Carriage information display",
+      "bounds": [
+        23,
+        6.2,
+        54,
+        2.7
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "route-map",
+      "label": "Route map panel",
+      "bounds": [
+        8,
+        92.5,
+        10,
+        5.8
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "station-poster",
+      "label": "Station poster",
+      "bounds": [
+        76.8,
+        41.4,
+        10.5,
+        11.3
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "23d450351742884f05f08e1de7c337fd501453985a66de7944fa3866dc882fe8"
+}

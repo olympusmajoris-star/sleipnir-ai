@@ -1,0 +1,72 @@
+{
+  "id": "diner",
+  "label": "Diner booth window",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/diner.jpg",
+  "thumbnail": "raven/scenes/diner-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-348503ae-944b-4c32-8f24-7133a1890520.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original full-bleed background photograph for a vertical messaging scene, tall portrait composition approximately 1024 \u00d7 2048.\nPrimary request: the view from a classic late-night American diner booth, facing straight toward one very large uninterrupted booth window. Real red upholstered booth edges, chrome trim, weathered laminate tabletop, a small menu board, one soda cup with straw, and a modest neon sign.\nComposition: eye level and nearly head-on. The large window fills the image from roughly x6% to94% and y10% to75%, with no center mullion. Through it, a quiet rainy night street, distant shop lights and soft cyan/red neon reflections; the central glass remains calm and dark blue with real subtle detail, not a blank screen. The tabletop and wide dark window ledge occupy the bottom quarter. Keep the center of this ledge/table clear across its width for later live controls; place the soda cup near the lower-right edge and a small menu near the lower-left edge. Put a small rectangular menu board at the top-left edge and a neon OPEN sign near the top-right edge, outside the main window center.\nLighting: cinematic but natural, warm amber diner light balanced with cool rain and restrained neon outside. Detailed real glass, chrome, vinyl, condensation and wood/laminate textures. Believable photograph, no illustration or synthetic 3D-render appearance.\nCritical constraints: no phone, phone bezel, app interface, text-message bubbles, floating controls, dashboard, watermarks or logos. The physical window will later carry a continuous live message thread, so leave that broad central area uncluttered. Do not draw any message text. Only the small contextual word OPEN is allowed. Keep all important scenery within the tall portrait frame."
+  },
+  "bounds": {
+    "thread": [
+      6,
+      15,
+      88,
+      53
+    ],
+    "composer": [
+      8,
+      70,
+      84,
+      5.5
+    ],
+    "controls": [
+      8,
+      92.5,
+      84,
+      5.5
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "menu",
+      "label": "Menu board",
+      "bounds": [
+        3,
+        5.5,
+        26,
+        8.3
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "neon",
+      "label": "Neon sign",
+      "bounds": [
+        74,
+        5.3,
+        23,
+        6.5
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "cup-decal",
+      "label": "Soda cup decal",
+      "bounds": [
+        86,
+        84,
+        7,
+        5
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "8ae039eaf298474cd0d35c6a2e73f9e8133cb451716a9be0890ba823e07b6986"
+}

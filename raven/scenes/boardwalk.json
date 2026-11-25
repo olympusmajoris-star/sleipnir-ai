@@ -1,0 +1,72 @@
+{
+  "id": "boardwalk",
+  "label": "Beach boardwalk",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/boardwalk.jpg",
+  "thumbnail": "raven/scenes/boardwalk-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-05e7e23a-2472-45cd-93be-d66b9d41b250.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original tallportrait environmental photograph approximately1024\u00d72048, for a seaside messaging scene.\nPrimary request: a beautiful Florida-style beach boardwalk, inspired by Daytona's atmosphere without copying any exact business or landmark. Viewed from a shaded boardwalk window seat facing the ocean through one broad clear glass windbreak. A small banner plane crosses the pale blue sky; colorful beach umbrellas, a surf shop and an ice-cream stand appear near the lower edges, with realistic wood planks and a sun-warmed rail.\nComposition: eye level, almost straight-on, the uninterrupted clear glass/view dominates x5\u201395% and y8\u201378% of the tall image. Very slender weathered wood side posts and shallow top shade edge. The upper central sky and calm turquoise sea remain open and uncluttered, with soft natural texture and only a few thin clouds, not a blank digital screen. Keep the banner plane small in the upper quarter with its blank sunlit banner readable as a physical surface. Lower edges show beach umbrellas and the boardwalk storefronts; do not let signs or props cover the main center. A broad weathered driftwood-gray rail sits at y80\u201387%, followed by a compact clean wooden counter at the bottom, leaving room for live controls later.\nLighting/materials: warm late-afternoon sunlight, soft coastal haze, turquoise ocean, faded coral and seafoam shop details, rich real wood grain and small sunlit glass reflections. Make it a high-quality natural photograph, not oversaturated stock art or a render.\nConstraints: no commercial logos, named brands, phone frame, UI, chat bubbles, message words, interface icons, watermark or collage. Small surf and ice-cream pictograms are allowed on the physical shop signs. Leave the airplane banner without words. All actual conversation text and interactive controls will be added later as live elements."
+  },
+  "bounds": {
+    "thread": [
+      6,
+      7,
+      88,
+      69
+    ],
+    "composer": [
+      6,
+      81.4,
+      88,
+      6.4
+    ],
+    "controls": [
+      7,
+      92,
+      86,
+      5.5
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "plane-banner",
+      "label": "Airplane banner",
+      "bounds": [
+        68.1,
+        22.1,
+        14.1,
+        1.7
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "surf-sign",
+      "label": "Surf shop sign",
+      "bounds": [
+        3,
+        50.1,
+        12,
+        3.2
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "ice-cream-sign",
+      "label": "Ice-cream stand sign",
+      "bounds": [
+        88,
+        53.4,
+        5.6,
+        5
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "3cc1277b78a23ea988d1316da55ea405278ac19aef4282e783ceee22126d93cf"
+}

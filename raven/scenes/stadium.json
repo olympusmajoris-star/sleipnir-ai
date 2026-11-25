@@ -1,0 +1,75 @@
+{
+  "id": "stadium",
+  "label": "Stadium seats",
+  "kind": "generated-photograph",
+  "image": "raven/scenes/stadium.jpg",
+  "thumbnail": "raven/scenes/stadium-thumb.jpg",
+  "source": {
+    "tool": "built-in image_gen",
+    "generatedFile": "exec-df230a55-ccdc-4f1f-b694-eedb4df17eab.png",
+    "prompt": "Use case: photorealistic-natural.\nAsset type: original tallportrait stadium photograph approximately1024\u00d72048, for a live messaging environment.\nPrimary request: the view from stadium seats at night toward a huge close-cropped jumbotron, with a vivid green field, field-side advertising banners, stadium floodlights and a warmly lit concession concourse. All architecture and branding are original.\nComposition: zoom toward the large nearly-front-facing vertical section of the jumbotron so its actual glass/LED display dominates x6\u201394% and y8\u201376% of the portrait. The surrounding stadium remains recognisable in slivers around the display and in the lower quarter. The selected screen shows a calm, dark, low-contrast blue-toned aerial stadium-light image with subtle LED texture, no scores and no text; it will receive a real continuous message thread later. Use a slim physical frame and a broad dark horizontal scoreboard trim below the main display, clear across the image at y78\u201385% for later live typing/controls. A strip of green playing field and field-side banners sits below, with the tops of actual stadium seats at the lower corners and a concession stand illuminated in the distant lower background. A few distant spectators only, no foreground people.\nLighting: premium live-event photography, crisp architectural steel and seats, believable LEDs and floodlights, warm concessions, atmospheric night sky. No flat vector art, no obvious CGI.\nConstraints: no commercial logos, readable advertisements, phone frame, UI widgets, speech bubbles, message text, floating controls or watermark. Do not fill the view with a little distant screen; the readable physical jumbotron needs to be the dominant close surface.",
+    "editPrompts": [
+      "Use case: precise-object-edit. Correct only the viewing angle of this stadium photograph. Make the huge jumbotron perfectly head-on, with its left and right edges vertical and its top and bottom edges level, a true rectangle rather than a sloping trapezoid. Its main blue LED screen should occupy x5\u201395% and y10\u201373%. Preserve the same stadium field image on that screen, real LED texture, detailed floodlight truss, lower dark scoreboard trim, the green field, seats, banners, concessions and night lighting. Keep the view photographic and believable. Do not add message text, icons, scores, logos, apps or any interface. Same tallportrait aspect."
+    ]
+  },
+  "bounds": {
+    "thread": [
+      5,
+      15,
+      90,
+      49.5
+    ],
+    "composer": [
+      5,
+      66,
+      90,
+      5.3
+    ],
+    "controls": [
+      5,
+      73,
+      90,
+      5.3
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "concession-sign",
+      "label": "Concession stand sign",
+      "bounds": [
+        54,
+        79.4,
+        9.1,
+        1.6
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "field-banner",
+      "label": "Field-side banner",
+      "bounds": [
+        13,
+        85.1,
+        20,
+        2.4
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "scoreboard-trim",
+      "label": "Scoreboard information strip",
+      "bounds": [
+        7,
+        73.1,
+        86,
+        4.4
+      ],
+      "rotation": 0
+    }
+  ],
+  "dimensions": [
+    887,
+    1774
+  ],
+  "sha256": "61361d739596120698a7429db719613f3231dd65b7c9d991039476a7ea021e9d"
+}
