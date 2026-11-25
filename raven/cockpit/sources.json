@@ -92,5 +92,17 @@
     "road": "Source-space windshield mask and video composited before perspective projection",
     "sharedMedia": "DOM homographies use the same projector as the photographic environment",
     "verification": "Analytic projection, offline pixel diagnostics, and explicit media/DOM/WebGL stubs; no browser or physical-device verification"
+  },
+  "woodAlternative": {
+    "kind": "Generated original cabin artwork",
+    "description": "Alternative with natural wood accents, a lower-center tablet, subtle dashboard divisions and a horizontal rounded glovebox; illuminated alternative adds instruments. Generated with the built-in image generation tool in this conversation. JPEG outputs recovered byte-for-byte after the workspace restart.",
+    "files": {
+      "raven-cabin-wood.jpg": "fb20ad95854fe715e6547408a6621d5ffda7a1b5c5ac42aa2c8bad2b33bc5f1e",
+      "raven-cabin-wood-lit.jpg": "7cfb36880ab3fa46f5acb786a7d86960db57ae892b512b8d366de1323d4a4085"
+    },
+    "sourceDimensions": [
+      1926,
+      817
+    ]
   }
 }

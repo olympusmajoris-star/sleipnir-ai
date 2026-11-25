@@ -16,7 +16,7 @@
     frame.title = 'Raven cabin designer';
     if (!opening) originalAllow = frame.getAttribute('allow');
     frame.setAttribute('allow', 'microphone; camera; autoplay');
-    frame.src = new URL('raven-cabin-studio.html?embed=1&v=1124editor1', location.href).href;
+    frame.src = new URL('raven-cabin-studio.html?embed=1&v=1124refine2', location.href).href;
     opening = true; G.StudioKit.previewCovered = true;
     if (!dialog.open) dialog.showModal();
     if (!cabinHash(location.hash)) history.pushState(null, '', '#raven-cabin');

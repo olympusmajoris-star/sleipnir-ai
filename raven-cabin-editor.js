@@ -8,9 +8,10 @@
   const HEX=/^#[0-9a-f]{6}$/i;
   const STORAGE='asgard.raven.cabin.design.v2';
   const CYAN='#5FD8FF';
-  const SKINS=['clean','illuminated'];
+  const SKINS=['clean','illuminated','wood','woodLit'];
   const fields=['icon','x','y','size','rotation','color','opacity','visible','locked','style','background','radius','shadow'];
   const materialDefaults={leather:null,wood:null,led:null,ledBrightness:1};
+  const presentationDefaults={device:'iphone',orientation:'portrait',zoom:1,compare:false,controlsVisible:false,windshieldLift:0};
 
   function mount({controller:c,root,media={},geometry:g,nativeIcon,requestLayout=()=>{},enabled=false}){
     const D=c.scene.ownerDocument,scene=c.scene,catalog=G.RavenCabinIconCatalog?G.RavenCabinIconCatalog.create(G.lucide):[];
@@ -32,13 +33,31 @@
       ['return','Return to call','Passenger door','ArrowLeft',g.shareKeys[0],'.rc-return','sharing'],
       ['pick','Choose shared media','Passenger door','ImagePlus',g.shareKeys[1],'.rc-pick','sharing'],
       ['end-share','End call','Passenger door','PhoneOff',g.shareKeys[2],'.rc-end','sharing'],
-      ['play','Shared-video playback','Passenger window','Play',[g.sideContent[0]+g.sideContent[2]-36,g.sideContent[1]+g.sideContent[3]-36],'.rc-play','sharing']
+      ['play','Play / pause','Passenger door','Play',(g.doorControls||{}).play||[1510,535],'.rc-play','sharing'],
+      ['rewind','Rewind','Passenger door','Rewind',(g.doorControls||{}).rewind||[1435,535],'.rc-rewind','sharing'],
+      ['forward','Forward','Passenger door','FastForward',(g.doorControls||{}).forward||[1585,535],'.rc-forward','sharing'],
+      ['keep','Keep shared item','Passenger door','Bookmark',(g.doorControls||{}).keep||[1680,535],'.rc-keep','sharing'],
+      ['follow','Follow','Passenger door','UserPlus',(g.doorControls||{}).follow||[1660,620],'.rc-follow','sharing'],
+      ['more','More sharing actions','Passenger door','Ellipsis',(g.doorControls||{}).more||[1770,535],'.rc-more','sharing'],
+      ['fit','Fit shared media','Passenger door','Scan',(g.doorControls||{}).fit||[1718,670],'.rc-fit','sharing']
     ];
     const specs=base.map(([id,label,group,icon,point,selector,view])=>({id,label,group,icon,point:point.slice(),selector,view})),specById=new Map(specs.map(s=>[s.id,s]));
-    const defaults=Object.fromEntries(specs.map(s=>[s.id,{icon:s.icon,x:s.point[0],y:s.point[1],size:['radio','language','motion','play'].includes(s.id)?16:['camera','share','end-call','return','pick','end-share'].includes(s.id)?14:18,rotation:0,color:CYAN,opacity:1,visible:true,locked:false,style:'glyph',background:'#007AFF',radius:24,shadow:.3}]));
-    const workspace=()=>({controls:clone(defaults),materials:{...materialDefaults}});
-    let design={kind:'asgard-raven-cabin',version:2,skin:'clean',workspaces:{clean:workspace(),illuminated:workspace()},motion:{duration:800,videoYaw:10,sharingYaw:35}};
-    let selected='image',editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
+    const baseDefaults=Object.fromEntries(specs.map(s=>[s.id,{icon:s.icon,x:s.point[0],y:s.point[1],size:['radio','language','motion','play'].includes(s.id)?16:['camera','share','end-call','return','pick','end-share'].includes(s.id)?14:18,rotation:0,color:CYAN,opacity:1,visible:true,locked:false,style:'glyph',background:'#007AFF',radius:24,shadow:.3}]));
+    const defaultsBySkin=Object.fromEntries(SKINS.map(skin=>{const controls=clone(baseDefaults);if(skin==='wood'||skin==='woodLit')for(const [id,point]of Object.entries(g.tabletSlots||{}))Object.assign(controls[id],{x:point[0],y:point[1],size:18});return [skin,controls];}));
+    let defaults=defaultsBySkin.clean;
+    const objectSpecs=G.RavenCabinObjects?G.RavenCabinObjects.specs:[],objectById=new Map(objectSpecs.map(spec=>[spec.id,spec]));
+    const objectDefaults=G.RavenCabinObjects?G.RavenCabinObjects.defaults():{};
+    const originalSlots=clone(g.originalSlots||g.slots),originalScreens=clone(g.screens);
+    const layouts=[
+      {id:'clean',label:'Original dash',image:media.cabin,description:'The original clean dashboard.'},
+      {id:'illuminated',label:'Instruments lit',image:media.cabinLit,description:'Illuminated gauges, navigation and cabin instruments.'},
+      {id:'wood',label:'Wood + center tablet',image:media.cabinWood,description:'Wood accents, a rounded glovebox and a lower-center control tablet.'},
+      {id:'woodLit',label:'Wood + tablet · instruments lit',image:media.cabinWoodLit,description:'The wood dashboard with its instruments illuminated.'}
+    ];
+    const workspace=skin=>({controls:clone(defaultsBySkin[skin]),materials:{...materialDefaults},objects:clone(objectDefaults)});
+    const cameraDefaults={duration:900,videoYaw:Number.isFinite(g.camera&&g.camera.videoYaw)?g.camera.videoYaw:16,sharingYaw:Number(g.camera&&g.camera.sharingYaw)||58};
+    let design={kind:'asgard-raven-cabin',version:3,skin:'clean',workspaces:Object.fromEntries(SKINS.map(skin=>[skin,workspace(skin)])),motion:{...cameraDefaults},presentation:{...presentationDefaults}};
+    let selected='image',selectedObject=null,editing=!!enabled,activeDesign=!!enabled,disposed=false,lastProjector=null;
     let history=[],future=[],lastChangeKey='',lastChangeTime=0,gestureDepth=0,gestureStart=null,pointer=null;
     let panFrame=0,noticeFrame=0,initialFrame=0,refreshFrame=0,panTime=null,lastSaved='',status='Changes preview live. Save keeps this design in this browser.';
     let lastViewStamp='',lastSkinSource='',savedAt=null;
@@ -76,22 +95,51 @@
         else{if(value!==null&&(typeof value!=='string'||!HEX.test(value)))throw Error('Material colors must be a six-digit hex color or null.');out[key]=value===null?null:value.toUpperCase();}
       }return out;
     }
+    function objectPatch(patch,strict=false){
+      keys(patch,['x','y','width','height','rotation','opacity','visible','locked'],'object');const out={};
+      for(const [key,value]of Object.entries(patch)){
+        if(key==='visible'||key==='locked'){if(typeof value!=='boolean')throw Error(key+' must be true or false.');out[key]=value;continue;}
+        const range={x:[-40,40],y:[-40,40],width:[25,200],height:[25,200],rotation:[-30,30],opacity:[0,1]}[key];
+        if(!number(value)||(strict&&(value<range[0]||value>range[1])))throw Error('That object setting is outside the supported range.');out[key]=clamp(value,...range);
+      }return out;
+    }
     function motionPatch(patch,strict=false){
       keys(patch,['duration','videoYaw','sharingYaw'],'motion');const out={};
       for(const [key,value] of Object.entries(patch)){
-        const range=key==='duration'?[150,4000]:key==='videoYaw'?[0,30]:[15,55];
+        const range=key==='duration'?[150,4000]:key==='videoYaw'?[0,45]:[15,85];
         if(!number(value)||(strict&&(value<range[0]||value>range[1])))throw Error('That camera setting is outside the supported range.');out[key]=clamp(value,...range);
       }return out;
     }
+    function presentationPatch(patch,strict=false){
+      keys(patch,Object.keys(presentationDefaults),'presentation');const out={};
+      for(const [key,value]of Object.entries(patch)){
+        if(key==='device'){if(!['iphone','wide'].includes(value))throw Error('Choose an iPhone or wide canvas.');out[key]=value;}
+        else if(key==='orientation'){if(!['portrait','landscape'].includes(value))throw Error('Choose portrait or landscape.');out[key]=value;}
+        else if(key==='zoom'){if(!number(value)||(strict&&(value<1||value>2.5)))throw Error('Zoom must be between 1 and 2.5.');out[key]=clamp(value,1,2.5);}
+        else if(key==='windshieldLift'){if(!number(value)||(strict&&(value< -20||value>20)))throw Error('Windshield position must be between -20 and 20.');out[key]=clamp(value,-20,20);}
+        else{if(typeof value!=='boolean')throw Error(key+' must be true or false.');out[key]=value;}
+      }return out;
+    }
     function validate(value){
-      keys(value,['kind','version','skin','workspaces','motion'],'design');
-      if(value.kind!=='asgard-raven-cabin'||value.version!==2)throw Error('Choose a Raven cabin design exported by this editor.');
+      keys(value,['kind','version','skin','workspaces','motion','presentation'],'design');
+      if(value.kind!=='asgard-raven-cabin'||![2,3].includes(value.version))throw Error('Choose a Raven cabin design exported by this editor.');
       if(!SKINS.includes(value.skin))throw Error('Unknown cabin workspace.');keys(value.workspaces,SKINS,'workspace collection');
-      const result={kind:'asgard-raven-cabin',version:2,skin:value.skin,workspaces:{},motion:{...design.motion,...motionPatch(value.motion,true)}};
+      const legacy=value.version===2,motion={...cameraDefaults,...motionPatch(value.motion||{},true)};
+      if(legacy){if(motion.videoYaw===10)motion.videoYaw=cameraDefaults.videoYaw;if(motion.sharingYaw===35)motion.sharingYaw=cameraDefaults.sharingYaw;}
+      const result={kind:'asgard-raven-cabin',version:3,skin:value.skin,workspaces:{},motion,presentation:{...presentationDefaults,...presentationPatch(legacy&&value.presentation===undefined?{}:value.presentation,true)}};
+      const newControls=new Set(['rewind','forward','keep','follow','more','fit']);
       for(const skin of SKINS){
-        const source=value.workspaces[skin];keys(source,['controls','materials'],skin+' workspace');keys(source.controls,specs.map(s=>s.id),'controls');
-        const controls={};for(const spec of specs){if(!source.controls[spec.id])throw Error('Missing control: '+spec.label);controls[spec.id]={...defaults[spec.id],...controlPatch(source.controls[spec.id],true)};}
-        result.workspaces[skin]={controls,materials:{...materialDefaults,...materialsPatch(source.materials||{},true)}};
+        const source=value.workspaces[skin],skinDefaults=defaultsBySkin[skin];
+        if(source===undefined&&(skin==='wood'||skin==='woodLit')){result.workspaces[skin]=workspace(skin);continue;}
+        keys(source,['controls','materials','objects'],skin+' workspace');keys(source.controls,specs.map(spec=>spec.id),'controls');
+        const controls={};for(const spec of specs){
+          if(!source.controls[spec.id]&&!(legacy&&newControls.has(spec.id)))throw Error('Missing control: '+spec.label);
+          controls[spec.id]={...skinDefaults[spec.id],...controlPatch(source.controls[spec.id]||{},true)};
+          if(legacy&&spec.id==='play'&&controls.play.x===1834&&controls.play.y===384){controls.play.x=skinDefaults.play.x;controls.play.y=skinDefaults.play.y;}
+        }
+        const objects=clone(objectDefaults);
+        if(source.objects!==undefined){keys(source.objects,objectSpecs.map(spec=>spec.id),'objects');for(const [id,patch]of Object.entries(source.objects))objects[id]={...objectDefaults[id],...objectPatch(patch,true)};}
+        result.workspaces[skin]={controls,materials:{...materialDefaults,...materialsPatch(source.materials||{},true)},objects};
       }return result;
     }
     try{
@@ -100,10 +148,11 @@
     }catch(_){status='Browser storage is unavailable or contains an older design. Live editing still works.';}
 
     function getState(){return {
-      selected,editing,view:mode(),pan:progress(),canUndo:history.length>0||!!(gestureStart&&gestureStart!==serialize()),canRedo:future.length>0,
-      saved:lastSaved===serialize(),savedAt,status,skin:design.skin,skinAvailable:{clean:!!media.cabin,illuminated:!!media.cabinLit},
-      controls:specs.map(spec=>({id:spec.id,label:spec.label,group:spec.group,...clone(current().controls[spec.id])})),
-      motion:{...design.motion},materials:{...current().materials},playingPan:!!panFrame
+      selected,selectedObject,editing,view:mode(),pan:progress(),canUndo:history.length>0||!!(gestureStart&&gestureStart!==serialize()),canRedo:future.length>0,
+      saved:lastSaved===serialize(),savedAt,status,skin:design.skin,skinAvailable:Object.fromEntries(layouts.map(layout=>[layout.id,!!layout.image])),layouts:clone(layouts),
+      controls:specs.map(spec=>({id:spec.id,label:spec.label,group:g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)?'Center tablet':spec.group,...clone(current().controls[spec.id])})),
+      objects:objectSpecs.map(spec=>({...spec,...clone(current().objects[spec.id])})),
+      motion:{...design.motion},presentation:{...design.presentation},comparison:c.comparison?clone(c.comparison):null,materials:{...current().materials},playingPan:!!panFrame
     };}
     function notify(){
       if(disposed||noticeFrame)return;
@@ -115,9 +164,14 @@
     function endEdit(){if(!gestureDepth)return;if(--gestureDepth)return;const before=gestureStart;gestureStart=null;if(before&&before!==serialize())pushHistory(before);notify();}
     function flushGesture(){while(gestureDepth)endEdit();}
     function applyEnvironment(){
+      defaults=defaultsBySkin[design.skin];g.layoutHasTablet=design.skin==='wood'||design.skin==='woodLit';g.materialFamily=g.layoutHasTablet?'wood':'original';
+      g.slots=clone(g.layoutHasTablet?g.tabletSlots:originalSlots);g.screens=clone(g.layoutHasTablet?g.woodScreens:originalScreens);
       g.panDuration=design.motion.duration;g.camera={...(g.camera||{}),videoYaw:design.motion.videoYaw,sharingYaw:design.motion.sharingYaw};
-      g.materialColors={...current().materials};
-      const source=design.skin==='illuminated'?media.cabinLit:media.cabin;
+      g.materialColors={...current().materials};g.presentation={...design.presentation};
+      root.dataset.canvasDevice=design.presentation.device;root.dataset.canvasOrientation=design.presentation.orientation;
+      scene.style.aspectRatio=design.presentation.device==='iphone'?(design.presentation.orientation==='portrait'?'390 / 844':'844 / 390'):'1260 / 817';
+      if(c.cabin&&c.cabin.setControlsVisible)c.cabin.setControlsVisible(design.presentation.controlsVisible,false);
+      const source=layouts.find(layout=>layout.id===design.skin).image;
       if(source&&source!==lastSkinSource){lastSkinSource=source;c.photo.src=source;c.wheel.src=source;}
       root.dataset.cabinSkin=design.skin;root.dataset.rceEditing=String(editing);
     }
@@ -131,6 +185,19 @@
       if(next.style&&next.style!=='glyph'&&old.style==='glyph'&&!Object.hasOwn(next,'color')&&old.color.toUpperCase()===CYAN)next.color='#FFFFFF';
       return changed('control:'+id+':'+Object.keys(next).sort().join(','),()=>Object.assign(current().controls[id],next));
     }
+    function updateObject(id,patch){if(!objectById.has(id))throw Error('Choose a cabin object.');const next=objectPatch(patch);return changed('object:'+id+':'+Object.keys(next).sort().join(','),()=>Object.assign(current().objects[id],next));}
+    function selectObject(id){
+      if(id!==null&&!objectById.has(id))return false;selectedObject=id;
+      if(id){
+        const spec=objectById.get(id),view=mode();
+        if(id==='typingBar'){if(view==='sharing')setView('chat');updatePresentation({controlsVisible:true});}
+        else if(id==='tabletControls'){updatePresentation({controlsVisible:true});if(view!=='chat'&&!(view==='video'&&g.layoutHasTablet))setView('chat');}
+        else if(spec.view&&spec.view!==view)setView(spec.view);
+      }
+      requestLayout();notify();return true;
+    }
+    function updatePresentation(patch){const next=presentationPatch(patch);return changed('presentation:'+Object.keys(next).sort().join(','),()=>Object.assign(design.presentation,next));}
+    on(root,'raven:controlsvisibility',event=>{if(event.detail&&typeof event.detail.visible==='boolean')updatePresentation({controlsVisible:event.detail.visible});});
     function updateMaterials(patch){const next=materialsPatch(patch);return changed('materials:'+Object.keys(next).sort().join(','),()=>Object.assign(current().materials,next));}
     function updateMotion(patch){const next=motionPatch(patch);return changed('motion:'+Object.keys(next).sort().join(','),()=>Object.assign(design.motion,next));}
     function undo(){flushGesture();if(!history.length)return;cancelPan();future.push(serialize());design=JSON.parse(history.pop());lastChangeKey='';status='Edit undone · preview updated.';applyEnvironment();requestLayout();notify();}
@@ -151,17 +218,17 @@
       panFrame=raf(tick);notify();return true;
     }
     function select(id){
-      if(!specById.has(id))return false;selected=id;const spec=specById.get(id),node=q(spec.selector);
-      if(!node||node.hidden||node.closest('[hidden]'))setView(spec.view);
+      if(!specById.has(id))return false;selected=id;selectedObject=null;const spec=specById.get(id),node=q(spec.selector);
+      if(!node||node.hidden||node.closest('[hidden]')){if(spec.view!=='sharing')updatePresentation({controlsVisible:true});setView(spec.view);}
       requestLayout();notify();return true;
     }
     function setEditing(value){cancelPan();editing=!!value;activeDesign=activeDesign||editing;root.dataset.rceEditing=String(editing);requestLayout();notify();}
     function setSkin(skin){
-      if(!SKINS.includes(skin))return false;if(skin==='illuminated'&&!media.cabinLit){status='The illuminated cabin is still loading.';notify();return false;}
+      if(!SKINS.includes(skin))return false;if(!layouts.find(layout=>layout.id===skin).image){status='That cabin layout is still loading.';notify();return false;}
       flushGesture();return changed('skin',()=>{design.skin=skin;});
     }
     function save(){
-      flushGesture();try{savedAt=new Date().toISOString();G.localStorage.setItem(STORAGE,JSON.stringify({design,savedAt}));lastSaved=serialize();status='Saved in this browser. Both cabin workspaces are kept.';notify();return {ok:true,message:status};}
+      flushGesture();try{savedAt=new Date().toISOString();G.localStorage.setItem(STORAGE,JSON.stringify({design,savedAt}));lastSaved=serialize();status='Saved in this browser. All four cabin workspaces are kept.';notify();return {ok:true,message:status};}
       catch(_){savedAt=null;status='This browser could not save the design. Export it to keep a copy.';notify();return {ok:false,message:status};}
     }
     function importDesign(text){
@@ -172,8 +239,9 @@
       return config.icon===defaults[spec.id].icon&&(node.dataset.motionIcon||node.dataset.icon)?node.dataset.motionIcon||node.dataset.icon:config.icon;
     }
     function eligible(spec,view){
+      if(g.layoutHasTablet&&Object.hasOwn(g.tabletSlots||{},spec.id)&&view==='video'&&design.presentation.controlsVisible)return true;
       if(spec.id==='end-call')return view==='video';if(spec.id==='end-share')return view==='sharing';
-      if(spec.id==='send')return true;if(spec.id==='image')return view!=='sharing';return spec.view===view;
+      if(spec.id==='send'||spec.id==='image')return view==='chat'||view==='video'&&design.presentation.controlsVisible;return spec.view===view;
     }
     function parentOrigin(node){
       if(node.parentElement===scene)return [0,0];
@@ -181,7 +249,9 @@
       return [0,0];
     }
     function plane(visual,center,extent,rotation,P,origin){
-      const sourceSize=extent/Math.max(.001,P.width/g.views.chat[2]),half=sourceSize/2,angle=rotation*Math.PI/180,co=Math.cos(angle),si=Math.sin(angle);
+      const projectedCenter=P.point(...center),dx=P.point(center[0]+1,center[1]),dy=P.point(center[0],center[1]+1);
+      const localScale=Math.max(.001,Math.hypot(dx[0]-projectedCenter[0],dx[1]-projectedCenter[1]),Math.hypot(dy[0]-projectedCenter[0],dy[1]-projectedCenter[1]));
+      const sourceSize=extent/localScale,half=sourceSize/2,angle=rotation*Math.PI/180,co=Math.cos(angle),si=Math.sin(angle);
       const corners=[[-half,-half],[half,-half],[half,half],[-half,half]].map(([x,y])=>P.point(center[0]+x*co-y*si,center[1]+x*si+y*co));
       if(corners.some(p=>!p.every(Number.isFinite)))return null;
       const p=corners.map(v=>[v[0]-origin[0],v[1]-origin[1]]),[a,b,d,e]=p,dx1=b[0]-d[0],dx2=e[0]-d[0],dx3=a[0]-b[0]+d[0]-e[0],dy1=b[1]-d[1],dy2=e[1]-d[1],dy3=a[1]-b[1]+d[1]-e[1],den=dx1*dy2-dx2*dy1;
@@ -201,18 +271,19 @@
     const resize=D.createElement('button');resize.type='button';resize.className='rce-resize cursor-interaction';resize.setAttribute('aria-label','Resize selected icon');resize.setAttribute('data-tooltip','Drag to resize');resize.hidden=true;scene.appendChild(resize);
     on(resize,'pointerdown',event=>startPointer(event,selected,'size'));on(resize,'click',event=>{event.preventDefault();event.stopPropagation();});on(resize,'keydown',event=>keyboard(event,selected));
     const live=D.createElement('span');live.className='rce-announcement';live.setAttribute('aria-live','polite');scene.appendChild(live);
-    function sourcePoint(event){
+    function sourcePoint(event,id){
       if(!lastProjector)return null;const rect=scene.getBoundingClientRect(),x=(event.clientX-rect.left)*lastProjector.width/Math.max(1,rect.width),y=(event.clientY-rect.top)*lastProjector.height/Math.max(1,rect.height);
-      const point=lastProjector.unproject?lastProjector.unproject(x,y):[x/lastProjector.scale,y/lastProjector.scale];return point.every(Number.isFinite)?point:null;
+      const scenePoint=c.objects&&c.objects.inversePointForControl?c.objects.inversePointForControl(id,[x,y]):[x,y];
+      const point=lastProjector.unproject?lastProjector.unproject(...scenePoint):[scenePoint[0]/lastProjector.scale,scenePoint[1]/lastProjector.scale];return point.every(Number.isFinite)?point:null;
     }
     function startPointer(event,id,kind){
-      if(!editing||disposed||event.button>0)return;event.preventDefault();event.stopPropagation();cancelPan();selected=id;const config=current().controls[id];if(config.locked){status='Unlock this control to move or resize it.';requestLayout();notify();return;}
-      const point=sourcePoint(event);if(!point)return;flushGesture();beginEdit();const start=clone(config),shown=renderedSources.get(id);if(kind==='move'&&shown){start.x=shown[0];start.y=shown[1];}pointer={id,kind,pointerId:event.pointerId,source:point,start,x:event.clientX,y:event.clientY,target:event.currentTarget};
+      if(!editing||disposed||event.button>0)return;event.preventDefault();event.stopPropagation();cancelPan();selected=id;selectedObject=null;const config=current().controls[id];if(config.locked){status='Unlock this control to move or resize it.';requestLayout();notify();return;}
+      const point=sourcePoint(event,id);if(!point)return;flushGesture();beginEdit();const start=clone(config),shown=renderedSources.get(id);if(kind==='move'&&shown){start.x=shown[0];start.y=shown[1];}pointer={id,kind,pointerId:event.pointerId,source:point,start,x:event.clientX,y:event.clientY,target:event.currentTarget};
       try{event.currentTarget.setPointerCapture(event.pointerId);}catch(_){}requestLayout();notify();
     }
     function movePointer(event){
       if(!pointer||event.pointerId!==pointer.pointerId)return;event.preventDefault();const p=pointer;
-      if(p.kind==='move'){const at=sourcePoint(event);if(at)updateControl(p.id,{x:p.start.x+at[0]-p.source[0],y:p.start.y+at[1]-p.source[1]});}
+      if(p.kind==='move'){const at=sourcePoint(event,p.id);if(at)updateControl(p.id,{x:p.start.x+at[0]-p.source[0],y:p.start.y+at[1]-p.source[1]});}
       else updateControl(p.id,{size:p.start.size+(event.clientX-p.x+event.clientY-p.y)/2});
     }
     function endPointer(event){if(!pointer||event&&event.pointerId!==pointer.pointerId)return;const p=pointer;pointer=null;try{p.target.releasePointerCapture(p.pointerId);}catch(_){}endEdit();live.textContent=specById.get(p.id).label+' updated.';notify();}
@@ -221,7 +292,7 @@
       if(event.key==='Enter'||event.key===' '){event.preventDefault();select(id);return;}
       if(config.locked)return;
       if(event.key==='ArrowLeft')patch.x=config.x-amount;else if(event.key==='ArrowRight')patch.x=config.x+amount;else if(event.key==='ArrowUp')patch.y=config.y-amount;else if(event.key==='ArrowDown')patch.y=config.y+amount;else if(event.key==='+'||event.key==='=')patch.size=config.size+(event.shiftKey?4:1);else if(event.key==='-'||event.key==='_')patch.size=config.size-(event.shiftKey?4:1);else return;
-      event.preventDefault();event.stopPropagation();selected=id;updateControl(id,patch);
+      event.preventDefault();event.stopPropagation();selected=id;selectedObject=null;updateControl(id,patch);
     }
     on(D,'pointermove',movePointer,{passive:false});on(D,'pointerup',endPointer);on(D,'pointercancel',endPointer);
     on(scene,'click',event=>{
@@ -236,7 +307,7 @@
     // the selected treatment after that replacement without observing styles.
     const iconObserver=typeof G.MutationObserver==='function'?new G.MutationObserver(records=>{
       if(disposed||!activeDesign||refreshFrame)return;
-      if(records.some(record=>record.target.nodeType===1&&record.target.hasAttribute('data-rce-control')&&!record.target.querySelector('.rce-visual'))){refreshFrame=raf(()=>{refreshFrame=0;if(!disposed)requestLayout();});}
+      if(records.some(record=>record.type==='childList'&&record.target.nodeType===1&&record.target.hasAttribute('data-rce-control')&&!record.target.querySelector('.rce-visual'))){refreshFrame=raf(()=>{refreshFrame=0;if(!disposed)requestLayout();});}
     }):null;
     if(iconObserver)iconObserver.observe(scene,{childList:true,subtree:true});
 
@@ -248,15 +319,18 @@
         const node=q(spec.selector);if(!node||!eligible(spec,view))continue;
         const config=current().controls[spec.id],def=defaults[spec.id],positioned=config.x!==def.x||config.y!==def.y;
         const parentHidden=!!node.parentElement.closest('[hidden]');
-        const baselineHidden=spec.id==='send'?parentHidden:spec.id==='play'?(!editing&&!!q('.rc-shared-video')&&q('.rc-shared-video').hidden)||parentHidden:!!node.hidden||parentHidden;
-        const sharedVideo=q('.rc-shared-video'),playUnavailable=spec.id==='play'&&!editing&&(!sharedVideo||sharedVideo.hidden);
-        node.dataset.rceControl=spec.id;decorated.add(node);node.hidden=!config.visible||playUnavailable||(baselineHidden&&!positioned&&!(editing&&spec.id==='play'));
+        const playback=['play','rewind','forward'].includes(spec.id);
+        const baselineHidden=spec.id==='send'?parentHidden:playback?(!editing&&!!q('.rc-shared-video')&&q('.rc-shared-video').hidden)||parentHidden:!!node.hidden||parentHidden;
+        const sharedVideo=q('.rc-shared-video'),playUnavailable=playback&&!editing&&(!sharedVideo||sharedVideo.hidden);
+        node.dataset.rceControl=spec.id;decorated.add(node);node.hidden=!config.visible||playUnavailable||(baselineHidden&&!positioned&&!(editing&&playback));
         if(!config.visible||node.hidden||node.parentElement.closest('[hidden]'))continue;
-        let [x,y]=P.point(config.x,config.y);if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>P.width||y<0||y>P.height){node.hidden=true;continue;}
+        let [x,y]=P.point(config.x,config.y);
         const origin=parentOrigin(node),initialSvg=node.querySelector('svg');
         const rootSize=parseFloat(node.style.getPropertyValue('--rw-icon'))||parseFloat(node.style.getPropertyValue('--rc-icon'))||(spec.id==='send'?18:16);
         const initialLeft=parseFloat(node.style.left)||0,initialTop=parseFloat(node.style.top)||0;
         if(!positioned&&initialSvg){const sx=parseFloat(initialSvg.style.left),sy=parseFloat(initialSvg.style.top);if(Number.isFinite(sx)&&Number.isFinite(sy)){x=origin[0]+initialLeft+sx+rootSize/2;y=origin[1]+initialTop+sy+rootSize/2;}}
+        if(!positioned&&Number.isFinite(Number(node.dataset.cabinAnchorX))&&Number.isFinite(Number(node.dataset.cabinAnchorY)))[x,y]=P.point(Number(node.dataset.cabinAnchorX),Number(node.dataset.cabinAnchorY));
+        if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>P.width||y<0||y>P.height){node.hidden=true;continue;}
         const source=!positioned&&P.unproject?P.unproject(x,y):[config.x,config.y];renderedSources.set(spec.id,source);
         const size=config.size===def.size?rootSize:config.size,padding=config.style==='glyph'?0:8,extent=size+padding*2;
         let rect={x:origin[0]+initialLeft,y:origin[1]+initialTop,w:parseFloat(node.style.width)||44,h:parseFloat(node.style.height)||44};
@@ -276,7 +350,7 @@
           const next={x:Math.min(rect.x,bound.left),y:Math.min(rect.y,bound.top),w:Math.max(rect.x+rect.w,bound.right)-Math.min(rect.x,bound.left),h:Math.max(rect.y+rect.h,bound.bottom)-Math.min(rect.y,bound.top)};
           rect=next;Object.assign(node.style,{left:(rect.x-origin[0])+'px',top:(rect.y-origin[1])+'px',width:rect.w+'px',height:rect.h+'px'});plane(visual,source,extent,config.rotation,P,[rect.x,rect.y]);
         }
-        if(editing){
+        if(editing&&!selectedObject){
           const handle=ensureHandle(spec);target(handle,{x:clamp(rect.x,0,P.width-44),y:clamp(rect.y,0,P.height-44),w:Math.max(44,Math.min(rect.w,P.width)),h:Math.max(44,Math.min(rect.h,P.height))});handle.hidden=false;handle.dataset.selected=String(selected===spec.id);handle.dataset.locked=String(config.locked);handle.setAttribute('aria-pressed',String(selected===spec.id));handle.setAttribute('aria-label',(config.locked?'Locked ':'Move ')+spec.label);
           if(selected===spec.id&&!config.locked){
             const right=rect.x+rect.w+38<=P.width,bottom=rect.y+rect.h+38<=P.height;
@@ -285,17 +359,19 @@
           }
         }
       }
-      const stamp=view+'|'+progress().toFixed(4);if(stamp!==lastViewStamp){lastViewStamp=stamp;notify();}
+      const stamp=view+'|'+progress().toFixed(4)+'|'+JSON.stringify(c.comparison||null);if(stamp!==lastViewStamp){lastViewStamp=stamp;notify();}
     }
     applyEnvironment();
     const api={
-      getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},select,setEditing,updateControl,
-      resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,updateMotion,updateMaterials,setSkin,save,
+      getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},select,setEditing,updateControl,selectObject,updateObject,
+      resetObject(id){if(!objectById.has(id))return false;return changed('reset-object:'+id,()=>{current().objects[id]=clone(objectDefaults[id]);});},
+      resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,updateMotion,updatePresentation,updateMaterials,setSkin,save,
       exportDesign(){return JSON.stringify(design,null,2);},importDesign,
       getCatalog(){const action=selected.startsWith('end-')?'end':selected==='play'?'motion':selected;return {all:catalog,suggestions:catalog.forAction?catalog.forAction(action).map(entry=>entry.name):[]};},
-      layout,
-      dispose(){if(disposed)return;disposed=true;cancelPan();if(noticeFrame)caf(noticeFrame);if(initialFrame)caf(initialFrame);if(refreshFrame)caf(refreshFrame);if(iconObserver)iconObserver.disconnect();listeners.splice(0).forEach(remove=>remove());handles.forEach(node=>node.remove());resize.remove();live.remove();subscribers.clear();for(const node of decorated){delete node.dataset.rceControl;const visual=node.querySelector('.rce-visual');if(visual){const icon=visual.querySelector('svg');if(icon){icon.removeAttribute('style');node.replaceChildren(icon);}else visual.remove();}node.style.removeProperty('opacity');}delete root.dataset.rceEditing;if(G.RavenCabinEditor===api)delete G.RavenCabinEditor;}
+      layout,notifyComparison:notify,
+      dispose(){if(disposed)return;disposed=true;cancelPan();if(c.objects){c.objects.dispose();delete c.objects;}if(noticeFrame)caf(noticeFrame);if(initialFrame)caf(initialFrame);if(refreshFrame)caf(refreshFrame);if(iconObserver)iconObserver.disconnect();listeners.splice(0).forEach(remove=>remove());handles.forEach(node=>node.remove());resize.remove();live.remove();subscribers.clear();for(const node of decorated){delete node.dataset.rceControl;const visual=node.querySelector('.rce-visual');if(visual){const icon=visual.querySelector('svg');if(icon){icon.removeAttribute('style');node.replaceChildren(icon);}else visual.remove();}node.style.removeProperty('opacity');}delete root.dataset.rceEditing;if(G.RavenCabinEditor===api)delete G.RavenCabinEditor;}
     };
+    if(G.RavenCabinObjects)c.objects=G.RavenCabinObjects.mount({controller:c,root,geometry:g,getState:()=>({objects:current().objects,selectedObject,editing}),updateObject,selectObject,requestLayout,beginEdit,endEdit});
     G.RavenCabinEditor=api;initialFrame=raf(()=>{initialFrame=0;requestLayout();notify();});return api;
   }
   G.RavenCabinEditBridge={mount};

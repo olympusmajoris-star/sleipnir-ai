@@ -1,0 +1,24 @@
+/* Object overrides are separate from native inline layout, preventing accumulation. */
+#raven-cabin [data-rco-layer],#raven-cabin [data-rco-child]{left:var(--rco-left)!important;top:var(--rco-top)!important;right:auto!important;bottom:auto!important;width:var(--rco-width)!important;height:var(--rco-height)!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important}
+#raven-cabin [data-rco-layer]{transform-origin:50% 50%!important;rotate:var(--rco-rotation,0deg);opacity:var(--rco-opacity,1)!important}
+#raven-cabin [data-rco-member]{translate:var(--rco-dx,0px) var(--rco-dy,0px);rotate:var(--rco-rotation,0deg);transform-origin:50% 50%;filter:opacity(var(--rco-opacity,1))}
+#raven-cabin [data-rco-hidden=true]{visibility:hidden!important;pointer-events:none!important}
+#raven-cabin [data-rco-composer] .rw-compose-line{height:100%!important;min-height:0!important}
+#raven-cabin [data-rco-composer] textarea{width:var(--rco-input-width)!important}
+#raven-cabin [data-rco-send-visual]{translate:var(--rco-dx,0px) var(--rco-dy,0px)}
+#raven-cabin .rc-mirror[data-rco-layer] .rc-mirror-panel{left:0!important;width:100%!important;height:50%!important}
+#raven-cabin .rc-mirror[data-rco-layer] .rc-mirror-upper{top:0!important}
+#raven-cabin .rc-mirror[data-rco-layer] .rc-mirror-lower{top:50%!important}
+#raven-cabin .rc-mirror[data-rco-layer] .rc-self-video{left:0!important;width:100%!important;height:200%!important}
+#raven-cabin .rc-mirror[data-rco-layer] .rc-mirror-upper .rc-self-video{top:0!important}
+#raven-cabin .rc-mirror[data-rco-layer] .rc-mirror-lower .rc-self-video{top:-100%!important}
+#raven-cabin .rco-selection{position:absolute;box-sizing:border-box;z-index:36;border:1px solid #5fd8ff;border-radius:4px;box-shadow:0 0 0 1px #061a26aa;pointer-events:none;transform-origin:50% 50%}
+#raven-cabin .rco-selection[data-visible=false]{border-style:dashed}
+#raven-cabin .rco-selection[data-locked=true]{border-color:#a3b3be;border-style:dotted}
+#raven-cabin .rco-object-move,#raven-cabin .rco-object-resize{position:absolute;display:flex;box-sizing:border-box;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:0;padding:5px 9px;border:1px solid #5fd8ff88;border-radius:5px;background:#082432ef;color:#c6f3ff;font:500 11px/15px Arial,sans-serif;text-shadow:none;box-shadow:none;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+#raven-cabin .rco-object-move{left:-1px;top:-1px;max-width:calc(100% + 2px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:move}
+#raven-cabin .rco-object-resize{right:-1px;bottom:-1px;width:44px;height:44px;cursor:nwse-resize;background:#082432c9}
+#raven-cabin .rco-object-resize::before{content:"";width:14px;height:14px;border-right:2px solid #79e2ff;border-bottom:2px solid #79e2ff}
+#raven-cabin .rco-object-move:focus-visible,#raven-cabin .rco-object-resize:focus-visible{outline:2px solid #d7f7ff;outline-offset:2px}
+#raven-cabin .rco-selection[hidden],#raven-cabin .rco-object-resize[hidden]{display:none!important}
+#raven-cabin .rco-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

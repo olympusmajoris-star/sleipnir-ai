@@ -141,25 +141,42 @@
       const projection=c.camera&&c.camera.supported?c.camera.project(view,w,h):fallback;
       const {point,rect,scale:s}=projection;
       c.scene.dataset.cameraReady=String(!!(c.camera&&c.camera.ready));
-      const inCall=!!(c.cabin&&c.cabin.isActive());
+      const inCall=!!(c.cabin&&c.cabin.isActive()),mode=root.dataset.cabinMode==='call'?'video':root.dataset.cabinMode||'chat',presentation=car.presentation||{};
+      const showDashboard=mode!=='sharing'&&(!inCall||!!presentation.controlsVisible);
       const box=(node,left,top,width,height)=>Object.assign(node.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px',right:'auto',bottom:'auto'});
-      const polygon=(node,source)=>{if(!node)return;const points=source.map(p=>point(...p)),xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),left=Math.min(...xs),top=Math.min(...ys),width=Math.max(...xs)-left,height=Math.max(...ys)-top;box(node,left,top,width,height);node.style.clipPath='polygon('+points.map(([x,y])=>((x-left)/width*100)+'% '+((y-top)/height*100)+'%').join(',')+')';};
+      const polygon=(node,source)=>{if(!node||!source)return;const points=source.map(p=>point(...p)),xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),left=Math.min(...xs),top=Math.min(...ys),width=Math.max(...xs)-left,height=Math.max(...ys)-top;box(node,left,top,width,height);node.style.clipPath='polygon('+points.map(([x,y])=>((x-left)/width*100)+'% '+((y-top)/height*100)+'%').join(',')+')';};
       // Static first-paint layers retain the front view until the camera renderer is ready.
       box(c.photo,...fallback.rect([0,0,car.width,car.height]));box(c.wheel,...fallback.rect([0,0,car.width,car.height]));
       box(c.video,...fallback.rect(car.glass));box(c.glass,...fallback.rect(car.glass));
-      polygon(q('.rw-input-surface'),car.rail);for(const pad of qa('[data-pad]'))polygon(pad,car.pads[pad.dataset.pad]);for(const screen of qa('[data-screen]'))polygon(screen,car.screens[screen.dataset.screen]);
+      polygon(q('.rw-input-surface'),car.rail);for(const pad of qa('[data-pad]'))polygon(pad,car.pads[pad.dataset.pad]);for(const screen of qa('[data-screen]')){screen.hidden=screen.dataset.screen==='tablet'&&!car.layoutHasTablet;polygon(screen,car.screens[screen.dataset.screen]);}
 
       // Tap targets stay native-sized; only the photo coordinates scale.
-      const [barX,barY,barW,barH]=rect(car.compose);
+      const [barX,barY,barW,barH]=projection.composeRect||rect(car.compose);
       const composerX=Math.max(8,barX),composerRight=Math.min(w-8,barX+barW),composerY=barY+barH/2;
       const composerWidth=Math.max(0,composerRight-composerX),sendX=composerRight-15;
-      const sendLeft=clamp(sendX-22,0,w-44),sendTop=Math.min(composerY-22,point(0,515)[1]-55),sendBottom=sendTop+44;
+      const sendLeft=clamp(sendX-22,0,w-44),sendTop=projection.composeRect?composerY-22:Math.min(composerY-22,point(0,515)[1]-55),sendBottom=sendTop+44;
       box(c.compose,composerX,composerY-22,composerWidth,44);
-      c.compose.hidden=composerWidth<100||composerY<0||composerY>h;
+      c.compose.hidden=!showDashboard||composerWidth<100||composerY<0||composerY>h;
+      q('.rw-input-surface').hidden=!showDashboard;
+      if(projection.composeRect){box(q('.rw-input-surface'),composerX-3,composerY-25,composerWidth+6,50);q('.rw-input-surface').style.clipPath='none';}
       c.input.style.width=Math.max(0,sendLeft-composerX-5)+'px';
       const send=q('.rw-send');box(send,sendLeft-composerX,sendTop-(composerY-22),44,44);
       const sendIcon=send.querySelector('svg');if(sendIcon)Object.assign(sendIcon.style,{left:(sendX-sendLeft-9)+'px',top:(composerY-sendTop-9)+'px'});
 
+      if(car.layoutHasTablet){
+        const keys=['image','mic','call','video','radio','language'],points=keys.map(name=>point(...car.slots[name]));
+        const centerX=points.reduce((n,p)=>n+p[0],0)/6,centerY=points.reduce((n,p)=>n+p[1],0)/6;
+        const dx=Math.max(44,Math.abs(points[1][0]-points[0][0])),dy=Math.max(44,Math.abs(points[3][1]-points[0][1]));
+        const left=clamp(centerX-dx-22,0,Math.max(0,w-2*dx-44)),top=clamp(centerY-dy/2-22,0,Math.max(0,h-dy-44));
+        for(const button of qa('[data-control]')){
+          const i=keys.indexOf(button.dataset.control);button.hidden=i<0||!showDashboard||!presentation.controlsVisible;if(i<0)continue;
+          const x=left+(i%3)*dx+22,y=top+Math.floor(i/3)*dy+22;
+          box(button,x-22,y-22,44,44);button.style.setProperty('--rw-icon','18px');button.dataset.tabletControl='true';
+          const anchor=projection.unproject?projection.unproject(x,y):car.slots[button.dataset.control];button.dataset.cabinAnchorX=String(anchor[0]);button.dataset.cabinAnchorY=String(anchor[1]);
+          const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:'13px',top:'13px'});
+          if(button.dataset.control==='image'){button.setAttribute('aria-label',inCall?'Share on passenger window':'Attach photo');button.setAttribute('data-tooltip',inCall?'Share':'Photos');}
+        }
+      }else{
       const lcdKeys=['image','mic','call','video'],lcdPoints=lcdKeys.map(name=>point(...car.slots[name]));
       const pack=lcdPoints.some((p,i)=>i&&p[0]-lcdPoints[i-1][0]<44);
       const groupLeft=clamp((lcdPoints[0][0]+lcdPoints[3][0])/2-88,0,w-176),lcdTop=Math.max(point(...car.slots.image)[1]-22,sendBottom+1,composerY+11);
@@ -167,13 +184,15 @@
       for(const button of qa('[data-control]')){
         const name=button.dataset.control,slot=car.slots[name];button.hidden=!slot;if(!slot)continue;
         const [sourceX,sourceY]=slot,[x,y]=point(sourceX,sourceY),lcdIndex=lcdKeys.indexOf(name),wheel=lcdIndex<0;
-        button.hidden=(inCall&&name!=='image')||x<12||x>w-12||y<12||y>h-12;
+        button.hidden=!showDashboard||(inCall&&name!=='image')||x<12||x>w-12||y<12||y>h-12;
         if(name==='image'){button.setAttribute('aria-label',inCall?'Share on passenger window':'Attach photo');button.setAttribute('data-tooltip',inCall?'Share':'Photos');}
         let left=lcdIndex<0?x-22:pack?groupLeft+lcdIndex*44:x-22;
         if(name==='language')left=Math.min(left,firstLcdLeft-48);
         const top=wheel?y-22:inCall?clamp(y-22,0,h-44):lcdTop,iconSize=wheel?clamp(28*s,10,16):18;
         box(button,left,top,44,44);button.style.setProperty('--rw-icon',iconSize+'px');
         const icon=button.querySelector('svg');if(icon)Object.assign(icon.style,{left:(x-left-iconSize/2)+'px',top:(y-top-iconSize/2)+'px'});
+      }
+        for(const button of qa('[data-control]')){delete button.dataset.tabletControl;delete button.dataset.cabinAnchorX;delete button.dataset.cabinAnchorY;}
       }
       const [headerX,headerY]=point(...car.instrument),[motionX,motionY]=point(...car.motion);
       box(q('.rw-header'),headerX-45,headerY-10,90,20);
@@ -182,9 +201,10 @@
       const motionIcon=q('.rw-motion svg');if(motionIcon)Object.assign(motionIcon.style,{position:'absolute',left:(motionX-motionLeft-8)+'px',top:(motionY-motionTop-8)+'px'});
       q('.rw-header').hidden=inCall;q('.rw-motion').hidden=inCall;
 
-      const [chatX,chatY,chatW,chatH]=car.chat,chatRect=rect(car.chat),threadWidth=Math.min(400,chatRect[2]),threadLeft=chatRect[0]+(chatRect[2]-threadWidth)/2,threadTop=chatRect[1],threadHeight=chatRect[3];
+      const sourceThread=projection.threadRect||rect(car.chat),threadX=Math.max(10,sourceThread[0]),threadY=Math.max(8,sourceThread[1]),threadRight=Math.min(w-10,sourceThread[0]+sourceThread[2]),threadBottom=Math.min(h-8,sourceThread[1]+sourceThread[3],c.compose.hidden?h-8:composerY-28);
+      const chatRect=[threadX,threadY,Math.max(0,threadRight-threadX),Math.max(0,threadBottom-threadY)],threadWidth=Math.min(presentation.device==='iphone'?w-20:460,chatRect[2]),threadLeft=chatRect[0]+(chatRect[2]-threadWidth)/2,threadTop=chatRect[1],threadHeight=chatRect[3];
       c.thread.hidden=inCall;c.thread.style.setProperty('display',inCall?'none':'flex','important');
-      c.tray.hidden=!model.attachment&&!q('.rw-draft-status').textContent&&!c.status.textContent;
+      c.tray.hidden=!showDashboard||(!model.attachment&&!q('.rw-draft-status').textContent&&!c.status.textContent);
       Object.assign(c.tray.style,{left:Math.max(8,threadLeft)+'px',top:'auto',right:'auto',bottom:Math.max(8,h-chatRect[1]-chatRect[3])+'px',width:Math.min(threadWidth,w-16)+'px',maxHeight:Math.min(90,threadHeight)+'px'});
       const trayHeight=c.tray.hidden?0:Math.min(threadHeight,c.tray.offsetHeight);
       box(c.thread,threadLeft,threadTop,threadWidth,Math.max(0,threadHeight-trayHeight-(trayHeight?4:0)));
@@ -194,6 +214,24 @@
       Object.assign(c.toast.style,{left:threadLeft+'px',right:'auto',top:threadTop+'px',bottom:'auto',width:threadWidth+'px',maxHeight:threadHeight+'px',overflow:'auto'});
       if(c.cabin)c.cabin.layout(projection);
       if(c.editor)c.editor.layout(projection);
+      if(c.objects)c.objects.layout(projection);
+      if(c.comparisonOverlay){
+        const displayedRect=(node,id,fallback)=>{
+          if(!node||node.hidden||node.closest('[hidden]'))return null;
+          let objectRect;
+          if(c.objects&&typeof c.objects.getRect==='function'){try{objectRect=c.objects.getRect(id);}catch(_){}if(objectRect===null)return null;}
+          try{
+            const visible=typeof window.getComputedStyle==='function'?window.getComputedStyle(node):null;
+            if(visible&&(visible.display==='none'||visible.visibility==='hidden'||visible.opacity==='0'))return null;
+            const area=c.scene.getBoundingClientRect(),r=node.getBoundingClientRect();
+            if(area.width>0&&area.height>0&&r.width>0&&r.height>0)return [(r.left-area.left)*w/area.width,(r.top-area.top)*h/area.height,r.width*w/area.width,r.height*h/area.height];
+          }catch(_){}
+          return Array.isArray(objectRect)&&objectRect.length===4?objectRect:fallback;
+        };
+        const previous=JSON.stringify(c.comparison);
+        c.comparison=c.comparisonOverlay.update({width:w,height:h,presentation,mode:inCall?mode:'chat',actualThread:displayedRect(c.thread,'messageThread',[threadLeft,threadTop,threadWidth,Math.max(0,threadHeight-trayHeight-(trayHeight?4:0))]),actualComposer:displayedRect(c.compose,'typingBar',[composerX,composerY-22,composerWidth,44]),lineHeight:Math.max(state.leading,state.font+5)});
+        if(JSON.stringify(c.comparison)!==previous&&c.editor&&c.editor.notifyComparison)c.editor.notifyComparison();
+      }
       const incoming=root.querySelector('.rw-preview-receive');if(incoming)incoming.disabled=!inCall||root.dataset.cabinMode==='sharing'||!!(c.camera&&!c.camera.ready);
       if(!viewed&&!section.hidden){c.newest();viewed=true;}
     };
@@ -242,6 +280,7 @@
     });
     q('.rw-call-mute').addEventListener('click',()=>{if(!c.mediaStream)return;const tracks=c.mediaStream.getAudioTracks(),enabled=tracks.some(track=>track.enabled);tracks.forEach(track=>track.enabled=!enabled);q('.rw-call-mute').textContent=enabled?'Unmute':'Mute';});q('.rw-call-end').addEventListener('click',c.close);
     c.resizeObserver=new ResizeObserver(c.layout);c.resizeObserver.observe(c.scene);c.resizeObserver.observe(c.console);c.resizeObserver.observe(c.compose);c.resizeObserver.observe(c.tray);c.mutationObserver=new MutationObserver(playback);c.mutationObserver.observe(section,{attributes:true,attributeFilter:['hidden']});document.addEventListener('visibilitychange',playback);c.playback=playback;
+    if(window.RavenCabinComparison)c.comparisonOverlay=window.RavenCabinComparison.mount({scene:c.scene});
     if(window.RavenCabinEditBridge)c.editor=window.RavenCabinEditBridge.mount({controller:c,root,media,geometry:car,nativeIcon,requestLayout:()=>c.layout(),enabled:root.dataset.editor==='true'||new URLSearchParams(location.search).get('editor')==='1'});
     controllers.push(c);c.renderMessages();c.syncDraft();requestAnimationFrame(()=>{c.layout();c.newest();playback();});
   }
@@ -256,10 +295,12 @@
   const render=()=>{root.style.setProperty('--rw-bubble-opacity',state.opacity/100);root.style.setProperty('--rw-font',state.font+'px');root.style.setProperty('--rw-leading',Math.max(state.leading,state.font+5)+'px');root.style.setProperty('--rw-gap',state.gap+'px');root.style.setProperty('--rw-blur',state.blur+'px');controllers.forEach(c=>{c.video.playbackRate=state.speed;c.layout();});};
   render();if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:render});tweak.addSlider(state,'opacity',{label:'Message background opacity',min:50,max:100,unit:'%'});tweak.addSlider(state,'font',{label:'Message text size',min:14,max:22,unit:'px'});tweak.addSlider(state,'leading',{label:'Line spacing',min:20,max:31,unit:'px'});tweak.addSlider(state,'gap',{label:'Space between messages',min:4,max:18,unit:'px'});tweak.addSlider(state,'blur',{label:'Blur behind messages',min:0,max:16,unit:'px'});tweak.addSlider(state,'speed',{label:'Road speed',min:.35,max:1.5,step:.05,unit:'×'});}
   window.RavenWindshield={
+    setRemoteStream(stream){return controllers[0]&&controllers[0].cabin&&controllers[0].cabin.setRemoteStream(stream);},
+    setRemoteMedia(value){return controllers[0]&&controllers[0].cabin&&controllers[0].cabin.setRemoteMedia(value);},
     receive(message){if(!message||typeof message.text!=='string'||!message.text.trim())return;const m={id:Date.now(),direction:'in',text:message.text.slice(0,4000),language:message.language||''};model.messages.push(m);controllers.forEach(c=>c.renderMessages());const read=()=>{if(model.autoRead&&voice&&active&&!document.hidden)voice.speak(translated(m)||m.text,{lang:translated(m)?model.target:m.language||model.target});};if(model.autoTranslate)translateConversation().then(read);else read();},
     show(mode){const c=controllers[0];if(!c||!c.cabin)return;if(mode==='chat')c.cabin.open('chat');else c.open(mode==='call'?'call':'video');},
     receiveShared(item){const c=controllers[0];return !!(c&&c.cabin&&(!c.camera||c.camera.ready)&&c.cabin.receiveShared(item));},
-    dispose(){disposed=true;++translateRun;clearTimeout(toastTimer);if(voice)voice.dispose();controllers.forEach(c=>{c.video.pause();c.stopDevices();if(c.editor)c.editor.dispose();if(c.cabin)c.cabin.dispose();if(c.camera)c.camera.dispose();c.resizeObserver.disconnect();c.mutationObserver.disconnect();document.removeEventListener('visibilitychange',c.playback);});nativeTranslators.forEach(t=>{if(t.destroy)t.destroy();});svg.remove();}
+    dispose(){disposed=true;++translateRun;clearTimeout(toastTimer);if(voice)voice.dispose();controllers.forEach(c=>{c.video.pause();c.stopDevices();if(c.editor)c.editor.dispose();if(c.comparisonOverlay)c.comparisonOverlay.dispose();if(c.cabin)c.cabin.dispose();if(c.camera)c.camera.dispose();c.resizeObserver.disconnect();c.mutationObserver.disconnect();document.removeEventListener('visibilitychange',c.playback);});nativeTranslators.forEach(t=>{if(t.destroy)t.destroy();});svg.remove();}
   };
   const previewReceive=root.querySelector('.rw-preview-receive');
   if(previewReceive)previewReceive.addEventListener('click',()=>window.RavenWindshield.receiveShared({src:media.poster,type:'image',name:'Incoming road photo'}));

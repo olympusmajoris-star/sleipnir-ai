@@ -117,6 +117,17 @@
   };
   const groupLabels={image:'Photos',mic:'Talk to text',call:'Voice call',video:'Video call',radio:'Read aloud',language:'Translation',send:'Send',motion:'Road motion',camera:'Self camera',end:'End call',share:'Share',return:'Return',pick:'Choose media'};
   const actionAliases={photos:'image',photo:'image',attach:'image',dictate:'mic',dictation:'mic',read:'radio',audio:'radio',voice:'radio',translate:'language',translation:'language',back:'return',incoming:'share',choose:'pick',play:'motion',pause:'motion',hangup:'end',self:'camera'};
+  Object.assign(suggestions,{
+    keep:['Bookmark','BookmarkCheck','BookmarkPlus','BookMarked','Heart','Star','Pin','PinOff','Save','SaveAll','Download','DownloadCloud','Archive','ArchiveRestore','FolderHeart','FolderDown','Library','PackageCheck','Check','CircleCheck','ShieldCheck'],
+    follow:['UserPlus','UserRoundPlus','UserCheck','UserRoundCheck','Users','UsersRound','Heart','Star','Bell','BellRing','Rss','Radio','RadioTower','Contact','ContactRound','BadgeCheck','CirclePlus','Plus'],
+    rewind:['Rewind','SkipBack','StepBack','ArrowLeft','ChevronsLeft','ChevronLeft','RotateCcw','RotateCcwSquare','History','TimerReset','Undo','Undo2','CornerUpLeft','CircleArrowLeft','ArrowLeftToLine','MoveLeft','CircleChevronLeft','CircleChevronsLeft'],
+    forward:['FastForward','SkipForward','StepForward','ArrowRight','ChevronsRight','ChevronRight','RotateCw','Redo','Redo2','CornerUpRight','CircleArrowRight','ArrowRightToLine','MoveRight','CircleChevronRight','CircleChevronsRight','Forward'],
+    more:['Ellipsis','EllipsisVertical','Menu','MenuSquare','Grip','GripVertical','GripHorizontal','Settings','Settings2','SlidersHorizontal','SlidersVertical','CirclePlus','Plus','CircleEllipsis','List','ListFilter','PanelsTopLeft','Grid2x2'],
+    fit:['Scan','ScanLine','Maximize','Maximize2','Minimize','Minimize2','Expand','Shrink','Fullscreen','RectangleHorizontal','RectangleVertical','Square','Ratio','Crop','Move','MoveDiagonal','ScanEye','Focus','Frame','PanelTop']
+  });
+  Object.assign(vocabulary,{keep:'keep kept keeps save saved download bookmark archive favorite',follow:'follow following connect subscribe user person',rewind:'rewind backward back seek previous reverse playback',forward:'forward fast ahead next seek playback',more:'more options actions menu extras settings',fit:'fit fill crop full screen fullscreen scale display frame'});
+  Object.assign(groupLabels,{keep:'Keep',follow:'Follow',rewind:'Rewind',forward:'Forward',more:'More actions',fit:'Media fit'});
+  Object.assign(actionAliases,{save:'keep',bookmark:'keep',subscription:'follow',previous:'rewind',next:'forward',options:'more',fullscreen:'fit'});
   const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const label=name=>String(name).replace(/([A-Z]+)([A-Z][a-z])/g,'$1 $2').replace(/([a-z\d])([A-Z])/g,'$1 $2').replace(/([a-zA-Z])(\d)/g,'$1 $2').trim();
 

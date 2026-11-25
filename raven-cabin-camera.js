@@ -6,35 +6,87 @@
   const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
 
   function createProjector(geometry,requested,width,height){
-    const g=geometry,cfg=g.camera||{},chat=g.views.chat,video=g.views.video,sharing=g.views.sharing;
+    const g=geometry,cfg=g.camera||{},presentation=g.presentation||{},chat=g.views.chat,video=g.views.video,sharing=g.views.sharing;
     const view=Array.isArray(requested)&&requested.length===4&&requested.every(Number.isFinite)&&requested[2]>0&&requested[3]>0?requested.slice():chat.slice();
     width=Math.max(1,finite(width,1));height=Math.max(1,finite(height,width*chat[3]/chat[2]));
-    const cx=finite(cfg.cx,chat[0]+chat[2]/2),cy=finite(cfg.cy,g.height*300/817),f=Math.max(1,finite(cfg.f,chat[2]*700/1260));
+    const phone=presentation.device==='iphone',portrait=height>width,zoom=clamp(finite(presentation.zoom,1),1,2.5),controls=!!presentation.controlsVisible;
+    const cx=finite(cfg.cx,630),cy=finite(cfg.cy,300),f=Math.max(1,finite(cfg.f,1600));
     const t1=clamp((view[0]-chat[0])/Math.max(1,video[0]-chat[0]),0,1),t2=clamp((view[0]-video[0])/Math.max(1,sharing[0]-video[0]),0,1);
-    const videoYaw=finite(cfg.videoYaw,10),sharingYaw=finite(cfg.sharingYaw,35),yaw=(videoYaw*t1+(sharingYaw-videoYaw)*t2)*Math.PI/180;
-    const sin=Math.sin(yaw),cos=Math.cos(yaw),left=view[0],right=left+view[2];
-    const z=x=>sin*(x-cx)/f+cos,q=x=>(cos*(x-cx)/f-sin)/z(x);
-    const focal=width/(q(right)-q(left)),principalX=-focal*q(left);
-    const chatY=(cy-chat[1])/chat[3],videoY=finite(cfg.videoPrincipalY,.4357734694),sharingY=finite(cfg.sharingPrincipalY,.4489474657);
-    const preferredY=height*(chatY+(videoY-chatY)*t1+(sharingY-videoY)*t2);
-    const maxZ=Math.max(z(left),z(right)),lower=height-focal*(g.height-cy)/(f*maxZ),upper=focal*cy/(f*maxZ);
-    const covered=lower<=upper+1e-7,principalY=covered?clamp(preferredY,Math.min(lower,upper),Math.max(lower,upper)):(lower+upper)/2;
-    function point(x,y){
-      const u=(x-cx)/f,v=(y-cy)/f,depth=sin*u+cos;
-      if(depth<=1e-7)return [NaN,NaN];
-      return [principalX+focal*(cos*u-sin)/depth,principalY+focal*v/depth];
+    const videoYaw=finite(cfg.videoYaw,16),sharingYaw=finite(cfg.sharingYaw,58),yaw=(videoYaw*t1+(sharingYaw-videoYaw)*t2)*Math.PI/180,sin=Math.sin(yaw),cos=Math.cos(yaw);
+    const z=x=>sin*(x-cx)/f+cos,q=x=>(cos*(x-cx)/f-sin)/z(x),v=(x,y)=>(y-cy)/(f*z(x));
+    const mix=(a,b,t)=>a+(b-a)*t;
+    function pose(which){
+      let x,y,vertical,fraction=.5,lens;
+      if(which==='sharing'){
+        const qa=q(1270),qb=q(g.width),mid=(qa+qb)/2;x=cx+f*(cos*mid+sin)/(cos-sin*mid);y=310;fraction=.45;
+        lens=width/(qb-qa)*zoom;
+      }else if(controls&&g.layoutHasTablet){
+        x=622;y=portrait?460:570;vertical=portrait?600:500;
+        const fitX=(width-24)/Math.max(.0001,q(746)-q(502)),fitY=(height-64)/Math.max(.0001,v(x,751)-v(x,390));
+        lens=Math.min(height*f*z(x)/vertical*zoom,fitX,fitY);
+      }else if(controls){
+        x=810;y=portrait?390:440;vertical=portrait?700:650;lens=height*f*z(x)/vertical*zoom;
+      }else if(which==='chat'&&!phone){
+        x=630;y=300;fraction=300/817;lens=width/(q(1260)-q(0))*zoom;
+      }else{
+        x=which==='chat'?810:950;y=which==='chat'?260:255;vertical=which==='chat'?360:290;fraction=which==='chat'?.425:.45;
+        lens=height*f*z(x)/vertical*zoom;
+      }
+      return {x,y,fraction,lens:Math.max(1,lens)};
     }
-    function unproject(x,y){
-      const u=(x-principalX)/focal,v=(y-principalY)/focal,depth=-sin*u+cos;
-      if(depth<=1e-7)return [NaN,NaN];
-      return [cx+f*(cos*u+sin)/depth,cy+f*v/depth];
+    const a=pose('chat'),b=pose('video'),d=pose('sharing'),focusX=mix(mix(a.x,b.x,t1),d.x,t2),focusY=mix(mix(a.y,b.y,t1),d.y,t2),fraction=mix(mix(a.fraction,b.fraction,t1),d.fraction,t2);
+    let focal=Math.exp(mix(mix(Math.log(a.lens),Math.log(b.lens),t1),Math.log(d.lens),t2)),principalX,principalY,covered=false,lower=0,upper=0;
+    const q0=q(0),qW=q(g.width);
+    function horizontal(){
+      principalX=width/2-focal*q(focusX);
+      principalX=clamp(principalX,width-focal*qW,-focal*q0);
     }
+    // Increase the field's sampling density until every visible ray reaches
+    // the continuous source photo. No empty outside-photo wedges are exposed.
+    focal=Math.max(focal,width/Math.max(.0001,qW-q0));
+    for(let i=0;i<18;i++){
+      horizontal();
+      const sourceX=p=>{const u=(p-principalX)/focal;return cx+f*(cos*u+sin)/(cos-sin*u);};
+      const maxZ=Math.max(z(sourceX(0)),z(sourceX(width)));
+      lower=height-focal*(g.height-cy)/(f*maxZ);upper=focal*cy/(f*maxZ);
+      if(lower<=upper+1e-7){covered=true;break;}focal*=1.12;
+    }
+    horizontal();
+    const preferred=height*fraction-focal*v(focusX,focusY),neutral=clamp(preferred,lower,upper),lift=clamp(finite(presentation.windshieldLift,0),-20,20)*(1-t2);
+    principalY=clamp(neutral-height*lift/100,lower,upper);
+    function point(x,y){const depth=z(x);if(depth<=1e-7)return [NaN,NaN];return [principalX+focal*q(x),principalY+focal*(y-cy)/(f*depth)];}
+    function unproject(x,y){const u=(x-principalX)/focal,vv=(y-principalY)/focal,depth=cos-sin*u;if(depth<=1e-7)return [NaN,NaN];return [cx+f*(cos*u+sin)/depth,cy+f*vv/depth];}
     const quad=([x,y,w,h])=>[point(x,y),point(x+w,y),point(x+w,y+h),point(x,y+h)];
-    function rect(source){const p=quad(source);if(p.some(v=>!v.every(Number.isFinite)))return [NaN,NaN,0,0];const xs=p.map(v=>v[0]),ys=p.map(v=>v[1]),x=Math.min(...xs),y=Math.min(...ys);return [x,y,Math.max(...xs)-x,Math.max(...ys)-y];}
-    return {point,unproject,quad,rect,scale:width/view[2],width,height,view,
-      camera:{cx,cy,f,yaw,sin,cos,focal,principalX,principalY,covered}};
+    const bounds=points=>{if(!points.length||points.some(p=>!p.every(Number.isFinite)))return [0,0,0,0];const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs),y=Math.min(...ys);return [x,y,Math.max(...xs)-x,Math.max(...ys)-y];};
+    const rect=source=>bounds(quad(source));
+    function clip(points){
+      let out=points.filter(p=>p.every(Number.isFinite));
+      for(const [axis,edge,keep]of [[0,0,1],[0,width,-1],[1,0,1],[1,height,-1]]){
+        const input=out;out=[];if(!input.length)break;
+        for(let i=0;i<input.length;i++){const p=input[i],before=input[(i+input.length-1)%input.length],inside=(p[axis]-edge)*keep>=0,old=(before[axis]-edge)*keep>=0;if(inside!==old){const k=(edge-before[axis])/(p[axis]-before[axis]);out.push([before[0]+(p[0]-before[0])*k,before[1]+(p[1]-before[1])*k]);}if(inside)out.push(p);}
+      }return out;
+    }
+    function scan(poly,y){
+      const xs=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];if(y>=Math.min(a[1],b[1])-.01&&y<=Math.max(a[1],b[1])+.01){if(Math.abs(b[1]-a[1])<.001){xs.push(a[0],b[0]);}else{const t=(y-a[1])/(b[1]-a[1]);xs.push(a[0]+(b[0]-a[0])*t);}}}
+      return xs.length?[Math.min(...xs),Math.max(...xs)]:null;
+    }
+    function inner(poly,maxWidth){
+      if(!poly.length)return [10,10,Math.max(0,width-20),0];const b=bounds(poly),ys=[];
+      for(let i=0;i<=32;i++)ys.push(b[1]+8+(b[3]-16)*i/32);
+      let best=[10,10,Math.max(0,width-20),0],area=-1;
+      for(let i=0;i<ys.length-1;i++)for(let j=i+1;j<ys.length;j++){
+        const top=scan(poly,ys[i]),bottom=scan(poly,ys[j]);if(!top||!bottom)continue;
+        const left=Math.max(10,top[0]+8,bottom[0]+8),right=Math.min(width-10,top[1]-8,bottom[1]-8),w=Math.min(maxWidth,right-left),h=ys[j]-ys[i];
+        if(w>0&&w*h>area){area=w*h;best=[left+(right-left-w)/2,ys[i],w,h];}
+      }return best;
+    }
+    const windshieldPolygon=(g.windshield||[]).map(p=>point(...p)),sideWindowPolygon=(g.sideWindowFull||g.sideWindow||[]).map(p=>point(...p)),visibleWindshield=clip(windshieldPolygon),visibleSideWindow=clip(sideWindowPolygon);
+    const rawCompose=rect(g.compose),composeWidth=Math.min(width-16,Math.max(100,rawCompose[2])),composeX=clamp(rawCompose[0]+rawCompose[2]/2-composeWidth/2,8,Math.max(8,width-8-composeWidth)),composeY=clamp(rawCompose[1]+rawCompose[3]/2-22,8,Math.max(8,height-52)),composeRect=[composeX,composeY,composeWidth,44];
+    let threadRect=inner(visibleWindshield,phone?width-20:460);const threadBottom=Math.min(threadRect[1]+threadRect[3],composeRect[1]-8,height-8);threadRect[3]=Math.max(0,threadBottom-threadRect[1]);
+    const sharedRect=bounds(visibleSideWindow),rawDoor=rect([1270,490,640,250]),doorTop=clamp(rawDoor[1],height*.58,height-108),doorRect=[8,doorTop,width-16,Math.max(96,height-doorTop-8)];
+    return {point,unproject,quad,rect,scale:width/view[2],width,height,view,progress:t1*.5+t2*.5,threadRect,composeRect,sharedRect,doorRect,windshieldPolygon,sideWindowPolygon,visibleWindshield,visibleSideWindow,tabletRect:rect(g.tabletRect||[514,666,216,72]),tabletBezelRect:rect(g.tabletBezel||[502,653,244,98]),
+      camera:{cx,cy,f,yaw,sin,cos,focal,principalX,principalY,covered,windshieldLift:lift,windshieldLiftApplied:(neutral-principalY)/height*100}};
   }
-
   const vertexSource='attribute vec2 position; varying vec2 uv; void main(){ uv=position*.5+.5; gl_Position=vec4(position,0.,1.); }';
   function fragmentSource(precision){return `precision ${precision} float;
     varying vec2 uv;
@@ -42,7 +94,7 @@
     uniform vec2 viewport, sourceSize, principal, yaw, roadScale;
     uniform vec3 intrinsics, background;
     uniform vec4 glass, leatherColor, woodColor, ledColor;
-    uniform float focal, hasRoad, ledBrightness;
+    uniform float focal, hasRoad, ledBrightness, woodReference;
     vec3 materialTint(vec3 original,vec3 target,float reference){
       float luminance=dot(original,vec3(.2126,.7152,.0722));
       float shade=luminance/reference;
@@ -72,7 +124,7 @@
       vec4 color=texture2D(photoTexture,photoUV);
       vec3 materials=texture2D(materialTexture,photoUV).rgb;
       color.rgb=mix(color.rgb,materialTint(color.rgb,leatherColor.rgb,.72),materials.r*leatherColor.a);
-      color.rgb=mix(color.rgb,materialTint(color.rgb,woodColor.rgb,.20),materials.g*woodColor.a);
+      color.rgb=mix(color.rgb,materialTint(color.rgb,woodColor.rgb,woodReference),materials.g*woodColor.a);
       color.rgb=mix(color.rgb,lightTint(color.rgb,ledColor.rgb),materials.b*ledColor.a);
       float mask=texture2D(maskTexture,photoUV).a*hasRoad;
       vec2 roadUV=.5+((source-glass.xy)/glass.zw-.5)*roadScale;
@@ -92,7 +144,7 @@
     scene.prepend(canvas);scene.appendChild(note);
     let gl=null,program=null,buffer=null,photoTexture=null,maskTexture=null,roadTexture=null,materialTexture=null,uniforms={};
     let ready=false,disposed=false,failed=false,error='',photoLoaded=false,hasRoad=false,roadBlocked=false,lastVideoTime=-1;
-    let materialsReady=false,materialError='';
+    let materialsReady=false,materialError='',woodReference=.20;
     let roadSize=[1,1],projection=null,animationFrame=null,lastLiveFrame=0,posterImage=null,lastReported='';
     const maxDpr=clamp(finite(g.camera&&g.camera.maxDpr,2),1,3);
     const on=(target,type,fn,options)=>{if(!target||!target.addEventListener)return;target.addEventListener(type,fn,options);listeners.push(()=>target.removeEventListener(type,fn,options));};
@@ -132,7 +184,7 @@
         if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program)||'Shader linking failed.');
         gl.useProgram(program);buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
         const attribute=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(attribute);gl.vertexAttribPointer(attribute,2,gl.FLOAT,false,0,0);
-        for(const name of ['photoTexture','maskTexture','roadTexture','materialTexture','viewport','sourceSize','principal','yaw','roadScale','intrinsics','background','glass','focal','hasRoad','leatherColor','woodColor','ledColor','ledBrightness'])uniforms[name]=gl.getUniformLocation(program,name);
+        for(const name of ['photoTexture','maskTexture','roadTexture','materialTexture','viewport','sourceSize','principal','yaw','roadScale','intrinsics','background','glass','focal','hasRoad','leatherColor','woodColor','ledColor','ledBrightness','woodReference'])uniforms[name]=gl.getUniformLocation(program,name);
         photoTexture=texture(0);maskTexture=texture(1);roadTexture=texture(2);materialTexture=texture(3);gl.uniform1i(uniforms.photoTexture,0);gl.uniform1i(uniforms.maskTexture,1);gl.uniform1i(uniforms.roadTexture,2);gl.uniform1i(uniforms.materialTexture,3);
         upload(maskTexture,1,makeMask());
       }catch(_){unavailable('Perspective graphics could not start in this browser. The initial cabin remains visible.');}
@@ -143,7 +195,7 @@
         upload(photoTexture,0,image);photoLoaded=true;materialsReady=false;
         if(materialError&&note.textContent===materialError)note.hidden=true;materialError='';
         if(G.RavenCabinMaterials){
-          try{const mask=G.RavenCabinMaterials.makeMask(image,g);upload(materialTexture,3,mask);materialsReady=true;}
+          try{const mask=G.RavenCabinMaterials.makeMask(image,g);upload(materialTexture,3,mask);woodReference=clamp(finite(mask.ravenMaterialReference&&mask.ravenMaterialReference.wood,.20),.08,.75);materialsReady=true;}
           catch(_){materialError='Cabin colors could not be applied to this image.';note.textContent=materialError;note.hidden=false;}
         }
         render();
@@ -158,7 +210,7 @@
         const color=value||[0,0,0];
         gl.uniform4f(uniforms[uniform],...color,materialsReady&&value?1:0);
       }
-      gl.uniform1f(uniforms.ledBrightness,brightness);
+      gl.uniform1f(uniforms.ledBrightness,brightness);gl.uniform1f(uniforms.woodReference,woodReference);
     }
     function updateRoad(){
       if(!road||roadBlocked||road.readyState<2||!road.videoWidth||!road.videoHeight)return;
