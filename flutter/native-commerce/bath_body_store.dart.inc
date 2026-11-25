@@ -56,6 +56,8 @@ __GROUPS__
   Future<void> _departmentSheet() async {
     final selected = await showModalBottomSheet<String>(
       context: context, backgroundColor: Colors.white, showDragHandle: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .85),
       builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Padding(padding: EdgeInsets.fromLTRB(18, 2, 18, 10),
           child: Align(alignment: Alignment.centerLeft, child: Text('Categories',
