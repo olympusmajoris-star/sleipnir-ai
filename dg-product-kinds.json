@@ -1,0 +1,249 @@
+{
+  "Soda, Water & Drinks": [
+    ["Chocolate & coffee drinks", "yoo.hoo|starbucks|frappuccino|iced coffee|cold brew"],
+    ["Energy drinks", "energy (drink|shot)|red bull|monster (java|energy)|alani nu|celsius|kickstart|5.hour energy"],
+    ["Sports & hydration drinks", "^(?!.*(?:drink mix|powder|singles to go)).*(?:gatorade|powerade|bodyarmor|propel|electrolyte|vitaminwater|liquid i\\.?v)"],
+    ["Beer & hard beverages", "\\blager beer\\b|(?:american|mexican|light|ice|busch) beer|lager|pilsner|budweiser|bud light|coors|michelob|busch|steel reserve|natural (light|ice)|miller lite|icehouse|% abv|malt beverage|hard seltzer|ale beer"],
+    ["Drink mixes", "hot cocoa|mix|powder|drink enhancer|singles to go"],
+    ["Ginger ale", "ginger ale|canada dry|schweppes"],
+    ["Root beer & cream soda", "root beer|cream soda|a&w|barq"],
+    ["Cola & pepper soda", "coca.cola|\\bcoke\\b|pepsi|dr\\.? (pepper|topper)|\\bcola\\b"],
+    ["Citrus soda", "7.?up|sprite|mountain dew|mtn dew|sundrop|sun drop|starry|mello yello|sierra mist|splash lime"],
+    ["Fruit & specialty soda", "\\bsoda\\b|crush|fanta|jarritos|squirt|orange pop|mountain (lightning|explosion)"],
+    ["Iced tea", "brisk|\\btea\\b|milo.s(?! raspberry lemonade)|pure leaf|gold peak|arizona"],
+    ["Juice & lemonade", "juice|juicy|lemonade|nectar|capri.sun|sunny ?d|fruit punch|simply (orange|apple)|cocktail|kool.aid|jumex|hawaiian punch|minute maid"],
+    ["Sparkling & flavored water", "sparkling|seltzer|tonic water|flavo.red water|flav.re?d water|mineragua|clear american"],
+    ["Drinking water", "water|dasani|aquafina|pure life"],
+    ["Bottled beverages"]
+  ],
+  "Fresh Food & Dairy": [
+    ["Deli meats & lunch kits", "lunch.?meat|lunch.?kit|lunchables|lunchmakers?|turkey breast|ham|bologna|lunch meat|pepperoni"],
+    ["Bacon & sausage", "bacon|sausage|hot dogs?|wiener|bratwurst|franks"],
+    ["Milk & cream", "\\bmilk\\b|half.{1,6}half|creamers?|protein shake|heavy cream"],
+    ["Eggs", "\\beggs?\\b"],
+    ["Yogurt & cultured dairy", "yogurt|kefir|sour cream|cottage cheese"],
+    ["Cheese", "cheese|cheddar|mozzarella|velveeta"],
+    ["Butter & spreads", "butter|margarine"],
+    ["Refrigerated dough", "pillsbury|rolls|dough|biscuits"],
+    ["Dips & fresh sides", "dip|salsa|salad|hummus"],
+    ["Fresh meat", "ground beef|fresh chicken|beef steak"],
+    ["Fresh groceries"]
+  ],
+  "Frozen Foods": [
+    ["Ice cream & frozen desserts", "ice cream|dairy dessert|sundae|klondike|drumstick|edy.{0,6}s[/ ]|dreyer|fudg|frozen dessert|cream sandwich|cool whip|popsicle|sherbet|pops?|flavored.*bars|italian ice"],
+    ["Frozen breakfast", "eggo|waffles?|breakfast|jimmy dean|french toast sticks|pancake"],
+    ["Pizza & pizza snacks", "pizza|di ?giorno|hot pockets|tombstone|totino|red baron"],
+    ["Frozen vegetables & potatoes", "birds eye|steamfresh|frozen vegetabl|\\bfries\\b|potatoes|tater|onion rings"],
+    ["Chicken, meat & seafood", "chicken (bites|nuggets|patties|strips|wings)|chicken breast (tender|filet)|tyson|perdue|fish (sticks|fillet)|gorton|steak.umm|burger|ground beef|seafood|fish fillet"],
+    ["Appetizers & sides", "rolls|bagged ice|dumpling|taquito|garlic|texas toast|tater|bite|breadstick"],
+    ["Frozen meals"]
+  ],
+  "Meals, Canned Goods & Pantry": [
+    ["Bread, buns & tortillas", "bread|buns|tortillas?|wraps|rolls"],
+    ["Soups & broth", "soup|broth|bouillon|chowder|campbell|progresso|stew"],
+    ["Rice, pasta & noodles", "ramen|pasta|macaroni|mac.{1,7}cheese|rice|noodle|penne|rotini|spaghett|vermicelli|linguine|shells.{1,6}cheese"],
+    ["Canned meats & fish", "vienna sausage|potted meat|tuna|sardines|canned (chicken|salmon|beef)|corned beef|chunk.*chicken|canned ham|canned meat|treet|salmon|smoked sausages"],
+    ["Vegetables & beans", "bean|vegetable|peas|carrots|corn|greens|tomato|sauerkraut|hominy|mushroom|asparagus|beet|spinach|green chiles"],
+    ["Fruit & applesauce", "fruit|orange|pineapple|pear|peach|applesauce|cranberry sauce|cherr"],
+    ["Peanut butter & preserves", "peanut butter|jelly|preserves?|grape spread|jam\\b"],
+    ["Quick meals & sides"]
+  ],
+  "Baking & Condiments": [
+    ["Seasonings & spices", "seasoning|cinnamon|oregano|garlic (salt|pepper|powder)|paprika|parsley|black pepper|chili powder|basil leaves|onion powder|spice"],
+    ["Dressings, sauces & condiments", "soy sauce|dill pickle|mustard|ketchup|barbecue sauce|bbq sauce|hot sauce|worcestershire|dressing|picante sauce|mayonnais|\\bmayo\\b|heinz 57|soy sauce|salsa|pickle|relish|syrup|vinegar"],
+    ["Oils & cooking sprays", "\\boil\\b|cooking spray|canola|non.stick.*spray"],
+    ["Cake, cookie & baking mixes", "(cake|cookie|brownie|muffin|baking|bread).{0,24}mix|bisquick|funfetti"],
+    ["Frosting & decorations", "frosting|sprinkles?|food color|egg dye|icing"],
+    ["Dessert mixes & fillings", "pudding|gelatin|jell.o|pie crust|pumpkin|pie fill"],
+    ["Flour, sugar & sweeteners", "flour|sugars?|sweetener|sweet.n low"],
+    ["Baking ingredients"]
+  ],
+  "Coffee & Breakfast": [
+    ["Coffee pods & instant coffee", "pods|k.cups?|instant coffee|nescafe"],
+    ["Ground & whole bean coffee", "ground coffee|roast|coffee(?! creamer)|folgers|cafe bustelo|café bustelo"],
+    ["Tea bags", "tea|twinings|lipton"],
+    ["Creamers & sweeteners", "creamer|sweetener|splenda|sugar packets"],
+    ["Oatmeal & hot cereal", "oatmeal|quick oats|grits|cream of wheat"],
+    ["Pancakes, syrup & mixes", "pancakes?|syrup|waffle mix"],
+    ["Breakfast bars & pastries", "pastries|pastry|pop.tarts|bars|belvita|toaster"],
+    ["Breakfast cereal"]
+  ],
+  "Chips, Cookies & Snacks": [
+    ["Cookies & wafers", "\\bcookies?\\b|chips ahoy|wafer|oreo|nutter butter|fig newton"],
+    ["Crackers", "cracker|cheez.it|goldfish|\\britz\\b|triscuit"],
+    ["Nuts & trail mix", "nuts|peanut|cashew|almond|planters|trail mix|pistachio|sunflower seeds"],
+    ["Popcorn & puffed snacks", "popcorn|puffcorn|pirate.s booty|boomchicka|cheetos|cheese puff|cheese ball"],
+    ["Corn & tortilla chips", "doritos|fritos|tortilla|corn chips|corn snacks|bugles|takis|tostitos"],
+    ["Potato chips", "lays|lay.s|pringles|ruffles|potato (chips|crisps)|stax"],
+    ["Snack cakes & bars", "snack cake|twinkies|ding dongs|cup.?cakes?|honey bun|pastry|granola bars?|rice krispies|nutty buddy"],
+    ["Pretzels & snack mixes", "pretzel|mix|munchies|chex"],
+    ["Other snacks"]
+  ],
+  "Candy & Gum": [
+    ["Chewing gum", "chewing gum|sugar.free gum|bubble gum|trident|doublemint|juicy fruit|\\bgum\\b"],
+    ["Mints & hard candy", "mints?\\b|hard candy|werther|jolly rancher|dum dums|lollipops?|peppermint|lifesavers.*hard"],
+    ["Gummies & fruit candy", "gummi|gummy|fruit slices|sour patch|sour brite|trolli|haribo|swedish fish|jelly bean|peach rings|fruit chew|skittles|starburst|airheads|sour punch"],
+    ["Chocolate & candy bars", "chocolat|hershey|m&m|snickers|reese|kit.?kat|payday|milky way|3 musketeers|butterfinger|twix|whoppers|baby ruth|almond joy|raisinets|mounds|rolo|heath"],
+    ["Licorice, chewy & novelty candy"]
+  ],
+  "Deals & General Merchandise": [
+    ["Candy & gum", "candy|gum\\b|sweet smiles|cotton candy|mentos|gummi|chocolate|jelly bean|soft puffs|peanuts|fruit slices"],
+    ["Snacks & groceries", "popcorn|snack|coffee|lunchmaker|hot pockets|drink|soda|rice|cookies|potatoes|spices|cheetos|pringles|glacier|nutri.grain"],
+    ["Cleaning & paper goods", "bleach|detergent|clorox|paper plates|paper towels|dixie|cleaner|tissue|cleaning|air freshener|dish soap|dryer sheet|scrub|softener"],
+    ["Personal care & first aid", "soap|tooth|colgate|advil|band.aid|shampoo|conditioner|razor|deodorant|lotion|body wash|pain relie|ibuprofen"],
+    ["Seasonal & home", "candle|harvest|decor|christmas|garden|holiday|pumpkin|kitchen"],
+    ["Activity books & supplies", "book|puzzle|marker|crayon|paper|pen\\b"],
+    ["General merchandise"]
+  ],
+  "Apparel & Accessories": [
+    ["Footwear & shoe care", "flip.flop|slippers?|sandals?|shoelace|shoe care|shoe polish|athletic lace|insoles?|sneakers?|shoe\\b", "Slippers Shoes", "Shoe Care"],
+    ["Socks & underwear", "socks?|briefs?|boxers?|panties|underwear|bralettes?|bras?\\b"],
+    ["Tops & shirts", "tee\\b|t.shirts?|shirts?|tanks?|hoodies?|sweaters?|sweatshirts?"],
+    ["Pants, shorts & activewear", "pants?|leggings?|shorts?|jeans?|joggers?|capri"],
+    ["Pajamas & robes", "pajamas?|robes?|sleep|lounge|nightgown"],
+    ["Hats, gloves & accessories", "beanie|hats?|gloves?|scarves|cap\\b|wallet|belt|headband"],
+    ["Sunglasses & eyewear", "sunglasses|glasses|readers", "Foster Grant"],
+    ["Clothing & accessories"]
+  ],
+  "Auto & Hardware": [
+    ["Motor oil & fluids", "motor oil|transmission fluid|engine oil|5w.?(20|30)|10w.?(30|40)|octane|coolant|antifreeze|brake fluid|starting fluid|washer fluid|fuel (treatment|injector)|oil treatment", "Oils Fluids", "Castrol", "Pennzoil", "Valvoline", "Stp"],
+    ["Car cleaning & air fresheners", "air freshener|little tree|armor all|car wash|microfiber|terry towels|tire shine|car scents", "Auto Cleaning"],
+    ["Vehicle accessories", "phone mount|steering wheel|car charger|wiper|tire gauge|jumper|funnel|license plate|seat cover", "Auto Accessories"],
+    ["Lighting & electrical", "bulbs?|flashlight|extension cord|light switch|electric(al)? tape|outlet|night light", "Electrical Lighting"],
+    ["Hardware & mounting", "command|mounting|hook|hanging|adhesive strip|super glue|duct tape|nails|screws|padlock", "Home Improvement Supplies"],
+    ["Tools & repair supplies"]
+  ],
+  "Baby & Diapers": [
+    ["Diapers & training pants", "diapers?|pull.ups|training pants|little snugglers"],
+    ["Wipes & changing", "baby wipes|sensitive.*wipes|waterwipes|changing pad|wipe(s| warmer)"],
+    ["Baby food & formula", "gerber|baby food|happy baby|baby cereal|infant formula|enfamil|similac|puree|puffs|baby.*oatmeal", "Baby Food", "Baby Food Formula"],
+    ["Feeding & cups", "learner cup|sippy|no.spill|straw cup|feeding|nipples?|bottles?|bib\\b|bibs|baby spoon|pacifier"],
+    ["Bath, skin & health", "baby (bath|wash|oil|shampoo|lotion|powder|chest rub)|diaper rash|ointment|thermometer|electrolyte solution|teeth|safety", "Baby Bath Skincare", "Health Safety"],
+    ["Clothing & baby gear"]
+  ],
+  "Beauty & Hair Care": [
+    ["Shampoo & conditioner", "shampoo|conditioner|co.wash"],
+    ["Hair styling & tools", "hair|pomade|gel.{0,10}styling|curl|wig|braid|hairbrush|edge control|bonnet|shower cap", "Hair Care", "Multicultural Beauty", "Root To End"],
+    ["Nails & manicure", "nail|manicure|cuticle|acetone|emery board", "Nail Care"],
+    ["Makeup & cosmetics", "blush|shadow|liner|lipstick|lip gloss|glossy lip|mascara|concealer|foundation|palette|makeup|bronzer|compact|powder puff|eyelash|brow", "Cosmetics", "Believe Beauty"],
+    ["Fragrance & gift sets", "fragrance|perfume|cologne|body mist|gift set", "Fragrances", "Beauty Gifts"],
+    ["Skin care & beauty essentials"]
+  ],
+  "Electronics & Tech": [
+    ["Batteries & chargers", "batter(y|ies)|button cell|lithium coin", "Batteries"],
+    ["Gift & refill cards", "gift card|giftcard|prepaid card|refill|unlimited data|talk.*text", "Gift Cards Reloadable Cards"],
+    ["Cables, plugs & adapters", "cables?|charger|adapter|usb|lightning|extension|charging"],
+    ["Phones & cases", "phones?|tracfone|\\bsim\\b|calypso|prepaid|screen protector", "Prepaid Phones"],
+    ["Audio & media", "earbuds?|headphones?|speakers?|\\bcd\\b|stereo", "Portable Audio"],
+    ["Gaming & electronics"]
+  ],
+  "Health & Wellness": [
+    ["Pain relief & fever", "ibuprofen|acetaminophen|aspirin|naproxen|advil|aleve|tylenol|pain relie|migraine"],
+    ["Cold, allergy & cough", "allerg|cold|cough|flu\\b|mucinex|decongestant|sinus|lozenges?|sore throat|vaporub|antihistamine"],
+    ["Digestive health", "antacid|laxative|diarrhea|heartburn|pepto|reflux|fiber|stool softener|miralax|gas relie|nausea|alka.seltzer"],
+    ["First aid & bandages", "bandage|band.aid|first aid|gauze|wound|peroxide|rubbing alcohol|antibiotic|tape|splint|burn gel|ointment|ice pack"],
+    ["Vitamins & nutrition", "vitamin|supplement|protein|shake|ensure|boost|gummies|melatonin|magnesium|b12|fish oil|collagen|calcium", "Vitamins", "Nutritional Supplements"],
+    ["Eye & foot care", "eye drops?|contact lens|eye care|foot|insoles?|dr\\. scholl", "Eye Care", "Foot Care"],
+    ["Home health & personal care"]
+  ],
+  "Home Decor & Storage": [
+    ["Bedding & pillows", "bedding|sheets?|pillow|blanket|comforter|quilt|mattress|throw\\b", "Bedding"],
+    ["Bath furnishings", "bath|shower|bathroom|soap dish|toothbrush holder", "Bath"],
+    ["Closet & laundry", "storage hanger|\\bhangers?\\b|laundry|hamper|garment|ironing|clothespin", "Closet Laundry"],
+    ["Storage bins & baskets", "bins?|tote|baskets?|drawers?|organizer|storage|buckets?", "Storage Organization"],
+    ["Decor & furnishings"]
+  ],
+  "Household Cleaning": [
+    ["Dishwashing", "dish liquid|dish soap|dishwash|dish detergent|dawn|palmolive|ajax.*dish", "Dish Soap Dishwasher Detergent"],
+    ["Kitchen & surface cleaners", "kitchen|all.purpose|multi.surface|multipurpose|disinfecting wipes|disinfectant|degreaser|glass cleaner|windex"],
+    ["Bathroom & drain cleaners", "toilet|bathroom|drain|lysol.*bowl|tub.*tile|lime.away"],
+    ["Brooms, mops & tools", "broom|mop|dustpan|duster|sponges?|scrubber|brush|microfiber|gloves|cloths", "Cleaning Tools Accessories"],
+    ["Pest control", "roach|insect|pest|bug|ant bait|mouse trap|\\braid\\b|\\bhot shot\\b", "Pest Control"],
+    ["Disposable tableware", "disposable|paper plates?|bowls?|cups?|cutlery|forks?|spoons?|napkins?|straws?", "Disposable Tableware"],
+    ["Floor care & cleaning supplies"]
+  ],
+  "Kitchen & Dining": [
+    ["Cookware & bakeware", "pans?\\b|skillets?|baking|bakeware|casserole|roaster|cookie sheet|cake mold|cookware", "Cookware Bakeware"],
+    ["Utensils & kitchen gadgets", "utensil|spatula|paring|knives|knife|whisk|can opener|measuring|tongs|peeler|ladle|grater|scissors", "Kitchen Utensils Gadgets"],
+    ["Small appliances", "toaster|blender|air fryer|coffee maker|electric|mini waffle|appliance", "Small Appliances", "Rise By Dash Appliances"],
+    ["Drinkware & glassware", "tumbler|mug|glass|cup|water bottle|pitcher", "Drinkware Glassware"],
+    ["Food storage", "food storage|container|bag clip|lunch box|canister|ice tray|jar\\b", "Kitchen Storage"],
+    ["Kitchen linens", "towel|pot holder|oven mitt|dishcloth|tablecloth|placemat|apron", "Kitchen Towels Linens"],
+    ["Dinnerware & serving"]
+  ],
+  "Laundry & Air Fresheners": [
+    ["Laundry detergent", "detergent|tide pods|gain flings|laundry pacs"],
+    ["Fabric softener & dryer care", "softener|dryer sheets?|dryer balls?|scent booster|laundry scent"],
+    ["Stain treatment & bleach", "stain|bleach|oxiclean|laundry sanitizer", "Laundry Care"],
+    ["Candles & wax melts", "candles?|wax melt|tart wax|wax cube"],
+    ["Plug-ins & refills", "plug.?ins?|refills?|oil warmer|scented oil"],
+    ["Air fresheners & scent"]
+  ],
+  "Outdoor & Garden": [
+    ["Grills, charcoal & coolers", "coolers?|grill|charcoal|briquets?|lighter fluid|barbecue", "Coolers", "Grilling Cooking"],
+    ["Garden supplies & planters", "potting|planter|flower pot|garden soil|potting|seeds|fertilizer|clay pots|sprinkler|watering can", "Lawn Garden Care", "Planters Flower Pots"],
+    ["Patio & yard decor", "stake|decor|solar light|bird feeder|wind chime|garden flag", "Garden Decor"],
+    ["Insect & pest control", "insect|pest|raid|repellent|bug|hot shot|mosquito|wasp", "Insect Pest Control"],
+    ["Beach, pool & play", "pool|swim|goggle|float|beach|splash", "Beach Pool", "Outdoor Play"],
+    ["Outdoor gear & fans"]
+  ],
+  "Paper, Trash & Storage Bags": [
+    ["Toilet paper & tissues", "tissue|toilet paper|bathroom tissue|\\bkleenex\\b"],
+    ["Paper towels & napkins", "paper towels?|napkins?"],
+    ["Trash bags", "trash|garbage|drawstring|can liner", "Trash Bags"],
+    ["Foil, wrap & liners", "foil|cling|wrap|parchment|wax paper|liner"],
+    ["Food storage bags"]
+  ],
+  "Party & Celebrations": [
+    ["Balloons", "balloon|helium", "Balloons"],
+    ["Gift bags & wrapping", "gift bag|gift wrap|wrapping|tissue paper|crinkle|bow\\b|ribbon|gift box|treat bag", "Gift Packaging"],
+    ["Tableware & napkins", "plates?|napkins?|cups?|tablecloth|forks?|spoons?|table cover|bowls?|tableware", "Tableware", "Game Day Partyware"],
+    ["Birthday candles & cake toppers", "candles?|sparklers?|cake (topper|decoration)"],
+    ["Decorations & banners", "decora|banner|streamer|garland|centerpiece|confetti|hang|foil curtain", "Party Decorations"],
+    ["Favors & party accessories"]
+  ],
+  "Personal Care": [
+    ["Oral care", "tooth|dental|floss|denture|mouthwash|mouth rinse|oral.b|toothbrush", "Oral Care"],
+    ["Soap & body wash", "soap|body wash|shower gel|hand wash|bubble bath|bath bomb|body scrub", "Soap Body Wash", "Bath Additives Accessories"],
+    ["Deodorants & antiperspirants", "deodorant|antiperspirant", "Deodorants Antiperspirants"],
+    ["Razors & shaving", "razor|shav|cartridge", "Shaving"],
+    ["Menstrual care", "tampons?|panty liners?|pads.*wings|menstrual|feminine|liners?", "Feminine Care"],
+    ["Bladder care", "incontinence|protective underwear|bladder|adult diaper", "Adult Incontinence"],
+    ["Intimate care & essentials"]
+  ],
+  "Pet Supplies": [
+    ["Cat litter & supplies", "litter|litterbox|scratching|cat collar|catnip toy", "Cat Litter", "Cat Accessories"],
+    ["Cat treats & food toppers", "cat treats?|temptations|lickable|squeeze.up|delectables|cat.*treats|treats.*cat", "Cat Treats"],
+    ["Cat food", "cat food|fancy feast|friskies|meow mix|kitten|whiskas|cat good", "Cat Food"],
+    ["Dog treats & chews", "dog treat|dog biscuit|dog chew|dog.*bone|rawhide|canine carry|milk.bone|beggin|munchy|puppy.*treat", "Dog Treats"],
+    ["Dog food", "dog food|puppy food|pedigree|kibbles|cesar|purina dog|gravy train", "Dog Food"],
+    ["Pet toys & accessories"]
+  ],
+  "School & Office": [
+    ["Pens & pencils", "pens?\\b|pencils?|inkjoy|gelocity|erasers?", "Pens Pencils"],
+    ["Markers, crayons & colors", "markers?|highlighter|crayons?|color pencils?|colored pencils?|pastels|sharpie", "Coloring Supplies", "Sharpie", "Expo"],
+    ["Notebooks, folders & paper", "notebooks?|folders?|binders?|composition|paper\\b|pads?|post.it|index cards", "Notebooks Folders Binders"],
+    ["Glue, tape & shipping", "tapes?|glue|packing|shipping|mailers?|envelopes|velcro", "Glue Tape", "Packing Shipping Supplies"],
+    ["Art & craft supplies", "paint|brush|canvas|crafts?|wooden|sticker|glitter|modeling|sculpt|embellish", "Arts Crafts Supplies"],
+    ["Desk & classroom supplies"]
+  ],
+  "Seasonal & Holidays": [
+    ["Costumes & Halloween accessories", "costume|mask|costume wig|cape|face paint|trick.or.treat|halloween.*(socks|hat)"],
+    ["Tree ornaments & trim", "ornament|tree skirt|tree topper|tinsel|christmas tree|tree decor|garland", "Christmas Trees Tree Decor"],
+    ["Lights & illuminated decor", "lighted|light.up|string lights?|led |lit.?(?:ghost|tree|snow)"],
+    ["Gift wrap, cards & bags", "gift (bag|wrap|box)|wrapping paper|tissue paper|card\\b|ribbon|gift tag|gift bow|stationery", "Simply For You By Hallmark"],
+    ["Seasonal tableware & kitchen", "plate|napkin|tablecloth|cookie sheet|cup|mug|bowl|cutlery|serving|kitchen", "Holiday Entertaining"],
+    ["Fall & Halloween decor", "halloween|harvest|spooky|pumpkin|autumn|fall\\b", "Fall", "Halloween"],
+    ["Christmas & holiday decor", "christmas|holiday style|santa|gingerbread|snowman|reindeer", "Christmas Decorations"],
+    ["Gifts & seasonal goods"]
+  ],
+  "Toys & Games": [
+    ["Dolls & playsets", "doll|barbie|dreamhouse|playset|play set", "Dolls", "Playsets"],
+    ["Vehicles & RC", "cars?\\b|truck|vehicle|train|racer|hot wheels|matchbox|drone|remote control", "Vehicles Trains Rc"],
+    ["Building & STEM", "lego|blocks|building|science|experiment|stem|learning", "Learning Stem Toys", "Lego"],
+    ["Games, cards & puzzles", "game|puzzle|playing cards|trading cards|pokemon|monopoly|book", "Puzzles Games Books"],
+    ["Arts, crafts & modeling", "clay|paint|modeling|play.doh|art set|crayons|craft|chalk", "Arts Crafts Toys", "Play Doh"],
+    ["Plush & preschool", "plush|stuffed|preschool|teether|toddler|cuddles", "Stuffed Animals Plush", "Baby Preschool Toys"],
+    ["Figures & active toys"]
+  ]
+}

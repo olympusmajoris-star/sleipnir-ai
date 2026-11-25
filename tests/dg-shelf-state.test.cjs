@@ -15,6 +15,7 @@ class Element {
 function setup({layout=null,items,authoredId}={}) {
   const host=new Element(),rendered=[];
   const root={
+    DollarGeneralPlan:require('../dg-shelf-plan.js'),
     ShelfLayoutCanvas:{...geometry,render(surface,config){const result=geometry.layout(config);rendered.push({config,result});return result;}},
     ShelfLayoutData:{load:async()=>({items:items||[{id:'one',name:'A real package',group:'Shelf group',aspect:.6}],fixture:'shelf'})},
     ShelfLayoutStore:{load:async()=>({layout,revision:4})}
@@ -54,14 +55,15 @@ test('authored product selection retains original twelve-position membership aft
   assert.equal(selection.aisle_id,'authored-aisle');
   assert.equal(selection.page,2);
   assert.equal(selection.slot,3);
-  assert.equal(fixture.rendered.at(-1).result.page,2);
+  assert.equal(fixture.rendered.at(-1).result.page,0);
   fixture.view.destroy();
 });
 
 test('search and bay navigation retain products beyond the entrance sample',async()=>{
   const items=Array.from({length:75},(_,index)=>({id:'product-'+index,name:index===74?'Last catalog item':'Product '+index,group:'Stock',aspect:.6}));
   const fixture=setup({items});await fixture.view.ready;
-  assert.equal(fixture.rendered.at(-1).result.pages,13);
+  assert.equal(fixture.rendered.at(-1).result.pages,5);
+  assert.ok(fixture.rendered.at(-1).result.slots.every(slot=>slot.facings===1));
   fixture.view.command('move',{direction:'right'});
   assert.equal(fixture.rendered.at(-1).result.page,1);
   fixture.view.command('search',{query:'Last catalog'});

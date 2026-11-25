@@ -21,8 +21,8 @@
     path.setAttribute('d',name==='menu'?'M4 6h16M4 12h16M4 18h16':name==='left'?'m14 6-6 6 6 6':name==='right'?'m10 6 6 6-6 6':'m21 21-5.2-5.2M17.3 10a7.3 7.3 0 1 1-14.6 0 7.3 7.3 0 0 1 14.6 0');
     svg.append(path);return svg;
   }
-  function defaults(saved) {
-    const layout = {rows:3,rail:5,tabHeight:32,groupBy:'original',productsPerRow:2,facings:2,products:{},...(saved || {})};
+  function defaults(saved, authored) {
+    const layout = root.DollarGeneralPlan.defaults(saved, authored);
     layout.products = clone(layout.products || {});
     if (!finite(layout.autoStockHeight)) layout.autoStockHeight = root.ShelfLayoutCanvas.stockHeight(layout.rows,layout.rail,THEME);
     return layout;
@@ -73,16 +73,17 @@
       return query ? state.items.filter(item=>[item.name,item.size,item.kind,item.group].join(' ').toLocaleLowerCase().includes(query)) : state.items;
     }
     function regroup() {
-      state.groups=new Map();
-      for(const item of allVisible()) {
-        const group=groupOf(item);
-        if(!state.groups.has(group))state.groups.set(group,[]);
-        state.groups.get(group).push(item);
-      }
+      state.groups=root.DollarGeneralPlan.groups(allVisible(), state.layout, options.aisle);
       if(!state.groups.has(state.group))state.group=state.groups.keys().next().value || '';
+    }
+    function leaveProduct() {
+      if (!state.selection) return;
+      state.selection = null;
+      options.onDeselect?.();
     }
     function chooseGroup(group) {
       if(!state.groups.has(group))return;
+      leaveProduct();
       state.group=group;state.page=0;chooser.hidden=true;menu.setAttribute('aria-expanded','false');
       paint(state.layout.groupBy==='type'?null:state.groups.get(group)[0]?.id);
     }
@@ -145,7 +146,7 @@
       const names=[...state.groups.keys()],groupIndex=names.indexOf(state.group),grouped=state.layout.groupBy==='type';
       previous.disabled=state.page<=0 && (!grouped || groupIndex<=0);
       next.disabled=state.page+1>=state.geometry.pages && (!grouped || groupIndex>=names.length-1);
-      caption.replaceChildren(node('strong',null,'Bay '+(state.page+1)+' of '+state.geometry.pages),node('small',null,state.query?all.length+' matching products':state.group));
+      caption.replaceChildren(node('strong',null,grouped ? state.group : 'Bay '+(state.page+1)+' of '+state.geometry.pages),node('small',null,grouped ? (state.query ? all.length+' aisle matches · ' : '')+'Bay '+(state.page+1)+' of '+state.geometry.pages+' in this section' : state.group));
       surface.classList.toggle('shelf-shopping',state.shopping);host.dataset.mode=state.shopping?'shop':'edit';
       drawTabs();
     }
@@ -160,9 +161,11 @@
         if(!name)return;
         state.group=name;state.page=delta<0?Number.MAX_SAFE_INTEGER:0;
       }else return;
+      leaveProduct();
       delete surface.dataset.detailId;paint();
     }
     function searchFor(query) {
+      leaveProduct();
       state.query=String(query || '').trim().slice(0,250);search.value=state.query;state.page=0;
       delete surface.dataset.detailId;paint();
     }
@@ -200,7 +203,7 @@
           root.ShelfLayoutStore.load(options.store,key)
         ]);
         if(state.destroyed || ticket!==state.ticket)return;
-        state.data=data;state.layout=defaults(saved.layout);state.revision=saved.revision;state.items=data.items;
+        state.data=data;state.layout=defaults(saved.layout, options.authoredId);state.revision=saved.revision;state.items=data.items;
         state.byId=new Map(state.items.map(item=>[item.id,item]));state.sourceIndex=new Map(state.items.map((item,index)=>[item.id,Number.isInteger(item.sourceIndex)?item.sourceIndex:index]));
         state.page=0;paint(state.selection);
         options.onReady?.();
@@ -225,7 +228,7 @@
     listen(surface,'shelf-layout-metrics',event=>{
       event.preventDefault();
       if(metricsFrame || state.destroyed)return;
-      metricsFrame=requestAnimationFrame(()=>{metricsFrame=null;if(!state.destroyed){paint(state.selection);notifySelection();}});
+      metricsFrame=requestAnimationFrame(()=>{metricsFrame=null;if(!state.destroyed){paint();notifySelection();}});
     });
     listen(view,'keydown',event=>{if(event.key==='Escape'&&!chooser.hidden){chooser.hidden=true;menu.setAttribute('aria-expanded','false');menu.focus();}});
     const api={ready:null,command,reload(){api.ready=load();return api.ready;},async saveScale(productId,scale){
@@ -241,7 +244,7 @@
         if(!actual.layout || !Number.isInteger(actual.revision) || actual.revision<=expected || Number(actual.layout.products?.[productId]?.scale)!==scale)
           throw Error('The store did not confirm this product size.');
         if(!state.destroyed) {
-          state.layout=defaults(actual.layout);state.revision=actual.revision;
+          state.layout=defaults(actual.layout, options.authoredId);state.revision=actual.revision;
           if(state.previewScales[productId]===scale)delete state.previewScales[productId];
           paint(productId);notifySelection();
         }

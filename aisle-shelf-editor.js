@@ -6,7 +6,7 @@
   const channel = 'sleipnir-aisle-editor-v1';
   const requestedAuthored = start.has('authored') ? (start.get('authored') || '').trim().toLowerCase() : null;
   const authoredFeature = 'preview-authored-aisle';
-  const dgRenderer = 'dg-shelves-20261125-2';
+  const dgRenderer = 'dg-shelves-20261125-3';
   const dgBuild = {capabilities:[authoredFeature],aisleRouting:{otherStores:'catalog',standard:[]}};
   const requestedAisle = (start.get('aisle') || '').trim().slice(0,140);
   const hashPattern = /^[0-9a-f]{64}$/;
@@ -438,6 +438,7 @@
           updateControls();drawFlags();
         },
         onSelect:data=>{if(serial===state.frameSequence)selectProduct(data);},
+        onDeselect:()=>{if(serial===state.frameSequence)clearSelection();},
         onStatus:text=>{if(serial===state.frameSequence)setNotice(text);}
       });
       state.dgView=view;

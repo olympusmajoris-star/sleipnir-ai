@@ -6,9 +6,10 @@
   const drafts = new Map();
   let session = null, activity = 0;
   const themeFor=s=>s.options.mode==='dollar-general'||s.store==='0600cb61-45f9-402b-a209-134abdaef10f'?'dollar-general':'';
-  function defaults(savedLayout,theme) {
-    const layout={rows:4,rail:3,tabHeight:24,groupBy:'type',facings:2,products:{},
-      ...(theme==='dollar-general'?{rows:3,rail:5,productsPerRow:2,groupBy:'original'}:{}),...savedLayout};
+  function defaults(savedLayout,theme,authoredId) {
+    const layout = theme === 'dollar-general'
+      ? window.DollarGeneralPlan.defaults(savedLayout, authoredId)
+      : {rows:4,rail:3,tabHeight:24,groupBy:'type',facings:2,products:{},...savedLayout};
     // Record the original room above each shelf. Changing shelf height should not shuffle its products.
     if(!Number.isFinite(layout.autoStockHeight))
       layout.autoStockHeight=window.ShelfLayoutCanvas.stockHeight(layout.rows,layout.rail,theme);
@@ -24,6 +25,10 @@
     el('layout-retry').hidden = !retry;
   }
   function groupItems(s) {
+    if (themeFor(s) === 'dollar-general') {
+      s.groups = window.DollarGeneralPlan.groups(s.items, s.layout, s.aisle);
+      return;
+    }
     s.groups = new Map();
     for (const item of s.items) {
       const group = groupOf(s,item);
@@ -143,7 +148,7 @@
       s.items=data.items.map(p=>({...p,scale:baseScales[p.id]??p.scale??1}));
       s.byId=new Map(s.items.map(p=>[p.id,p]));
       if(!s.items.length){status('This aisle has no stocked products.');return;}
-      s.saved=defaults(snapshot.layout,themeFor(s));
+      s.saved=defaults(snapshot.layout,themeFor(s),s.options.authoredId);
       if (!snapshot.layout) {
         // Wide cartons need a second lane to read at phone size. Preserve previous SKU size decisions.
         for (const item of s.items) {

@@ -19,10 +19,64 @@
     return [p.image,p.photo,...(Array.isArray(p.photos) ? p.photos : [])].find(v=>v && !failedPhotos.has(v)) || '';
   }
   function getAspect(p,theme) {
-    if (p.aspect > 0 && Number.isFinite(p.aspect)) return p.aspect;
+    if (p.aspect > 0 && Number.isFinite(p.aspect) && (!p.packshot || photoKey(p) === p.image)) return p.aspect;
     if (p.source?.[2] > 0 && p.source?.[3] > 0) return p.source[2]/p.source[3];
     return photoMetrics.get(metricsKey(photoKey(p),theme))?.aspect || 1;
   }
+  // Compare sizes within a fixture. A single-serve drink and a two-liter
+  // bottle keep their different heights even when both photos are square.
+  const packageSizes = new WeakMap();
+  const packageUnits = {
+    'fl oz':'fl oz', 'fluid ounces':'fl oz', 'fluid ounce':'fl oz', 'floz':'fl oz',
+    'oz':'oz','ounce':'oz','ounces':'oz','liter':'L','liters':'L','litre':'L','litres':'L','l':'L',
+    'ml':'mL','milliliter':'mL','milliliters':'mL','gal':'gal','gallon':'gal','gallons':'gal',
+    'qt':'qt','quart':'qt','quarts':'qt','pt':'pt','pint':'pt','pints':'pt',
+    'lb':'lb','lbs':'lb','pound':'lb','pounds':'lb','g':'g','kg':'kg'
+  };
+  function packageSize(item) {
+    const cached = packageSizes.get(item);
+    if (cached) return cached;
+    const name = String(item.name || '').replace(/[‐‑–]/g,'-');
+    const lessFractions = name.replace(/(\d+)\s+(\d+)\/(\d+)\b/g, (_,whole,num,den) => String(Number(whole)+Number(num)/Number(den)));
+    const expression = /(?:^|[^\w./])(\d+(?:\.\d+)?)\s*[- ]?\s*(fl\.?\s*oz\.?|fluid ounces?|ounces?|oz\.?|liters?|litres?|l|milliliters?|ml|gallons?|gal|quarts?|qt|pints?|pt|pounds?|lbs?|kg|g)\b/ig;
+    const measurements = Array.from(lessFractions.matchAll(expression));
+    const m = measurements[0] || Array.from(String(item.size || '').matchAll(expression))[0];
+    const unit = m && packageUnits[m[2].toLowerCase().replaceAll('.','').replace(/\s+/g,' ')];
+    const quantity = m ? Number(m[1]) : 0;
+    const numbers = name.match(/\b(\d{1,3})\s*[- ]?\s*(pack|pk|count|ct)\b/i)
+      || name.match(/\b(?:pack|box) of (\d{1,3})\b/i)
+      || name.match(/\b(\d{1,2})\s*[x×]\s*\d+(?:\.\d+)?\s*(?:fl\s*)?oz\b/i);
+    const copies = numbers ? Number(numbers[1]) : 0;
+    let label = quantity && unit ? quantity+' '+unit : '';
+    if (copies > 1) {
+      const countLabel = copies + (/^(pack|pk)$/i.test(numbers[2] || '') ? ' pk' : ' ct');
+      label = label ? countLabel+' · '+label : countLabel;
+    }
+    const result = {label,quantity,unit,copies,name};
+    packageSizes.set(item,result);
+    return result;
+  }
+
+  function dgHeight(item,aspect) {
+    const {quantity,unit,name} = packageSize(item);
+    if (!quantity) return .88;
+    const beverage = /\b(sodas?|drink|sparkling water|waters?|tea|coffee|juice|cola|lemonade|lemon.lime|root beer|ginger ale|punch|sports drink|milk|cider|lager|wine|beer)\b/i.test(name)
+      && !/\b(powder|powdered|drink mix|coffee pods|ground coffee|tea bags|shampoo|cream cheese|shower|lotion|soap|cleaner)\b/i.test(name);
+    const volume = {L:1000,mL:1,'fl oz':29.5735,oz:29.5735,gal:3785.4,qt:946.35,pt:473.18};
+    const ml = quantity * (volume[unit] || 0);
+    if (beverage && ml) {
+      const can = /\bcans?\b/i.test(name);
+      const carton = /\b(multipack|fridge pack|juice boxes|pouches)\b/i.test(name);
+      let height = can ? 12.2 * Math.cbrt(ml/355) : 21.4 * Math.cbrt(ml/591);
+      if (!can && ml >= 2600 && aspect > .5) height = 27.8;
+      if (carton && ml < 400) height = Math.max(height,14);
+      return clamp(height/34,.34,.95);
+    }
+    if (unit === 'oz' && /\b(chips|pretzels|popcorn|corn snacks|crackers)\b/i.test(name))
+      return clamp(.82*Math.cbrt(quantity/9),.48,.94);
+    return .88;
+  }
+
   function stockHeight(rows,rail,theme) {
     const rowH = (sceneHeight(theme)-TOP-BOTTOM)/Math.round(clamp(finite(rows,4),1,8));
     return rowH-Math.min(isDG(theme)?38:31,rowH*.12)-rowH*clamp(finite(rail,4),1,15)/100;
@@ -46,6 +100,12 @@
     // advancing or compressing any other product's absolute shelf position.
     const packingHeight = clamp(finite(config.autoStockHeight,stockHeight(themed?3:4,themed?5:3,config.theme)),100,1500);
     const moves = config.transforms || config.products || {};
+    const autoPlan = themed && !fixedColumns
+      ? (global.DollarGeneralPlan || (typeof require === 'function' && require('./dg-shelf-plan.js')))
+      : null;
+    const adaptive = autoPlan?.allocate
+      ? autoPlan.allocate(config.items || [], bayW, packingHeight, defaultFacings, moves)
+      : null;
     let line = 0, used = 0;
     const allSlots = [], locations = new Map();
     for (const item of config.items || []) {
@@ -53,25 +113,29 @@
       const aspect = clamp(getAspect(item,config.theme),.04,32);
       const move = moves instanceof Map ? moves.get(item.id) : moves[item.id];
       const facings = clamp(Math.round(finite(move?.facings,defaultFacings)),1,3);
+      const position = adaptive?.get(item.id);
+      const lane = position?.width || laneW;
       const faceGaps = (facings-1)*GAP;
-      const baseWidthLimit = Math.min(laneW*(themed?.96:.90),laneW-2*EDGE-faceGaps)/facings;
-      const fillHeight=themed?.9:.72;
+      const baseWidthLimit = Math.min(lane*(themed?.93:.90),lane-2*EDGE-faceGaps)/facings;
+      const fillHeight=themed ? dgHeight(item,aspect) : .72;
       const baseW = Math.min(baseWidthLimit,aspect*stockH*fillHeight);
       const baseH = baseW/aspect;
-      const availableW = fixedColumns ? laneW : bayW;
+      const availableW = position ? lane : fixedColumns ? laneW : bayW;
       const maxScale = Math.max(.1,Math.min(6,(availableW-2*EDGE-faceGaps)/(facings*baseW),(stockH-2*EDGE)/baseH));
       const requestedScale = finite(move?.scale,finite(item.scale,1));
       const scale = clamp(requestedScale,.1,maxScale);
       let span = 1;
-      if (!fixedColumns) {
+      if (!fixedColumns && !position) {
         const refW = Math.min(baseWidthLimit,aspect*packingHeight*fillHeight);
         const maxRefScale = Math.min(6,(bayW-2*EDGE-faceGaps)/(facings*refW),(packingHeight-2*EDGE)*aspect/refW);
         const referencePack = facings*refW*clamp(requestedScale,.1,maxRefScale)+faceGaps;
         span = clamp(Math.ceil((referencePack+2*EDGE)/laneW-1e-9),1,columns);
       }
-      if (used && used+span>columns) { line++; used=0; }
-      const page = Math.floor(line/rows), row = line%rows;
-      const cellLeft = edge+used*laneW, cellTop = TOP+row*rowH, cellW = span*laneW;
+      if (!position && used && used+span>columns) { line++; used=0; }
+      const currentLine = position ? position.line : line;
+      const page = Math.floor(currentLine/rows), row = currentLine%rows;
+      const cellLeft = edge + (position ? position.left : used*laneW);
+      const cellTop = TOP + row*rowH, cellW = position ? position.width : span*laneW;
       const faceW = Math.min(baseW*scale,(cellW-2*EDGE-faceGaps)/facings);
       const packW = facings*faceW+faceGaps, packH = faceW/aspect;
       const maxX = Math.max(0,(cellW-packW-2*EDGE)/(2*cellW));
@@ -116,6 +180,23 @@
   // Sample an empty interior and the original rail independently. The photographed
   // rails contain baked blank holders. Cover these with metal taken between them.
   function fixtureArtwork(parent,m,plate) {
+    if (isDG(m.theme) && !m.cold) {
+      const warm=imageURL('dg-fixtures/warm-shelf.webp');
+      const band=(top,height,sourceY,sourceHeight)=>{
+        const node=element('div','sl-fixture-band');
+        styleRect(node,0,top/m.height,1,height/m.height);
+        photoCrop(node,warm,[0,sourceY,2172,sourceHeight],2172,724);
+        parent.append(node);
+      };
+      band(0,TOP,0,25);
+      for (let row=0;row<m.rows;row++) {
+        const top=TOP+row*m.rowH;
+        band(top,m.stockH,0,638);
+        band(top+m.stockH,m.tagH+m.railH,638,86);
+      }
+      band(m.height-BOTTOM,BOTTOM,712,12);
+      return;
+    }
     function slice(cellTop,cellHeight,sx,sy,sw,sh,x=0,w=W) {
       const node=element('div','sl-fixture-band');
       styleRect(node,x/W,cellTop/m.height,w/W,cellHeight/m.height);
@@ -136,40 +217,10 @@
     }
     slice(m.height-BOTTOM,BOTTOM,0,1534,W,2);
   }
-  // Keep white print inside the pack. Only a confirmed exterior white studio
-  // backdrop outside the convex package outline may become transparent.
-  function clearExteriorWhite(ctx,pixels,background,pw,ph,bounds) {
-    const [x0,y0,x1,y1]=bounds;
-    const points=[];let occupied=0;
-    for(let y=y0;y<=y1;y++) {
-      let left=pw,right=-1;
-      for(let x=x0;x<=x1;x++) {
-        const i=y*pw+x;
-        if(pixels[i*4+3]>28&&!background[i]){left=Math.min(left,x);right=x;occupied++;}
-      }
-      if(right>=left){points.push([left,y]);if(right!==left)points.push([right,y]);}
-    }
-    // Sparse lettering on an otherwise white package is ambiguous: retain it.
-    if(points.length<6 || occupied/Math.max(1,(x1-x0+1)*(y1-y0+1))<.5)return false;
-    points.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
-    const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
-    const half=list=>{const out=[];for(const point of list){while(out.length>1&&cross(out.at(-2),out.at(-1),point)<=0)out.pop();out.push(point);}return out;};
-    const lower=half(points),upper=half([...points].reverse());lower.pop();upper.pop();const hull=lower.concat(upper);
-    if(hull.length<3)return false;
-    const mask=document.createElement('canvas');mask.width=pw;mask.height=ph;
-    const pen=mask.getContext('2d',{willReadFrequently:true});
-    pen.beginPath();pen.moveTo(...hull[0]);for(const p of hull.slice(1))pen.lineTo(...p);pen.closePath();
-    pen.fillStyle='#fff';pen.strokeStyle='#fff';pen.lineWidth=2;pen.fill();pen.stroke();
-    const outline=pen.getImageData(0,0,pw,ph).data;
-    let removed=0;
-    for(let i=0;i<pw*ph;i++)if(background[i]&&outline[i*4+3]<8){pixels[i*4+3]=0;removed++;}
-    if(!removed)return false;
-    const result=ctx.createImageData(pw,ph);result.data.set(pixels);ctx.putImageData(result,0,0);return true;
-  }
   function measurePhoto(key,photo,theme) {
     if (photoMetrics.has(key)) return Promise.resolve(photoMetrics.get(key));
     if (measuring.has(key)) return measuring.get(key);
-    const task=new Promise(resolve=>{
+    const measureOnCanvas=()=>new Promise(resolve=>{
       const img=new Image();
       img.crossOrigin='anonymous';
       img.onerror=()=>resolve(null);
@@ -182,7 +233,24 @@
           const pw=can.width=Math.max(1,Math.round(w*ratio)),ph=can.height=Math.max(1,Math.round(h*ratio));
           const ctx=can.getContext('2d',{willReadFrequently:true});
           ctx.drawImage(img,0,0,pw,ph);
-          const pixels=ctx.getImageData(0,0,pw,ph).data;
+          const imageData=ctx.getImageData(0,0,pw,ph);
+          const pixels=imageData.data;
+          if (isDG(theme) && global.DollarGeneralPhoto) {
+            const result=global.DollarGeneralPhoto.preparePackshot(pixels,pw,ph);
+            if (result.cutout) {
+              ctx.putImageData(imageData,0,0);
+              data.image=can.toDataURL('image/png');
+              data.crop=result.bounds;
+              data.w=pw;data.h=ph;
+            } else {
+              const [x,y,width,height]=result.bounds;
+              data.w=w;data.h=h;
+              data.crop=[x*w/pw,y*h/ph,width*w/pw,height*h/ph];
+            }
+            data.aspect=data.crop[2]/data.crop[3];
+            resolve(data);
+            return;
+          }
           // Transparent catalog photos sometimes contain far more empty canvas than
           // package. An opaque photo may use a flat white studio backdrop instead.
           // Only white adjoining a consistently white outer border is treated as air.
@@ -216,16 +284,16 @@
               data.crop=[x0*w/pw,y0*h/ph,(x1-x0)*w/pw,(y1-y0)*h/ph];
               data.w=w;data.h=h;data.aspect=data.crop[2]/data.crop[3];
             }
-            if(isDG(theme)&&whiteBackdrop&&clearExteriorWhite(ctx,pixels,background,pw,ph,[x0,y0,Math.min(pw-1,x1),Math.min(ph-1,y1)])) {
-              data.image=can.toDataURL('image/png');data.w=pw;data.h=ph;
-              data.crop=[x0,y0,x1-x0,y1-y0];data.aspect=data.crop[2]/data.crop[3];
-            }
+
           }
         } catch { /* A server may allow image display but deny pixel reads. */ }
         resolve(data);
       };
       img.src=photo;
-    }).then(data=>{
+    });
+    const worker = isDG(theme) ? global.DollarGeneralShelfPhotos : null;
+    const prepared = worker?.prepare ? Promise.resolve().then(()=>worker.prepare(photo)).catch(()=>null) : Promise.resolve(null);
+    const task=prepared.then(data=>data || measureOnCanvas()).then(data=>{
       measuring.delete(key);
       if(data) {
         photoMetrics.set(key,data);
@@ -271,7 +339,22 @@
     const close=element('button','sl-detail-close');close.type='button';close.textContent='×';close.setAttribute('aria-label','Close');
     const pic=element('div','sl-detail-photo');
     const atlas=imageURL(p.atlas), key=photoKey(p), photo=imageURL(key), info=photoMetrics.get(metricsKey(key,record.config.theme));
-    if(atlas && Array.isArray(p.source) && p.source[2]>0 && p.source[3]>0) {
+    const original=imageURL(p.originalPhoto);
+    if (isDG(record.config.theme) && (original || (photo && atlas))) {
+      const img=element('img','sl-detail-img');
+      img.alt='';img.draggable=false;
+      img.onerror=()=>{
+        if (photo && img.src !== photo) {
+          img.onerror=null;img.src=photo;return;
+        }
+        if (!Array.isArray(p.source)) return;
+        const face=element('span','sl-detail-crop');
+        face.style.aspectRatio=String(p.source[2]/p.source[3]);
+        photoCrop(face,atlas,p.source,p.atlasWidth||1152,p.atlasHeight||1536);
+        pic.replaceChildren(face);
+      };
+      img.src=original || photo;pic.append(img);
+    } else if(atlas && Array.isArray(p.source) && p.source[2]>0 && p.source[3]>0) {
       const face=element('span','sl-detail-crop');face.style.aspectRatio=String(p.source[2]/p.source[3]);
       photoCrop(face,atlas,p.source,p.atlasWidth||1152,p.atlasHeight||1536);pic.append(face);
     } else if(photo && info?.crop) {
@@ -313,6 +396,7 @@
     const fragment=document.createDocumentFragment();
     host.classList.add('sl-bay');
     host.dataset.theme=isDG(config.theme)?'dollar-general':'';
+    host.dataset.fixture=m.cold ? 'cold' : 'ambient';
     host.style.setProperty('--shelf-bay-ratio',m.width+' / '+m.height);
     const plate=imageURL(config.plate?.url || config.plate) || (m.cold ? coolerPlate : shelfPlate);
     const art=element('div','sl-art');
@@ -336,27 +420,40 @@
       styleRect(faces,(slot.left-c.left)/c.width,(slot.top-c.top)/c.height,slot.width/c.width,slot.height/c.height);
       const atlas=imageURL(p.atlas);
       const key=photoKey(p), photo=imageURL(key);
+      const addFace = face => {
+        const width = slot.faceWidth/slot.width*100+'%';
+        if (!isDG(config.theme)) { face.style.width=width;faces.append(face);return; }
+        const unit=element('span','sl-unit');
+        unit.style.width=width;
+        unit.append(face);
+        faces.append(unit);
+      };
       if (atlas && Array.isArray(p.source) && p.source[2]>0 && p.source[3]>0) {
         for(let i=0;i<slot.facings;i++) {
           const face=element('span','sl-face');
-          face.style.width=slot.faceWidth/slot.width*100+'%';
           photoCrop(face,atlas,p.source,p.atlasWidth||1152,p.atlasHeight||1536);
-          faces.append(face);
+          addFace(face);
         }
       } else if(photo) {
-        const metric=metricsKey(key,config.theme),info=photoMetrics.get(metric);
+        const published=p.packshot && key===p.image;
+        const metric=metricsKey(key,config.theme),info=published ? {aspect:p.aspect} : photoMetrics.get(metric);
+        const preparing=isDG(config.theme) && !info;
         if(!info) {
-          measurePhoto(metric,photo,config.theme).then(loaded=>{if(loaded)notifyMetrics(host,key);});
+          measurePhoto(metric,photo,config.theme).then(loaded=>{
+            // If pixel reads are unavailable, an ordinary image can still display.
+            if (!loaded && preparing) photoMetrics.set(metric,{aspect:0});
+            if (loaded || preparing) notifyMetrics(host,key);
+          });
         }
         for(let i=0;i<slot.facings;i++) {
-          const face=element(info?.crop?'span':'img','sl-face');
-          face.style.width=slot.faceWidth/slot.width*100+'%';
+          const face=element(info?.crop || preparing ? 'span' : 'img','sl-face');
+          if (preparing) { addFace(face);continue; }
           if(info?.crop)photoCrop(face,info.image||photo,info.crop,info.w,info.h);
           else {
             face.alt='';face.draggable=false;
-            if(!i)face.onload=()=>{
+            if(!i && !published)face.onload=()=>{
               // Cross-origin photos without CORS still expose their intrinsic dimensions.
-              if(!photoMetrics.has(metric)) {
+              if(!photoMetrics.get(metric)?.aspect) {
                 const aspect=face.naturalWidth/face.naturalHeight;
                 if(aspect>0&&Number.isFinite(aspect)) {
                   photoMetrics.set(metric,{aspect});notifyMetrics(host,key);
@@ -371,16 +468,20 @@
             };
             face.src=photo;
           }
-          faces.append(face);
+          addFace(face);
         }
       } else {
         const missing=element('span','sl-missing');missing.textContent='Photo unavailable';faces.append(missing);
       }
       const tag=element('button','sl-label');
       tag.type='button';tag.tabIndex=-1;tag.dataset.productId=p.id;
-      styleRect(tag,(slot.tag.left-c.left)/c.width,(slot.tag.top-c.top)/c.height,slot.tag.width/c.width,slot.tag.height/c.height);
+      if (isDG(config.theme)) {
+        const width=Math.min(c.width*.91,.159);
+        styleRect(tag,(1-width/c.width)/2,(slot.tag.top-c.top+slot.tag.height*.08)/c.height,width/c.width,slot.tag.height*.87/c.height);
+      } else styleRect(tag,(slot.tag.left-c.left)/c.width,(slot.tag.top-c.top)/c.height,slot.tag.width/c.width,slot.tag.height/c.height);
       const name=element('span','sl-tag-name'), price=element('b','sl-tag-price');
-      name.textContent=shortName(p);
+      name.textContent=isDG(config.theme) ? packageSize(p).label : shortName(p);
+      if (isDG(config.theme) && !name.textContent) name.hidden=true;
       const n=p.price==null || p.price==='' ? NaN : Number(p.price);
       price.textContent=Number.isFinite(n)?currency.format(n):'';
       // Keep the whole price readable on narrow holders, including long amounts.
@@ -395,7 +496,7 @@
     if(openId)openDetail(host,openId);
     return m;
   }
-  const api={render,layout,stockHeight,shortName};
+  const api={render,layout,stockHeight,shortName,packageSize};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.ShelfLayoutCanvas=api;
 })(typeof window==='undefined'?globalThis:window);

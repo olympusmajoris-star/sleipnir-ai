@@ -109,10 +109,62 @@
 /* Dollar General uses the same real products and geometry with a brighter rail
    and denser shelf proportions. Other stores retain their existing treatment. */
 .sl-bay[data-theme="dollar-general"]{background:#292922;box-shadow:inset 5px 0 7px #0006,inset -5px 0 7px #0006}
-.sl-bay[data-theme="dollar-general"] .sl-art{filter:brightness(.72) saturate(.55);pointer-events:none}
-.sl-bay[data-theme="dollar-general"] .sl-faces{filter:drop-shadow(1px 3px 2px #0007)}
-.sl-bay[data-theme="dollar-general"] .sl-faces::after{content:"";position:absolute;left:2%;right:2%;bottom:-1px;height:2px;border-radius:50%;background:#0005;filter:blur(1px);pointer-events:none}
-.sl-bay[data-theme="dollar-general"] button.sl-label{justify-content:center;gap:0;padding:0 3%;border-top:2px solid #fbfae8;border-bottom:2px solid #9b9b8c;background:linear-gradient(#dbd9c9 0%,#f4f1e2 45%,#c9c7b9 100%);box-shadow:0 1px 2px #0005}
-.sl-bay[data-theme="dollar-general"] .sl-tag-name{display:none}
-.sl-bay[data-theme="dollar-general"] .sl-tag-price{display:flex;align-items:center;justify-content:center;min-width:34%;height:94%;padding:0 4%;border:1px solid #c5ab20;border-radius:0;background:#ffe255;color:#181a0f;font-size:min(94cqh,calc((100cqw + 22cqh) / var(--price-width-units)));font-weight:780;line-height:1;box-shadow:0 0 0 1px #fff5}
+.sl-bay[data-theme="dollar-general"] .sl-art{pointer-events:none}
+.sl-bay[data-theme="dollar-general"][data-fixture="cold"] .sl-art{filter:brightness(.9) saturate(.88)}
+.sl-bay[data-theme="dollar-general"] .sl-unit {
+  position: relative;
+  display: block;
+  flex: none;
+  height: 100%;
+  isolation: isolate;
+  pointer-events: none;
+}
+.sl-bay[data-theme="dollar-general"] .sl-unit::before {
+  content: "";
+  position: absolute;
+  inset: auto 2% -.32cqw;
+  height: max(.7cqw, 2px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #0d0b09ad, #17140e3d 52%, transparent 74%);
+  pointer-events: none;
+}
+.sl-bay[data-theme="dollar-general"] .sl-unit > .sl-face {
+  position: relative;
+  width: 100%;
+  filter: drop-shadow(.18cqw .21cqw .15cqw #15100d65);
+}
+.sl-bay[data-theme="dollar-general"] button.sl-label {
+  justify-content: center;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: 4%;
+  padding: 0 2%;
+  border: 1px solid #a29884;
+  border-top-color: #f9f6eb;
+  border-bottom-color: #9b917c;
+  border-radius: 2px;
+  background: linear-gradient(172deg, #f2efe4, #e6e2d5 75%, #d8d3c4);
+  box-shadow: inset 0 0 0 1px #fff8, .3px .75px 1px #30281775;
+}
+.sl-bay[data-theme="dollar-general"] .sl-tag-price,
+.sl-bay[data-theme="dollar-general"] .sl-tag-name {
+  display: inline-block;
+  white-space: nowrap;
+  color: #232319;
+  font-variant-numeric: tabular-nums;
+}
+.sl-bay[data-theme="dollar-general"] .sl-tag-price {
+  font-size: min(90cqh, 21cqw);
+  letter-spacing: -.035em;
+  font-weight: 720;
+  line-height: 1;
+}
+.sl-bay[data-theme="dollar-general"] .sl-tag-name {
+  font-size: min(65cqh, 12cqw);
+  font-weight: 570;
+  letter-spacing: -.035em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sl-bay[data-theme="dollar-general"] .sl-tag-name[hidden] { display: none; }
 .sl-bay[data-theme="dollar-general"] .sl-detail-card{background:#faf8ed;box-shadow:0 3cqw 10cqw #0006}

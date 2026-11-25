@@ -45,3 +45,22 @@ test('DG theme fills more of its shelf without changing the legacy baseline',()=
   assert.equal(dg.height,1280);
   assert.equal(stockHeight(3,5,'dollar-general'),dg.stockH);
 });
+
+test('DG auto shelves fit five slender products or fewer bulky ones without repeating an ID',()=>{
+  const items=Array.from({length:93},(_,i)=>({id:String(i),aspect:i<15?.54:i%2?1.6:.78}));
+  const config={theme:'dollar-general',rows:3,facings:1,items};
+  const first=layout(config);
+  assert.equal(first.slots.filter(slot=>slot.row===0).length,5);
+  const all=[];
+  for(let page=0;page<first.pages;page++){
+    const bay=layout({...config,page});
+    for(let row=0;row<3;row++){
+      const line=bay.slots.filter(slot=>slot.row===row);
+      assert.ok(line.length<=5);
+      for(let k=1;k<line.length;k++)assert.ok(line[k].left>=line[k-1].left+line[k-1].width-1e-8);
+      all.push(...line.map(slot=>slot.id));
+    }
+  }
+  assert.ok(layout({...config,page:1}).slots.length<15);
+  assert.deepEqual(all,items.map(item=>item.id));
+});

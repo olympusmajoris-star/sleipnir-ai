@@ -2,6 +2,7 @@
 (() => {
   'use strict';
 
+  const dollarGeneralStore = '0600cb61-45f9-402b-a209-134abdaef10f';
   const target = '35ef70d0-3d20-4599-96a3-648ee3c7c340';
   const uuid = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
   const targetRooms = new Map([
@@ -16,6 +17,7 @@
     cooler: assets + '3cf7c88db2375354e6dfe501f70e43876ca9697266e0077ef49c0cf343a77418.png'
   };
   const rulesURL = new URL('shelf-product-kinds.json', document.currentScript?.src || document.baseURI);
+  const dgRulesURL = new URL('dg-product-kinds.json', document.currentScript?.src || document.baseURI);
   const fields = 'id,store_id,category,name,full_name,price,image_url,image_url_orig,shelf_group';
   const base = () => window.StudioTransferConfig.url;
   const media = path => base() + '/storage/v1/object/public/menu-images/' + path;
@@ -95,6 +97,29 @@
     return alias || group || aisle;
   }
 
+  // Match specific names first, then use only the supplier groups that describe
+  // merchandise. Campaign and brand names never become default aisle tabs.
+  function dollarGeneralKinds(entries, aisle) {
+    const rules = entries.map(([label, pattern, ...aliases]) => ({
+      label, pattern:pattern ? new RegExp(pattern,'i') : null, aliases
+    }));
+    const drinkOrder = [
+      'Cola & pepper soda', 'Citrus soda', 'Root beer & cream soda', 'Ginger ale',
+      'Fruit & specialty soda', 'Drinking water', 'Sparkling & flavored water',
+      'Sports & hydration drinks', 'Energy drinks', 'Juice & lemonade', 'Iced tea',
+      'Chocolate & coffee drinks', 'Drink mixes', 'Beer & hard beverages', 'Bottled beverages'
+    ];
+    const labels = aisle === 'Soda, Water & Drinks' ? drinkOrder : rules.map(rule => rule.label);
+    const ranks = new Map(labels.map((label,index) => [label,index]));
+    return (name, group) => {
+      const title = name.replace(/&#(?:8217|39);|&apos;|[’‘]/g, "'").replace(/&amp;/g,'&');
+      const matched = rules.find(rule => rule.pattern?.test(title)) ||
+        rules.find(rule => rule.aliases.includes(group)) || rules.at(-1);
+      const kind = matched?.label || aisle;
+      return {kind,kindOrder:ranks.get(kind) ?? labels.length};
+    };
+  }
+
   function naturalSize(name) {
     return (name.match(/\b\d+(?:\.\d+)?\s*(?:fl\.?\s*oz|lbs?|oz|gals?|ml|kg|g|ct)\b/i)||[])[0] || '';
   }
@@ -152,8 +177,10 @@
         .then(rows=>rows.map(row=>row.product_id));
     const catalogPromise = custom ? Promise.resolve([]) :
       pages('products',{select:fields,store_id:'eq.'+store,category:'eq.'+source,order:'id'},signal);
-    const [ids,stock,art,rulesJSON] = await Promise.all([
-      stockPromise,catalogPromise,store===target ? sourceArt(source,signal) : Promise.resolve(new Map()),staticJSON(rulesURL)
+    const isDollarGeneral = store === dollarGeneralStore;
+    const [ids,stock,art,rulesJSON,dgRules] = await Promise.all([
+      stockPromise,catalogPromise,store===target ? sourceArt(source,signal) : Promise.resolve(new Map()),staticJSON(rulesURL),
+      isDollarGeneral ? staticJSON(dgRulesURL) : Promise.resolve(null)
     ]);
     const scoped = new Map(stock.filter(row=>row.store_id===store).map(row=>[row.id,row]));
     const ordered = [...new Set(ids.filter(id=>typeof id==='string' && uuid.test(id)))];
@@ -162,6 +189,7 @@
     const rules = Object.fromEntries(Object.entries(rulesJSON).map(([key,value])=>[key,{
       aliases:value.aliases,rules:value.rules.map(([kind,pattern])=>[kind,new RegExp(pattern,'i')])
     }]));
+    const classify = isDollarGeneral ? dollarGeneralKinds(dgRules[source] || [],source) : null;
     const items=[];
     for (const [sourceIndex,id] of ordered.entries()) {
       const row = scoped.get(id);
@@ -172,9 +200,11 @@
       const originals=[...new Set([photo(row.image_url),photo(row.image_url_orig)].filter(Boolean))];
       const dollarGeneral=mode==='dollar-general' || store==='0600cb61-45f9-402b-a209-134abdaef10f';
       const photos=[...new Set([...(dollarGeneral?originals.map(dollarGeneralPhoto):[]),...originals])];
-      items.push({...calibrated,id,sourceIndex,name,price,group,kind:kindFor(rules,source,group,name,Boolean(calibrated?.group)),
+      const type = classify ? classify(name,group) : {kind:kindFor(rules,source,group,name,Boolean(calibrated?.group))};
+      items.push({...calibrated,id,sourceIndex,name,price,group,...type,
         size:calibrated?.size || naturalSize(row.full_name||name),image:photos[0]||'',photos});
     }
+    if (isDollarGeneral && window.DollarGeneralShelfPhotos) await window.DollarGeneralShelfPhotos.apply(items,scoped);
     fixture = fixture || (/frozen|freezer/i.test(source) ? 'freezer' : /dairy|refrigerated|seafood|meat|deli/i.test(source) ? 'cooler' : 'shelf');
     return {items,fixture,plate:media(plateFiles[fixture] || (fixture==='freezer'?plateFiles.cooler:plateFiles.shelf)),
       groups:[...new Set(items.map(item=>item.group))], kinds:[...new Set(items.map(item=>item.kind))]};
