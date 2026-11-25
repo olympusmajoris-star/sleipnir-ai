@@ -11,20 +11,24 @@
   const currency = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD'});
   const finite = (v, fallback) => Number.isFinite(v) ? v : fallback;
   const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
-  function fractionBox(x,y,w,h) { return {left:x/W,top:y/H,width:w/W,height:h/H}; }
+  const isDG = theme => theme==='dollar-general';
+  const sceneHeight = theme => isDG(theme) ? 1280 : H;
+  const metricsKey = (photo,theme) => isDG(theme) ? 'dg:'+photo : photo;
+  function fractionBox(x,y,w,h,height=H) { return {left:x/W,top:y/height,width:w/W,height:h/height}; }
   function photoKey(p) {
     return [p.image,p.photo,...(Array.isArray(p.photos) ? p.photos : [])].find(v=>v && !failedPhotos.has(v)) || '';
   }
-  function getAspect(p) {
+  function getAspect(p,theme) {
     if (p.aspect > 0 && Number.isFinite(p.aspect)) return p.aspect;
     if (p.source?.[2] > 0 && p.source?.[3] > 0) return p.source[2]/p.source[3];
-    return photoMetrics.get(photoKey(p))?.aspect || 1;
+    return photoMetrics.get(metricsKey(photoKey(p),theme))?.aspect || 1;
   }
-  function stockHeight(rows,rail) {
-    const rowH = (H-TOP-BOTTOM)/Math.round(clamp(finite(rows,4),1,8));
-    return rowH-Math.min(31,rowH*.12)-rowH*clamp(finite(rail,4),1,15)/100;
+  function stockHeight(rows,rail,theme) {
+    const rowH = (sceneHeight(theme)-TOP-BOTTOM)/Math.round(clamp(finite(rows,4),1,8));
+    return rowH-Math.min(isDG(theme)?38:31,rowH*.12)-rowH*clamp(finite(rail,4),1,15)/100;
   }
   function layout(config) {
+    const themed=isDG(config.theme), height=sceneHeight(config.theme);
     const cold = /cool|fridge|refrigerat|freez/i.test(config.fixture || '');
     const edge = W*(cold ? .085 : .043);
     const fixedColumns = Number.isInteger(config.productsPerRow);
@@ -32,26 +36,27 @@
     const defaultFacings = clamp(Math.round(finite(config.facings,2)),1,3);
     const bayW = W - 2*edge, laneW = bayW/columns;
     const rows = Math.round(clamp(finite(config.rows,4),1,8));
-    const rowH = (H - TOP - BOTTOM)/rows;
-    const stockH = stockHeight(rows,config.rail);
+    const rowH = (height - TOP - BOTTOM)/rows;
+    const stockH = stockHeight(rows,config.rail,config.theme);
     const frontH = rowH-stockH;
     const tagH = frontH*.84;
     const railH = frontH-tagH;
     // The initial shelf opening determines horizontal allocation in Auto.
     // Editing rows or rails can resize art inside its reserved lanes, without
     // advancing or compressing any other product's absolute shelf position.
-    const packingHeight = clamp(finite(config.autoStockHeight,stockHeight(4,3)),100,1500);
+    const packingHeight = clamp(finite(config.autoStockHeight,stockHeight(themed?3:4,themed?5:3,config.theme)),100,1500);
     const moves = config.transforms || config.products || {};
     let line = 0, used = 0;
     const allSlots = [], locations = new Map();
     for (const item of config.items || []) {
       if (!item?.id) continue;
-      const aspect = clamp(getAspect(item),.04,32);
+      const aspect = clamp(getAspect(item,config.theme),.04,32);
       const move = moves instanceof Map ? moves.get(item.id) : moves[item.id];
       const facings = clamp(Math.round(finite(move?.facings,defaultFacings)),1,3);
       const faceGaps = (facings-1)*GAP;
-      const baseWidthLimit = Math.min(laneW*.90,laneW-2*EDGE-faceGaps)/facings;
-      const baseW = Math.min(baseWidthLimit,aspect*stockH*.72);
+      const baseWidthLimit = Math.min(laneW*(themed?.96:.90),laneW-2*EDGE-faceGaps)/facings;
+      const fillHeight=themed?.9:.72;
+      const baseW = Math.min(baseWidthLimit,aspect*stockH*fillHeight);
       const baseH = baseW/aspect;
       const availableW = fixedColumns ? laneW : bayW;
       const maxScale = Math.max(.1,Math.min(6,(availableW-2*EDGE-faceGaps)/(facings*baseW),(stockH-2*EDGE)/baseH));
@@ -59,7 +64,7 @@
       const scale = clamp(requestedScale,.1,maxScale);
       let span = 1;
       if (!fixedColumns) {
-        const refW = Math.min(baseWidthLimit,aspect*packingHeight*.72);
+        const refW = Math.min(baseWidthLimit,aspect*packingHeight*fillHeight);
         const maxRefScale = Math.min(6,(bayW-2*EDGE-faceGaps)/(facings*refW),(packingHeight-2*EDGE)*aspect/refW);
         const referencePack = facings*refW*clamp(requestedScale,.1,maxRefScale)+faceGaps;
         span = clamp(Math.ceil((referencePack+2*EDGE)/laneW-1e-9),1,columns);
@@ -76,9 +81,9 @@
       const bottom = cellTop+stockH-EDGE+y*rowH;
       const limits = {minX:-maxX,maxX,minY,maxY:0,minScale:.1,maxScale};
       const slot = {id:item.id,item,page,row,span,facings,x,y,scale,...limits,limits,
-        ...fractionBox(left,bottom-packH,packW,packH),
-        cell:fractionBox(cellLeft,cellTop,cellW,rowH), faceWidth:faceW/W,
-        tag:fractionBox(cellLeft+2,cellTop+stockH,cellW-4,tagH)};
+        ...fractionBox(left,bottom-packH,packW,packH,height),
+        cell:fractionBox(cellLeft,cellTop,cellW,rowH,height), faceWidth:faceW/W,
+        tag:fractionBox(cellLeft+2,cellTop+stockH,cellW-4,tagH,height)};
       allSlots.push(slot);
       if (!locations.has(item.id)) locations.set(item.id,page);
       used+=span;
@@ -88,7 +93,7 @@
     const pageFor=id=>locations.get(id) ?? -1;
     const page=locations.has(config.anchorId) ? pageFor(config.anchorId) :
       clamp(Math.floor(finite(config.page,0)),0,Math.max(0,pages-1));
-    return {page,pages,slots:allSlots.filter(s=>s.page===page),allSlots,pageFor,rows,productsPerRow:columns,railH,rowH,tagH,stockH,cold};
+    return {page,pages,slots:allSlots.filter(s=>s.page===page),allSlots,pageFor,rows,productsPerRow:columns,railH,rowH,tagH,stockH,cold,width:W,height,theme:config.theme};
   }
   const styleRect = (node,x,y,w,h) => {
     node.style.left=x*100+'%'; node.style.top=y*100+'%';
@@ -113,7 +118,7 @@
   function fixtureArtwork(parent,m,plate) {
     function slice(cellTop,cellHeight,sx,sy,sw,sh,x=0,w=W) {
       const node=element('div','sl-fixture-band');
-      styleRect(node,x/W,cellTop/H,w/W,cellHeight/H);
+      styleRect(node,x/W,cellTop/m.height,w/W,cellHeight/m.height);
       photoCrop(node,plate,[sx,sy,sw,sh],W,H);
       parent.append(node);
     }
@@ -129,9 +134,39 @@
       slice(y+m.stockH,m.tagH+m.railH,0,contact,W,46);
       slice(y+m.stockH,m.tagH+m.railH,340,contact+1,17,42,lipLeft,W-2*lipLeft);
     }
-    slice(H-BOTTOM,BOTTOM,0,1534,W,2);
+    slice(m.height-BOTTOM,BOTTOM,0,1534,W,2);
   }
-  function measurePhoto(key,photo) {
+  // Keep white print inside the pack. Only a confirmed exterior white studio
+  // backdrop outside the convex package outline may become transparent.
+  function clearExteriorWhite(ctx,pixels,background,pw,ph,bounds) {
+    const [x0,y0,x1,y1]=bounds;
+    const points=[];let occupied=0;
+    for(let y=y0;y<=y1;y++) {
+      let left=pw,right=-1;
+      for(let x=x0;x<=x1;x++) {
+        const i=y*pw+x;
+        if(pixels[i*4+3]>28&&!background[i]){left=Math.min(left,x);right=x;occupied++;}
+      }
+      if(right>=left){points.push([left,y]);if(right!==left)points.push([right,y]);}
+    }
+    // Sparse lettering on an otherwise white package is ambiguous: retain it.
+    if(points.length<6 || occupied/Math.max(1,(x1-x0+1)*(y1-y0+1))<.5)return false;
+    points.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+    const half=list=>{const out=[];for(const point of list){while(out.length>1&&cross(out.at(-2),out.at(-1),point)<=0)out.pop();out.push(point);}return out;};
+    const lower=half(points),upper=half([...points].reverse());lower.pop();upper.pop();const hull=lower.concat(upper);
+    if(hull.length<3)return false;
+    const mask=document.createElement('canvas');mask.width=pw;mask.height=ph;
+    const pen=mask.getContext('2d',{willReadFrequently:true});
+    pen.beginPath();pen.moveTo(...hull[0]);for(const p of hull.slice(1))pen.lineTo(...p);pen.closePath();
+    pen.fillStyle='#fff';pen.strokeStyle='#fff';pen.lineWidth=2;pen.fill();pen.stroke();
+    const outline=pen.getImageData(0,0,pw,ph).data;
+    let removed=0;
+    for(let i=0;i<pw*ph;i++)if(background[i]&&outline[i*4+3]<8){pixels[i*4+3]=0;removed++;}
+    if(!removed)return false;
+    const result=ctx.createImageData(pw,ph);result.data.set(pixels);ctx.putImageData(result,0,0);return true;
+  }
+  function measurePhoto(key,photo,theme) {
     if (photoMetrics.has(key)) return Promise.resolve(photoMetrics.get(key));
     if (measuring.has(key)) return measuring.get(key);
     const task=new Promise(resolve=>{
@@ -143,7 +178,7 @@
         if (!w || !h) {resolve(null);return;}
         const data={aspect:w/h};
         try {
-          const ratio=Math.min(1,256/Math.max(w,h)),can=document.createElement('canvas');
+          const ratio=Math.min(1,(isDG(theme)?512:256)/Math.max(w,h)),can=document.createElement('canvas');
           const pw=can.width=Math.max(1,Math.round(w*ratio)),ph=can.height=Math.max(1,Math.round(h*ratio));
           const ctx=can.getContext('2d',{willReadFrequently:true});
           ctx.drawImage(img,0,0,pw,ph);
@@ -156,7 +191,8 @@
           for(let x=0;x<pw;x++) boundary.push(x,(ph-1)*pw+x);
           for(let y=1;y<ph-1;y++) boundary.push(y*pw,y*pw+pw-1);
           const background=new Uint8Array(pw*ph);
-          if(boundary.filter(white).length>=boundary.length*.97) {
+          const whiteBackdrop=boundary.filter(white).length>=boundary.length*.97;
+          if(whiteBackdrop) {
             const queue=new Int32Array(pw*ph);
             let head=0,tail=0;
             const visit=i=>{if(!background[i]&&white(i)){background[i]=1;queue[tail++]=i;}};
@@ -180,6 +216,10 @@
               data.crop=[x0*w/pw,y0*h/ph,(x1-x0)*w/pw,(y1-y0)*h/ph];
               data.w=w;data.h=h;data.aspect=data.crop[2]/data.crop[3];
             }
+            if(isDG(theme)&&whiteBackdrop&&clearExteriorWhite(ctx,pixels,background,pw,ph,[x0,y0,Math.min(pw-1,x1),Math.min(ph-1,y1)])) {
+              data.image=can.toDataURL('image/png');data.w=pw;data.h=ph;
+              data.crop=[x0,y0,x1-x0,y1-y0];data.aspect=data.crop[2]/data.crop[3];
+            }
           }
         } catch { /* A server may allow image display but deny pixel reads. */ }
         resolve(data);
@@ -187,7 +227,13 @@
       img.src=photo;
     }).then(data=>{
       measuring.delete(key);
-      if(data)photoMetrics.set(key,data);
+      if(data) {
+        photoMetrics.set(key,data);
+        // Derived PNGs are a display cache, not catalog assets. Bound their memory
+        // while a shopper browses a large store; the original URL can recreate one.
+        const textures=[...photoMetrics].filter(([,value])=>value.image);
+        for(const [old] of textures.slice(0,Math.max(0,textures.length-96)))photoMetrics.delete(old);
+      }
       return data;
     });
     measuring.set(key,task);
@@ -224,13 +270,13 @@
     layer.setAttribute('role','dialog');layer.setAttribute('aria-label',p.name||'Product details');
     const close=element('button','sl-detail-close');close.type='button';close.textContent='×';close.setAttribute('aria-label','Close');
     const pic=element('div','sl-detail-photo');
-    const atlas=imageURL(p.atlas), key=photoKey(p), photo=imageURL(key), info=photoMetrics.get(key);
+    const atlas=imageURL(p.atlas), key=photoKey(p), photo=imageURL(key), info=photoMetrics.get(metricsKey(key,record.config.theme));
     if(atlas && Array.isArray(p.source) && p.source[2]>0 && p.source[3]>0) {
       const face=element('span','sl-detail-crop');face.style.aspectRatio=String(p.source[2]/p.source[3]);
       photoCrop(face,atlas,p.source,p.atlasWidth||1152,p.atlasHeight||1536);pic.append(face);
     } else if(photo && info?.crop) {
       const face=element('span','sl-detail-crop');face.style.aspectRatio=String(info.crop[2]/info.crop[3]);
-      photoCrop(face,photo,info.crop,info.w,info.h);pic.append(face);
+      photoCrop(face,info.image||photo,info.crop,info.w,info.h);pic.append(face);
     } else if(photo) {
       const img=element('img','sl-detail-img');img.alt='';img.draggable=false;img.src=photo;pic.append(img);
     }
@@ -266,6 +312,8 @@
     const active = config.selected instanceof Set ? config.selected : new Set(config.selected || []);
     const fragment=document.createDocumentFragment();
     host.classList.add('sl-bay');
+    host.dataset.theme=isDG(config.theme)?'dollar-general':'';
+    host.style.setProperty('--shelf-bay-ratio',m.width+' / '+m.height);
     const plate=imageURL(config.plate?.url || config.plate) || (m.cold ? coolerPlate : shelfPlate);
     const art=element('div','sl-art');
     art.setAttribute('aria-hidden','true');
@@ -296,22 +344,22 @@
           faces.append(face);
         }
       } else if(photo) {
-        const info=photoMetrics.get(key);
+        const metric=metricsKey(key,config.theme),info=photoMetrics.get(metric);
         if(!info) {
-          measurePhoto(key,photo).then(loaded=>{if(loaded)notifyMetrics(host,key);});
+          measurePhoto(metric,photo,config.theme).then(loaded=>{if(loaded)notifyMetrics(host,key);});
         }
         for(let i=0;i<slot.facings;i++) {
           const face=element(info?.crop?'span':'img','sl-face');
           face.style.width=slot.faceWidth/slot.width*100+'%';
-          if(info?.crop)photoCrop(face,photo,info.crop,info.w,info.h);
+          if(info?.crop)photoCrop(face,info.image||photo,info.crop,info.w,info.h);
           else {
             face.alt='';face.draggable=false;
             if(!i)face.onload=()=>{
               // Cross-origin photos without CORS still expose their intrinsic dimensions.
-              if(!photoMetrics.has(key)) {
+              if(!photoMetrics.has(metric)) {
                 const aspect=face.naturalWidth/face.naturalHeight;
                 if(aspect>0&&Number.isFinite(aspect)) {
-                  photoMetrics.set(key,{aspect});notifyMetrics(host,key);
+                  photoMetrics.set(metric,{aspect});notifyMetrics(host,key);
                 }
               }
             };

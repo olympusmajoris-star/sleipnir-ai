@@ -73,6 +73,17 @@
     } catch { return ''; }
   }
 
+  // Ask DG's own image service for a sharp, bandwidth-conscious shelf photo.
+  // The original URL remains available as a fallback and is never overwritten.
+  function dollarGeneralPhoto(value) {
+    try {
+      const url = new URL(value);
+      if (url.hostname !== 's7d1.scene7.com' || !url.pathname.startsWith('/is/image/dolgen/')) return value;
+      for (const [key,val] of Object.entries({wid:'600',hei:'600',fit:'constrain',fmt:'jpeg',qlt:'90'})) url.searchParams.set(key,val);
+      return url.href;
+    } catch { return value; }
+  }
+
   // Prefer the calibrated Target group. Some raw milk records have catalog group "Eggs".
   function kindFor(rules, aisle, group, name, calibrated) {
     const family = rules[aisle];
@@ -123,7 +134,7 @@
     return art;
   }
 
-  async function load({store,aisle,authoredId,signal}) {
+  async function load({store,aisle,authoredId,mode,signal}) {
     if (!uuid.test(store||'') || !String(aisle||'').trim() || (authoredId && !uuid.test(authoredId))) {
       throw Error('Choose a store and an aisle.');
     }
@@ -158,7 +169,9 @@
       const calibrated=art.get(id), group=calibrated?.group || String(row.shelf_group || '').trim() || source;
       const name=String(row.name||row.full_name||'').trim();
       const price=row.price==null || !Number.isFinite(Number(row.price)) || Number(row.price)<0 ? null : Number(row.price);
-      const photos=[...new Set([photo(row.image_url),photo(row.image_url_orig)].filter(Boolean))];
+      const originals=[...new Set([photo(row.image_url),photo(row.image_url_orig)].filter(Boolean))];
+      const dollarGeneral=mode==='dollar-general' || store==='0600cb61-45f9-402b-a209-134abdaef10f';
+      const photos=[...new Set([...(dollarGeneral?originals.map(dollarGeneralPhoto):[]),...originals])];
       items.push({...calibrated,id,name,price,group,kind:kindFor(rules,source,group,name,Boolean(calibrated?.group)),
         size:calibrated?.size || naturalSize(row.full_name||name),image:photos[0]||'',photos});
     }

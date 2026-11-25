@@ -5,11 +5,13 @@
   const dialog = el('layout-workspace');
   const drafts = new Map();
   let session = null, activity = 0;
-  function defaults(savedLayout) {
-    const layout={rows:4,rail:3,tabHeight:24,groupBy:'type',facings:2,products:{},...savedLayout};
+  const themeFor=s=>s.options.mode==='dollar-general'||s.store==='0600cb61-45f9-402b-a209-134abdaef10f'?'dollar-general':'';
+  function defaults(savedLayout,theme) {
+    const layout={rows:4,rail:3,tabHeight:24,groupBy:'type',facings:2,products:{},
+      ...(theme==='dollar-general'?{rows:3,rail:5,productsPerRow:2,groupBy:'original'}:{}),...savedLayout};
     // Record the original room above each shelf. Changing shelf height should not shuffle its products.
     if(!Number.isFinite(layout.autoStockHeight))
-      layout.autoStockHeight=window.ShelfLayoutCanvas.stockHeight(layout.rows,layout.rail);
+      layout.autoStockHeight=window.ShelfLayoutCanvas.stockHeight(layout.rows,layout.rail,theme);
     return layout;
   }
   const keyFor = s => [s.store,s.key].join('/');
@@ -65,7 +67,7 @@
     const grouped = s.layout.groupBy==='type';
     const items = grouped ? s.groups.get(s.group) : s.items;
     const receipt=window.ShelfLayoutCanvas.render(el('layout-surface'),{
-      items, fixture:s.data.fixture, plate:s.data.plate, rows:s.layout.rows, rail:s.layout.rail,
+      items, fixture:s.data.fixture, plate:s.data.plate, theme:themeFor(s),rows:s.layout.rows, rail:s.layout.rail,
       tabHeight:s.layout.tabHeight,productsPerRow:s.layout.productsPerRow,facings:s.layout.facings,
       autoStockHeight:s.layout.autoStockHeight,
       transforms:s.layout.products, page:s.page, anchorId
@@ -131,7 +133,7 @@
     status('Loading shelf products…');
     try {
       const [data,snapshot]=await Promise.all([
-        window.ShelfLayoutData.load({store:s.store,aisle:s.aisle,authoredId:s.options.authoredId,signal:s.abort.signal}),
+        window.ShelfLayoutData.load({store:s.store,aisle:s.aisle,authoredId:s.options.authoredId,mode:s.options.mode,signal:s.abort.signal}),
         s.options.saved || window.ShelfLayoutStore.load(s.store,s.key),
         s.options.getScaleData?.()
       ]);
@@ -141,7 +143,7 @@
       s.items=data.items.map(p=>({...p,scale:baseScales[p.id]??p.scale??1}));
       s.byId=new Map(s.items.map(p=>[p.id,p]));
       if(!s.items.length){status('This aisle has no stocked products.');return;}
-      s.saved=defaults(snapshot.layout);
+      s.saved=defaults(snapshot.layout,themeFor(s));
       if (!snapshot.layout) {
         // Wide cartons need a second lane to read at phone size. Preserve previous SKU size decisions.
         for (const item of s.items) {

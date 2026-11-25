@@ -126,6 +126,9 @@ label { color: var(--muted); font-size: .9rem; }
   background: #080f16;
 }
 #preview-host:has(#editor-frame[hidden]) { min-height: clamp(15rem, 52vh, 34rem); }
+#preview-host.dg-preview-host { min-height: 0; }
+#dg-aisle-view, #dg-shopping-view { width: min(100%,390px); margin-inline: auto; }
+#dg-shopping-view { padding-bottom: .5rem; }
 #frame-status { max-width: 33rem; padding: 1rem; color: var(--muted); text-align: center; }
 .preview-actions, #search-form, .scale-controls, .button-row, .control-label {
   display: flex;

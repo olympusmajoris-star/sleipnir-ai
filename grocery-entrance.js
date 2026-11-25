@@ -77,7 +77,7 @@ const $=id=>document.getElementById(id),conf=global.StudioTransferConfig;
 const args=()=>new URLSearchParams(location.search);
 const id=(args().get('store')||'').toLowerCase();
 const media=(path,folder)=>mediaPath(path,conf.url,folder);
-let doors=[],panels=[],currentDoor,activeSku,controller,store,mode,initialLoaded=false,revision=0;
+let doors=[],panels=[],currentDoor,activeSku,controller,store,mode,initialLoaded=false,revision=0,dgShelfMount=null;
 const formatPrice=value=>value==null||!Number.isFinite(Number(value))?'Price unavailable':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value));
 async function read(table,params,signal){
  const rows=[],maximum=params.limit?Math.max(1,Number(params.limit)):Infinity;
@@ -193,6 +193,21 @@ function resetScene(){
  $('status').textContent='';$('retry').hidden=true;$('storeRepair').hidden=true;
  if($('sku').open)$('sku').close();
 }
+function destroyDgShelf(){
+ const mounted=dgShelfMount;dgShelfMount=null;
+ mounted?.destroy();
+ const host=$('dgShelfEntrance');host.hidden=true;host.replaceChildren();
+}
+function drawDgShelf(door,label){
+ const host=$('dgShelfEntrance');host.hidden=false;host.setAttribute('aria-label',label+' product shelves');
+ if(!global.DollarGeneralShelf?.mount)throw Error('The Dollar General shelf preview could not load. Please try again.');
+ const mounted=global.DollarGeneralShelf.mount(host,{store:id,aisle:door.label,mode:'dollar-general',shopping:true});
+ dgShelfMount=mounted;
+ Promise.resolve(mounted.ready).catch(error=>{
+  if(error?.name==='AbortError'||dgShelfMount!==mounted||currentDoor!==door)return;
+  $('status').textContent=error?.message||'The aisle products could not load.';$('retry').hidden=false;
+ });
+}
 const entranceGroups=new Map();
 async function physicalBoardGroups(source,signal){
  if(!entranceGroups.has(source)){
@@ -209,7 +224,8 @@ function drawEntrance(door){
  const originalArt=media(door.art,id===TARGET?'target-entrances':'');
  const art=authoredImage(appearance.entrance_url,conf.url)||originalArt;
  const decorated=Boolean(global.GroceryDoorPreview&&door.authored&&(!door.authored.source_aisle||appearance.entrance_url||appearance.entrance_title||appearance.board_title||appearance.board_body));
- $('publishedDoor').hidden=!decorated;$('originalDoor').hidden=decorated;
+ const denseShelf=mode==='dollar-general'&&door.preview&&!decorated;
+ $('publishedDoor').hidden=!decorated;$('originalDoor').hidden=decorated||denseShelf;
  if(decorated){
   const options={container:$('publishedDoor'),storeId:id,source:door.authored.source_aisle,title:door.authored.title,art:originalArt,appearance,onSelect:enter,shopping:true};
   global.GroceryDoorPreview.render({...options,groups:entranceGroups.get(options.source)||[]});
@@ -224,13 +240,14 @@ function drawEntrance(door){
  $('doorImage').classList.toggle('catalog-door',Boolean(door.preview));
  $('doorImage').classList.toggle('text-door',!art&&!door.preview);
  $('doorImage').classList.toggle('dg-door',mode==='dollar-general');
- if(door.preview)drawProductPreview(door,controller.signal).catch(()=>{});
+ if(door.preview&&!denseShelf&&!decorated)drawProductPreview(door,controller.signal).catch(()=>{});
  $('doorName').textContent=label;$('doorImage').setAttribute('aria-label','Enter '+label);$('enter').textContent='Enter '+label;
  const board=$('doorBoard');board.hidden=!(appearance.board_title||appearance.board_body);
  $('boardName').textContent=appearance.board_title||'';$('boardBody').textContent=appearance.board_body||'';
  board.style.backgroundColor=/^#[a-f0-9]{6}$/i.test(appearance.board_color)?appearance.board_color:'';
  board.style.color=/^#[a-f0-9]{6}$/i.test(appearance.ink_color)?appearance.ink_color:'';
  $('editAisle').href='grocery-aisle-builder.html?'+new URLSearchParams(door.authored?{store:id,aisle:door.authored.aisle_id}:{store:id,source:door.label});
+ if(denseShelf)drawDgShelf(door,label);
 }
 async function loadPanels(door,signal){
  if(door.kind==='Published aisles')return publishedPanels(door,signal);
@@ -324,7 +341,7 @@ function drawPanel(index){
  }
 }
 async function route(){
- const request=++revision;controller?.abort();controller=new AbortController();const signal=controller.signal;
+ const request=++revision;controller?.abort();destroyDgShelf();controller=new AbortController();const signal=controller.signal;
  resetScene();
  try{
   if(!UUID.test(id))throw Error('This link does not identify a store.');

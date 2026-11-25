@@ -1,0 +1,36 @@
+/* A stocked DG aisle, sized for the same phone canvas as the shopping app. */
+.dg-shelf{width:min(100%,390px);margin:0 auto;color:#f6f3e9;font:14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;container-type:inline-size}
+.dg-shelf *{box-sizing:border-box}
+.dg-shelf .dg-shelf-view{position:relative;overflow:hidden;border:1px solid #53514a;border-radius:5px;background:#171715;box-shadow:0 9px 26px #0004}
+.dg-shelf .dg-shelf-header{position:relative;z-index:4;display:block;margin:0;padding:10px 9px 0;border:0;background:linear-gradient(120deg,#4f4e48,#363733);box-shadow:inset 0 1px #ffffff24}
+.dg-shelf .dg-shelf-search{display:flex;align-items:center;gap:9px;height:42px;margin:0;padding:0 13px 0 7px;border:1px solid #fff;background:#fff;border-radius:23px;color:#53524d;box-shadow:0 2px 5px #0002}
+.dg-shelf .dg-shelf-search input{flex:1;min-width:0;width:auto;height:100%;margin:0;padding:0;border:0;outline:0;background:transparent;color:#262623;font:400 15px/1.2 system-ui,sans-serif;border-radius:0}
+.dg-shelf .dg-shelf-search input::placeholder{color:#73736d;opacity:1}
+.dg-shelf .dg-shelf-menu{flex:0 0 30px;display:grid;place-items:center;width:30px;height:34px;min-height:0;margin:0;padding:5px;border:0;border-radius:50%;background:transparent;color:#32332e;cursor:pointer}
+.dg-shelf .dg-shelf-menu svg{width:21px;height:21px}
+.dg-shelf .dg-shelf-search-mark{position:static;display:block;flex:none;width:16px;height:16px;margin:0;padding:0;background:none}
+.dg-shelf .dg-shelf-search-mark svg{display:block;width:16px;height:16px}
+.dg-shelf .dg-shelf-tabs{display:flex;align-items:stretch;justify-content:flex-start;gap:0;height:39px;overflow-x:auto;scrollbar-width:none;margin:9px 0 0;padding:0 1px;border:0;white-space:nowrap;scroll-behavior:smooth}
+.dg-shelf .dg-shelf-tabs::-webkit-scrollbar{display:none}
+.dg-shelf .dg-shelf-tab{position:relative;flex:0 0 auto;max-width:235px;height:32px;min-height:0;margin:0 0 0 -8px;padding:0 22px;border:0;border-radius:0;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);background:#e4e2d3;color:#32352e;font:550 12px/32px system-ui,sans-serif;text-align:center;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.dg-shelf .dg-shelf-tab:first-child{margin-left:0}
+.dg-shelf .dg-shelf-tab:nth-child(3n+2){background:#d9e0d8}
+.dg-shelf .dg-shelf-tab[aria-pressed=true]{background:#ffde27;color:#181a12;font-weight:750}
+.dg-shelf .dg-shelf-group-list{position:absolute;left:9px;right:9px;top:58px;z-index:8;max-height:280px;overflow:auto;display:grid;gap:3px;padding:7px;border:1px solid #77766a;border-radius:9px;background:#292a25;box-shadow:0 12px 20px #0007}
+.dg-shelf .dg-shelf-group-option{min-height:39px;margin:0;padding:9px 12px;text-align:left;border:0;border-radius:4px;background:transparent;color:#f6f4e9;font:500 13px/1.4 system-ui,sans-serif;cursor:pointer}
+.dg-shelf .dg-shelf-group-option[aria-pressed=true]{background:#f4d933;color:#191b12}
+.dg-shelf .dg-shelf-stage{position:relative;min-height:180px;background:#24241f}
+.dg-shelf .dg-shelf-loading{display:grid;place-items:center;min-height:180px;padding:30px;color:#e8e7d8;text-align:center;font-size:14px;line-height:1.5}
+.dg-shelf .dg-shelf-retry{display:block;margin:0 auto 25px;padding:9px 18px;border:1px solid #c5bb72;border-radius:5px;background:#ffde27;color:#202014;font:650 14px/1.4 system-ui,sans-serif;cursor:pointer}
+.dg-shelf .dg-shelf-paging{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:49px;margin:0;padding:4px 7px;border-top:1px solid #68685b;background:linear-gradient(#2c2e28,#22251f)}
+.dg-shelf .dg-shelf-page-button{flex:none;display:grid;place-items:center;width:42px;height:39px;min-height:0;margin:0;padding:8px;border:1px solid #666756;border-radius:4px;background:#34392e;color:#fff6c8;cursor:pointer}
+.dg-shelf .dg-shelf-page-button svg{width:22px;height:22px}
+.dg-shelf .dg-shelf-page-button:disabled{opacity:.3;cursor:default}
+.dg-shelf .dg-shelf-page-label{position:static;display:flex;flex-direction:column;gap:2px;min-width:0;padding:0;background:none;text-align:center;color:#faf5dd;font-size:12px;font-weight:500}
+.dg-shelf .dg-shelf-page-label strong{font-size:12px;font-weight:650}
+.dg-shelf .dg-shelf-page-label small{display:block;max-width:245px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#babfb0;font-size:10px;font-weight:450}
+.dg-shelf button:focus-visible,.dg-shelf input:focus-visible{outline:2px solid #5de0f1;outline-offset:2px}
+.dg-shelf .dg-shelf-search:focus-within{box-shadow:0 0 0 2px #5de0f1}
+.dg-shelf [hidden]{display:none!important}
+.dg-shelf[data-mode=edit] .sl-faces{cursor:pointer}
+@media(prefers-reduced-motion:reduce){.dg-shelf .dg-shelf-tabs{scroll-behavior:auto}}

@@ -6,6 +6,8 @@
   const channel = 'sleipnir-aisle-editor-v1';
   const requestedAuthored = start.has('authored') ? (start.get('authored') || '').trim().toLowerCase() : null;
   const authoredFeature = 'preview-authored-aisle';
+  const dgRenderer = 'dg-shelves-20261125-1';
+  const dgBuild = {capabilities:[authoredFeature],aisleRouting:{otherStores:'catalog',standard:[]}};
   const requestedAisle = (start.get('aisle') || '').trim().slice(0,140);
   const hashPattern = /^[0-9a-f]{64}$/;
   const idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -36,7 +38,8 @@
     authoredId:requestedAuthored, authoredRows:new Map(), mode:'', catalog:[], stockedShelves:[], breadAlias:false, storeReady:false, catalogReady:false,
     editing: true, owner: false, authPending: false, uploading: false, building: false, previewURL: null,
     ready: false, readOnly: false, frameSequence: 0, selectionSequence: 0, versionSequence: 0, flagSequence: 0,
-    saveBusy: new Set(), flagBusy: new Set(), flags: [], sourceFile: null, frameTimer: null
+    saveBusy: new Set(), flagBusy: new Set(), flags: [], sourceFile: null, frameTimer: null,
+    dgView: null, dgShopping: null
   };
   window.StudioSelectionTarget=()=>window.ShelfLayoutWorkspace?.toolTarget?.()||(!state.storeReady?null:{
     page:'GroceryAislePage',item:'grocery',store,aisle:state.authoredId?'studio:'+state.authoredId:state.aisle,
@@ -46,7 +49,7 @@
   function openLayout(group, anchorId, saved, shopping = false) {
     if (!state.storeReady || !state.catalogReady || (!state.authoredId && !state.stockedShelves.includes(state.aisle))) return;
     window.ShelfLayoutWorkspace.open({
-      store, aisle: state.aisle, authoredId: state.authoredId, group, anchorId, saved,
+      store, aisle: state.aisle, authoredId: state.authoredId, mode:state.mode, group, anchorId, saved,
       onShopProduct: shopping ? openCompiledShopping : null,
       getScales: () => ({
         ...Object.fromEntries([...state.saved].filter(([,r])=>r.revision>0).map(([id,r])=>[id,r.scale])),
@@ -64,6 +67,8 @@
     const group = start.get('group') || '';
     if (start.get('layout') === '1') { openLayout(group); return; }
     if (start.get('layout') === '0') return;
+    // DG's main shelf now honors the saved layout directly; no modal is needed on arrival.
+    if (state.selectedSha === dgRenderer) return;
     const activity = window.ShelfLayoutWorkspace?.activity;
     window.ShelfLayoutStore?.load(store,key).then(saved => {
       if (saved.layout && window.ShelfLayoutWorkspace.activity === activity && key === (state.authoredId ? 'studio:'+state.authoredId : state.aisle) && !state.selected) openLayout('',null,saved);
@@ -78,6 +83,10 @@
     return current;
   }
   function send(type, data = {}) {
+    if (state.dgView) {
+      state.dgView.command(type,type==='sync'?{...data,draftScales:Object.fromEntries(state.drafts)}:data);
+      return;
+    }
     if (!state.ready || !state.previewURL) return;
     el('editor-frame').contentWindow.postMessage({channel, type, ...data}, state.previewURL.origin);
   }
@@ -89,6 +98,7 @@
     return src;
   }
   async function previewShopping() {
+    if (state.dgView) { openDollarGeneralShopping(); return; }
     if (!state.ready || state.readOnly || !state.previewURL) return;
     const sha = state.selectedSha, key = state.authoredId ? 'studio:'+state.authoredId : state.aisle;
     if (sha === state.defaultSha && state.hosted.get(sha)?.capabilities?.includes('focus-product')) {
@@ -101,6 +111,7 @@
     openCompiledShopping();
   }
   function openCompiledShopping(productId) {
+    if (state.dgView) { openDollarGeneralShopping(productId); return; }
     const dialog = el('shopping-preview');
     if (!state.ready || state.readOnly || !state.previewURL || dialog.open) return;
     const url = previewRoute(), sha = state.selectedSha, frame = make('iframe');
@@ -210,6 +221,7 @@
     return supported;
   }
   function getVersionLabel(v) {
+    if (v.nativeShelf) return v.label;
     const label = v.label || v.filename || 'GroceryAisle.dart';
     return label + ' · ' + v.sha256.slice(0,8);
   }
@@ -353,7 +365,7 @@
     const {product_id,aisle,pageKey} = state.focus;
     const key = typeof pageKey==='string' && /^studio:([a-f0-9-]+)\/page\/(\d+)\/slot\/(\d+)$/i.exec(pageKey);
     const r=key && state.authoredRows.get(key[1]);
-    if(key ? (!r || !hasAuthored(state.hosted.get(state.selectedSha)||state.local.get(state.selectedSha)) ||
+      if(key ? (!r || !hasAuthored(state.selectedSha===dgRenderer?dgBuild:state.hosted.get(state.selectedSha)||state.local.get(state.selectedSha)) ||
         r.product_ids[(Number(key[2])-1)*12+Number(key[3])-1]!==product_id) : !state.stockedShelves.includes(aisle)){
       state.focus=null;setNotice('This flagged aisle is unavailable in the selected version.');return;
     }
@@ -385,6 +397,7 @@
   }
   function versionStatus() {
     const v = currentVersion();
+    if (v?.nativeShelf) return 'Live catalog shelves · changes appear immediately in the preview.';
     const local = state.local.has(state.selectedSha);
     const compiled = state.hosted.has(state.selectedSha) || local;
     if (!v) return 'No Dart version loaded.';
@@ -398,7 +411,69 @@
     el('product-detail').replaceChildren(make('p', state.editing ? 'Click a product on the shelf to resize it.' : 'This Dart version supports shopping only.'));
     updateControls();
   }
+  function selectDollarGeneralVersion() {
+    ++state.versionSequence;
+    const serial=++state.frameSequence;
+    state.dgView?.destroy();state.dgView=null;
+    state.selectedSha=dgRenderer;
+    state.ready=false;state.readOnly=false;state.editing=true;state.previewURL=null;
+    clearTimeout(state.frameTimer);
+    const supported=chooseShelves(dgBuild);
+    clearSelection();showVersions();
+    const old=el('editor-frame'),frame=old.cloneNode(false);
+    frame.removeAttribute('src');frame.hidden=true;old.replaceWith(frame);
+    const host=el('dg-aisle-view');
+    host.hidden=!supported;
+    el('preview-host').classList.add('dg-preview-host');
+    el('frame-status').hidden=false;
+    message('version-status',versionStatus());
+    if(!supported){message('frame-status','Choose a stocked aisle.');updateControls();return;}
+    message('frame-status','Loading shelf products…');
+    try {
+      const view=window.DollarGeneralShelf.mount(host,{
+        store,aisle:state.aisle,authoredId:state.authoredId,mode:state.mode,scales:scaleMap(),draftScales:Object.fromEntries(state.drafts),shopping:false,
+        onSelect:data=>{if(serial===state.frameSequence)selectProduct(data);},
+        onStatus:text=>{if(serial===state.frameSequence)setNotice(text);}
+      });
+      state.dgView=view;
+      view.ready.then(()=>{
+        if(serial!==state.frameSequence || state.dgView!==view)return;
+        state.ready=true;el('frame-status').hidden=true;
+        send('sync',{scales:scaleMap()});
+        updateControls();drawFlags();navigateToFlag();
+        if(start.get('product'))send('focus-product',{product_id:start.get('product')});
+      }).catch(error=>{
+        if(serial!==state.frameSequence)return;
+        state.ready=false;el('frame-status').hidden=false;
+        message('frame-status',failText(error));updateControls();
+      });
+    } catch(error){message('frame-status',failText(error));}
+    updateControls();
+  }
+  function openDollarGeneralShopping(productId) {
+    const dialog=el('shopping-preview');
+    if(!state.ready || dialog.open || !state.dgView)return;
+    const host=make('div');host.id='dg-shopping-view';
+    message('close-shopping','Back to editing');message('shopping-status','');
+    dialog.append(host);
+    const view=window.DollarGeneralShelf.mount(host,{
+      store,aisle:state.aisle,authoredId:state.authoredId,mode:state.mode,scales:scaleMap(),draftScales:Object.fromEntries(state.drafts),shopping:true,
+      onStatus:text=>{if(dialog.open)message('shopping-status',text);}
+    });
+    state.dgShopping=view;
+    dialog.addEventListener('close',()=>{
+      view.destroy();host.remove();
+      if(state.dgShopping===view)state.dgShopping=null;
+    },{once:true});
+    dialog.showModal();
+    view.ready.then(()=>{if(dialog.open&&productId)view.command('focus-product',{product_id:productId});})
+      .catch(error=>{if(dialog.open)message('shopping-status',failText(error));});
+  }
   function selectVersion(digest) {
+    if (digest === dgRenderer && state.mode === 'dollar-general') { selectDollarGeneralVersion(); return; }
+    state.dgView?.destroy(); state.dgView=null;
+    el('dg-aisle-view').hidden=true;
+    el('preview-host').classList.remove('dg-preview-host');
     ++state.versionSequence;
     state.selectedSha = state.versions.has(digest) ? digest : '';
     const v = currentVersion(), build = state.hosted.get(digest) || state.local.get(digest);
@@ -449,12 +524,13 @@
     el('department').value=aisle;
     writeAisleRoute();
     clearSelection();
+    if (state.selectedSha === dgRenderer) { selectDollarGeneralVersion(); return; }
     if ((oldAuthored!==state.authoredId || !state.previewURL) && state.selectedSha)selectVersion(state.selectedSha);
     else if(!state.authoredId)send('set-aisle',{aisle});
   }
   function currentScale() {
     const p = state.selected;
-    return p ? state.drafts.get(p.id) ?? state.saved.get(p.id)?.scale ?? p.initial : 1;
+    return p ? state.drafts.get(p.id) ?? (state.dgView?p.initial:state.saved.get(p.id)?.scale ?? p.initial) : 1;
   }
   function updateControls() {
     const p = state.selected, scale = currentScale();
@@ -492,11 +568,11 @@
     el('repair-note').disabled = !valid;
     el('flag-product').disabled = !valid || !signed || !el('repair-note').value.trim() || state.flagBusy.has(p.id);
     message('draft-status',p ? (!p.verified ? p.status : !p.scalable ? 'This display supports repair flags. Product scaling is unavailable.' : state.drafts.has(p.id) ?
-      'Unsaved draft · saved scale ' + percentage(state.saved.get(p.id)?.scale ?? 1) + (signed ? '' : ' · Connect the owner account to save.') :
+      'Unsaved draft · saved scale ' + percentage(state.dgView?p.initial:state.saved.get(p.id)?.scale ?? 1) + (signed ? '' : ' · Connect the owner account to save.') :
       'Saved scale ' + percentage(scale) + ' · ' + percentage(p.min) + '–' + percentage(p.max) + ' available') : '');
     el('upload').disabled = !el('dart-file').files.length || !signed || state.uploading;
     el('upload').textContent = state.uploading ? 'Saving…' : 'Save version';
-    const unbuilt = !!currentVersion() && !state.hosted.has(state.selectedSha) && !state.local.has(state.selectedSha);
+    const unbuilt = !!currentVersion() && !currentVersion().nativeShelf && !state.hosted.has(state.selectedSha) && !state.local.has(state.selectedSha);
     el('compile-version').hidden = !unbuilt;
     el('compile-version').disabled = !signed || state.building;
     el('compile-version').textContent = state.building ? 'Building preview…' : 'Build private preview';
@@ -518,7 +594,7 @@
       storeId:store,productId:p.id,
       aisles:dynamicAisle ? state.catalog.filter(name=>!(state.breadAlias && name==='Bread & Rolls')) : [],
       current:()=>state.selected?.id===p.id && state.editing && state.ready && !state.readOnly && state.selectedSha===savedSha,
-      surface:dynamicAisle?'The shopper aisle uses this catalog category. The app reads the product name, description, base price and primary photo from the catalog.':
+      surface:dynamicAisle || state.mode==='dollar-general'?'This shelf uses the live catalog product, price and photograph. Updated details appear when the aisle refreshes.':
         'The app can read updated catalog details and base prices. Stock already painted into a shelf or floor photograph must be updated in that display’s artwork.',
       async onSaved(row,patch){
         if(state.selectedSha!==savedSha || state.aisle!==savedAisle)return;
@@ -563,6 +639,7 @@
       previous.min = min;
       previous.max = max;
       previous.scalable = data.editable !== false;
+      if(state.dgView && !state.drafts.has(id) && number(data.scale))previous.initial=data.scale;
       updateControls();
       return;
     }
@@ -597,7 +674,7 @@
     const p = state.selected;
     if (!p?.verified || !p.scalable || !state.editing || !state.ready || !number(value)) return;
     const scale = round(Math.max(p.min,Math.min(value,p.max)));
-    if (scale === (state.saved.get(p.id)?.scale ?? 1)) state.drafts.delete(p.id);
+    if (scale === (state.dgView?p.initial:state.saved.get(p.id)?.scale ?? 1)) state.drafts.delete(p.id);
     else state.drafts.set(p.id,scale);
     send('set-scale',{product_id:p.id,scale});
     updateControls();
@@ -605,13 +682,21 @@
   async function saveScale() {
     const p = state.selected;
     if (!p?.verified || !p.scalable || !state.drafts.has(p.id) || state.saveBusy.has(p.id)) return;
-    const value = state.drafts.get(p.id), revision = state.saved.get(p.id)?.revision ?? 0;
+    const value = state.drafts.get(p.id), revision = state.saved.get(p.id)?.revision ?? 0, dgView=state.dgView;
     state.saveBusy.add(p.id);
     updateControls();
     try {
       if (!state.owner || !jobs?.current()) {
         await connectOwner(true);
         if (!state.owner || !jobs?.current() || state.selected !== p || state.drafts.get(p.id) !== value) return;
+      }
+      if(dgView) {
+        if(state.dgView!==dgView) return;
+        await dgView.saveScale(p.id,value);
+        if(state.drafts.get(p.id)===value)state.drafts.delete(p.id);
+        p.initial=value;
+        setNotice('Saved '+percentage(value)+' for '+p.name+'.');
+        return;
       }
       const r = row(await rpc('studio_save_grocery_product_scale',{p_store_id:store,p_product_id:p.id,p_scale:value,p_expected_revision:revision}));
       if (!r || r.product_id !== p.id || r.store_id !== store || Number(r.scale) !== value || Number(r.revision) <= revision)
@@ -743,6 +828,9 @@
   el('version-list').addEventListener('change',e => selectVersion(e.target.value));
   el('mode-toggle').addEventListener('click',previewShopping);
   el('close-shopping').addEventListener('click',()=>el('shopping-preview').close());
+  el('layout-workspace').addEventListener('close',()=>{
+    if (state.dgView && !el('layout-workspace').open) state.dgView.reload?.().catch(error=>setNotice(failText(error)));
+  });
   const smallScreen = window.matchMedia('(max-width: 760px)');
   function placeSizeTools() {
     const sizeTools = el('product-size-tools');
@@ -804,13 +892,17 @@
       return;
     }
     state.storeReady = true;
+    if (state.mode==='dollar-general') {
+      state.versions.set(dgRenderer,{sha256:dgRenderer,label:'Dollar General · Stocked shelves',nativeShelf:true,created_at:'2026-11-25'});
+      message('version-heading','Shelf renderer');
+    }
     message('preview-heading',info.name + ' aisle');
     el('store-back').href = 'grocery-entrance.html?store=' + encodeURIComponent(store);
     message('store-back','‹ ' + info.name + ' entrance');
     await Promise.all([loadManifest(),loadAisles(),loadPublishedAisles()]);
     const compatible=state.authoredId&&!hasAuthored(state.hosted.get(state.defaultSha))?
       [...state.hosted.values()].find(hasAuthored):null;
-    selectVersion(compatible?.sha256??state.defaultSha);
+    selectVersion(state.mode==='dollar-general'?dgRenderer:compatible?.sha256??state.defaultSha);
     state.scaleLoad = loadScales().catch(() => {});
     maybeOpenLayout();
     connectOwner(false);

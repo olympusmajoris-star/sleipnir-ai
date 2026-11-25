@@ -3,7 +3,7 @@
   isolation: isolate;
   overflow: hidden;
   width: 100%;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: var(--shelf-bay-ratio, 2 / 3);
   container-type: inline-size;
   color: #121313;
   background: #292924;
@@ -105,3 +105,14 @@
 .sl-bay .sl-detail-name { font-weight: 650; }
 .sl-bay .sl-detail-meta { font-size: 3.4cqw; color: #4b4f4c; }
 .sl-bay .sl-detail-price { font-size: 7.5cqw; font-weight: 750; font-variant-numeric: tabular-nums; }
+
+/* Dollar General uses the same real products and geometry with a brighter rail
+   and denser shelf proportions. Other stores retain their existing treatment. */
+.sl-bay[data-theme="dollar-general"]{background:#292922;box-shadow:inset 5px 0 7px #0006,inset -5px 0 7px #0006}
+.sl-bay[data-theme="dollar-general"] .sl-art{filter:brightness(.72) saturate(.55);pointer-events:none}
+.sl-bay[data-theme="dollar-general"] .sl-faces{filter:drop-shadow(1px 3px 2px #0007)}
+.sl-bay[data-theme="dollar-general"] .sl-faces::after{content:"";position:absolute;left:2%;right:2%;bottom:-1px;height:2px;border-radius:50%;background:#0005;filter:blur(1px);pointer-events:none}
+.sl-bay[data-theme="dollar-general"] button.sl-label{justify-content:center;gap:0;padding:0 3%;border-top:2px solid #fbfae8;border-bottom:2px solid #9b9b8c;background:linear-gradient(#dbd9c9 0%,#f4f1e2 45%,#c9c7b9 100%);box-shadow:0 1px 2px #0005}
+.sl-bay[data-theme="dollar-general"] .sl-tag-name{display:none}
+.sl-bay[data-theme="dollar-general"] .sl-tag-price{display:flex;align-items:center;justify-content:center;min-width:34%;height:94%;padding:0 4%;border:1px solid #c5ab20;border-radius:0;background:#ffe255;color:#181a0f;font-size:min(94cqh,calc((100cqw + 22cqh) / var(--price-width-units)));font-weight:780;line-height:1;box-shadow:0 0 0 1px #fff5}
+.sl-bay[data-theme="dollar-general"] .sl-detail-card{background:#faf8ed;box-shadow:0 3cqw 10cqw #0006}
