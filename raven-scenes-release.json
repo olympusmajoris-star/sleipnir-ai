@@ -1,5 +1,5 @@
 {
-  "version": "raven-scenes-20261124-3",
+  "version": "raven-scenes-20261124-3b",
   "entry": "raven-scenes-studio.html",
   "sceneCount": 14,
   "files": {
@@ -14,8 +14,8 @@
     "raven-scenes-catalog.js": "5608edff573956e89fcda74f34e88b784e987d2ca81c94105ed2444140a8a292",
     "raven-scenes-model.js": "979704d4c20c3ab47b3e0edc1e124e42aa439e839fdb1982e79a2598723ce735",
     "raven-scenes-studio.css": "54e81c138c2a373625c74bb72091924f6832f53ee965c6109a2a45c667d94a5d",
-    "raven-scenes-studio.html": "812d6908a0fc51d70f57e9cb7d02e2f02eca5138f371601f902c96aa050da8d9",
-    "raven-scenes-studio.js": "d742f11af6d9d0ed49d23f5466bb90906590437d4ab3152b10ef4ff304cf51d2",
+    "raven-scenes-studio.html": "2bf3e36fb4e90d906ea424c48c3a77fbc740a31a8c57efde83b724aa6629f69a",
+    "raven-scenes-studio.js": "30b813789954ea8a966a68a799dd2871ab2593e3e1e975d16d8440c88bcccb3a",
     "raven-scenes.css": "533e81b6c2d5eb13dae5774ac8f58ba0dc58f3b294e5f8477379a90114539add",
     "raven-scenes.js": "6865db3749d03d4f22a1a9282b83a0d17858b09caa30bdf1f9d56b90d3de7fd8",
     "raven-voice-controls.js": "d52035169a9cccd681839a865c97fdc1f9f92f44a7c0b49d82268c8369602cdf",
