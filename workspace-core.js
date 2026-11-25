@@ -22,7 +22,7 @@ const valhallaStreet = ['street','Valhalla storefronts','Palm Coast street and s
 const appPages = ['app-pages','App pages','Transitions, glass and camera placement',null];
 const GROUPS=[
  {id:'shopping',name:'Sleipnir',pages:[['shome','Shopping home','Your existing shopping home','pages.html?page=shome'],['aisle-workshop','Aisles & shelves','Entrances, blackboards and product placement','grocery-aisle-builder.html'],['menu-workshop','Menu boards & books','Page designs and dish photos','store-directory.html?type=menus'],valhallaStreet,appPages,...STORE_TYPES.map(([id,name])=>[id,name,'Choose city and store',null])]},
- {id:'social',name:'Asgard',pages:[...OLD_GROUPS.filter(g=>['sky','social','messages'].includes(g.id)).flatMap(g=>g.pages),['raven-cabin','Raven cabin designer','Dashboards, symbols, colors & camera pan','raven-cabin-studio.html?embed=1&v=1125video2'],['raven-scenes','Raven scene designer','14 messaging scenes with editable text, artwork & controls','raven-scenes-studio.html?embed=1&v=1124billboards2'],appPages]}
+ {id:'social',name:'Asgard',pages:[...OLD_GROUPS.filter(g=>['sky','social','messages'].includes(g.id)).flatMap(g=>g.pages),['raven-cabin','Raven cabin designer','Dashboards, symbols, colors & camera pan','raven-cabin-studio.html?embed=1&v=1125video3'],['raven-scenes','Raven scene designer','14 messaging scenes with editable text, artwork & controls','raven-scenes-studio.html?embed=1&v=1124billboards2'],appPages]}
 ];
 function storeTypeMatches(section,store){
  const type=String(store.menu_type||'').toLowerCase(),cat=String(store.category||'').toLowerCase();

@@ -251,7 +251,7 @@
     setInspectorMode('objects');connect(initialApi,initialLibrary);fitPreview();
     return {connect,refresh:schedule,element:shell,dispose(){if(disposed)return;end();disposed=true;if(unsubscribe)unsubscribe();if(unsubscribeSelection)unsubscribeSelection();if(resize)resize.disconnect();if(raf&&G.cancelAnimationFrame)G.cancelAnimationFrame(raf);clearTimeout(statusTimer);handlers.splice(0).forEach(remove=>remove());if(dialog.open)closeDialog();shell.remove();}};
   }
-  function boot({host,src='raven-cabin.html?editor=1&embed=1&v=1125video2',lucide=G.lucide}={}){
+  function boot({host,src='raven-cabin.html?editor=1&embed=1&v=1125video3',lucide=G.lucide}={}){
     const D=host.ownerDocument,frame=D.createElement('iframe');frame.title='Live Raven cabin editor';frame.allow='camera; microphone; autoplay';frame.setAttribute('loading','eager');
     const editor=mount({host,lucide,preview:frame});let timer=0,generation=0,disposed=false;
     function loaded(){const token=++generation;let attempts=0;clearTimeout(timer);const probe=()=>{if(disposed||token!==generation)return;try{const child=frame.contentWindow;if(child&&child.RavenCabinEditor){editor.connect(child.RavenCabinEditor,child.lucide||lucide);return;}}catch(_){}if(++attempts<80)timer=setTimeout(probe,125);else{const message=editor.element.querySelector('.rce-message');message.textContent='The live editor did not connect. Reload this Studio page to try again.';message.dataset.error='true';}};probe();}

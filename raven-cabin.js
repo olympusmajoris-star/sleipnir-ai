@@ -168,7 +168,7 @@
 
       const front=projection.frontControlsRect||[0,0,0,0],nativeFront=(inCall||!studioDashboard&&(presentation.device==='iphone'||projection.studioSurface==='windshield'||w<600&&h>w))&&front[2]>=264&&front[3]>=96;
       c.frontControlsAdapted=showDashboard&&nativeFront;
-      c.frontControlsRows=c.frontControlsAdapted?{feature:front[1]+26,call:front[1]+Math.min(84,front[3]-26)}:null;
+      c.frontControlsRows=c.frontControlsAdapted?{feature:front[1]+26,call:front[1]+70}:null;
       for(const button of qa('[data-control]')){delete button.dataset.cabinAdapted;delete button.dataset.cabinUnavailable;}
       if(c.frontControlsAdapted){
         const keys=['image','mic','call','video','radio','language'],spacing=Math.min(60,(front[2]-44)/5),center=front[0]+front[2]/2,y=c.frontControlsRows.feature;
