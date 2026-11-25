@@ -104,27 +104,41 @@ function referenceKey(a){const cfg=referenceSettings(a).grocery||{};return (a.ed
 function referenceRows(a){return referenceCache.get(referenceKey(a))?.rows||[];}
 function referenceCategories(a){return referenceCache.get(referenceKey(a))?.categories||[];}
 const retailCategoryCache = new Map();
-let categoryOptions, bathBodyRules;
+let categoryOptions;
+const retailRulesCache=new Map();
 function categoryChoices(){
  if (!categoryOptions) categoryOptions=request('rpc/studio_product_categories?p_store_id='+storeId)
   .catch(error=>{categoryOptions=null;throw error;});
  return categoryOptions;
 }
+function ruleFile(name){
+ if(!retailRulesCache.has(name)){
+  const job=fetch(name,{cache:'no-cache'}).then(response=>{
+   if(!response.ok)throw Error('Could not load the store’s product types.');
+   return response.json();
+  }).catch(error=>{retailRulesCache.delete(name);throw error;});
+  retailRulesCache.set(name,job);
+ }
+ return retailRulesCache.get(name);
+}
 async function retailDefinition(category){
- if(storeId!==StoreReferenceScene.bathBodyStoreId)return null;
- if(!bathBodyRules)bathBodyRules=fetch('bath-body-catalog.json',{cache:'no-cache'}).then(response=>{
-  if(!response.ok)throw Error('Could not load the Bath & Body Works product types.');
-  return response.json();
- }).catch(error=>{bathBodyRules=null;throw error;});
- const profile=await bathBodyRules;
- return profile.categories.find(item=>item.label===category);
+ if(storeId===StoreReferenceScene.bathBodyStoreId){
+  const profile=await ruleFile('bath-body-catalog.json');
+  const definition=profile.categories.find(item=>item.label===category);
+  if(definition)return definition;
+ }
+ const sources=await Promise.all(['retail-hardware-rules.json','retail-type-rules.json'].map(ruleFile));
+ const normalized=String(category||'').trim().toLowerCase();
+ const applies=group=>(!group.stores||group.stores.includes(storeId))&&
+  (!group.categories||group.categories.some(name=>name.trim().toLowerCase()===normalized));
+ return {fallback:true,groups:sources.flatMap(file=>file.groups.filter(applies))};
 }
 function retailCategory(category){
  let result=retailCategoryCache.get(category);
  if(!result){
   const params=new URLSearchParams({store_id:'eq.'+storeId,category:'eq.'+category,order:'name,id'});
   result=Promise.all([
-   all('products',params.toString(),'id,name,description,price,image_url,category,store_id,section,shelf_group'),
+   all('products',params.toString(),'id,name,description,price,image_url,category,store_id,section,shelf_group,full_name'),
    retailDefinition(category)
   ]).then(([rows,definition])=>({rows,...StoreReferenceScene.retailGroups(rows,definition)}))
    .catch(error=>{retailCategoryCache.delete(category);throw error;});

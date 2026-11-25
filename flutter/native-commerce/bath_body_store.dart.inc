@@ -10,8 +10,23 @@
 __GROUPS__
   };
 
+  static final List<_RetailNameRule> _retailRules =
+      (retailSymbolCodec.jsonDecode(r'''__TYPE_RULES_JSON__''') as List)
+        .map((raw) => _RetailNameRule(Map<String, dynamic>.from(raw as Map))).toList();
+  final Map<String, String> _stockTypeIds = {};
+
+  bool _itemMatchesType(_RetailItem item, _BBWType type) =>
+      type.pattern != null ? type.matches(item) : _stockTypeIds[item.id] == type.id;
+
+  bool _namedGroup(String name, String category) {
+    final key = name.toLowerCase();
+    return key.isNotEmpty && key != category.toLowerCase() &&
+        !const {'all', 'other', 'misc', 'miscellaneous', 'general', 'uncategorized', 'none', 'n/a'}.contains(key);
+  }
+
   Map<String, List<_BBWType>> _stockTypes(List<_RetailItem> items) {
     final sections = <String, List<_RetailItem>>{};
+    _stockTypeIds.clear();
     for (final item in items) {
       (sections[item.category] ??= []).add(item);
     }
@@ -20,14 +35,30 @@ __GROUPS__
       final defined = _isBBW ? _definitions[section.key] : null;
       if (defined != null) {
         result[section.key] = defined.where((type) => section.value.any(type.matches)).toList();
-      } else {
-        final labels = <String, String>{};
-        for (final item in section.value) {
-          if (item.subtype.isNotEmpty) labels.putIfAbsent(item.subtype.toLowerCase(), () => item.subtype);
-        }
-        final names = labels.values.toList()..sort((a,b) => a.toLowerCase().compareTo(b.toLowerCase()));
-        result[section.key] = names.map(_BBWType.catalog).toList();
+        continue;
       }
+      final rules = _retailRules.where((rule) => rule.applies(widget.storeId, section.key)).toList();
+      final groups = <String, _BBWType>{};
+      for (final item in section.value) {
+        _BBWType? group;
+        if (_namedGroup(item.shelfGroup, section.key)) {
+          group = _BBWType.catalog(item.shelfGroup);
+        } else {
+          for (final rule in rules) {
+            if (rule.pattern.hasMatch(item.name)) { group = rule.type; break; }
+          }
+          group ??= _BBWType.catalog(_namedGroup(item.section, section.key) ? item.section : 'Other');
+        }
+        final selected = groups.putIfAbsent(group.id, () => group!);
+        _stockTypeIds[item.id] = selected.id;
+      }
+      final types = groups.values.toList()..sort((a,b) {
+        if (a.id == b.id) return 0;
+        if (a.id == 'other') return 1;
+        if (b.id == 'other') return -1;
+        return a.label.toLowerCase().compareTo(b.label.toLowerCase());
+      });
+      result[section.key] = types;
     }
     return result;
   }
@@ -45,32 +76,44 @@ __GROUPS__
 
   List<String> get _departments => ['All', ..._categories.map((c) => c.name)];
 
+  int _departmentChoice = 0, _typeChoice = 0;
+
   void _chooseDepartment(String value) {
     FocusScope.of(context).unfocus();
     setState(() {
       _category = value;
       _type = null;
+      _departmentChoice++;
+      _typeChoice++;
     });
   }
 
-  Future<void> _departmentSheet() async {
-    final selected = await showModalBottomSheet<String>(
+  void _chooseType(_BBWType? value) {
+    setState(() { _type = value; _typeChoice++; });
+  }
+
+  Future<void> _pickFilter(bool departments, List<_BBWType> types) async {
+    final labels = departments ? _departments : ['All types', ...types.map((t) => t.label)];
+    final selected = departments ? _category : _type?.label ?? 'All types';
+    final result = await showModalBottomSheet<int>(
       context: context, backgroundColor: Colors.white, showDragHandle: true,
       isScrollControlled: true,
       constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .85),
       builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Padding(padding: EdgeInsets.fromLTRB(18, 2, 18, 10),
-          child: Align(alignment: Alignment.centerLeft, child: Text('Categories',
-            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: _ink)))),
-        Flexible(child: ListView(shrinkWrap: true, children: [
-          for (final name in _departments)
-            ListTile(title: Text(name, style: const TextStyle(color: _ink)), selected: _category == name,
-              trailing: _category == name ? const Icon(Icons.check, color: _ink) : null,
-              onTap: () => Navigator.pop(ctx, name)),
-        ])),
+        Padding(padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
+          child: Align(alignment: Alignment.centerLeft, child: Text(departments ? 'Categories' : '$_category types',
+            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: _ink)))),
+        Flexible(child: ListView.builder(shrinkWrap: true, itemCount: labels.length,
+          itemBuilder: (_, i) => ListTile(
+            leading: departments ? null : _retailSymbol(i == 0 ? 'grid' : types[i-1].icon, _ink),
+            title: Text(labels[i], style: const TextStyle(color: _ink)), selected: selected == labels[i],
+            trailing: selected == labels[i] ? const Icon(Icons.check, color: _ink) : null,
+            onTap: () => Navigator.pop(ctx, i)))),
       ])),
     );
-    if (mounted && selected != null) _chooseDepartment(selected);
+    if (!mounted || result == null) return;
+    if (departments) { _chooseDepartment(labels[result]); }
+    else { _chooseType(result == 0 ? null : types[result - 1]); }
   }
 
   Widget _bbwHeader() {
@@ -109,38 +152,36 @@ __GROUPS__
           borderSide: const BorderSide(color: _ink))),
     )));
 
-  Widget _bbwDepartments() => SizedBox(height: 44, child: Row(children: [
-    TextButton.icon(onPressed: _departmentSheet, icon: const Icon(Icons.grid_view_rounded, size: 16),
-      label: const Text('Categories', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-      style: TextButton.styleFrom(foregroundColor: _ink, padding: const EdgeInsets.symmetric(horizontal: 8))),
-    Expanded(child: ListView.separated(scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(right: 12), itemCount: _departments.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 6),
-      itemBuilder: (ctx, i) {
-        final label = _departments[i], active = label == _category;
-        return Center(child: Material(color: active ? _ink : _tint, borderRadius: BorderRadius.circular(20),
+  Widget _retailDepartments() {
+    final departments = _departments;
+    final foreground = _isBBW ? _ink : Colors.white;
+    return _RetailFilterRail(label: 'Categories', open: () => _pickFilter(true, const []),
+      color: foreground, selected: _category, selectionRevision: _departmentChoice,
+      options: departments, height: 46, chip: (context, i) {
+        final label = departments[i], active = label == _category;
+        final background = active ? (_isBBW ? _ink : _yellow) : (_isBBW ? _tint : _panel);
+        final text = active ? (_isBBW ? Colors.white : Colors.black) : foreground;
+        return Material(color: background, borderRadius: BorderRadius.circular(20),
           child: Semantics(selected: active, button: true, child: InkWell(
             borderRadius: BorderRadius.circular(20), onTap: () => _chooseDepartment(label),
             child: Padding(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-              child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                color: active ? Colors.white : _ink)))))));
-      })),
-  ]));
+              child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: text))))));
+      });
+  }
 
-  Widget _bbwTypes(List<_BBWType> types) => Container(height: 66, decoration: const BoxDecoration(
+  Widget _bbwTypes(List<_BBWType> types) => Container(decoration: const BoxDecoration(
     color: Colors.white, border: Border(bottom: BorderSide(color: _outline))),
-    child: ListView.separated(key: ValueKey('types/$_category'), scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 8), itemCount: types.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(width: 2),
-      itemBuilder: (ctx, i) {
+    child: _RetailFilterRail(key: ValueKey('types/$_category'), label: 'Types', open: () => _pickFilter(false, types),
+      color: _ink, selected: _type?.id ?? '', selectionRevision: _typeChoice,
+      options: ['', ...types.map((t) => t.id)], height: 64, chip: (ctx, i) {
         final type = i == 0 ? null : types[i - 1];
         final selected = _type == type;
         return Semantics(button: true, selected: selected, child: InkWell(
-          onTap: () => setState(() => _type = type),
-          child: Container(constraints: const BoxConstraints(minWidth: 50),
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+          onTap: () => _chooseType(type),
+          child: Container(constraints: const BoxConstraints(minWidth: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(width: 31, height: 31, decoration: BoxDecoration(color: selected ? _ink : _tint,
+              Container(width: 30, height: 30, decoration: BoxDecoration(color: selected ? _ink : _tint,
                 shape: BoxShape.circle), child: Center(
                 child: _retailSymbol(type?.icon ?? 'grid', selected ? Colors.white : _ink))),
               const SizedBox(height: 4),
@@ -173,7 +214,7 @@ __GROUPS__
   Widget _bbwStore(List<_RetailItem> visible) {
     final types = _typesByCategory[_category] ?? const <_BBWType>[];
     return ColoredBox(color: Colors.white, child: Column(children: [
-      _bbwHeader(), _bbwSearch(), _bbwDepartments(),
+      _bbwHeader(), _bbwSearch(), _retailDepartments(),
       if (types.length > 1) _bbwTypes(types),
       Expanded(child: ColoredBox(color: _paper,
         child: visible.isEmpty

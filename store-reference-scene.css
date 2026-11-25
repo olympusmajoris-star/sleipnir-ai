@@ -30,3 +30,16 @@
 
 #openRetailPhone{margin-left:auto;padding:7px 11px;border:1px solid #647a8b;border-radius:6px;color:#e4f0f6;text-decoration:none;white-space:nowrap;font-size:13px;font-weight:650}
 #openRetailPhone:hover,#openRetailPhone:focus-visible{background:#263749}
+
+.reference-category-tabs,.reference-type-rail{flex:1 1 0;overscroll-behavior-x:contain;cursor:grab;user-select:none}
+.reference-category-tabs>button,.reference-type-rail>button{flex-shrink:0;cursor:pointer}
+.reference-category-tabs[data-dragging=true],.reference-type-rail[data-dragging=true],.reference-retail-nav [data-dragging=true]>button{cursor:grabbing}
+.reference-retail-nav .reference-rail-arrow{flex:0 0 27px;min-height:42px;margin:0;padding:0;display:grid;place-content:center;border-radius:7px;border:1px solid #8995a666;background:transparent;color:inherit;font-size:24px;line-height:1;cursor:pointer}
+.reference-retail-nav .reference-rail-arrow[hidden]{display:none}
+.reference-retail-nav .reference-rail-arrow:disabled{opacity:.4;cursor:default}
+.reference-retail-nav{padding-inline:6px;gap:3px}
+.reference-type-nav{margin:0 0 2px;padding:4px 6px;background:#fff;color:#1f3043;border-block:1px solid #d9dfe4}
+.reference-type-rail{margin:0;padding:0;border:0}
+.reference-type-nav .reference-category-options button{display:flex;align-items:center;gap:7px}
+.reference-type-nav .reference-category-options svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.reference-retail-nav:has(details[open]){z-index:5}

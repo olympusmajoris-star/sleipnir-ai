@@ -1,6 +1,6 @@
 {
   "sources": {
-    "retail": "52c3fa71fd1ba3febd10a65e50f852ff5979060d0f452e6bb4bcb0dd94b6ff18",
+    "retail": "b2962975fa18954da37aa338188451124a3e0d0298c7b710e437a7ba56e1663f",
     "fast_food": "8bdb7e6b8fdc2c2cebf54cc73201ed72940d8e20fb69f36432877f3746d657e0",
     "fast_casual": "5ad2edc29b2f74e2b14e43fe742dfe900f513e176aea75ccc44ae6d38ea977d4",
     "sit_down": "4e252215554b7300c2dd3736b0e24df3a4864d9a5d0c02b1fb6fba3903f2e8ea"
@@ -12,6 +12,6 @@
     "sit_down": "5402448e5461b08c604516003ad7efaca8c7368048a219925582c8f920c45395"
   },
   "view": "shopper",
-  "artifactSHA256": "107da77c7a36c42eaa281f2d9e9e911828ea768e43b04640e229fb3344fc68be",
-  "bootstrapSHA256": "de6dd7eaa3e1fbb4d031e78ea690935a70c34a6dd7696cc3c4365ca1f99f7b50"
+  "artifactSHA256": "c732053ed1a3df8606af6a37887073ee1f5f2d7d8e8230873584996ec539d2aa",
+  "bootstrapSHA256": "bfa1a8a5447a746f6eeb343d77a73087c12c20aa457ad01efff0bf433218274b"
 }

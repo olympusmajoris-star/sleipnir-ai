@@ -2,13 +2,27 @@
 class _BBWType {
   _BBWType(this.id, this.label, this.icon, String pattern)
       : pattern = RegExp(pattern, caseSensitive: false);
-  _BBWType.catalog(String subtype)
-      : id = subtype.toLowerCase(), label = subtype, icon = 'category', pattern = null;
+  _BBWType.catalog(String subtype, [this.icon = 'category'])
+      : id = subtype.toLowerCase(), label = subtype, pattern = null;
   final String id, label, icon;
   final RegExp? pattern;
   bool matches(_RetailItem item) =>
       pattern?.hasMatch(item.description.isEmpty ? item.name : item.description)
-          ?? (item.subtype.toLowerCase() == id);
+          ?? false;
+}
+
+class _RetailNameRule {
+  _RetailNameRule(Map<String, dynamic> value)
+      : type = _BBWType.catalog(value['label'] as String, value['icon'] as String),
+        pattern = RegExp(value['pattern'] as String, caseSensitive: false),
+        stores = (value['stores'] as List?)?.cast<String>().toSet(),
+        categories = (value['categories'] as List?)?.cast<String>().toSet();
+  final _BBWType type;
+  final RegExp pattern;
+  final Set<String>? stores, categories;
+
+  bool applies(String? store, String category) =>
+      (stores == null || stores!.contains(store)) && (categories == null || categories!.contains(category));
 }
 
 class _BBWChecks extends CustomPainter {

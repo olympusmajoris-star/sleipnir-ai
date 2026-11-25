@@ -3,7 +3,7 @@ const {parseHTML}=require('linkedom');
 const root=path.join(__dirname,'..'),sid='189581c9-d728-4e5d-9e02-ae4de19a15af';
 const catalog=[{id:'one',store_id:sid,name:'Pretzels',price:3.2,category:'Snacks',image_url:'https://assets.test/pretzels.png'},{id:'two',store_id:sid,name:'Chips',price:4.5,category:'Snacks',image_url:'https://assets.test/chips.png'},{id:'three',store_id:sid,name:'Water',price:2,category:'Beverages',image_url:'https://assets.test/water.png'}];
 async function editor(type='grocery',saved=[],sources={},store=sid){const {window}=parseHTML(fs.readFileSync(path.join(root,'store-editor.html'),'utf8'));const document=window.document,calls=[],listeners={};Object.defineProperty(window.HTMLElement.prototype,'clientWidth',{get(){return 390;},configurable:true});Object.defineProperty(window.HTMLElement.prototype,'clientHeight',{get(){return 844;},configurable:true});Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return this.getAttribute('value')||this.querySelector('option')?.value||'';},set(v){this.setAttribute('value',v);},configurable:true});
- const ctx={document,location:{search:'?store='+store+'&type='+type,origin:'https://studio.test'},URL,URLSearchParams,console,Map,Set,JSON,Promise,Number,String,Math,Date,Array,Error,CustomEvent:window.CustomEvent,Event:window.Event,ResizeObserver:class{observe(){}},Image:function(){return document.createElement('img');},crypto:require('node:crypto').webcrypto,addEventListener:(n,fn)=>(listeners[n]||=[]).push(fn),dispatchEvent:e=>(listeners[e.type]||[]).forEach(fn=>fn(e)),setTimeout,clearTimeout};ctx.window=ctx;ctx.parent={};ctx.fetch=async(url,opts={})=>{if(url==='bath-body-catalog.json')return {ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,url),'utf8'))};const u=new URL(url);calls.push({url,method:opts.method||'GET',body:opts.body});let out=[];const table=u.pathname.split('/').at(-1);if(table==='stores')out=[{id:store,name:'Original Store',menu_type:type,logo_url:'https://assets.test/logo.png'}];if(table==='studio_designs'){out=opts.method==='POST'||opts.method==='PATCH'?[{...JSON.parse(opts.body),updated_at:'saved'}]:saved;}if(sources[table])out=sources[table];if(table==='store_entrances')out=[{id:'entrance',label:'Snacks',image_path:'entrance.png'}];if(table==='studio_product_categories'&&!sources[table])out=[{category:'Snacks',product_count:2},{category:'Beverages',product_count:1}];if(table==='products'){out=(sources.products||catalog).filter(p=>!u.searchParams.has('category')||u.searchParams.get('category')==='eq.'+p.category);out=out.slice(Number(u.searchParams.get('offset')||0),Number(u.searchParams.get('offset')||0)+Number(u.searchParams.get('limit')||500));}return{ok:true,status:200,json:async()=>out};};ctx.StudioTransferConfig={url:'https://data.test',key:'public-test-key'};vm.createContext(ctx);for(const name of ['store-editor-core.js','original-grocery-scene.js','native-page-controls.js','store-reference-scene.js','artwork-parts.js','store-editor.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),ctx,{filename:name});await ctx.AsgardWorkspaceEditor.ready;return{ctx,document,calls};}
+ const ctx={document,location:{search:'?store='+store+'&type='+type,origin:'https://studio.test'},URL,URLSearchParams,console,Map,Set,JSON,Promise,Number,String,Math,Date,Array,Error,CustomEvent:window.CustomEvent,Event:window.Event,ResizeObserver:class{observe(){}},Image:function(){return document.createElement('img');},crypto:require('node:crypto').webcrypto,addEventListener:(n,fn)=>(listeners[n]||=[]).push(fn),dispatchEvent:e=>(listeners[e.type]||[]).forEach(fn=>fn(e)),setTimeout,clearTimeout};ctx.window=ctx;ctx.parent={};ctx.fetch=async(url,opts={})=>{if(['bath-body-catalog.json','retail-type-rules.json','retail-hardware-rules.json'].includes(url))return {ok:true,json:async()=>sources[url]||JSON.parse(fs.readFileSync(path.join(root,url),'utf8'))};const u=new URL(url);calls.push({url,method:opts.method||'GET',body:opts.body});let out=[];const table=u.pathname.split('/').at(-1);if(table==='stores')out=[{id:store,name:'Original Store',menu_type:type,logo_url:'https://assets.test/logo.png'}];if(table==='studio_designs'){out=opts.method==='POST'||opts.method==='PATCH'?[{...JSON.parse(opts.body),updated_at:'saved'}]:saved;}if(sources[table])out=sources[table];if(table==='store_entrances')out=[{id:'entrance',label:'Snacks',image_path:'entrance.png'}];if(table==='studio_product_categories'&&!sources[table])out=[{category:'Snacks',product_count:2},{category:'Beverages',product_count:1}];if(table==='products'){out=(sources.products||catalog).filter(p=>!u.searchParams.has('category')||u.searchParams.get('category')==='eq.'+p.category);out=out.slice(Number(u.searchParams.get('offset')||0),Number(u.searchParams.get('offset')||0)+Number(u.searchParams.get('limit')||500));}return{ok:true,status:200,json:async()=>out};};ctx.StudioTransferConfig={url:'https://data.test',key:'public-test-key'};vm.createContext(ctx);for(const name of ['store-editor-core.js','original-grocery-scene.js','native-page-controls.js','store-reference-scene.js','artwork-parts.js','store-editor.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),ctx,{filename:name});await ctx.AsgardWorkspaceEditor.ready;return{ctx,document,calls};}
 async function choose(e,feature,id){await e.ctx.AsgardWorkspaceEditor.feature(feature);if(id)await e.ctx.AsgardWorkspaceEditor.asset(id);}
 test('grocery reference loads actual artwork, edits a shelf, saves and restores without an app runtime',async()=>{const e=await editor();assert.equal(e.document.querySelectorAll('iframe').length,0);assert.match(e.document.querySelector('.reference-entrance img').src,/entrance.png/);await choose(e,'shelves','native-shelf:Snacks');assert.equal(e.document.querySelectorAll('.grocery-product').length,2);await e.ctx.AsgardWorkspaceEditor.topic('Shelf layout');const rows=e.document.querySelector('[data-control="rows"]');rows.value='1';rows.oninput();assert.equal(e.document.querySelectorAll('.grocery-rail').length,1);await e.ctx.AsgardWorkspaceEditor.save();const write=e.calls.find(c=>c.method==='POST');assert.match(write.url,/studio_designs/);const doc=JSON.parse(write.body);const restored=await editor('grocery',[doc]);await choose(restored,'shelves','native-shelf:Snacks');assert.equal(restored.document.querySelectorAll('.grocery-rail').length,1);assert.ok(e.calls.every(c=>c.method==='GET'||c.url.includes('/studio_designs')));});
 test('clicking a grocery price opens appearance controls and edits only that tag',async()=>{const e=await editor();await choose(e,'shelves','native-shelf:Snacks');e.document.querySelector('.grocery-tag').onclick();const color=e.document.querySelector('[data-control="color"]');color.value='#00ffff';color.oninput();assert.equal(e.document.querySelector('.grocery-tag').style.color,'#00ffff');assert.notEqual(e.document.querySelectorAll('.grocery-tag')[1].style.color,'#00ffff');});
@@ -42,4 +42,66 @@ test('Bath & Body Works reference filters all category products before paging an
  button('.reference-category-tabs button','Candles').click();await settle();
  assert.equal(e.document.querySelector('.reference-type-rail'),null);
  assert.equal(e.document.querySelector('.reference-retail-grid strong').textContent,'Rose candle');
+});
+
+test('Ace category and product-type rails can be paged, dragged, wheeled and opened in full',async()=>{
+ const store='e466b922-93f8-4126-bf2d-20a1368e84a0';
+ const departments=['Auto','Building Supplies','Electrical','Flooring & Tile','Garden & Outdoors','Hardware','Lighting','Paint','Plumbing','Safety','Tools'];
+ const products=departments.map((category,i)=>({id:'stock-'+i,name:category+' item',store_id:store,category,price:1}));
+ const tools=['Hammers','Wrenches','Sockets','Levels','Cutters','Drills','Pliers','Tape measures','Files'];
+ products.push(...tools.map((label,i)=>({id:'tool-'+i,name:'Ace original '+label,store_id:store,category:'Tools',section:'Hand tools',shelf_group:'',price:3})));
+ const toolRules=tools.map(label=>({id:label.toLowerCase(),label,icon:'hardware',pattern:label,stores:[store],categories:['Tools']}));
+ const e=await editor('retail',[],{
+  products,studio_product_categories:departments.map(category=>({category,product_count:products.filter(p=>p.category===category).length})),
+  'retail-hardware-rules.json':{groups:toolRules},'retail-type-rules.json':{groups:[]}
+ },store);
+ const d=e.document, settle=()=>new Promise(resolve=>setImmediate(resolve));
+ const fire=(el,type,data)=>{const ev=new e.ctx.Event(type,{bubbles:true,cancelable:true});Object.assign(ev,data);el.dispatchEvent(ev);return ev;};
+ for(const [index,selector,count] of [[0,'.reference-category-tabs',departments.length+1],[1,'.reference-type-rail',tools.length+2]]){
+  const strip=d.querySelector(selector),nav=strip.parentElement;
+  Object.defineProperty(strip,'clientWidth',{value:170});Object.defineProperty(strip,'scrollWidth',{value:900});
+  strip.getBoundingClientRect=()=>({width:170});
+  strip.scrollLeft=0;fire(strip,'scroll');
+  const [previous,next]=nav.querySelectorAll('.reference-rail-arrow');
+  assert.ok(previous.disabled);assert.equal(next.disabled,false);assert.equal(next.hidden,false);
+  next.click();assert.ok(strip.scrollLeft>0);previous.click();assert.equal(strip.scrollLeft,0);
+  assert.equal(fire(strip,'wheel',{deltaY:77,deltaX:0,deltaMode:0}).defaultPrevented,true);
+  assert.equal(strip.scrollLeft,77);
+  fire(strip,'pointerdown',{pointerId:1,pointerType:'mouse',button:0,clientX:100});
+  const tap=fire(strip,'pointermove',{pointerId:1,clientX:97});assert.equal(tap.defaultPrevented,false);
+  fire(strip,'pointermove',{pointerId:1,clientX:44});assert.equal(strip.scrollLeft,133);
+  fire(strip,'pointerup',{pointerId:1});
+  const list=nav.querySelector('details');list.open=true;
+  assert.equal(list.querySelectorAll('button').length,count);
+  const choice=index===0?'Tools':'Wrenches';[...list.querySelectorAll('button')].find(b=>b.textContent===choice).click();await settle();
+ }
+ const rows=d.querySelectorAll('.reference-retail-grid strong');
+ assert.equal(rows.length,1);assert.equal(rows[0].textContent,'Ace original Wrenches');
+ assert.ok(!d.querySelector('.reference-bath-body'));
+});
+
+test('Ace catalog uses product purpose and keeps explicit shelf labels ahead of name matching',async()=>{
+ const store='e466b922-93f8-4126-bf2d-20a1368e84a0',category='Household Essentials';
+ const examples=[
+  ['06cda3a1-cb01-4bbb-ab26-d3a448ff37d2','Cascade Complete Dishwasher Pods, Fresh','Cleaners & Wipes'],
+  ['3177ba5d-e43a-4f94-9f80-04a8da8b8206','Trimaco 18" x 36" White Supertuff Cotton Tack Cloth','Towels & Cloths'],
+  ['1ccd2c46-6a7d-4801-914e-6ae1fddeb996','Plink Garbage Disposal Cleaner and Deodorizer, Lemon Scented','Cleaners & Wipes'],
+  ['0007b784-ccfa-4d27-b0f9-764c46fb6386','Ortho Insect Killer','Pest Control'],
+  ['3140a103-5ab0-4cf7-b871-f9954c304a4e','Glad ForceFlex Heavy Duty Large Drawstring Trash Bags, Hold 80+ Pounds, 30 Gallon','Trash & Yard Bags']
+ ];
+ const products=examples.map(([id,name])=>({id,name,category,store_id:store,section:category}));
+ products.push({...products[3],id:'owner-grouped',shelf_group:'Patio display'});
+ const e=await editor('retail',[],{products,studio_product_categories:[{category,product_count:products.length}]},store);
+ const pick=async(selector,label)=>{
+  const button=[...e.document.querySelectorAll(selector)].find(b=>b.textContent===label);
+  assert.ok(button,label);button.click();await new Promise(resolve=>setImmediate(resolve));
+ };
+ await pick('.reference-category-tabs button',category);
+ for(const type of [...new Set(examples.map(a=>a[2])), 'Patio display']){
+  await pick('.reference-type-rail button',type);
+  const names=[...e.document.querySelectorAll('.reference-retail-grid strong')].map(n=>n.textContent).sort();
+  assert.deepEqual(names,type==='Patio display'?['Ortho Insect Killer']:examples.filter(a=>a[2]===type).map(a=>a[1]).sort());
+ }
+ assert.ok(e.calls.filter(c=>c.url.includes('/rest/v1/products?')).every(c=>new URL(c.url).searchParams.get('store_id')==='eq.'+store));
+ assert.ok(e.calls.every(c=>c.method==='GET'));
 });

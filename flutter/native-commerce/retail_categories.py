@@ -22,9 +22,15 @@ def integrate(source, studio):
                 raise ValueError('Unexpected quote in type pattern')
             definitions.append(f"_BBWType({json.dumps(group_id)}, {json.dumps(label)}, {json.dumps(icon)}, r'{pattern}')")
         groups.append(f"    {json.dumps(category['label'])}: [{', '.join(definitions)}],")
+    generic_rules = []
+    for filename in ('retail-hardware-rules.json', 'retail-type-rules.json'):
+        generic_rules.extend(json.loads((HERE.parent.parent / filename).read_text())['groups'])
+    rule_json = json.dumps(generic_rules, ensure_ascii=False, separators=(',', ':'))
+    if "'''" in rule_json:
+        raise ValueError('Unexpected triple quote in retail type rules')
     methods = (HERE / 'bath_body_store.dart.inc').read_text()
     methods = methods.replace('__STORE_ID__', catalog['storeId']).replace('__GROUPS__', '\n'.join(groups))
-    methods = methods.replace('__RETAIL_SYMBOLS__', dart_symbol_map())
+    methods = methods.replace('__RETAIL_SYMBOLS__', dart_symbol_map()).replace('__TYPE_RULES_JSON__', rule_json)
     one('class RetailStore extends StatefulWidget', "import 'dart:convert' as retailSymbolCodec;\n\nclass RetailStore extends StatefulWidget")
     transfer = '_StudioFrozenSettings' in source
     photo = '_image(item.imageUrl)'
@@ -49,33 +55,38 @@ def integrate(source, studio):
                 raise ValueError('Unknown storefront style location for ' + name)
             methods = methods.replace(default, value)
         methods = methods.replace('const SliverGridDelegateWithFixedCrossAxisCount', 'SliverGridDelegateWithFixedCrossAxisCount')
-    one('    required this.sectionRank,', '    required this.subtype,\n    required this.sectionRank,')
-    one('  final int? sectionRank;', '  final String subtype;\n  final int? sectionRank;')
-    one('      sectionRank: _RetailStoreState', '''      subtype: [row['shelf_group'], row['section']]
-          .whereType<String>()
-          .map((s) => s.trim())
-          .firstWhere((s) => s.isNotEmpty && s.toLowerCase() != (row['category'] ?? '').toString().trim().toLowerCase(),
-              orElse: () => ''),
-      sectionRank: _RetailStoreState''')
-    one('image_url,category,section_rank', 'image_url,category,section,shelf_group,section_rank')
+    one('    required this.sectionRank,', '    required this.shelfGroup,\n    required this.section,\n    required this.sectionRank,')
+    one('  final int? sectionRank;', '  final String shelfGroup, section;\n  final int? sectionRank;')
+    one("name: (row['name'] ?? '').toString().trim(),", """name: (row['name'] ?? '').toString().trim().isNotEmpty
+          ? row['name'].toString().trim() : (row['full_name'] ?? '').toString().trim(),""")
+    one('      sectionRank: _RetailStoreState', """      shelfGroup: (row['shelf_group'] ?? '').toString().trim(),
+      section: (row['section'] ?? '').toString().trim(),
+      sectionRank: _RetailStoreState""")
+    one('image_url,category,section_rank', 'image_url,category,section,shelf_group,full_name,section_rank')
 
+    one("import 'dart:convert' as retailSymbolCodec;", "import 'dart:convert' as retailSymbolCodec;\nimport 'package:flutter/gestures.dart';")
     before = '  List<_RetailItem> get _visibleProducts {'
     one(before, methods + '\n' + before)
-    one("      if (_searchTerm.isNotEmpty &&", """      if (_type != null && !_type!.matches(item)) return false;
-      if (_isBBW && _searchTerm.isNotEmpty) {
+    one("""      if (_searchTerm.isNotEmpty &&
+          !item.name.toLowerCase().contains(_searchTerm)) {
+        return false;
+      }""", """      if (_type != null && !_itemMatchesType(item, _type!)) return false;
+      if (_searchTerm.isNotEmpty) {
         return (item.name + ' ' + item.description + ' ' + item.category).toLowerCase().contains(_searchTerm);
-      }
-      if (_searchTerm.isNotEmpty &&""")
+      }""")
     one("        _categories = <_RetailCategory>[];", "        _typesByCategory = {};\n        _type = null;\n        _categories = <_RetailCategory>[];")
     one('        _categories = categories;', '''        _categories = categories;
         _typesByCategory = _stockTypes(items);
         final initial = Uri.base.queryParameters['category'];
-        if (_isBBW && categories.any((c) => c.name == initial)) _category = initial!;''')
+        if (categories.any((c) => c.name == initial)) _category = initial!;''')
     one('    final visible = _visibleProducts;', '    final visible = _visibleProducts;\n    if (_isBBW) return _bbwStore(visible);')
-    one('        _categoryChips(),', '''        _categoryChips(),
+    one('        _categoryChips(),', '''        _retailDepartments(),
         if ((_typesByCategory[_category]?.length ?? 0) > 1)
           _bbwTypes(_typesByCategory[_category]!),''')
-    one('              setState(() => _category = label);', '              _chooseDepartment(label);')
+    start = source.index('  Widget _categoryChips() {')
+    end = source.index('  Widget _cartBar() {', start)
+    source = source[:start] + source[end:]
+    source += (HERE / 'retail_filter_rail.dart.inc').read_text()
     one('              : GridView.builder(', '''              : GridView.builder(
                   key: ValueKey('$_category/${_type?.id}'),''')
     source += (HERE / 'bath_body_types.dart.inc').read_text()
