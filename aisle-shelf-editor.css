@@ -179,7 +179,7 @@ details[open] > summary { margin-block-end: .45rem; }
   max-height: calc(100dvh - 12px);
 }
 #shopping-preview::backdrop { background: rgb(0 0 0 / .75); }
-#shopping-preview header {
+#shopping-preview > header {
   display: flex;
   align-items: center;
   justify-content: space-between;

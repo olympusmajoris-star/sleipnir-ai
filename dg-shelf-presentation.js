@@ -201,8 +201,9 @@
         ]);
         if(state.destroyed || ticket!==state.ticket)return;
         state.data=data;state.layout=defaults(saved.layout);state.revision=saved.revision;state.items=data.items;
-        state.byId=new Map(state.items.map(item=>[item.id,item]));state.sourceIndex=new Map(state.items.map((item,index)=>[item.id,index]));
+        state.byId=new Map(state.items.map(item=>[item.id,item]));state.sourceIndex=new Map(state.items.map((item,index)=>[item.id,Number.isInteger(item.sourceIndex)?item.sourceIndex:index]));
         state.page=0;paint(state.selection);
+        options.onReady?.();
         return {products:state.items.length,aisle:options.aisle,revision:saved.revision};
       }catch(error) {
         if(state.destroyed || ticket!==state.ticket || error.name==='AbortError')return;

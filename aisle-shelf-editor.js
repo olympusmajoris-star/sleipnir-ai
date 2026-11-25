@@ -6,7 +6,7 @@
   const channel = 'sleipnir-aisle-editor-v1';
   const requestedAuthored = start.has('authored') ? (start.get('authored') || '').trim().toLowerCase() : null;
   const authoredFeature = 'preview-authored-aisle';
-  const dgRenderer = 'dg-shelves-20261125-1';
+  const dgRenderer = 'dg-shelves-20261125-2';
   const dgBuild = {capabilities:[authoredFeature],aisleRouting:{otherStores:'catalog',standard:[]}};
   const requestedAisle = (start.get('aisle') || '').trim().slice(0,140);
   const hashPattern = /^[0-9a-f]{64}$/;
@@ -432,6 +432,11 @@
     try {
       const view=window.DollarGeneralShelf.mount(host,{
         store,aisle:state.aisle,authoredId:state.authoredId,mode:state.mode,scales:scaleMap(),draftScales:Object.fromEntries(state.drafts),shopping:false,
+        onReady:()=>{
+          if(serial!==state.frameSequence || !state.dgView)return;
+          state.ready=true;el('frame-status').hidden=true;
+          updateControls();drawFlags();
+        },
         onSelect:data=>{if(serial===state.frameSequence)selectProduct(data);},
         onStatus:text=>{if(serial===state.frameSequence)setNotice(text);}
       });

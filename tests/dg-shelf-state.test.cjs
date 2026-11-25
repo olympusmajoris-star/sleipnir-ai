@@ -24,7 +24,7 @@ function setup({layout=null,items,authoredId}={}) {
   vm.runInNewContext(fs.readFileSync(require.resolve('../dg-shelf-presentation.js'),'utf8'),context);
   const selected=[];
   const view=root.DollarGeneralShelf.mount(host,{store:'store',aisle:'aisle',authoredId,scales:{one:.9},onSelect:value=>selected.push(value)});
-  return {view,host,rendered,selected};
+  return {view,host,rendered,selected,root};
 }
 
 test('saved organizer placement survives base sync while explicit preview drafts can override it',async()=>{
@@ -69,4 +69,48 @@ test('search and bay navigation retain products beyond the entrance sample',asyn
   assert.equal(fixture.rendered.at(-1).result.pages,1);
   fixture.view.destroy();
   assert.equal(fixture.host.children.length,0);
+});
+
+test('saving one size preserves the rest of the layout and a newer preview edit',async()=>{
+  const layout={rows:5,rail:8,productsPerRow:2,products:{
+    one:{scale:.6,x:.04,y:-.03,facings:2},other:{scale:.72,facings:3,group:'Keep this group'}
+  }};
+  const fixture=setup({layout});await fixture.view.ready;
+  let complete,request;
+  fixture.root.ShelfLayoutStore.save=(store,key,record,revision)=>{
+    request={store,key,record,revision};return new Promise(resolve=>{complete=resolve;});
+  };
+  fixture.view.command('set-scale',{product_id:'one',scale:.8});
+  const saving=fixture.view.saveScale('one',.8);
+  assert.equal(request.store,'store');assert.equal(request.key,'aisle');assert.equal(request.revision,4);
+  assert.equal(request.record.rows,5);assert.equal(request.record.rail,8);
+  assert.deepEqual(JSON.parse(JSON.stringify(request.record.products.other)),layout.products.other);
+  assert.deepEqual(JSON.parse(JSON.stringify(request.record.products.one)),{...layout.products.one,scale:.8});
+  fixture.view.command('set-scale',{product_id:'one',scale:.9});
+  complete({layout:request.record,revision:5});await saving;
+  assert.equal(fixture.rendered.at(-1).result.slots[0].scale,.9);
+  fixture.view.command('sync',{scales:{one:1},draftScales:{}});
+  assert.equal(fixture.rendered.at(-1).result.slots[0].scale,.8);
+  fixture.view.destroy();
+});
+
+test('a false or conflicting save confirmation cannot discard the preview draft',async()=>{
+  for(const failure of ['stale-revision','wrong-size','conflict']) {
+    const fixture=setup({layout:{products:{one:{scale:.6}}}});await fixture.view.ready;
+    fixture.view.command('set-scale',{product_id:'one',scale:.9});
+    fixture.root.ShelfLayoutStore.save=async(store,key,record)=>{
+      if(failure==='conflict')throw Error('A newer shelf layout has been saved.');
+      return {layout:failure==='wrong-size'?{...record,products:{one:{scale:.5}}}:record,
+        revision:failure==='stale-revision'?4:5};
+    };
+    await assert.rejects(fixture.view.saveScale('one',.9));
+    assert.equal(fixture.rendered.at(-1).result.slots[0].scale,.9);
+    let retryRevision;
+    fixture.root.ShelfLayoutStore.save=async(store,key,record,revision)=>{
+      retryRevision=revision;return {layout:record,revision:5};
+    };
+    await fixture.view.saveScale('one',.9);
+    assert.equal(retryRevision,4);
+    fixture.view.destroy();
+  }
 });

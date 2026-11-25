@@ -163,7 +163,7 @@
       aliases:value.aliases,rules:value.rules.map(([kind,pattern])=>[kind,new RegExp(pattern,'i')])
     }]));
     const items=[];
-    for (const id of ordered) {
+    for (const [sourceIndex,id] of ordered.entries()) {
       const row = scoped.get(id);
       if (!row) continue; // The SKU may have been removed since the membership read.
       const calibrated=art.get(id), group=calibrated?.group || String(row.shelf_group || '').trim() || source;
@@ -172,7 +172,7 @@
       const originals=[...new Set([photo(row.image_url),photo(row.image_url_orig)].filter(Boolean))];
       const dollarGeneral=mode==='dollar-general' || store==='0600cb61-45f9-402b-a209-134abdaef10f';
       const photos=[...new Set([...(dollarGeneral?originals.map(dollarGeneralPhoto):[]),...originals])];
-      items.push({...calibrated,id,name,price,group,kind:kindFor(rules,source,group,name,Boolean(calibrated?.group)),
+      items.push({...calibrated,id,sourceIndex,name,price,group,kind:kindFor(rules,source,group,name,Boolean(calibrated?.group)),
         size:calibrated?.size || naturalSize(row.full_name||name),image:photos[0]||'',photos});
     }
     fixture = fixture || (/frozen|freezer/i.test(source) ? 'freezer' : /dairy|refrigerated|seafood|meat|deli/i.test(source) ? 'cooler' : 'shelf');
