@@ -25,8 +25,11 @@
     const e=document.createElement(tag);if(cls)e.className=cls;if(value!=null)e.textContent=value;return e;
   }
   function storeCard(s){
-    const a=make('a','store');a.href=core.storeEditorForStore(s);
-    if(kind.value==='menus'){const href=new URL(a.href);href.searchParams.set('tab','menu');a.href=href.href;}
+    const a=make('a','store');
+    const diningRoom=window.DiningRoomNavigation?.urlFor(s);
+    a.href=diningRoom||core.storeEditorForStore(s);
+    if(diningRoom)a.target='_top';
+    else if(kind.value==='menus'){const href=new URL(a.href);href.searchParams.set('tab','menu');a.href=href.href;}
     const mark=make('span','mark',String(s.name||'Store').trim().slice(0,1).toUpperCase());
     mark.setAttribute('aria-hidden','true');
     try{
