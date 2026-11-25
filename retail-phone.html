@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#e7eaf0">
+  <title>iPhone store preview · Sleipnir</title>
+  <link rel="stylesheet" href="retail-phone.css">
+  <script defer src="retail-phone.js"></script>
+</head>
+<body>
+  <main aria-label="iPhone store preview">
+    <div class="phone-case" id="device">
+      <div class="glass">
+        <div class="status" aria-hidden="true">
+          <span id="clock"></span><i class="island"></i>
+          <span class="indicators"><i class="signal"></i><i class="battery"></i></span>
+        </div>
+        <iframe id="shop" title="Retail store shopper preview" referrerpolicy="same-origin"></iframe>
+        <div class="home" aria-hidden="true"><i></i></div>
+      </div>
+    </div>
+    <p id="unavailable" role="status" hidden>Choose a store from the <a href="store-directory.html?type=retail">retail directory</a> to open its iPhone preview.</p>
+  </main>
+</body>
+</html>

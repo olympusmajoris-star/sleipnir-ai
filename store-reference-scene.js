@@ -5,14 +5,98 @@ const money=v=>v!=null&&Number.isFinite(Number(v))?'$'+Number(v).toFixed(2):'Pri
 function img(url,name){const n=E('img');n.alt=name||'';if(url)n.src=url;n.draggable=false;n.addEventListener('error',()=>{n.classList.add('reference-image-missing');n.alt='Image unavailable: '+(name||'');});return n;}
 function numeric(cfg,key,fallback){const n=Number(cfg[key]);return cfg[key]!=null&&Number.isFinite(n)?n:fallback;}
 function groups(rows){const map=new Map();for(const row of rows){const name=row.category||'Items';if(!map.has(name))map.set(name,[]);map.get(name).push(row);}return [...map].map(([name,items])=>({name,items}));}
+const bathBodyStoreId='79377a42-fde7-40a4-b8d1-4bfc78d76bcb';
+
+function retailGroups(rows, definition) {
+ const available = new Map(), items = new Map();
+ const rules = (definition?.groups || []).map(g => ({...g, matches:new RegExp(g.pattern,'i')}));
+ for (const row of rows) {
+  const matched = [];
+  if (rules.length) {
+   const description = String(row.description || '').trim() || row.name || '';
+   for (const rule of rules) if (rule.matches.test(description)) matched.push(rule);
+  } else {
+   const category = String(row.category || '').trim().toLowerCase();
+   const label = [row.shelf_group,row.section].map(v => String(v || '').trim())
+    .find(v => v && v.toLowerCase()!==category && !/^\d+$/.test(v));
+   if (label) matched.push({id:label,label});
+  }
+  if (!matched.length) matched.push({id:'__other__',label:'Other'});
+  items.set(row.id, matched.map(g => g.id));
+  for (const g of matched) available.set(g.id,g);
+ }
+ const groups = rules.length ? rules.filter(g=>available.has(g.id)) :
+  [...available.values()].filter(g=>g.id!=='__other__').sort((a,b)=>a.label.localeCompare(b.label));
+ if (available.has('__other__')) groups.push(available.get('__other__'));
+ return {groups,items};
+}
+
+function typeSymbol(group) {
+ const names = [
+  [/^(?:all|other)$/i,'grid'], [/face|lip/i,'face'], [/hair/i,'hair'], [/bath|shower|wash/i,'shower'],
+  [/skin|lotion|moistur|cream|oil/i,'lotion'], [/soap|hand|saniti/i,'hand'], [/travel|mini/i,'travel'],
+  [/mist|spray|perfume|cologne/i,'perfume'], [/candle|wick/i,'candle'], [/refill|plug/i,'plug'],
+  [/car/i,'car'], [/laundry|detergent/i,'laundry'], [/gift|set/i,'gift'], [/bag|pouch/i,'bag'],
+  [/pet|dog|cat/i,'pet'], [/shoe|foot/i,'footwear'], [/shirt|cloth/i,'clothes'], [/kitchen|food/i,'kitchen'],
+  [/tool|hardware/i,'hardware'], [/tech|electr/i,'tech'], [/toy|game/i,'toy'], [/book|paper/i,'book'],
+  [/sport/i,'sport'], [/plant|garden/i,'garden']
+ ];
+ const key=group.icon||names.find(([pattern])=>pattern.test(group.label))?.[1]||'package';
+ const ns='http://www.w3.org/2000/svg', svg=document.createElementNS(ns,'svg'),symbol=document.createElementNS(ns,'use');
+ svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+ svg.setAttribute('focusable','false');symbol.setAttribute('href','retail-type-symbols.svg#'+key);svg.append(symbol);
+ return svg;
+}
+
+function retailNavigation(root,categories,category,groups,selected,onSetting) {
+ const nav = E('nav',null,'reference-retail-nav');
+ nav.setAttribute('aria-label','Product categories');
+ const makeButton=(group,active,choose,withIcon=false)=>{
+  const b=E('button');b.type='button';b.setAttribute('aria-pressed',String(active));
+  if(withIcon)b.append(typeSymbol(group));
+  b.append(E('span',group.label));b.onclick=choose;return b;
+ };
+ const selectCategory=name=>onSetting({referenceCategory:name,referenceGroup:'',referenceOffset:0,page:0});
+ const options=[{id:'',label:'All'},...categories.map(label=>({id:label,label}))];
+ const choose = E('details',null,'reference-category-picker');
+ const summary=E('summary','Categories');
+ choose.append(summary);
+ const list=E('div',null,'reference-category-options');
+ for(const option of options) list.append(makeButton(option,category===option.id,()=>selectCategory(option.id)));
+ choose.append(list);
+ const tabs=E('div',null,'reference-category-tabs');
+ for(const option of options) tabs.append(makeButton(option,category===option.id,()=>selectCategory(option.id)));
+ nav.append(tabs,choose);root.append(nav);
+ const current=tabs.querySelector('[aria-pressed="true"]');
+ if(current) tabs.scrollLeft=Math.max(0,current.offsetLeft-tabs.offsetLeft-(tabs.clientWidth-current.offsetWidth)/2);
+ if (!category || groups.length<2) return;
+ const activeGroup=groups.some(g=>g.id===selected)?selected:'';
+ const rail=E('div',null,'reference-type-rail');
+ rail.setAttribute('role','group');rail.setAttribute('aria-label',category+' product types');
+ for(const g of [{id:'',label:'All'},...groups]){
+  const b=makeButton(g,activeGroup===g.id,()=>onSetting({referenceGroup:g.id,referenceOffset:0,page:0}),true);
+  rail.append(b);
+ }
+ root.append(rail);
+ const active=rail.querySelector('[aria-pressed="true"]');
+ if(active) rail.scrollLeft=Math.max(0,active.offsetLeft-rail.offsetLeft-(rail.clientWidth-active.offsetWidth)/2);
+}
 function applyElement(node,detail,state={}){const key=detail.kind+':'+(detail.product?.id||detail.label||''),o=state.referenceElements?.[key]||{};if(o.text!=null)node.textContent=o.text;for(const [k,v]of Object.entries(o)){if(['color','background'].includes(k))node.style[k]=v;if(['fontSize','padding','height'].includes(k))node.style[k]=v+'px';if(k==='rounding')node.style.borderRadius=v+'px';if(k==='width')node.style.width=v+'%';if(k==='opacity')node.style.opacity=v/100;if(k==='shadow')node.style.boxShadow='0 0 '+v+'px '+(o.color||'#7fe3e0');}const base=node.style.transform||'';if(o.x||o.y||o.rotation||o.scale!=null||o.stretchX!=null||o.stretchY!=null)node.style.transform=base+' translate('+(o.x||0)+'px,'+(o.y||0)+'px) rotate('+(o.rotation||0)+'deg) scale('+((o.scale??100)/100*(o.stretchX??100)/100)+','+((o.scale??100)/100*(o.stretchY??100)/100)+')';if(o.brightness!=null)node.style.filter='brightness('+(o.brightness/100)+')';node.dataset.referenceKey=key;return node;}
-function render(host,{asset,store,assets,rows=[],categories=[],boardRows=[],state={},base,onSelect=()=>{},onSetting=()=>{},selectingArtworkPart=false,onCreatePart=()=>{}}){
+function render(host,{asset,store,assets,rows=[],categories=[],retailTypes=[],retailTotal=null,boardRows=[],state={},base,onSelect=()=>{},onSetting=()=>{},selectingArtworkPart=false,onCreatePart=()=>{}}){
  host.replaceChildren();host.className='reference-scene';const cfg=state.grocery||{},page=asset.page,root=E('div',null,'reference-page reference-'+page);host.append(root);
  for(const [k,v]of Object.entries(cfg))if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))root.style.setProperty('--'+k,v);
  const scale=numeric(cfg,'textScale',100)/100;root.style.setProperty('--text-scale',scale);root.dataset.referencePage=page;
+ if(page==='retail'&&store.id===bathBodyStoreId)root.classList.add('reference-bath-body');
  const pick=(node,detail)=>{applyElement(node,detail,state);node.dataset.editable=detail.kind;node.tabIndex=0;node.setAttribute('role','button');node.title='Edit '+(detail.label||detail.kind);const fn=e=>{e.stopPropagation();onSelect(detail);};node.onclick=fn;node.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn(e);}};return node;};
- const header=E('div',null,'reference-header');header.append(E('span','‹'));if(store.logo_url&&page==='retail'){const logo=img(store.logo_url,store.name);logo.style.cssText='width:38px;height:38px;object-fit:contain';header.append(pick(logo,{kind:'image',label:'Store logo'}));}header.append(pick(E('strong',store.name),{kind:'header-title',label:store.name}),E('span','⌕'));root.append(pick(header,{kind:'header',label:'page header'}));
- if(page==='retail'){const search=E('div','⌕  Search products','reference-search');root.append(pick(search,{kind:'search',label:'search box'}));}const nav=E('div',null,'reference-categories');const names=categories.length?categories.map(c=>c.category):groups(rows).map(g=>g.name);for(const name of names){const b=E('button',name);b.classList.toggle('on',cfg.referenceCategory===name);b.onclick=()=>onSetting({referenceCategory:name,referenceOffset:0,page:0});nav.append(b);}if(names.length&&!['cart','checkout','navigator'].includes(page))root.append(nav);
+ const header=E('div',null,'reference-header');header.append(E('span','‹'));if(store.logo_url&&page==='retail'){const logo=img(store.logo_url,store.name);logo.style.cssText='width:38px;height:38px;object-fit:contain';if(store.id===bathBodyStoreId)logo.addEventListener('error',()=>logo.hidden=true);header.append(pick(logo,{kind:'image',label:'Store logo'}));}header.append(pick(E('strong',store.name),{kind:'header-title',label:store.name}),E('span','⌕'));root.append(pick(header,{kind:'header',label:'page header'}));
+ const names=categories.length?categories.map(c=>c.category):groups(rows).map(g=>g.name);
+ if(page==='retail'){
+  const search=E('div','⌕  Search products','reference-search');root.append(pick(search,{kind:'search',label:'search box'}));
+  retailNavigation(root,names,cfg.referenceCategory||'',retailTypes,cfg.referenceGroup||'',onSetting);
+ }else if(names.length&&!['cart','checkout','navigator'].includes(page)){
+  const nav=E('div',null,'reference-categories');
+  for(const name of names){const b=E('button',name);b.classList.toggle('on',cfg.referenceCategory===name);b.onclick=()=>onSetting({referenceCategory:name,referenceOffset:0,page:0});nav.append(b);}root.append(nav);
+ }
  const body=E('div',null,'reference-body');root.append(body);let pageIndex=Math.max(0,Math.floor(numeric(cfg,'page',0)));
  function item(row,mode='menu'){
   const o=state.productOverrides?.[row.id]||{},p={...row,...o},card=E('div',null,'reference-item '+mode),photo=img(p.image_url||p.image_url_orig,p.name);photo.style.width=numeric(o,'imageSize',numeric(cfg,mode==='retail'?'retailImageSize':page==='sit_down'?'sdImageSize':'fcImageSize',mode==='retail'?150:42))+'px';photo.style.borderRadius=numeric(cfg,page==='sit_down'?'sdImageRadius':'fcImageRadius',6)+'px';
@@ -42,7 +126,7 @@ function render(host,{asset,store,assets,rows=[],categories=[],boardRows=[],stat
   }
   parts.push(...(state.artworkParts||[]).filter(p=>p.sourceURL===a.url));ArtworkParts.render(box,{url:a.url,parts,state,onSelect,selecting:selectingArtworkPart,onCreate:r=>onCreatePart(r,a.url)});for(const cell of textLayers){if(selectingArtworkPart)cell.style.pointerEvents='none';box.append(cell);}
  }
- function pager(count,remote=false){const controls=E('div',null,'reference-pager');const back=E('button','‹'),next=E('button','›');back.disabled=remote?numeric(cfg,'referenceOffset',0)===0:pageIndex===0;next.disabled=remote?rows.length<24:pageIndex>=count-1;const move=delta=>onSetting(remote?{referenceOffset:Math.max(0,numeric(cfg,'referenceOffset',0)+delta*24)}:{page:Math.max(0,Math.min(count-1,pageIndex+delta))});back.onclick=()=>move(-1);next.onclick=()=>move(1);controls.append(back,E('span',remote?'Reference products':(pageIndex+1)+' / '+Math.max(1,count)),next);root.append(controls);}
+ function pager(count,remote=false){const controls=E('div',null,'reference-pager');const back=E('button','‹'),next=E('button','›');back.disabled=remote?numeric(cfg,'referenceOffset',0)===0:pageIndex===0;next.disabled=remote?(retailTotal==null?rows.length<24:numeric(cfg,'referenceOffset',0)+24>=retailTotal):pageIndex>=count-1;const move=delta=>onSetting(remote?{referenceOffset:Math.max(0,numeric(cfg,'referenceOffset',0)+delta*24)}:{page:Math.max(0,Math.min(count-1,pageIndex+delta))});back.onclick=()=>move(-1);next.onclick=()=>move(1);controls.append(back,E('span',remote?'Reference products':(pageIndex+1)+' / '+Math.max(1,count)),next);root.append(controls);}
  if(page==='navigator'||page==='entrances'){
   const entrances=assets.filter(a=>a.feature==='entrances'&&a.url),shelves=assets.filter(a=>a.native);const choices=entrances.length?entrances:shelves;
   const strip=E('div',null,'reference-categories');choices.forEach((a,i)=>{const b=E('button',a.row?.label||a.category||a.name);b.classList.toggle('on',i===pageIndex);b.onclick=()=>onSetting({page:i});strip.append(b);});body.append(strip);
@@ -65,5 +149,5 @@ function render(host,{asset,store,assets,rows=[],categories=[],boardRows=[],stat
  }else body.append(E('p','Select the saved artwork for this page.'));
  return root;
 }
-const api={applyElement,render,groups,money,numeric};if(typeof module!=='undefined')module.exports=api;G.StoreReferenceScene=api;
+const api={applyElement,render,groups,money,numeric,retailGroups,bathBodyStoreId};if(typeof module!=='undefined')module.exports=api;G.StoreReferenceScene=api;
 })(typeof window==='undefined'?globalThis:window);

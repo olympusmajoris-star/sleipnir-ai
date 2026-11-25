@@ -1,0 +1,189 @@
+  static const _ink = Color(0xFF112D4B);
+  static const _secondaryInk = Color(0xFF44607B);
+  static const _outline = Color(0xFFD1DDE6);
+  static const _tint = Color(0xFFE8F2FA);
+  static const _paper = Color(0xFFF6F8FA);
+  bool get _isBBW => widget.storeId == '__STORE_ID__';
+  _BBWType? _type;
+  Map<String, List<_BBWType>> _typesByCategory = {};
+  static final Map<String, List<_BBWType>> _definitions = {
+__GROUPS__
+  };
+
+  Map<String, List<_BBWType>> _stockTypes(List<_RetailItem> items) {
+    final sections = <String, List<_RetailItem>>{};
+    for (final item in items) {
+      (sections[item.category] ??= []).add(item);
+    }
+    final result = <String, List<_BBWType>>{};
+    for (final section in sections.entries) {
+      final defined = _isBBW ? _definitions[section.key] : null;
+      if (defined != null) {
+        result[section.key] = defined.where((type) => section.value.any(type.matches)).toList();
+      } else {
+        final labels = <String, String>{};
+        for (final item in section.value) {
+          if (item.subtype.isNotEmpty) labels.putIfAbsent(item.subtype.toLowerCase(), () => item.subtype);
+        }
+        final names = labels.values.toList()..sort((a,b) => a.toLowerCase().compareTo(b.toLowerCase()));
+        result[section.key] = names.map(_BBWType.catalog).toList();
+      }
+    }
+    return result;
+  }
+
+  static final Map<String, MemoryImage> _symbols =
+      <String, String>__RETAIL_SYMBOLS__.map((key, png) =>
+          MapEntry(key, MemoryImage(retailSymbolCodec.base64Decode(png))));
+
+  Widget _retailSymbol(String key, Color color) {
+    final image = _symbols[key];
+    if (image == null) return Icon(Icons.category_outlined, size: 21, color: color);
+    return Image(image: image, width: 21, height: 21, color: color,
+        colorBlendMode: BlendMode.srcIn, excludeFromSemantics: true);
+  }
+
+  List<String> get _departments => ['All', ..._categories.map((c) => c.name)];
+
+  void _chooseDepartment(String value) {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _category = value;
+      _type = null;
+    });
+  }
+
+  Future<void> _departmentSheet() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context, backgroundColor: Colors.white, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Padding(padding: EdgeInsets.fromLTRB(18, 2, 18, 10),
+          child: Align(alignment: Alignment.centerLeft, child: Text('Categories',
+            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: _ink)))),
+        Flexible(child: ListView(shrinkWrap: true, children: [
+          for (final name in _departments)
+            ListTile(title: Text(name, style: const TextStyle(color: _ink)), selected: _category == name,
+              trailing: _category == name ? const Icon(Icons.check, color: _ink) : null,
+              onTap: () => Navigator.pop(ctx, name)),
+        ])),
+      ])),
+    );
+    if (mounted && selected != null) _chooseDepartment(selected);
+  }
+
+  Widget _bbwHeader() {
+    final wordmark = Text(_storeName.isEmpty ? 'Bath & Body Works' : _storeName,
+      textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.7, color: _ink));
+    return Column(children: [
+      const SizedBox(width: double.infinity, height: 10, child: CustomPaint(painter: _BBWChecks())),
+      SizedBox(height: 49, child: Row(children: [
+        IconButton(tooltip: 'Back', icon: const Icon(Icons.arrow_back_ios_new, color: _ink, size: 18),
+          onPressed: () => Navigator.maybePop(context)),
+        Expanded(child: Center(child: _storeLogo.trim().isEmpty ? wordmark :
+          Semantics(label: 'Bath & Body Works', image: true, child: Image.network(_storeLogo,
+            height: 36, width: 210, fit: BoxFit.contain, excludeFromSemantics: true,
+            frameBuilder: (_, image, frame, sync) => sync || frame != null ? image : wordmark,
+            errorBuilder: (_, __, ___) => wordmark)))),
+        const SizedBox(width: 48),
+      ])),
+    ]);
+  }
+
+  Widget _bbwSearch() => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 1, 12, 5),
+    child: SizedBox(height: 40, child: TextField(controller: _searchController,
+      textAlignVertical: TextAlignVertical.center,
+      style: const TextStyle(color: _ink, fontSize: 14), cursorColor: _ink,
+      decoration: InputDecoration(isDense: true, filled: true, fillColor: _paper,
+        hintText: 'Search products', hintStyle: const TextStyle(color: _secondaryInk),
+        prefixIcon: const Icon(Icons.search, color: _secondaryInk, size: 19),
+        suffixIcon: _searchTerm.isEmpty ? null : IconButton(tooltip: 'Clear search', iconSize: 16,
+          icon: const Icon(Icons.close, color: _ink), onPressed: _searchController.clear),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: _outline)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: _ink))),
+    )));
+
+  Widget _bbwDepartments() => SizedBox(height: 44, child: Row(children: [
+    TextButton.icon(onPressed: _departmentSheet, icon: const Icon(Icons.grid_view_rounded, size: 16),
+      label: const Text('Categories', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+      style: TextButton.styleFrom(foregroundColor: _ink, padding: const EdgeInsets.symmetric(horizontal: 8))),
+    Expanded(child: ListView.separated(scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(right: 12), itemCount: _departments.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 6),
+      itemBuilder: (ctx, i) {
+        final label = _departments[i], active = label == _category;
+        return Center(child: Material(color: active ? _ink : _tint, borderRadius: BorderRadius.circular(20),
+          child: Semantics(selected: active, button: true, child: InkWell(
+            borderRadius: BorderRadius.circular(20), onTap: () => _chooseDepartment(label),
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                color: active ? Colors.white : _ink)))))));
+      })),
+  ]));
+
+  Widget _bbwTypes(List<_BBWType> types) => Container(height: 66, decoration: const BoxDecoration(
+    color: Colors.white, border: Border(bottom: BorderSide(color: _outline))),
+    child: ListView.separated(key: ValueKey('types/$_category'), scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 8), itemCount: types.length + 1,
+      separatorBuilder: (_, __) => const SizedBox(width: 2),
+      itemBuilder: (ctx, i) {
+        final type = i == 0 ? null : types[i - 1];
+        final selected = _type == type;
+        return Semantics(button: true, selected: selected, child: InkWell(
+          onTap: () => setState(() => _type = type),
+          child: Container(constraints: const BoxConstraints(minWidth: 50),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(width: 31, height: 31, decoration: BoxDecoration(color: selected ? _ink : _tint,
+                shape: BoxShape.circle), child: Center(
+                child: _retailSymbol(type?.icon ?? 'grid', selected ? Colors.white : _ink))),
+              const SizedBox(height: 4),
+              Text(type?.label ?? 'All types', style: TextStyle(color: _ink, fontSize: 11.5,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
+            ]))));
+      }));
+
+  Widget _bbwCard(_RetailItem item) => Material(
+    color: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10),
+      side: const BorderSide(color: _outline)), clipBehavior: Clip.antiAlias,
+    child: InkWell(onTap: () => _openDetails(item), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Expanded(child: Padding(padding: const EdgeInsets.fromLTRB(7, 7, 7, 0),
+          child: __SKU_PHOTO__)),
+        Padding(padding: const EdgeInsets.fromLTRB(9, 7, 9, 0), child: Text(item.name,
+          maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: _ink, fontWeight: FontWeight.w700, fontSize: 14))),
+        Padding(padding: const EdgeInsets.fromLTRB(9, 2, 7, 0), child: Text(item.description,
+          maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: _secondaryInk, fontSize: 12, height: 1.18))),
+        Padding(padding: const EdgeInsets.only(left: 9, right: 2), child: Row(children: [
+          Expanded(child: Text(item.price == null ? 'No price' : _money(item.price!),
+            style: const TextStyle(color: _ink, fontWeight: FontWeight.w700, fontSize: 15))),
+          IconButton(tooltip: 'Add ${item.name}', onPressed: item.price == null ? null : () => _addToCart(item, 1),
+            icon: const Icon(Icons.add_circle), color: _ink, iconSize: 30),
+        ])),
+      ])));
+
+  Widget _bbwStore(List<_RetailItem> visible) {
+    final types = _typesByCategory[_category] ?? const <_BBWType>[];
+    return ColoredBox(color: Colors.white, child: Column(children: [
+      _bbwHeader(), _bbwSearch(), _bbwDepartments(),
+      if (types.length > 1) _bbwTypes(types),
+      Expanded(child: ColoredBox(color: _paper,
+        child: visible.isEmpty
+          ? const Center(child: Text('No matching products.', style: TextStyle(color: _ink)))
+          : GridView.builder(key: ValueKey('$_category/${_type?.id}/$_searchTerm'),
+            padding: const EdgeInsets.fromLTRB(10, 9, 10, 12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2,
+              crossAxisSpacing: 8, mainAxisSpacing: 8, mainAxisExtent: 223),
+            itemCount: visible.length, itemBuilder: (_, i) => _bbwCard(visible[i])))),
+      AnimatedBuilder(animation: FFAppState(), builder: (_, __) => _cartCount == 0
+        ? Container(height: 43, alignment: Alignment.center,
+        decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: _outline))),
+        child: const Text('Tap + to add items', style: TextStyle(fontSize: 13, color: _secondaryInk))) : _cartBar()),
+    ]));
+  }

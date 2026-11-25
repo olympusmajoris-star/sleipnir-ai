@@ -1,0 +1,78 @@
+{
+  "storeId": "79377a42-fde7-40a4-b8d1-4bfc78d76bcb",
+  "categories": [
+    {
+      "label": "Body Care",
+      "groups": [
+        { "id": "face", "label": "Face", "icon": "face", "pattern": "\\b(?:face|facial)\\b" },
+        { "id": "skin", "label": "Skin", "icon": "lotion", "pattern": "\\b(?:lotion|cream|butter|moisturizer|serum|scrub|replenishing)\\b" },
+        { "id": "bath", "label": "Bath & Shower", "icon": "shower", "pattern": "\\b(?:wash|shower|bath|soap)\\b" },
+        { "id": "hair", "label": "Hair", "icon": "hair", "pattern": "\\b(?:hair|shampoo|conditioner)\\b" },
+        { "id": "lotions", "label": "Lotions", "icon": "lotion", "pattern": "\\blotion\\b" },
+        { "id": "creams", "label": "Body Creams", "icon": "jar", "pattern": "\\bbody (?:cream|butter)\\b" },
+        { "id": "mists", "label": "Mists & Sprays", "icon": "spray", "pattern": "\\b(?:mist|spray)\\b" },
+        { "id": "travel", "label": "Travel Size", "icon": "travel", "pattern": "\\b(?:travel|mini)\\b" }
+      ]
+    },
+    {
+      "label": "Candles",
+      "groups": [
+        { "id": "three-wick", "label": "3-Wick", "icon": "candles", "pattern": "^(?!.*holder).*\\b(?:3|three)[ -]wick\\b" },
+        { "id": "single-wick", "label": "Single Wick", "icon": "candle", "pattern": "^(?!.*holder).*\\b(?:single|1|one)[ -]wick\\b" },
+        { "id": "holders", "label": "Candle Holders", "icon": "holder", "pattern": "\\bcandle holder\\b" }
+      ]
+    },
+    {
+      "label": "Fragrance",
+      "groups": [
+        { "id": "perfume-mists", "label": "Perfume Mists", "icon": "perfume", "pattern": "\\bmist\\b" }
+      ]
+    },
+    {
+      "label": "Gifts & Accessories",
+      "groups": [
+        { "id": "gift-bags", "label": "Gift Bags", "icon": "gift", "pattern": "\\bgift bag\\b" },
+        { "id": "cosmetic-bags", "label": "Cosmetic Bags", "icon": "bag", "pattern": "\\bcosmetic bag\\b" },
+        { "id": "charms", "label": "Charms", "icon": "charm", "pattern": "\\bcharm\\b" },
+        { "id": "lip-care", "label": "Lip Care", "icon": "lips", "pattern": "^(?!.*holder).*\\blip\\b" },
+        { "id": "holders", "label": "Holders", "icon": "holder", "pattern": "\\bholder\\b" },
+        { "id": "home-fragrance", "label": "Home Fragrance", "icon": "diffuser", "pattern": "\\b(?:fragrance plug|reed vessel)\\b" },
+        { "id": "soap-refills", "label": "Soap Refills", "icon": "soap", "pattern": "\\bfoaming refill\\b" },
+        { "id": "surface-care", "label": "Surface Cleaners", "icon": "spray", "pattern": "\\b(?:counter|surface) (?:spray|cleaner)\\b" },
+        { "id": "laundry", "label": "Laundry", "icon": "laundry", "pattern": "\\b(?:dryer|laundry)\\b" },
+        { "id": "aprons", "label": "Aprons", "icon": "apron", "pattern": "\\bapron\\b" }
+      ]
+    },
+    {
+      "label": "Hand Soaps & Sanitizers",
+      "groups": [
+        { "id": "foaming-soap", "label": "Foaming Soaps", "icon": "soap", "pattern": "^(?!.*(?:dispenser|holder|refill)).*\\bfoaming\\b" },
+        { "id": "moisturizing-soap", "label": "Moisturizing Soaps", "icon": "lotion", "pattern": "^(?!.*(?:dispenser|holder|refill)).*\\bmoisturizing hand soap\\b" },
+        { "id": "revitalizing-soap", "label": "Revitalizing Soaps", "icon": "soap", "pattern": "\\brevitalizing hand soap\\b" },
+        { "id": "sanitizers", "label": "Sanitizers", "icon": "sanitizer", "pattern": "^(?!.*holder).*\\bsanitizer\\b" },
+        { "id": "holders", "label": "Holders", "icon": "holder", "pattern": "\\bholder\\b" },
+        { "id": "dispensers", "label": "Dispensers", "icon": "pump", "pattern": "\\bdispenser\\b" }
+      ]
+    },
+    {
+      "label": "Home Fragrance",
+      "groups": [
+        { "id": "wallflower-refills", "label": "Wallflower Refills", "icon": "refill", "pattern": "\\bwallflowers?\\b.*\\brefills?\\b" },
+        { "id": "wallflower-plugs", "label": "Wallflower Plugs", "icon": "plug", "pattern": "\\bwallflowers?\\b.*\\bplug\\b" },
+        { "id": "room-sprays", "label": "Room Sprays", "icon": "spray", "pattern": "\\broom spray\\b" },
+        { "id": "diffusers", "label": "Diffusers", "icon": "diffuser", "pattern": "\\bdiffuser\\b" },
+        { "id": "car-refills", "label": "Car Refills", "icon": "refill", "pattern": "\\bcar fragrance refill\\b" },
+        { "id": "car-holders", "label": "Car Holders", "icon": "car", "pattern": "\\bcar fragrance holder\\b" },
+        { "id": "laundry", "label": "Laundry", "icon": "laundry", "pattern": "\\blaundry\\b" }
+      ]
+    },
+    {
+      "label": "Personal Care",
+      "groups": [
+        { "id": "hand-cream", "label": "Hand Cream", "icon": "hand", "pattern": "\\bhand cream\\b" },
+        { "id": "lip-balm", "label": "Lip Balm", "icon": "lips", "pattern": "\\blip balm\\b" },
+        { "id": "lip-gloss", "label": "Lip Gloss", "icon": "lips", "pattern": "\\blip gloss\\b" }
+      ]
+    }
+  ]
+}

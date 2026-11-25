@@ -3,3 +3,30 @@
 .reference-menu-hero{width:100%;height:132px;object-fit:cover;border-radius:4px}.reference-menu-hero+.reference-menu-paper{padding-top:8px}
 
 .reference-search{margin:8px 13px;padding:12px;background:var(--panel,#202630);border-radius:9px;color:var(--muted,#b8c0cb)}.reference-add{float:right;color:#227a41;font-size:35px;line-height:30px}.reference-retail .reference-item-words strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.reference-cart .reference-header{color:var(--cartHeaderColor,#9a9a9a)}.reference-fast_casual .reference-menu-book{box-shadow:inset 0 0 0 3px var(--fcFrame,#241a14),0 12px 20px #000c}
+
+.reference-retail-nav{position:relative;display:flex;align-items:center;gap:6px;padding:7px 12px;flex-shrink:0}
+.reference-category-tabs{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:thin}
+.reference-category-tabs button,.reference-category-options button{min-height:36px;padding:6px 12px;border:1px solid #9fa9b655;border-radius:20px;background:#202630;color:#f4f5f7;font-weight:650}
+.reference-category-tabs [aria-pressed=true],.reference-category-options [aria-pressed=true]{background:#ffd45a;color:#15191e;border-color:transparent}
+.reference-category-picker{flex:none}
+.reference-category-picker summary{cursor:pointer;font-weight:650;font-size:12px;display:flex;align-items:center;gap:4px;padding:10px 6px;list-style:none}
+.reference-category-picker summary::-webkit-details-marker{display:none}
+.reference-category-picker summary::after{content:"";width:6px;height:6px;border-right:1.5px solid;border-bottom:1.5px solid;transform:translateY(-2px) rotate(45deg)}
+.reference-category-options{position:absolute;z-index:5;top:100%;right:8px;left:8px;max-height:300px;overflow:auto;display:flex;flex-wrap:wrap;gap:8px;padding:12px;border:1px solid #cbd1d5;border-radius:10px;background:white;box-shadow:0 5px 14px #10162830}
+.reference-category-options button{background:#f1f3f5;color:#23232b}
+.reference-type-rail{display:flex;gap:4px;flex-shrink:0;align-items:stretch;min-width:0;overflow-x:auto;scrollbar-width:thin;margin:0 0 2px;padding:6px 10px;background:#fff;border-top:1px solid #d9dfe4;border-bottom:1px solid #d9dfe4}
+.reference-type-rail button{display:flex;flex-shrink:0;min-width:58px;min-height:49px;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:5px 8px;border:0;border-radius:6px;background:transparent;color:#263440;font-size:11px;font-weight:650}
+.reference-type-rail svg{display:block;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.reference-type-rail [aria-pressed=true]{background:#e7edf4;color:#163b60;box-shadow:inset 0 -2px #2e577f}
+.reference-retail-nav :focus-visible,.reference-type-rail :focus-visible{outline:2px solid #3384c2;outline-offset:-2px}
+.reference-bath-body{background:var(--background,#fbfaf7);color:#182b48}
+.reference-bath-body .reference-header{position:relative;background:#fff;color:#173651;border-bottom:0;padding-bottom:12px}
+.reference-bath-body .reference-header::after{content:"";position:absolute;inset:auto 0 0;height:5px;background-color:#f9fbff;background-image:repeating-linear-gradient(90deg,#3667a63b 0 4px,transparent 4px 8px),repeating-linear-gradient(0deg,#3667a645 0 4px,transparent 4px 8px)}
+.reference-bath-body .reference-header strong{font-size:18px;letter-spacing:-.35px}
+.reference-bath-body .reference-search{background:var(--panel,#fff);border:1px solid #c9d4df;color:var(--muted,#44576d)}
+.reference-bath-body .reference-category-tabs button,.reference-bath-body .reference-category-options button{background:#fff;color:#214669;border-color:#cdd8e4}
+.reference-bath-body .reference-category-tabs button[aria-pressed=true],.reference-bath-body .reference-category-options button[aria-pressed=true]{background:#214b77;border-color:#214b77;color:#fff}
+.reference-bath-body .reference-item.retail{border:1px solid #e1ded9;box-sizing:border-box}
+
+#openRetailPhone{margin-left:auto;padding:7px 11px;border:1px solid #647a8b;border-radius:6px;color:#e4f0f6;text-decoration:none;white-space:nowrap;font-size:13px;font-weight:650}
+#openRetailPhone:hover,#openRetailPhone:focus-visible{background:#263749}

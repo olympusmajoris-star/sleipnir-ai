@@ -15,7 +15,9 @@ def picture(source,arg,sku):
         source=source[:start]+'_menuPhoto('+sku+', '+source[start:end]+')'+source[end:]
     return source
 def integrate(s,k,studio):
-    if k=='retail':return s
+    if k=='retail':
+        from retail_categories import integrate as retail_integration
+        return retail_integration(s, studio)
     store='activeStoreId' if k=='fast_food' else 'widget.storeId.trim()'
     reset='_lastW=-1;' if k=='sit_down' else ''
     methods=METHODS.replace('__STORE__',store).replace('__RESET_LAYOUT__',reset).replace('__DRAFT_OVERRIDE__',"if(nativeMenuDrafts.value.containsKey(id))return nativeMenuDrafts.value[id]!;" if studio else '')

@@ -23,6 +23,10 @@
     const repairs=el('a','Flag store or display'); repairs.href='store-repairs.html?'+new URLSearchParams({store:id});head.append(repairs);
     if(!readers[store.menu_type]){status.textContent='This location has no supported native display.';return;}
     const isStreet=store.native_renderer==='ValhallaStreet'||store.app_surface==='valhalla';
+    if(!isStreet && ['retail','convenience'].includes(store.menu_type)){
+      const phone=el('a','Open iPhone preview');phone.href='retail-phone.html?'+new URLSearchParams({store:id});
+      phone.target='_blank';phone.rel='noopener';head.append(phone);
+    }
     if(isStreet){const street=el('a','Edit street and storefronts');street.href='valhalla-street-editor.html?'+new URLSearchParams({store:id});head.append(street);}
     const source=new URL(isStreet?'native-valhalla/index.html':'native-commerce-preview/index.html',location.href);source.search=new URLSearchParams({store:id});
     const frame=el('iframe');frame.title=store.name+' shopper display';frame.setAttribute('referrerpolicy','same-origin');
