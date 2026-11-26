@@ -26,7 +26,7 @@
   }
   function storeCard(s){
     const a=make('a','store');
-    const diningRoom=window.DiningRoomNavigation?.urlFor(s);
+    const diningRoom=s.designRoomUrl||window.DiningRoomNavigation?.urlFor(s);
     a.href=diningRoom||core.storeEditorForStore(s);
     if(diningRoom)a.target='_top';
     else if(kind.value==='menus'){const href=new URL(a.href);href.searchParams.set('tab','menu');a.href=href.href;}
@@ -45,7 +45,7 @@
     body.append(name);if(s.address)body.append(address);
     const street=s.app_surface==='valhalla';
     const count=Number(street?s.valhalla_menu_count:s.product_count);
-    body.append(make('span','meta', count===0?'No catalog products':count.toLocaleString()+(street?(count===1?' orderable menu item':' orderable menu items'):(count===1?' catalog item':' catalog items'))));
+    body.append(make('span','meta', s.designRoomUrl?'Dining room design':count===0?'No catalog products':count.toLocaleString()+(street?(count===1?' orderable menu item':' orderable menu items'):(count===1?' catalog item':' catalog items'))));
     const arrow=make('span','arrow','›');arrow.setAttribute('aria-hidden','true');a.append(mark,body,arrow);return a;
   }
   function append(){
@@ -67,8 +67,9 @@
     try{
       const out=await core.loadAppStores();
       if(me!==ticket)return;
-      stores=out.map(s=>({...s,search:searchText([s.name,s.address,s.category].filter(Boolean).join(' '))}));
-      stores.sort((a,b)=>Number(b.product_count>0)-Number(a.product_count>0)||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
+      stores=(window.PalmCoastDesignLocations?.withDiningRooms(out)||out).map(s=>({...s,search:searchText([s.name,s.address,s.category].filter(Boolean).join(' '))}));
+      const hasCatalogOrDesign=s=>s.product_count>0||Boolean(s.designRoomUrl);
+      stores.sort((a,b)=>Number(hasCatalogOrDesign(b))-Number(hasCatalogOrDesign(a))||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
       const kinds=new Set(stores.map(category));if([...kinds].some(k=>menus.has(k)))kinds.add('menus');
       for(const o of kind.options){if(o.value)o.hidden=!kinds.has(o.value);}
       if(kind.value&&!kinds.has(kind.value))kind.value='';

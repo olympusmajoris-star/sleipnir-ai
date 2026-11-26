@@ -96,7 +96,9 @@ async function chooseStore(page){
  dialog.querySelector('h2').textContent=page.name;
  if(page.id==='vbrowse')dialog.querySelector('.picker-heading').after(storefrontSkyButton(()=>dialog.close()));
  dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
- try{const rows=(await stores()).filter(s=>C.storeTypeMatches(page.id,s)),cities=[...new Set(rows.map(s=>s.town))].sort(),city=dialog.querySelector('select'),cards=dialog.querySelector('.store-cards'),status=dialog.querySelector('[role=status]');
+ try{const inventory=await stores();
+  const choices=page.id==='sit_down'&&window.PalmCoastDesignLocations?window.PalmCoastDesignLocations.withDiningRooms(inventory):inventory;
+  const rows=choices.filter(s=>C.storeTypeMatches(page.id,s)).sort((a,b)=>a.name.localeCompare(b.name)),cities=[...new Set(rows.map(s=>s.town))].sort(),city=dialog.querySelector('select'),cards=dialog.querySelector('.store-cards'),status=dialog.querySelector('[role=status]');
  for(const name of cities){const o=document.createElement('option');o.value=name;o.textContent=name;city.append(o);}
  status.textContent=rows.length?'Choose a city.':'No live stores in this category.';
  city.onchange=()=>{
@@ -106,9 +108,13 @@ async function chooseStore(page){
   for(const st of matches){
    const card=document.createElement('article');card.className='store-card';
    const count=Number(st.product_count)||0,photos=Number(st.image_count)||0;
-   const description=st.app_surface==='valhalla'?st.valhalla_menu_count.toLocaleString()+' orderable menu items':count?count.toLocaleString()+' products · '+photos.toLocaleString()+' images':'No catalog products recorded';
+   const description=st.designRoomUrl?'Dining room design':st.app_surface==='valhalla'?st.valhalla_menu_count.toLocaleString()+' orderable menu items':count?count.toLocaleString()+' products · '+photos.toLocaleString()+' images':'No catalog products recorded';
    card.innerHTML='<h3>'+esc(st.name)+'</h3><p>'+esc(st.address||'Address not recorded')+'</p><p>'+esc(description)+'</p><button class="retry-stores">Edit this store</button>';
-   card.querySelector('button').onclick=()=>{dialog.close();move({group:'shopping',page:page.id,store:st.id});};cards.append(card);
+   const edit=card.querySelector('button');
+   if(st.designRoomUrl){
+    const link=document.createElement('a');link.href=st.designRoomUrl;link.target='_top';link.className='retry-stores';link.textContent='Open dining room';edit.replaceWith(link);
+   }else edit.onclick=()=>{dialog.close();move({group:'shopping',page:page.id,store:st.id});};
+   cards.append(card);
   }
  };
  }catch(e){dialog.querySelector('[role=status]').textContent=e.message;}
