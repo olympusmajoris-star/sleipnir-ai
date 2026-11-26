@@ -96,13 +96,19 @@ async function ownedProducts(rows,signal){
  return (await Promise.all(batches)).flat();
 }
 async function targetDoors(signal){
- const [entrances,categories]=await Promise.allSettled([read('store_entrances',{select:'label,image_path,sort',store_id:'eq.'+TARGET,is_active:'eq.true',order:'sort,label'},signal),
-  global.StudioJobs.request('/rest/v1/rpc/target_catalog_categories',{auth:false,method:'POST',body:{}})]);
+ const [entrances,categories,rendered]=await Promise.allSettled([read('store_entrances',{select:'label,image_path,sort',store_id:'eq.'+TARGET,is_active:'eq.true',order:'sort,label'},signal),
+  global.StudioJobs.request('/rest/v1/rpc/target_catalog_categories',{auth:false,method:'POST',body:{}}),
+  read('target_render_aisles',{select:'aisle,renders'},signal)]);
  if(entrances.status==='rejected'&&categories.status==='rejected')throw Error('The Target entrance directory is unavailable.');
  const first=entrances.status==='fulfilled'?entrances.value:[],counts=categories.status==='fulfilled'?new Set(categories.value.filter(r=>r.product_count>0).map(r=>r.category)):null;
  const result=new Map();
  for(const r of first){if((!counts||counts.has(r.label))&&media(r.image_path,'target-entrances')&&!result.has(r.label))result.set(r.label,{label:r.label,art:r.image_path,kind:'Aisles'});}
  for(const label of counts||[]){if(!result.has(label))result.set(label,{label,art:'',kind:'Aisles'});}
+ for(const r of rendered.status==='fulfilled'?rendered.value:[]){
+  if(!(r.renders>0))continue;
+  const door=result.get(r.aisle);
+  if(door)door.kind='Rendered aisles';else result.set(r.aisle,{label:r.aisle,art:'',kind:'Rendered aisles'});
+ }
  return [...result.values()];
 }
 async function doorsForStore(row,signal){
@@ -158,6 +164,20 @@ function calibratedSpot(slot,layout,anchors){
  const top=row?(previous.length?Math.max(...previous):row/3):0;
  const box=[col/cols,top,(col+1)/cols,y+h];
  return validBox(box)?[box,ticket]:[ticket];
+}
+async function targetRenderPanels(door,signal){
+ const rows=await read('target_render_spots',{select:'render_no,image_path,slot,product_id,box,tag',aisle:'eq.'+door.label,order:'render_no,slot'},signal);
+ const owned=new Map((await ownedProducts(rows,signal)).map(p=>[p.id,p]));
+ const panels=new Map();
+ for(const r of rows){
+  const url=media(r.image_path);if(!url)continue;
+  let panel=panels.get(r.render_no);
+  if(!panel){panel={url,label:door.label,renderNo:r.render_no,spots:[]};panels.set(r.render_no,panel);}
+  const product=owned.get(r.product_id);if(!product)continue;
+  const boxes=[r.box,r.tag].filter(Array.isArray).map(b=>b.map(Number)).filter(validBox);
+  if(boxes.length)panel.spots.push({id:product.id,name:product.name,price:product.price,boxes});
+ }
+ return [...panels.values()];
 }
 async function publishedPanels(door,signal){
  const scope={store_id:'eq.'+id,aisle:'eq.'+door.label};
@@ -252,6 +272,7 @@ function drawEntrance(door){
 }
 async function loadPanels(door,signal){
  if(door.kind==='Published aisles')return publishedPanels(door,signal);
+ if(door.kind==='Rendered aisles')return targetRenderPanels(door,signal);
  if(door.kind==='Produce'){
   const zones=door.zone==='veg-bins'?['veg-bins','wall']:[door.zone];
   const blocks=await Promise.all(zones.map(zone=>read('produce_render_plan',{select:'zone,grid_col,grid_row,image_path,product_id,zx0,zy0,zx1,zy1,tx0,ty0,tx1,ty1',zone:'eq.'+zone,order:'block_order,grid_row,grid_col,item_no'},signal)));
