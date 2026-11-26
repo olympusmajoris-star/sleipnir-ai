@@ -189,6 +189,7 @@ function navigate(door,inside=false,page=0,replace=false){
  history[replace?'replaceState':'pushState'](null,'',here);route();
 }
 function resetScene(){
+ $('picture').classList.remove('seafood-freezer');
  $('picture').hidden=true;$('pagination').hidden=true;$('spots').replaceChildren();$('productList').replaceChildren();
  $('status').textContent='';$('retry').hidden=true;$('storeRepair').hidden=true;
  if($('sku').open)$('sku').close();
@@ -263,6 +264,9 @@ async function loadPanels(door,signal){
  const sections=await read('door_sections',{select:'door,kind,station,ord',door:'eq.'+door.label,order:'ord'},signal);
  const priced={'Frozen Foods':'Publix Frozen Foods Priced 20261120','Frozen Seafood':'Publix Frozen Seafood Priced 20261120','Freezer Bins':'Publix Freezer Bins Priced 20261120'};
  const lists=await Promise.all(sections.map(async section=>{
+  if(id===PUBLIX&&door.label==='Seafood'&&section.station==='Frozen Seafood'){
+   return global.PublixSeafoodFreezer.load({read,photoUrl:catalogPhoto,signal});
+  }
   if(door.label==='Deli'&&section.kind!=='render'&&global.GroceryStationFixtures?.loadSection){
    return global.GroceryStationFixtures.loadSection(door.label,section,id,{read,media,signal});
   }
@@ -284,10 +288,35 @@ async function loadScales(panel,signal){
  return true;
 }
 function previewScale(sku,scale){
- document.querySelectorAll('.product-layer').forEach(layer=>{if(layer.dataset.product===sku)layer.style.transform='scale('+scale+')';});
+ document.querySelectorAll('.product-layer:not(.seafood-pack), .seafood-stock').forEach(layer=>{if(layer.dataset.product===sku)layer.style.transform='scale('+scale+')';});
  $('sizePhoto').style.transform='scale('+scale+')';$('scaleText').textContent=Math.round(scale*100)+'%';
 }
 function position(node,box){Object.assign(node.style,{left:box[0]*100+'%',top:box[1]*100+'%',width:(box[2]-box[0])*100+'%',height:(box[3]-box[1])*100+'%'});}
+function productImage(img,product){
+ img.onerror=product.fallbackPhoto?()=>{img.onerror=null;img.src=product.fallbackPhoto;}:null;
+ img.src=product.photo;
+}
+function drawSeafoodLane(product){
+ const [left,top,right,bottom]=product.laneBox,w=right-left,h=bottom-top;
+ const local=([x0,y0,x1,y1])=>[(x0-left)/w,(y0-top)/h,(x1-left)/w,(y1-top)/h];
+ const front=local(product.photoBox),cx=50*(front[0]+front[2]),cy=100*front[3];
+ const lane=document.createElement('span');lane.className='seafood-lane';lane.dataset.product=product.id;
+ lane.setAttribute('aria-hidden','true');position(lane,product.laneBox);
+ const stock=document.createElement('span');stock.className='seafood-stock';stock.dataset.product=product.id;
+ stock.style.setProperty('--stock-center',cx+'%');stock.style.setProperty('--stock-contact',cy+'%');
+ stock.style.setProperty('--stock-face-width',(front[2]-front[0])*100+'%');
+ stock.style.transformOrigin=cx+'% '+cy+'%';stock.style.transform='scale('+(appliedScales.get(product.id)?.scale||1)+')';
+ // Append rear to front. Opaque copies physically occlude the stock behind them.
+ for(const face of product.facings){
+  const unit=document.createElement('span');unit.className='seafood-unit pkg-'+product.shape+' pkg-'+face.side;
+  unit.dataset.depth=String(face.depth);position(unit,local(face.box));
+  unit.style.setProperty('--stock-light',String(1-face.depth*.066));
+  if(product.flank){unit.classList.add('pkg-material');unit.style.setProperty('--pkg-flank-position',product.flank[face.side==='left'?0:face.side==='right'?2:1]+'% '+product.flank[3]+'%');}
+  const img=document.createElement('img');img.className='seafood-pack product-layer';img.dataset.product=product.id;img.alt='';
+  productImage(img,product);unit.append(img);stock.append(unit);
+ }
+ lane.append(stock);$('spots').append(lane);
+}
 function showSku(product,panel,index){
  activeSku={product,panel,index,door:currentDoor};$('skuName').textContent=product.name;$('skuPrice').textContent=formatPrice(product.price);$('skuContext').textContent=store.name+' · '+currentDoor.label+' · Display '+(index+1);$('skuSource').textContent=panel.layered?'The product photo is a separate layer on this department display.':'This product is part of a published display photograph. A repair flag identifies its exact position for the next render.';
  const selection=activeSku, doorLabel=currentDoor.label;
@@ -303,7 +332,7 @@ function showSku(product,panel,index){
    }
  }));
  $('sizeEditor').hidden=!(panel.layered&&product.photo);
- if(!$('sizeEditor').hidden){const saved=appliedScales.get(product.id);$('scale').value=String(saved?.scale||1);$('scale').disabled=!saved;$('saveScale').disabled=true;$('scaleStatus').textContent=saved?'':'The saved size could not be loaded. Reopen this display to retry.';$('sizePhoto').src=product.photo;previewScale(product.id,Number($('scale').value));}
+ if(!$('sizeEditor').hidden){const saved=appliedScales.get(product.id);$('scale').value=String(saved?.scale||1);$('scale').disabled=!saved;$('saveScale').disabled=true;$('scaleStatus').textContent=saved?'':'The saved size could not be loaded. Reopen this display to retry.';productImage($('sizePhoto'),product);previewScale(product.id,Number($('scale').value));}
  $('flagNote').value='';$('flagStatus').textContent='';$('flag').disabled=false;$('sku').showModal();
 }
 function drawPanel(index){
@@ -315,6 +344,8 @@ function drawPanel(index){
  $('prevPage').disabled=index===0;$('nextPage').disabled=index===panels.length-1;
  $('pageInfo').textContent='Display '+(index+1)+' of '+panels.length;
  $('pagination').hidden=false;$('spots').replaceChildren();$('productList').replaceChildren();
+ $('picture').classList.toggle('seafood-freezer',Boolean(panel.seafoodFreezer));
+ if(panel.seafoodFreezer){const glass=document.createElement('span');glass.className='seafood-glass';glass.setAttribute('aria-hidden','true');$('spots').append(glass);}
  const image=$('scene'),drawRevision=revision;
  $('status').textContent='Loading display photo…';
  image.onload=()=>{if(drawRevision===revision){$('picture').hidden=false;$('status').textContent='';}};
@@ -327,12 +358,13 @@ function drawPanel(index){
   if(validBox(product.priceBox)&&product.price!=null){const price=document.createElement('span');price.className='produce-price '+product.produceTag;price.textContent=formatPrice(product.price);const b=product.priceBox;
    const box=product.produceTag==='chip'?[Math.max(b[0],b[2]-.14),Math.max(0,b[1]-.023),b[2],Math.max(.042,b[1]+.019)]:b;position(price,box);$('spots').append(price);}
   if(validBox(product.thumbnailBox)){const backing=document.createElement('span');backing.className='menu-thumbnail';position(backing,product.thumbnailBox);$('spots').append(backing);}
-  if(product.photo){
+  if(panel.seafoodFreezer && product.photo)drawSeafoodLane(product);
+  else if(product.photo){
    const faces=Array.isArray(product.facings)?product.facings:[{box:product.photoBox,opacity:1}];
-   for(const face of faces){if(!validBox(face.box))continue;const layer=document.createElement('img');layer.className='product-layer';layer.alt='';layer.src=product.photo;layer.dataset.product=product.id;layer.style.transform='scale('+(appliedScales.get(product.id)?.scale||1)+')';layer.style.opacity=String(face.opacity);position(layer,face.box);$('spots').append(layer);}
+   for(const face of faces){if(!validBox(face.box))continue;const layer=document.createElement('img');layer.className='product-layer';layer.alt='';productImage(layer,product);layer.dataset.product=product.id;layer.style.transform='scale('+(appliedScales.get(product.id)?.scale||1)+')';layer.style.opacity=String(face.opacity);position(layer,face.box);$('spots').append(layer);}
   }
   if(validBox(product.railBox)){const rail=document.createElement('span');rail.className='front-rail';position(rail,product.railBox);$('spots').append(rail);}
-  if(validBox(product.tagBox)){const price=document.createElement('span');price.className='price-layer'+(product.menuRow?' menu-row':'');const name=document.createElement('span'),amount=document.createElement('b');if(product.menuRow&&/^#[a-f0-9]{6}$/i.test(product.textColor||''))price.style.color=product.textColor;name.textContent=product.name;amount.textContent=formatPrice(product.price);price.append(name,amount);position(price,product.tagBox);$('spots').append(price);}
+  if(validBox(product.tagBox)){const price=document.createElement('span');price.className='price-layer'+(product.menuRow?' menu-row':'')+(panel.seafoodFreezer?' seafood-ticket':'');const name=document.createElement('span'),amount=document.createElement('b');if(product.menuRow&&/^#[a-f0-9]{6}$/i.test(product.textColor||''))price.style.color=product.textColor;name.textContent=product.ticketLabel||product.name;amount.textContent=formatPrice(product.price);price.title=product.name;price.append(name,amount);position(price,product.tagBox);$('spots').append(price);}
   for(const [i,box] of product.boxes.filter(validBox).entries()){
    const hit=document.createElement('button');hit.className='hit';hit.type='button';hit.title=product.name;hit.setAttribute('aria-label',product.name+(i===0?'':' price ticket'));if(i>0)hit.tabIndex=-1;
    hit.dataset.product=product.id;position(hit,box);hit.onclick=()=>showSku(product,panel,index);$('spots').append(hit);

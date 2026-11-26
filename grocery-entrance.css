@@ -14,3 +14,88 @@
 #doorBoard #boardBody{position:static;padding:0;background:none;font-size:.95rem;font-weight:400}
 #publishedDoor{width:min(100%,34rem);height:min(59dvh,39rem);position:relative;margin:.7rem auto 0}
 #dgShelfEntrance{width:min(100%,390px);min-width:0;margin:.85rem auto 0}
+
+/* A single door of the Publix seafood freezer. All coordinates follow the photographed case. */
+#picture.seafood-freezer {
+  width: min(100%, 31rem, 50svh);
+  isolation: isolate;
+}
+.seafood-freezer #scene {
+  width: 100%;
+  max-height: none;
+}
+.seafood-freezer .seafood-pack {
+  object-fit: contain;
+  object-position: center bottom;
+
+}
+.seafood-freezer .seafood-lane {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+.seafood-freezer .seafood-stock {
+  position: absolute;
+  inset: 0;
+}
+.seafood-stock::before {
+  content: "";
+  position: absolute;
+  top: var(--stock-contact, 98%);
+  left: var(--stock-center, 50%);
+  width: var(--stock-face-width, 87%);
+  height: 4.3%;
+  transform: translate(-50%, -65%);
+  background: radial-gradient(ellipse closest-side, rgb(13 23 33 / 60%), rgb(13 23 33 / 23%) 73%, transparent);
+}
+.seafood-freezer .seafood-ticket {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .6cqw;
+  min-height: 2.9cqw;
+  gap: .35cqw;
+  overflow: hidden;
+  line-height: 1;
+  color: #16191a;
+  background: linear-gradient(#fffdf2, #f5f1df 74%, #e3ded0);
+  border-radius: .2cqw;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 48%);
+}
+.seafood-ticket > span {
+  flex: 1 1 0;
+  min-width: 0;
+  color: #393a32;
+  font-size: clamp(6px, 1.85cqw, 9px);
+  font-weight: 600;
+  letter-spacing: -.015em;
+}
+.seafood-ticket > b {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(9px, 2.85cqw, 14px);
+  font-weight: 760;
+  letter-spacing: -.035em;
+}
+.seafood-freezer .seafood-glass {
+  position: absolute;
+  z-index: 2;
+  inset: 3% 6.05% 10.05% 5.27%;
+  pointer-events: none;
+  border-radius: 1.1% / .8%;
+  background:
+    linear-gradient(112deg, transparent 12%, rgb(214 238 249 / 4%) 16.5%, transparent 23%, transparent 61%, rgb(227 243 252 / 7%) 65%, rgb(228 244 255 / 2%) 67%, transparent 77%),
+    linear-gradient(180deg, rgb(194 228 243 / 4%), transparent 29%, transparent 75%, rgb(171 211 231 / 5%));
+  box-shadow: inset 1px 0 1px rgb(211 237 249 / 16%), inset -1px 0 1px rgb(175 207 225 / 13%);
+}
+.seafood-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("grocery-station-surfaces/publix-seafood-glass.webp") center / 100% 100% no-repeat;
+  opacity: .84;
+}
+.seafood-freezer .hit {
+  z-index: 3;
+}
