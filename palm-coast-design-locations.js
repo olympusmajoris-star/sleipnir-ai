@@ -32,5 +32,28 @@
     }
     return rows;
   }
-  window.PalmCoastDesignLocations = Object.freeze({withDiningRooms});
+  const scopeUrl = new URL('store-scope.json', document.currentScript.src);
+  let approvedNames, checkedAt=0;
+  async function findDiningRooms(term) {
+    const query=nameKey(term);
+    if(query.length<2)return [];
+    if(!approvedNames || Date.now()-checkedAt>60000){
+      const response=await fetch(scopeUrl,{cache:'no-cache'});
+      if(!response.ok)throw Error('Store names unavailable');
+      const scope=await response.json();
+      approvedNames=scope.stores;
+      checkedAt=Date.now();
+    }
+    const ids=approvedNames.filter(row=>nameKey(row.name).includes(query)).map(row=>row.id);
+    if(!ids.length || ids.length>10 || ids.some(id=>!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)))return [];
+    const config=window.StudioTransferConfig;
+    const params=new URLSearchParams({p_store_ids:'{'+ids.join(',')+'}'});
+    const response=await fetch(config.url+'/rest/v1/rpc/studio_palm_coast_editor_locations?'+params,{
+      headers:{apikey:config.key,Authorization:'Bearer '+config.key},cache:'no-cache'
+    });
+    if(!response.ok)throw Error('Dining room lookup unavailable');
+    const rows=await response.json();
+    return rows.filter(row=>ids.includes(row.id) && Number(row.product_count)>0 && window.DiningRoomNavigation.urlFor(row));
+  }
+  window.PalmCoastDesignLocations = Object.freeze({withDiningRooms,findDiningRooms});
 })();

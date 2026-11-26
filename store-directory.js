@@ -9,6 +9,22 @@
   const requestedType=params.get('type');
   if (!kind.value && requestedType && Array.from(kind.options).some(o=>o.value===requestedType)) kind.value=requestedType;
   let stores=[], selected=[], drawn=0, loaded=false, ticket=0;
+  let complete=false, nameTimer=0, searchRevision=0;
+  function searchable(s){return {...s,search:searchText([s.name,s.address,s.category].filter(Boolean).join(' '))};}
+  function searchWhileLoading(){
+    clearTimeout(nameTimer);
+    const query=q.value.trim(),rev=++searchRevision;
+    if(complete || query.length<2 || !window.PalmCoastDesignLocations?.findDiningRooms)return;
+    nameTimer=setTimeout(async()=>{
+      try{
+        const hits=await window.PalmCoastDesignLocations.findDiningRooms(query);
+        if(complete || rev!==searchRevision || q.value.trim()!==query)return;
+        const branches=window.PalmCoastDesignLocations?.withDiningRooms(hits)||hits;
+        const matches=branches.filter(s=>searchText(s.name).includes(searchText(query)));
+        if(matches.length){stores=matches.map(searchable);loaded=true;repaint();}
+      }catch{/* The main directory request retains retry and error handling. */}
+    },180);
+  }
   function writeFilters(){
     const u=new URL(location.href);
     for(const [key,val] of [['q',q.value.trim()],['type',kind.value]]){
@@ -22,7 +38,7 @@
     return s.menu_type||'retail';
   }
   const menus=new Set(['fast_food','drive_thru','fast_casual','sit_down','restaurant','valhalla']);
-  function searchText(v){return String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+  function searchText(v){return String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’‘]/g,"'");}
   function make(tag,cls,value){
     const e=document.createElement(tag);if(cls)e.className=cls;if(value!=null)e.textContent=value;return e;
   }
@@ -61,26 +77,30 @@
     const words=searchText(q.value).trim().split(/\s+/).filter(Boolean);
     selected=stores.filter(s=>(!kind.value||(kind.value==='menus'?menus.has(category(s)):category(s)===kind.value))&&words.every(w=>s.search.includes(w)));
     cards.replaceChildren();drawn=0;append();
+    if(!complete){
+      status.textContent=selected.length?selected.length+(selected.length===1?' matching location':' matching locations')+' · loading all stores…':'Loading stores…';
+      return;
+    }
     status.textContent=selected.length ? selected.length.toLocaleString()+(selected.length===1?' location':' locations') :
       'No matching stores. Try another name or city.';
   }
   async function load(){
-    const me=++ticket;loaded=false;retry.hidden=true;more.hidden=true;status.textContent='Loading stores…';
+    const me=++ticket;loaded=false;complete=false;searchWhileLoading();retry.hidden=true;more.hidden=true;status.textContent='Loading stores…';
     try{
       const out=await core.loadAppStores();
       if(me!==ticket)return;
-      stores=(window.PalmCoastDesignLocations?.withDiningRooms(out)||out).map(s=>({...s,search:searchText([s.name,s.address,s.category].filter(Boolean).join(' '))}));
+      stores=(window.PalmCoastDesignLocations?.withDiningRooms(out)||out).map(searchable);
       const hasCatalogOrDesign=s=>s.product_count>0||Boolean(s.designRoomUrl);
       stores.sort((a,b)=>Number(hasCatalogOrDesign(b))-Number(hasCatalogOrDesign(a))||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
       const kinds=new Set(stores.map(category));if([...kinds].some(k=>menus.has(k)))kinds.add('menus');
       for(const o of kind.options){if(o.value)o.hidden=!kinds.has(o.value);}
       if(kind.value&&!kinds.has(kind.value))kind.value='';
-      loaded=true;repaint();
+      complete=true;loaded=true;repaint();
     }catch{
-      if(me!==ticket)return;cards.replaceChildren();status.textContent='The store directory is unavailable. Retry to load your stores.';retry.hidden=false;
+      if(me!==ticket)return;if(!loaded)cards.replaceChildren();status.textContent='The full directory is unavailable. Retry to load all stores.';retry.hidden=false;
     }
   }
-  q.addEventListener('input',()=>{writeFilters();repaint();});
+  q.addEventListener('input',()=>{writeFilters();repaint();searchWhileLoading();});
   kind.addEventListener('change',()=>{writeFilters();repaint();});
   node('filters').addEventListener('submit',e=>{e.preventDefault();repaint();});
   more.addEventListener('click',append);retry.addEventListener('click',load);load();
