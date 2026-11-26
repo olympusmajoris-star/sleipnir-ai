@@ -4,8 +4,10 @@
   const node=id=>document.getElementById(id);
   const q=node('query'), kind=node('kind'), status=node('status'), cards=node('locations'), more=node('more'), retry=node('retry');
   const params=new URLSearchParams(location.search), pageSize=36;
-  q.value=params.get('q')||'';
-  kind.value=Array.from(kind.options).some(o=>o.value===params.get('type'))?params.get('type'):'';
+  // The form is available before deferred scripts load. Preserve input the user has already entered.
+  if (!q.value && params.has('q')) q.value=params.get('q');
+  const requestedType=params.get('type');
+  if (!kind.value && requestedType && Array.from(kind.options).some(o=>o.value===requestedType)) kind.value=requestedType;
   let stores=[], selected=[], drawn=0, loaded=false, ticket=0;
   function writeFilters(){
     const u=new URL(location.href);

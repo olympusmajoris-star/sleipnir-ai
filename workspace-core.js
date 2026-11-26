@@ -119,14 +119,15 @@ async function loadAppStores(options={}){
  pendingAppStores=(async()=>{
   const ids=await approvedIds(options.force);
   const list=[...ids];
-  const workerCount=Math.min(4,Math.ceil(list.length/32));
+  const batchSize=10;
+  const workerCount=Math.min(4,Math.ceil(list.length/batchSize));
   // Distribute the large catalogs at the start of the approved list across workers.
   const workers=Array.from({length:workerCount},()=>[]);
   list.forEach((id,index)=>workers[index%workerCount].push(id));
   const groups=await Promise.all(workers.map(async stores=>{
    const entries=[];
-   for(let start=0;start<stores.length;start+=32){
-    const batch=await readApprovedLocations(new Set(stores.slice(start,start+32)));
+   for(let start=0;start<stores.length;start+=batchSize){
+    const batch=await readApprovedLocations(new Set(stores.slice(start,start+batchSize)));
     entries.push(...batch);
    }
    return entries;

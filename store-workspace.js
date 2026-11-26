@@ -34,7 +34,7 @@
   function directoryURL(type) {
     revision++;
     const url = new URL(directory);
-    url.searchParams.set('rooms', '3');
+    url.searchParams.set('rooms', '4');
     if (type) url.searchParams.set('type', type);
     return url.href;
   }
