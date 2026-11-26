@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Store info · Sleipnir Studio</title>
+<script src="studio-transfer-config.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#0d1518;--card:#172226;--card2:#1b2a2e;--line:#304044;--ink:#edf3f1;--quiet:#b1c6c5;--dim:#7f9696;--accent:#a1e8dc;--gold:#e8c86a;--red:#f09a8a;font:15px/1.45 Inter,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}
+a{color:var(--accent)}button{font:inherit;cursor:pointer}
+header.top{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:1rem clamp(1rem,3vw,2rem) .4rem}
+header.top a{color:var(--quiet);text-decoration:none}header.top h1{margin:0;font-size:1.6rem;letter-spacing:-.03em}
+#refreshed{color:var(--dim);font-size:.85rem;margin-left:auto}
+nav#stores{display:flex;gap:.4rem;overflow-x:auto;padding:.6rem clamp(1rem,3vw,2rem);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;scrollbar-width:thin}
+nav#stores button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:.45rem .9rem;white-space:nowrap}
+nav#stores button.on{background:var(--accent);color:#0d1518;border-color:var(--accent);font-weight:700}
+nav#stores button.core{border-color:var(--gold);color:var(--gold)}nav#stores button.core.on{background:var(--gold);color:#0d1518}
+main{padding:1rem clamp(1rem,3vw,2rem) 4rem;max-width:110rem;margin:auto}
+.stats{display:flex;flex-wrap:wrap;gap:.5rem;margin:.6rem 0 1rem}.stat{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:.5rem .8rem}.stat b{display:block;font-size:1.25rem}.stat span{color:var(--quiet);font-size:.8rem}
+.store-head h2{margin:.2rem 0 0;font-size:1.5rem}.store-head p{margin:.15rem 0;color:var(--quiet)}
+.live{display:inline-block;font-size:.75rem;padding:.1rem .5rem;border-radius:999px;margin-left:.4rem;vertical-align:middle;background:#244236;color:#9fe3b6}.live.off{background:#432a28;color:var(--red)}
+.subtabs{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0 1rem}.subtabs button{border:1px solid var(--line);background:transparent;color:var(--quiet);border-radius:.5rem;padding:.45rem .9rem}.subtabs button.on{background:var(--card2);color:var(--ink);border-color:var(--accent)}
+.tools{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.3rem 0 1rem}
+.tools input[type=search],.tools select{background:#111c20;border:1px solid var(--line);border-radius:.5rem;color:var(--ink);padding:.5rem .7rem;font:inherit;min-width:14rem}
+.chips{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem}.chips button{border:1px solid var(--line);background:var(--card);color:var(--quiet);border-radius:999px;padding:.25rem .7rem;font-size:.85rem}.chips button.on{border-color:var(--accent);color:var(--ink)}
+section.cat{margin:0 0 1.6rem}section.cat h3{margin:0 0 .6rem;font-size:1.05rem;display:flex;gap:.6rem;align-items:baseline}section.cat h3 small{color:var(--dim);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));gap:.55rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:.5rem;display:grid;grid-template-columns:80px 1fr;gap:.55rem;align-items:start;min-height:96px}
+.th{width:80px;height:80px;border-radius:.4rem;background-color:#161c1a;background-repeat:no-repeat;background-size:800px auto}
+.card .nm{font-size:.8rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card .sz{font-size:.72rem;color:var(--dim);margin-top:.15rem}
+.badge{display:inline-block;font-size:.68rem;border-radius:.35rem;padding:.05rem .35rem;margin-top:.25rem;background:#2b3a3d;color:var(--quiet)}
+.badge.gold{background:#3d3420;color:var(--gold)}.badge.warn{background:#432a28;color:var(--red)}
+.stores-in{font-size:.7rem;color:var(--quiet);margin-top:.2rem}
+table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{text-align:left;padding:.35rem .5rem;border-bottom:1px solid #22302f}th{color:var(--quiet);font-weight:600;position:sticky;top:3.1rem;background:var(--bg)}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.names{columns:2 26rem;column-gap:1.5rem}.names div{break-inside:avoid;padding:.22rem 0;border-bottom:1px solid #1c2826;font-size:.83rem}.names .meta{color:var(--dim);font-size:.75rem}
+.names .reuse{color:var(--gold);cursor:pointer;font-size:.75rem;border:0;background:none;padding:0;text-decoration:underline}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:.5rem;overflow:hidden}.seg button{border:0;background:transparent;color:var(--quiet);padding:.45rem .85rem}.seg button.on{background:var(--accent);color:#0d1518;font-weight:700}
+.btn{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:.5rem;padding:.5rem .9rem}.btn.solid{background:var(--accent);color:#0d1518;font-weight:700}
+pre.brief{white-space:pre-wrap;background:#0a1013;border:1px solid var(--line);border-radius:.6rem;padding:1rem;font-size:.8rem;max-height:24rem;overflow:auto}
+.display{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:.6rem .8rem;margin:.5rem 0}.display h4{margin:0 0 .3rem;font-size:.85rem;color:var(--accent)}.display ol{margin:0;padding-left:1.3rem;font-size:.8rem}
+.muted{color:var(--dim)}.status{color:var(--quiet);padding:1rem 0}
+#pop{position:fixed;inset:auto 1rem 1rem auto;background:var(--card2);border:1px solid var(--gold);border-radius:.7rem;padding:.7rem;display:none;gap:.6rem;align-items:center;z-index:20;max-width:22rem}#pop.on{display:flex}
+#pop .th{flex:0 0 80px}#pop button{margin-left:auto;background:none;border:0;color:var(--quiet);font-size:1.1rem}
+@media (max-width:700px){.grid{grid-template-columns:1fr 1fr}.card{grid-template-columns:1fr}.th{margin:auto}}
+</style>
+</head>
+<body>
+<header class="top"><a href="sleipnir-studio-1120.html">‹ Sleipnir Studio</a><a href="store-directory.html">Store editor</a><h1>Store info</h1><span id="refreshed"></span></header>
+<nav id="stores" aria-label="Stores"></nav>
+<main id="main"><p class="status">Loading…</p></main>
+<div id="pop" role="dialog"><div class="th" id="popTh"></div><div id="popTx"></div><button id="popX" aria-label="Close">✕</button></div>
+<script>
+(() => {
+'use strict';
+const C = window.StudioTransferConfig;
+const H = { apikey: C.key, Authorization: 'Bearer ' + C.key };
+const MEDIA = C.url + '/storage/v1/object/public/menu-images/store-info/v1/';
+const main = document.getElementById('main'), nav = document.getElementById('stores');
+const slug = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const money = v => v == null ? '' : '$' + Number(v).toFixed(2);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+async function rows(path, body) {
+  let out = [], off = 0;
+  for (;;) {
+    const opt = { headers: { ...H, Range: off + '-' + (off + 999), 'Range-Unit': 'items' } };
+    if (body) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+    const r = await fetch(C.url + '/rest/v1/' + path, opt);
+    if (!r.ok && r.status !== 206) throw Error((await r.text()).slice(0, 200));
+    const j = await r.json(); out = out.concat(j);
+    if (j.length < 1000) return out;
+    off += 1000;
+  }
+}
+
+const indexes = new Map();
+function storeIndex(storeSlug) {
+  if (!indexes.has(storeSlug)) indexes.set(storeSlug, fetch(MEDIA + storeSlug + '/index.json').then(r => r.ok ? r.json() : {}).catch(() => ({})));
+  return indexes.get(storeSlug);
+}
+const lazy = new IntersectionObserver(entries => {
+  for (const e of entries) if (e.isIntersecting) { lazy.unobserve(e.target); e.target._fill && e.target._fill(); }
+}, { rootMargin: '600px 0px' });
+async function paintThumb(div, storeSlug, pid) {
+  const idx = await storeIndex(storeSlug); const hit = idx[pid];
+  if (!hit) { div.textContent = ''; return; }
+  const [file, i] = hit;
+  div.style.backgroundImage = `url("${MEDIA}${storeSlug}/${file}")`;
+  div.style.backgroundPosition = `-${(i % 10) * 80}px -${Math.floor(i / 10) * 80}px`;
+}
+
+let summary = [], current = null;
+async function boot() {
+  try {
+    summary = await rows('store_info_summary?select=*&order=items.desc');
+  } catch (e) { main.innerHTML = '<p class="status">Could not load store info: ' + esc(e.message) + '</p>'; return; }
+  const ts = summary.map(s => s.refreshed_at).sort().pop();
+  document.getElementById('refreshed').textContent = ts ? 'Data from ' + new Date(ts).toLocaleString() : '';
+  const core = el('button', 'core', 'Core products'); core.onclick = () => go('core'); nav.append(core);
+  for (const s of summary) { const b = el('button', '', esc(s.store_name)); b.dataset.id = s.store_id; b.onclick = () => go(s.store_id); nav.append(b); }
+  const want = new URLSearchParams(location.search).get('store');
+  go(want && summary.some(s => s.store_id === want) ? want : 'core');
+}
+function go(id) {
+  current = id;
+  for (const b of nav.children) b.classList.toggle('on', id === 'core' ? b.classList.contains('core') : b.dataset.id === id);
+  const u = new URL(location.href); if (id === 'core') u.searchParams.delete('store'); else u.searchParams.set('store', id); history.replaceState(null, '', u);
+  id === 'core' ? showCore() : showStore(summary.find(s => s.store_id === id));
+}
+
+/* ---------- Core products ---------- */
+let coreRows = null;
+async function showCore() {
+  main.innerHTML = '<p class="status">Loading core products…</p>';
+  if (!coreRows) coreRows = await rows('store_info_core?select=product_id,store_name,name,size,category,store_count,matches&order=store_count.desc,name');
+  if (current !== 'core') return;
+  main.innerHTML = '';
+  const head = el('div', 'store-head', '<h2>Core products</h2><p>Products that already have a real render and are sold in other stores too. Store brands are left out. Each render can be reused in every store listed on its card.</p>');
+  const stores = new Set(); coreRows.forEach(r => (r.matches || []).forEach(m => stores.add(m.store)));
+  const st = el('div', 'stats', `<div class="stat"><b>${coreRows.length.toLocaleString()}</b><span>core rendered products</span></div><div class="stat"><b>${coreRows.reduce((a, r) => a + (r.matches || []).length, 0).toLocaleString()}</b><span>products in other stores that can reuse them</span></div><div class="stat"><b>${stores.size}</b><span>stores helped</span></div>`);
+  const tools = el('div', 'tools'); const q = el('input'); q.type = 'search'; q.placeholder = 'Search core products'; tools.append(q);
+  const storeSel = el('select'); storeSel.innerHTML = '<option value="">Every store</option>' + [...stores].sort().map(s => `<option>${esc(s)}</option>`).join(''); tools.append(storeSel);
+  const chips = el('div', 'chips'); const body = el('div');
+  main.append(head, st, tools, chips, body);
+  const cats = groupBy(coreRows, r => r.category);
+  let catOn = '';
+  const draw = () => {
+    body.innerHTML = '';
+    const needle = q.value.trim().toLowerCase(), want = storeSel.value;
+    for (const [cat, list] of cats) {
+      if (catOn && cat !== catOn) continue;
+      const items = list.filter(r => (!needle || r.name.toLowerCase().includes(needle)) && (!want || r.store_name === want || (r.matches || []).some(m => m.store === want)));
+      if (!items.length) continue;
+      const sec = el('section', 'cat'); sec.append(el('h3', '', `${esc(cat)} <small>${items.length}</small>`));
+      const grid = el('div', 'grid'); sec.append(grid); body.append(sec);
+      sec._fill = () => { for (const r of items) grid.append(coreCard(r)); };
+      lazy.observe(sec);
+    }
+    if (!body.children.length) body.innerHTML = '<p class="status">Nothing matches.</p>';
+  };
+  chips.append(chipBtn('All', () => { catOn = ''; draw(); }, true));
+  for (const [cat, list] of cats) chips.append(chipBtn(`${cat} · ${list.length}`, () => { catOn = cat; draw(); }));
+  q.oninput = debounce(draw, 200); storeSel.onchange = draw; draw();
+}
+function coreCard(r) {
+  const c = el('div', 'card'); const t = el('div', 'th'); paintThumb(t, slug(r.store_name), r.product_id);
+  const others = (r.matches || []).map(m => m.store.replace(/\s*\(.*\)$/, ''));
+  const info = el('div', '', `<div class="nm">${esc(r.name)}</div><div class="sz">${esc(r.size || '')}</div><span class="badge gold">In ${r.store_count} stores</span><div class="stores-in">Render from ${esc(r.store_name.replace(/\s*\(.*\)$/, ''))} · also ${esc([...new Set(others)].join(', '))}</div>`);
+  c.append(t, info); return c;
+}
+
+/* ---------- One store ---------- */
+const storeCache = new Map();
+async function showStore(s) {
+  main.innerHTML = '';
+  const head = el('div', 'store-head', `<h2>${esc(s.store_name)}<span class="live ${s.is_live ? '' : 'off'}">${s.is_live ? 'Live' : 'Not live'}</span></h2><p>${esc(s.address || '')}</p>`);
+  const st = el('div', 'stats', [
+    [s.items, 'products'], [s.aisles, 'aisles'], [s.rendered, 'rendered'], [s.code, 'code-built'],
+    [s.reusable, 'code-built with a render in another store'], ...(s.rendered_unused ? [[s.rendered_unused, 'rendered but not on the shelf yet']] : [])
+  ].map(([n, l]) => `<div class="stat"><b>${Number(n).toLocaleString()}</b><span>${l}</span></div>`).join(''));
+  const tabs = el('div', 'subtabs'); const body = el('div');
+  main.append(head, st, tabs, body);
+  const views = [['Rendered', () => viewRendered(s, body)], ['Code-built', () => viewCode(s, body)], ['Aisles', () => viewAisles(s, body)], ['ChatGPT list', () => viewChat(s, body)]];
+  views.forEach(([label, fn], i) => { const b = el('button', i ? '' : 'on', label); b.onclick = () => { [...tabs.children].forEach(x => x.classList.toggle('on', x === b)); fn(); }; tabs.append(b); });
+  views[0][1]();
+}
+async function storeItems(s) {
+  if (!storeCache.has(s.store_id)) storeCache.set(s.store_id, rows(`store_info_items?select=product_id,category,shelf_group,name,size,price,status,source,store_brand,universal_id,universal_store&store_id=eq.${s.store_id}&order=category,shelf_group.nullslast,shelf_rank.nullslast,name`));
+  return storeCache.get(s.store_id);
+}
+async function viewRendered(s, body) {
+  body.innerHTML = '<p class="status">Loading…</p>';
+  const items = (await storeItems(s)).filter(r => r.status === 'rendered');
+  body.innerHTML = '';
+  if (!items.length) { body.innerHTML = `<p class="status">No renders in this store yet — every product here is code-built.${s.reusable ? ' ' + Number(s.reusable).toLocaleString() + ' of them can reuse renders from other stores (see Code-built).' : ''}</p>`; return; }
+  listByCategory(body, items, (grid, r) => {
+    const c = el('div', 'card'); const t = el('div', 'th'); paintThumb(t, slug(s.store_name), r.product_id);
+    const unused = /not on the shelf/.test(r.source || '');
+    c.append(t, el('div', '', `<div class="nm">${esc(r.name)}</div><div class="sz">${esc(r.size || '')} ${money(r.price)}</div><span class="badge ${unused ? 'warn' : ''}">${esc(unused ? 'Not on the shelf yet' : (r.source || '').replace(/^Render:?\s*/, ''))}</span>`));
+    grid.append(c);
+  }, 'grid');
+}
+async function viewCode(s, body) {
+  body.innerHTML = '<p class="status">Loading…</p>';
+  const items = (await storeItems(s)).filter(r => r.status === 'code');
+  body.innerHTML = '';
+  if (!items.length) { body.innerHTML = '<p class="status">Nothing code-built here.</p>'; return; }
+  listByCategory(body, items, (box, r) => {
+    const d = el('div', '', `${esc(r.name)} <span class="meta">${esc(r.size || '')} ${money(r.price)}${r.store_brand ? ' · store brand' : ''} · ${esc(r.source || '')}</span>`);
+    if (r.universal_id) { const b = el('button', 'reuse', ' · render exists at ' + esc(r.universal_store.replace(/\s*\(.*\)$/, ''))); b.onclick = () => pop(r); d.append(b); }
+    box.append(d);
+  }, 'names', true);
+}
+async function viewAisles(s, body) {
+  body.innerHTML = '<p class="status">Loading…</p>';
+  const a = await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=items.desc`);
+  body.innerHTML = `<table><thead><tr><th>Aisle</th><th>Display</th><th class="n">Products</th><th class="n">Rendered</th><th class="n">Code-built</th><th class="n">Render in another store</th><th class="n">Still needs a render</th></tr></thead><tbody>${a.map(r => `<tr><td>${esc(r.aisle)}</td><td class="muted">${esc(nice(r.display_type))}</td><td class="n">${r.items}</td><td class="n">${r.rendered}</td><td class="n">${r.code}</td><td class="n">${r.reusable}</td><td class="n">${r.code - r.reusable}</td></tr>`).join('')}</tbody></table>`;
+}
+
+/* ---------- ChatGPT list ---------- */
+const chatState = { shelves: 4, per: 2, reuse: false, aisle: '' };
+async function viewChat(s, body) {
+  body.innerHTML = '<p class="status">Loading…</p>';
+  const aisles = await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=aisle`);
+  body.innerHTML = '';
+  const tools = el('div', 'tools');
+  const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; viewChat(s, body); }; g.append(b); }); w.append(g); return w; };
+  tools.append(seg('Shelves', 'shelves', [3, 4]), seg('Products per shelf', 'per', [2, 3]));
+  const cb = el('label', '', `<input type="checkbox" ${chatState.reuse ? 'checked' : ''}> include products that already have a render in another store`);
+  cb.querySelector('input').onchange = e => { chatState.reuse = e.target.checked; viewChat(s, body); };
+  const sel = el('select'); sel.innerHTML = '<option value="">Every aisle</option>' + aisles.map(a => `<option ${a.aisle === chatState.aisle ? 'selected' : ''}>${esc(a.aisle)}</option>`).join('');
+  sel.onchange = () => { chatState.aisle = sel.value; viewChat(s, body); };
+  tools.append(cb, sel);
+  const per = chatState.shelves * chatState.per;
+  const need = aisles.map(a => ({ ...a, todo: chatState.reuse ? a.code : a.code - a.reusable })).filter(a => a.todo > 0 && (!chatState.aisle || a.aisle === chatState.aisle));
+  const total = need.reduce((x, a) => x + a.todo, 0), renders = need.reduce((x, a) => x + Math.ceil(a.todo / per), 0);
+  const stats = el('div', 'stats', `<div class="stat"><b>${total.toLocaleString()}</b><span>products to render</span></div><div class="stat"><b>${renders.toLocaleString()}</b><span>images at ${chatState.shelves} shelves × ${chatState.per}</span></div>`);
+  const table = el('div', '', `<table><thead><tr><th>Aisle</th><th>Display</th><th class="n">Products</th><th class="n">Images</th></tr></thead><tbody>${need.map(a => `<tr><td>${esc(a.aisle)}</td><td class="muted">${esc(nice(a.display_type))}</td><td class="n">${a.todo}</td><td class="n">${Math.ceil(a.todo / per)}</td></tr>`).join('')}</tbody></table>`);
+  const acts = el('div', 'tools'); const copy = el('button', 'btn solid', 'Copy instructions for ChatGPT'); const show = el('button', 'btn', chatState.aisle ? 'Show this aisle’s list' : 'Pick an aisle to show its list');
+  show.disabled = !chatState.aisle; acts.append(copy, show);
+  const brief = el('pre', 'brief', esc(briefText(s)));
+  const list = el('div');
+  copy.onclick = async () => { try { await navigator.clipboard.writeText(briefText(s)); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy instructions for ChatGPT', 1500); } catch { brief.focus(); } };
+  show.onclick = async () => {
+    list.innerHTML = '<p class="status">Loading…</p>';
+    const q = await rows('rpc/store_info_chatgpt_queue', { p_store: s.store_id, p_shelves: chatState.shelves, p_per_shelf: chatState.per, p_include_reusable: chatState.reuse, p_aisle: chatState.aisle });
+    list.innerHTML = '';
+    for (const [no, slots] of groupBy(q, r => r.render_no)) {
+      const d = el('div', 'display', `<h4>Image #${no} · ${esc(nice(slots[0].display_type))} · ${esc(slots[0].layout)} · ${esc(slots[0].upload_path)}</h4>`);
+      const ol = el('ol'); slots.forEach(r => ol.append(el('li', '', `Shelf ${r.shelf}, spot ${r.spot_on_shelf}: ${esc(r.name)} <span class="muted">${esc(r.size || '')} ${money(r.price)}</span>`)));
+      d.append(ol); list.append(d);
+    }
+  };
+  body.append(tools, stats, table, acts, brief, list);
+}
+function briefText(s) {
+  const a = chatState.aisle;
+  return `SLEIPNIR RENDER LIST: ${s.store_name}
+Store id: ${s.store_id}   Supabase project: afnihsdxtisneuyehatw
+Layout Danny picked: ${chatState.shelves} shelves, ${chatState.per} products per shelf (${chatState.shelves * chatState.per} products per image).
+
+1. Read the list straight from Supabase:
+   select * from public.store_info_chatgpt_queue('${s.store_id}', ${chatState.shelves}, ${chatState.per}, ${chatState.reuse}, ${a ? "'" + a.replace(/'/g, "''") + "'" : 'null'});
+   One render_no = one image. Columns tell you the aisle, display_type, the shelf (1 = top) and spot on that shelf (left to right) for each product, its name, size, price and reference_photo (the store's own photo of the real packaging).
+${chatState.reuse ? '' : '   Products that already have a render in another store are left out. Danny reuses those renders.\n'}
+2. Make each image a real render of those products on that display_type, in that exact shelf and spot order. Leave the shelf-edge price strips blank because the app draws the prices.
+
+3. Where to put it:
+   a. Upload the PNG to upload_path (bucket menu-images; the path already says store, aisle and image number).
+   b. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
+      values ('${s.store_id}', <aisle>, <render_no>, <upload_path without "menu-images/">, <width px>, <height px>, <layout>, 'draft');
+   c. For every product in the image, insert into public.aisle_slots (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
+      tag_x/y/w/h is the blank price strip under that product, as 0–1 fractions of the image width and height.
+   d. Leave publish_status as 'draft'. Danny checks it in the studio and publishes it.`;
+}
+
+/* ---------- helpers ---------- */
+function listByCategory(body, items, add, kind, namesOnly) {
+  const tools = el('div', 'tools'); const q = el('input'); q.type = 'search'; q.placeholder = 'Search this list'; tools.append(q);
+  const chips = el('div', 'chips'); const box = el('div'); body.append(tools, chips, box);
+  const cats = groupBy(items, r => r.category); let catOn = '';
+  const draw = () => {
+    box.innerHTML = ''; const needle = q.value.trim().toLowerCase();
+    for (const [cat, list] of cats) {
+      if (catOn && cat !== catOn) continue;
+      const its = needle ? list.filter(r => r.name.toLowerCase().includes(needle)) : list;
+      if (!its.length) continue;
+      const sec = el('section', 'cat'); sec.append(el('h3', '', `${esc(cat)} <small>${its.length}</small>`));
+      const inner = el('div', kind); sec.append(inner); box.append(sec);
+      sec._fill = () => { const step = namesOnly ? 400 : 120; let i = 0; const more = () => { its.slice(i, i + step).forEach(r => add(inner, r)); i += step; if (i < its.length) { const m = el('button', 'btn', `Show ${Math.min(step, its.length - i)} more`); m.onclick = () => { m.remove(); more(); }; sec.append(m); } }; more(); };
+      lazy.observe(sec);
+    }
+    if (!box.children.length) box.innerHTML = '<p class="status">Nothing matches.</p>';
+  };
+  chips.append(chipBtn('All', () => { catOn = ''; draw(); }, true));
+  for (const [cat, list] of cats) chips.append(chipBtn(`${cat} · ${list.length}`, () => { catOn = cat; draw(); }));
+  q.oninput = debounce(draw, 200); draw();
+}
+function chipBtn(label, fn, on) { const b = el('button', on ? 'on' : '', esc(label)); b.onclick = () => { [...b.parentNode.children].forEach(x => x.classList.toggle('on', x === b)); fn(); }; return b; }
+function groupBy(arr, key) { const m = new Map(); for (const r of arr) { const k = key(r) ?? 'Other'; if (!m.has(k)) m.set(k, []); m.get(k).push(r); } return m; }
+function debounce(fn, ms) { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
+function nice(d) { return String(d || '').replace(/_/g, ' '); }
+const popEl = document.getElementById('pop');
+function pop(r) {
+  const t = document.getElementById('popTh'); t.style.backgroundImage = ''; paintThumb(t, slug(r.universal_store), r.universal_id);
+  document.getElementById('popTx').innerHTML = `<div style="font-size:.8rem">${esc(r.name)}</div><div class="muted" style="font-size:.75rem">Render from ${esc(r.universal_store)}</div>`;
+  popEl.classList.add('on');
+}
+document.getElementById('popX').onclick = () => popEl.classList.remove('on');
+boot();
+})();
+</script>
+</body>
+</html>
