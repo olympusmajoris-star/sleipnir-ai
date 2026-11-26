@@ -14,6 +14,7 @@
 
   const nameKey = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const streetKey = address => String(address || '').split(',')[0].toLowerCase()
+    .replace(/\b(?:(?:(?:east|e)\s+)?(?:state\s+)?(?:highway|hwy|road)|fl|sr)[- ]*100(?:\s+(?:east|e))?\b/g,'sr100')
     .replace(/\b(drive|parkway|highway|suite)\b/g, word =>
       ({drive:'dr', parkway:'pkwy', highway:'hwy', suite:'ste'})[word])
     .replace(/[^a-z0-9]/g, '');

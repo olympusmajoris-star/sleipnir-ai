@@ -17,6 +17,10 @@
     try {store=await core.appStoreById(id);}
     catch { title.textContent='Store directory unavailable';status.textContent='Reload to check the shopper app’s store list.';return; }
     if(!store){title.textContent='Store unavailable';status.textContent='This location is outside the app’s store list.';return;}
+    const route=new URLSearchParams(location.search),rooms=global.DiningRoomNavigation;
+    const room=rooms?.urlFor(store,route.get('view'));
+    if(room && route.get('classic')!=='1'){rooms.openRoom(room,route.get('view'));return;}
+    if(room)head.append(rooms.linkTo(room));
     const grocery=core.groceryEntranceForStore(store);
     if(grocery){location.replace(grocery);return;}
     title.textContent=store.name;

@@ -5,10 +5,36 @@
   const frame = document.getElementById('store-workspace-frame');
   const directory = new URL('store-directory.html', location.href);
   const returnPath = location.pathname;
+  const editorPath = new URL('store-editor.html', location.href).pathname;
+  const rooms = window.DiningRoomNavigation;
+  const roomLink = document.getElementById('store-workspace-room');
+  const picker = roomLink.href;
+  let revision = 0;
+  async function followEditor() {
+    const ticket = ++revision;
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    const url = new URL(doc.URL);
+    roomLink.href = picker;
+    roomLink.textContent = 'Dining rooms';
+    roomLink.hidden = false;
+    if (url.origin !== location.origin || url.pathname !== editorPath) return;
+    roomLink.hidden = true;
+    try {
+      const room = await rooms.resolve(url.searchParams.get('store'), url.searchParams.get('view'));
+      if (!room || ticket !== revision || frame.contentDocument !== doc) return;
+      roomLink.href = room;
+      roomLink.textContent = 'Open dining room';
+      roomLink.hidden = false;
+      if (dialog.open && url.searchParams.get('classic') !== '1') rooms.navigate(room);
+    } catch { /* The frame can still present its own recovery flow. */ }
+  }
   const openers = document.querySelectorAll('[data-open-store-workspace]');
 
   function directoryURL(type) {
+    revision++;
     const url = new URL(directory);
+    url.searchParams.set('rooms', '3');
     if (type) url.searchParams.set('type', type);
     return url.href;
   }
@@ -16,6 +42,7 @@
   function open(type) {
     if (type || !frame.hasAttribute('src')) frame.src = directoryURL(type);
     if (!dialog.open) dialog.showModal();
+    if (!type) followEditor();
     window.StudioKit.previewCovered = true;
   }
 
@@ -26,6 +53,7 @@
     frame.src = directoryURL();
   });
   frame.addEventListener('load', () => {
+    followEditor();
     const doc = frame.contentDocument;
     if (!doc) return;
     // A standalone directory links back to Studio. In this window that same

@@ -11,6 +11,7 @@
 #store-workspace::backdrop{background:#080d11}
 #store-workspace header{display:flex;align-items:center;gap:8px;border-bottom:1px solid #304044;padding:calc(7px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 7px max(12px,env(safe-area-inset-left))}
 #store-workspace header strong{flex:1}
+#store-workspace-room{color:inherit;text-decoration:underline;text-underline-offset:.15em}
 #store-workspace iframe{border:0;width:100%;flex:1;min-height:0;background:#0d1518}
 #store-workspace-phone{display:none}
 @media(max-width:820px){
@@ -53,7 +54,7 @@
 <button type="button" id="store-workspace-phone" data-open-store-workspace aria-haspopup="dialog" aria-controls="store-workspace">Store editor</button>
 <button type="button" id="store-workspace-desktop" data-open-store-workspace aria-haspopup="dialog" aria-controls="store-workspace">Store editor</button>
 <dialog id="store-workspace" aria-labelledby="store-workspace-title">
-  <header><strong id="store-workspace-title">Store editor</strong><button type="button" id="store-workspace-all">All stores</button><button type="button" id="store-workspace-close" autofocus>Close store editor</button></header>
+  <header><strong id="store-workspace-title">Store editor</strong><a id="store-workspace-room" target="_top" href="https://palm-coast-chain-dining-studio.transparentmoth1.chatgpt.site/">Dining rooms</a><button type="button" id="store-workspace-all">All stores</button><button type="button" id="store-workspace-close" autofocus>Close store editor</button></header>
   <iframe id="store-workspace-frame" title="Palm Coast stores"></iframe>
 </dialog>
 <button type="button" id="transition-open-phone" data-open-transitions aria-haspopup="dialog">Page transitions</button>
@@ -79,7 +80,9 @@
 <script src="page-transition-editor.js?v=1"></script>
 <script src="page-transition-chooser.js?v=1"></script>
 <script src="page-transition-navigation.js?v=1"></script>
-<script src="store-workspace.js?v=stores-entry-2"></script>
+<script src="workspace-core.js?v=palm-coast-2"></script>
+<script src="dining-room-navigation.js?v=diningrooms3"></script>
+<script src="store-workspace.js?v=diningrooms3"></script>
 <script src="asgard-post-entry.js?v=1123symbols1"></script>
 <script src="raven-road-entry.js?v=1125video3"></script>
 <script>

@@ -86,7 +86,10 @@ function storefrontSkyButton(close) {
 async function drill(page){
  const d=$('#drill');d.replaceChildren();if(page.id==='vbrowse')d.append(storefrontSkyButton());
  const change=document.createElement('button');change.className='retry-stores';change.textContent='Choose city and store';change.onclick=()=>chooseStore(page);d.append(change);
- if(here.store){const all=await stores(),store=all.find(s=>s.id===here.store&&C.storeTypeMatches(page.id,s));if(store){const info=document.createElement('p');info.textContent=store.name+' · '+store.town;d.append(info);return show(C.storeEditorForStore(store));}here.store='';}
+ if(here.store){const all=await stores(),store=all.find(s=>s.id===here.store&&C.storeTypeMatches(page.id,s));if(store){const info=document.createElement('p');info.textContent=store.name+' · '+store.town;d.append(info);
+   const rooms=window.DiningRoomNavigation,room=rooms?.urlFor(store);
+   if(room){d.append(rooms.linkTo(room));show(null,'');rooms.navigate(room);return;}
+   return show(C.storeEditorForStore(store));}here.store='';}
  show(null,'<div><h2>Choose a city and store</h2><p>Your selected store’s components will appear here.</p></div>');await chooseStore(page);
 }
 async function chooseStore(page){
@@ -111,8 +114,9 @@ async function chooseStore(page){
    const description=st.designRoomUrl?'Dining room design':st.app_surface==='valhalla'?st.valhalla_menu_count.toLocaleString()+' orderable menu items':count?count.toLocaleString()+' products · '+photos.toLocaleString()+' images':'No catalog products recorded';
    card.innerHTML='<h3>'+esc(st.name)+'</h3><p>'+esc(st.address||'Address not recorded')+'</p><p>'+esc(description)+'</p><button class="retry-stores">Edit this store</button>';
    const edit=card.querySelector('button');
-   if(st.designRoomUrl){
-    const link=document.createElement('a');link.href=st.designRoomUrl;link.target='_top';link.className='retry-stores';link.textContent='Open dining room';edit.replaceWith(link);
+   const room=st.designRoomUrl||window.DiningRoomNavigation?.urlFor(st);
+   if(room){
+    const link=document.createElement('a');link.href=room;link.target='_top';link.className='retry-stores';link.textContent='Open dining room';edit.replaceWith(link);
    }else edit.onclick=()=>{dialog.close();move({group:'shopping',page:page.id,store:st.id});};
    cards.append(card);
   }
