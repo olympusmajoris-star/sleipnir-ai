@@ -94,6 +94,10 @@ async function paintThumb(div, storeSlug, pid) {
   div.style.backgroundPosition = `-${(i % 10) * 80}px -${Math.floor(i / 10) * 80}px`;
 }
 
+const DG_LOCAL = '0600cb61-45f9-402b-a209-134abdaef10f';
+const DG_MARKET = 'fea775c8-8612-4f2e-bfc6-70d8e6ace6be';
+const DG_DUPLICATE = 'de63fd6f-6f7e-4a87-b309-8458f8fab530';
+const dgStore = id => id === DG_LOCAL || id === DG_MARKET || id === DG_DUPLICATE;
 let summary = [], current = null;
 async function boot() {
   try {
@@ -102,13 +106,21 @@ async function boot() {
   const ts = summary.map(s => s.refreshed_at).sort().pop();
   document.getElementById('refreshed').textContent = ts ? 'Data from ' + new Date(ts).toLocaleString() : '';
   const core = el('button', 'core', 'Core products'); core.onclick = () => go('core'); nav.append(core);
-  for (const s of summary) { const b = el('button', '', esc(s.store_name)); b.dataset.id = s.store_id; b.onclick = () => go(s.store_id); nav.append(b); }
+  let dgAdded = false;
+  for (const s of summary) {
+    if (dgStore(s.store_id)) {
+      if (dgAdded) continue;
+      const primary = summary.find(x => x.store_id === DG_LOCAL) || summary.find(x => x.store_id === DG_MARKET) || s;
+      const b = el('button', '', 'Dollar General'); b.dataset.id = primary.store_id; b.dataset.chain = 'dg'; b.onclick = () => go(primary.store_id); nav.append(b); dgAdded = true;
+    } else { const b = el('button', '', esc(s.store_name)); b.dataset.id = s.store_id; b.onclick = () => go(s.store_id); nav.append(b); }
+  }
   const want = new URLSearchParams(location.search).get('store');
   go(want && summary.some(s => s.store_id === want) ? want : 'core');
 }
 function go(id) {
+  if (id === DG_DUPLICATE && summary.some(s => s.store_id === DG_LOCAL)) id = DG_LOCAL;
   current = id;
-  for (const b of nav.children) b.classList.toggle('on', id === 'core' ? b.classList.contains('core') : b.dataset.id === id);
+  for (const b of nav.children) b.classList.toggle('on', id === 'core' ? b.classList.contains('core') : b.dataset.id === id || (b.dataset.chain === 'dg' && dgStore(id)));
   const u = new URL(location.href); if (id === 'core') u.searchParams.delete('store'); else u.searchParams.set('store', id); history.replaceState(null, '', u);
   id === 'core' ? showCore() : showStore(summary.find(s => s.store_id === id));
 }
@@ -165,7 +177,16 @@ async function showStore(s) {
   ].map(([n, l]) => `<div class="stat"><b>${Number(n).toLocaleString()}</b><span>${l}</span></div>`).join(''));
   const tabs = el('div', 'subtabs'); const body = el('div');
   const chat = el('section', 'chatbox');
-  main.append(head, st, chat, tabs, body);
+  main.append(head);
+  if (dgStore(s.store_id)) {
+    const formats = el('div', 'subtabs');
+    for (const [id, label] of [[DG_LOCAL, 'Standard Dollar General'], [DG_MARKET, 'Dollar General Market']]) {
+      if (!summary.some(x => x.store_id === id)) continue;
+      const b = el('button', id === s.store_id ? 'on' : '', label); b.onclick = () => go(id); formats.append(b);
+    }
+    if (formats.children.length > 1) main.append(formats);
+  }
+  main.append(st, chat, tabs, body);
   chatBox(s, chat).catch(e => { chat.innerHTML = '<p class="status">Could not load the ChatGPT instructions: ' + esc(e.message) + '</p>'; });
   const views = [['Rendered', () => viewRendered(s, body)], ['Code-built', () => viewCode(s, body)], ['Aisles', () => viewAisles(s, body)], ['Image-by-image list', () => viewChat(s, body)]];
   views.forEach(([label, fn], i) => { const b = el('button', i ? '' : 'on', label); b.onclick = () => { [...tabs.children].forEach(x => x.classList.toggle('on', x === b)); fn(); }; tabs.append(b); });
