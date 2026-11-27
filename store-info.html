@@ -41,7 +41,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 .btn{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:.5rem;padding:.5rem .9rem}.btn.solid{background:var(--accent);color:#0d1518;font-weight:700}
 pre.brief{white-space:pre-wrap;background:#0a1013;border:1px solid var(--line);border-radius:.6rem;padding:1rem;font-size:.8rem;max-height:24rem;overflow:auto}
 .display{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:.6rem .8rem;margin:.5rem 0}.display h4{margin:0 0 .3rem;font-size:.85rem;color:var(--accent)}.display ol{margin:0;padding-left:1.3rem;font-size:.8rem}
-.muted{color:var(--dim)}.status{color:var(--quiet);padding:1rem 0}
+.muted{color:var(--dim)}.chatbox{background:var(--card);border:1px solid var(--gold);border-radius:.7rem;padding:.8rem 1rem;margin:0 0 1rem}.chat-head{display:flex;gap:.8rem;align-items:baseline;flex-wrap:wrap}.chat-head h3{margin:0;color:var(--gold);font-size:1.05rem}.chatbox pre.brief{max-height:18rem}.status{color:var(--quiet);padding:1rem 0}
 #pop{position:fixed;inset:auto 1rem 1rem auto;background:var(--card2);border:1px solid var(--gold);border-radius:.7rem;padding:.7rem;display:none;gap:.6rem;align-items:center;z-index:20;max-width:22rem}#pop.on{display:flex}
 #pop .th{flex:0 0 80px}#pop button{margin-left:auto;background:none;border:0;color:var(--quiet);font-size:1.1rem}
 @media (max-width:700px){.grid{grid-template-columns:1fr 1fr}.card{grid-template-columns:1fr}.th{margin:auto}}
@@ -163,8 +163,10 @@ async function showStore(s) {
     [s.reusable, 'code-built with a render in another store'], ...(s.rendered_unused ? [[s.rendered_unused, 'rendered but not on the shelf yet']] : [])
   ].map(([n, l]) => `<div class="stat"><b>${Number(n).toLocaleString()}</b><span>${l}</span></div>`).join(''));
   const tabs = el('div', 'subtabs'); const body = el('div');
-  main.append(head, st, tabs, body);
-  const views = [['Rendered', () => viewRendered(s, body)], ['Code-built', () => viewCode(s, body)], ['Aisles', () => viewAisles(s, body)], ['ChatGPT list', () => viewChat(s, body)]];
+  const chat = el('section', 'chatbox');
+  main.append(head, st, chat, tabs, body);
+  chatBox(s, chat).catch(e => { chat.innerHTML = '<p class="status">Could not load the ChatGPT instructions: ' + esc(e.message) + '</p>'; });
+  const views = [['Rendered', () => viewRendered(s, body)], ['Code-built', () => viewCode(s, body)], ['Aisles', () => viewAisles(s, body)], ['Image-by-image list', () => viewChat(s, body)]];
   views.forEach(([label, fn], i) => { const b = el('button', i ? '' : 'on', label); b.onclick = () => { [...tabs.children].forEach(x => x.classList.toggle('on', x === b)); fn(); }; tabs.append(b); });
   views[0][1]();
 }
@@ -209,22 +211,21 @@ async function viewChat(s, body) {
   body.innerHTML = '';
   const tools = el('div', 'tools');
   const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; viewChat(s, body); }; g.append(b); }); w.append(g); return w; };
-  tools.append(seg('Shelves', 'shelves', [3, 4]), seg('Products per shelf', 'per', [2, 3]));
   const cb = el('label', '', `<input type="checkbox" ${chatState.reuse ? 'checked' : ''}> include products that already have a render in another store`);
   cb.querySelector('input').onchange = e => { chatState.reuse = e.target.checked; viewChat(s, body); };
   const sel = el('select'); sel.innerHTML = '<option value="">Every aisle</option>' + aisles.map(a => `<option ${a.aisle === chatState.aisle ? 'selected' : ''}>${esc(a.aisle)}</option>`).join('');
   sel.onchange = () => { chatState.aisle = sel.value; viewChat(s, body); };
-  tools.append(cb, sel);
+  tools.append(el('span', 'muted', `Layout: ${chatState.shelves} shelves × ${chatState.per} (change it in the instructions box)`), sel);
   const per = chatState.shelves * chatState.per;
   const need = aisles.map(a => ({ ...a, todo: chatState.reuse ? a.code : a.code - a.reusable })).filter(a => a.todo > 0 && (!chatState.aisle || a.aisle === chatState.aisle));
   const total = need.reduce((x, a) => x + a.todo, 0), renders = need.reduce((x, a) => x + Math.ceil(a.todo / per), 0);
   const stats = el('div', 'stats', `<div class="stat"><b>${total.toLocaleString()}</b><span>products to render</span></div><div class="stat"><b>${renders.toLocaleString()}</b><span>images at ${chatState.shelves} shelves × ${chatState.per}</span></div>`);
   const table = el('div', '', `<table><thead><tr><th>Aisle</th><th>Display</th><th class="n">Products</th><th class="n">Images</th></tr></thead><tbody>${need.map(a => `<tr><td>${esc(a.aisle)}</td><td class="muted">${esc(nice(a.display_type))}</td><td class="n">${a.todo}</td><td class="n">${Math.ceil(a.todo / per)}</td></tr>`).join('')}</tbody></table>`);
   const acts = el('div', 'tools'); const copy = el('button', 'btn solid', 'Copy instructions for ChatGPT'); const show = el('button', 'btn', chatState.aisle ? 'Show this aisle’s list' : 'Pick an aisle to show its list');
-  show.disabled = !chatState.aisle; acts.append(copy, show);
-  const brief = el('pre', 'brief', esc(briefText(s)));
+  show.disabled = !chatState.aisle; acts.append(show);
+  const brief = el('pre', 'brief', esc(briefText(s, aisles)));
   const list = el('div');
-  copy.onclick = async () => { try { await navigator.clipboard.writeText(briefText(s)); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy instructions for ChatGPT', 1500); } catch { brief.focus(); } };
+  copy.onclick = async () => { try { await navigator.clipboard.writeText(briefText(s, aisles)); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy instructions for ChatGPT', 1500); } catch { brief.focus(); } };
   show.onclick = async () => {
     list.innerHTML = '<p class="status">Loading…</p>';
     const q = await rows('rpc/store_info_chatgpt_queue', { p_store: s.store_id, p_shelves: chatState.shelves, p_per_shelf: chatState.per, p_include_reusable: chatState.reuse, p_aisle: chatState.aisle });
@@ -235,27 +236,65 @@ async function viewChat(s, body) {
       d.append(ol); list.append(d);
     }
   };
-  body.append(tools, stats, table, acts, brief, list);
+  body.append(tools, stats, table, acts, list);
 }
-function briefText(s) {
-  const a = chatState.aisle;
-  return `SLEIPNIR RENDER LIST: ${s.store_name}
-Store id: ${s.store_id}   Supabase project: afnihsdxtisneuyehatw
-Layout Danny picked: ${chatState.shelves} shelves, ${chatState.per} products per shelf (${chatState.shelves * chatState.per} products per image).
+const PROMO = /^(on sale|dg brands|\$2 food items|dollar deals|better for you|dg deal days|deals on .*|save on .*|soda deals|lunch & after school snacks|trueliving|comfort bay)$/i;
+const FOOD = /produce|dairy|egg|frozen|deli|meat|seafood|bakery|bread|snack|chip|cookie|candy|beverage|drink|soda|water|coffee|tea|breakfast|cereal|canned|pantry|dry goods|pasta|condiment|sauce|baking|meals|food|cheese|prepared/i;
+const NOTES = {
+  'fea775c8-8612-4f2e-bfc6-70d8e6ace6be': 'SKIP these, which are not real aisles (Claude regroups them first): On Sale, DG Brands, $2 Food Items, Dollar Deals, Better For You, DG Deal Days, Deals on Chips, Lunch & After School Snacks, Save on Snacks, Soda Deals, Save on Soft Drinks, Deals on Grocery, trueliving, Comfort Bay.',
+  'de63fd6f-6f7e-4a87-b309-8458f8fab530': 'WAIT: this store sells the same products as Dollar General (Palm Coast Pkwy). Render Palm Coast first, then have Claude refresh store info. Most of this list will then reuse those renders.',
+  '03dbd8fa-ed64-4236-85be-206c952da024': 'Walmart is not live in the app yet.'
+};
+function orderAisles(list) {
+  const rank = a => PROMO.test(a.aisle) ? 3 : /alcohol|wine|beer|liquor/i.test(a.aisle) ? 1 : FOOD.test(a.aisle) ? 0 : 2;
+  return [...list].sort((a, b) => rank(a) - rank(b) || b.todo - a.todo);
+}
+function briefText(s, aisles) {
+  const sh = chatState.shelves, ps = chatState.per, id = s.store_id;
+  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo: chatState.reuse ? a.code : a.code - a.reusable })).filter(a => a.todo > 0 && !PROMO.test(a.aisle)));
+  const total = todo.reduce((x, a) => x + a.todo, 0);
+  return `SLEIPNIR RENDER JOB: ${s.store_name}
+Store id: ${id}   Supabase project: afnihsdxtisneuyehatw
+${total.toLocaleString()} products need a render. Layout Danny picked: ${sh} shelves, ${ps} products per shelf (${sh * ps} products per image).
+${NOTES[id] ? '\n' + NOTES[id] + '\n' : ''}
+Work ONE aisle at a time. Read that aisle's list straight from Supabase:
+  select * from public.store_info_chatgpt_queue('${id}', ${sh}, ${ps}, ${chatState.reuse}, '<AISLE>');
+Put the aisle name from the list below in place of <AISLE>.
+${chatState.reuse ? '' : "Products that already have a render in another store are left out. Danny reuses those.\n"}
+Each render_no is ONE image. Draw its products on that row's display_type, in the exact shelf (1 = top) and spot (left to right) order. Use reference_photo for the real packaging. Leave the shelf-edge price strips blank because the app draws the prices.
 
-1. Read the list straight from Supabase:
-   select * from public.store_info_chatgpt_queue('${s.store_id}', ${chatState.shelves}, ${chatState.per}, ${chatState.reuse}, ${a ? "'" + a.replace(/'/g, "''") + "'" : 'null'});
-   One render_no = one image. Columns tell you the aisle, display_type, the shelf (1 = top) and spot on that shelf (left to right) for each product, its name, size, price and reference_photo (the store's own photo of the real packaging).
-${chatState.reuse ? '' : '   Products that already have a render in another store are left out. Danny reuses those renders.\n'}
-2. Make each image a real render of those products on that display_type, in that exact shelf and spot order. Leave the shelf-edge price strips blank because the app draws the prices.
+When an image is done:
+ 1. Upload the PNG to its upload_path (bucket menu-images).
+ 2. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
+    values ('${id}', <aisle>, <render_no>, <upload_path without "menu-images/">, <width>, <height>, <layout>, 'draft');
+ 3. One public.aisle_slots row per product: (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
+    tag_x/y/w/h = the blank price strip under that product, as 0-1 fractions of the image width and height.
+ 4. Leave it 'draft'. Danny publishes it in the studio.
+Finish an aisle, tell Danny, then start the next one.
 
-3. Where to put it:
-   a. Upload the PNG to upload_path (bucket menu-images; the path already says store, aisle and image number).
-   b. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
-      values ('${s.store_id}', <aisle>, <render_no>, <upload_path without "menu-images/">, <width px>, <height px>, <layout>, 'draft');
-   c. For every product in the image, insert into public.aisle_slots (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
-      tag_x/y/w/h is the blank price strip under that product, as 0–1 fractions of the image width and height.
-   d. Leave publish_status as 'draft'. Danny checks it in the studio and publishes it.`;
+AISLES (products to render, images needed, display):
+${todo.map(a => `${a.aisle} ${a.todo.toLocaleString()} products, ${Math.ceil(a.todo / (sh * ps))} images (${nice(a.display_type)})`).join('\n')}`;
+}
+
+/* ---------- instructions box shown on every store ---------- */
+async function chatBox(s, box) {
+  box.innerHTML = '<p class="status">Loading ChatGPT instructions…</p>';
+  const aisles = await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=aisle`);
+  const draw = () => {
+    box.innerHTML = '';
+    const todo = aisles.reduce((x, a) => x + (PROMO.test(a.aisle) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
+    const head = el('div', 'chat-head', `<h3>Instructions for ChatGPT</h3><span class="muted">${todo.toLocaleString()} products to render · ${Math.ceil(todo / (chatState.shelves * chatState.per)).toLocaleString()} images at ${chatState.shelves} shelves × ${chatState.per}</span>`);
+    const tools = el('div', 'tools');
+    const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; draw(); }; g.append(b); }); w.append(g); return w; };
+    const copy = el('button', 'btn solid', 'Copy for ChatGPT');
+    const text = briefText(s, aisles);
+    copy.onclick = async () => { try { await navigator.clipboard.writeText(text); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy for ChatGPT', 1500); } catch { pre.focus(); } };
+    tools.append(seg('Shelves', 'shelves', [3, 4]), seg('Products per shelf', 'per', [2, 3]), copy);
+    const pre = el('pre', 'brief', esc(text));
+    if (!todo) { box.append(head, el('p', 'status', 'Nothing left to render here.')); return; }
+    box.append(head, tools, pre);
+  };
+  draw();
 }
 
 /* ---------- helpers ---------- */
