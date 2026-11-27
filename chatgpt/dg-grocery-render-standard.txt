@@ -1,0 +1,20 @@
+DOLLAR GENERAL — APPROVED GROCERY RENDER STANDARD (Danny, 2026-11-27)
+
+Scope: Edible groceries first, then non-food aisles later. Keep standard DG and DG Market inventory distinct; reuse exact identical SKU artwork wherever possible. Never substitute flavors or assume a whole panel is reusable if any product is absent at the destination location.
+
+Regular shelves: authentic tan powder-coated steel gondola, tan perforated pegboard, 3–4 shelves depending on product height. As many products across as phone tap targets comfortably allow; 4 across is a good starting point, fewer for large packages. Actual stocked depth, multiple units naturally behind and beside the front product, slight variations, realistic shadows. Never code-built cutout grids. Blank digital-price rail.
+
+Freezers: single closed black-framed glass door, thin wire shelves, cold white lights, subtle reflections and edge frost, clear readable labels. 4–6 shelves depending on packages, variable 2–4 SKU groups per row (more only for small packages with adequate tap targets). Real stacked, crumpled, angled stock; no floating or repeated artificial layers. Dedicated ice merchandiser for bulk ice. Coolers use clear glass without frost. Eggs and milk at real scale, nothing protruding.
+
+Studio review: https://olympusmajoris-star.github.io/sleipnir-ai/dg-render-review.html
+Product popups show product name, size, photo and live price, including bottom shelf products. User can turn popups off. Price tag and text sizes adjustable in Studio; default 140% and 13 logical px, with editable preview values. Shoppers between swipes are deferred.
+
+Database: project afnihsdxtisneuyehatw.
+Standard DG: 0600cb61-45f9-402b-a209-134abdaef10f
+DG Market: fea775c8-8612-4f2e-bfc6-70d8e6ace6be
+Next unrendered products (replace store/aisle appropriately):
+select q.* from public.store_info_chatgpt_queue('0600cb61-45f9-402b-a209-134abdaef10f',4,3,false,'<AISLE>') q
+where not exists (select 1 from public.aisle_slots s join public.aisle_renders r using(store_id,aisle,render_no)
+where s.store_id='0600cb61-45f9-402b-a209-134abdaef10f' and s.product_id=q.product_id);
+
+Do not use old slot numbers that already exist (legacy code-built rows may have render_no without an aisle_renders row). Allocate above max render_no in both tables. Upload PNG to menu-images/store-renders/<store>/<aisle>/rNNNN.png. Insert actual aisle_renders with publish_status='held' (DB accepts held/ready, NOT draft), then aisle_slots with exact local product IDs and normalized price anchors. Use layout 'COLSxROWS' for fixed grids or 'rows:4,4,4,3,3' for mixed groups, row-major slots. Held renders visible in Studio review but not automatically live. Dart must respect variable row counts and actual product tap areas; price labels are overlays, not baked into image. Do not publish until reviewed.
