@@ -185,6 +185,7 @@ async function showStore(s) {
       const b = el('button', id === s.store_id ? 'on' : '', label); b.onclick = () => go(id); formats.append(b);
     }
     if (formats.children.length > 1) main.append(formats);
+    const review = el('a', 'btn solid', 'Review rendered DG groceries'); review.href = 'dg-render-review.html?store=' + encodeURIComponent(s.store_id); main.append(review);
   }
   main.append(st, chat, tabs, body);
   chatBox(s, chat).catch(e => { chat.innerHTML = '<p class="status">Could not load the ChatGPT instructions: ' + esc(e.message) + '</p>'; });
