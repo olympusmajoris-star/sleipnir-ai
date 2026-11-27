@@ -1,0 +1,63 @@
+SLEIPNIR STUDIO - START HERE (for ChatGPT)
+Written 2026-11-26. Everything you need to render the code-built grocery products, without opening the studio.
+
+1) WHAT THE JOB IS
+Danny's grocery stores show many products as plain code-drawn pictures. Your job: replace them with real
+shelf renders, one store and one aisle at a time, following that store's file below. No store-brand products
+are reused across stores; products that already have a render in another store are reused by Danny, not redrawn.
+
+2) ONE FILE PER STORE (open the store Danny names; it has the exact steps, SQL and aisle list)
+  Target                             10,484 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/target.txt
+  Dollar General Market (Bunnell)     9,594 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/dollar-general-market-bunnell.txt
+  Publix (Island Walk)                8,961 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/publix-island-walk.txt
+  Sprouts Farmers Market              7,039 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/sprouts-farmers-market.txt
+  Dollar General (Palm Coast Pkwy)    6,257 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/dollar-general-palm-coast-pkwy.txt
+  Dollar General (#1350)              6,256 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/dollar-general-1350.txt
+  The Fresh Market                    4,780 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/the-fresh-market.txt
+  Walmart Supercenter                 3,331 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/walmart-supercenter.txt
+  BJ's Wholesale Club                 2,200 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/bj-s-wholesale-club.txt
+  Sam's Club                          1,470 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/sam-s-club.txt
+  Costco Wholesale                    1,276 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/costco-wholesale.txt
+  Whole Foods Market                    690 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/whole-foods-market.txt
+  ALDI (Palm Coast Pkwy)                131 code-built   https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/aldi-palm-coast-pkwy.txt
+
+3) DATABASE (Supabase project afnihsdxtisneuyehatw)
+REST base: https://afnihsdxtisneuyehatw.supabase.co/rest/v1/
+The list to render:
+  select * from public.store_info_chatgpt_queue('<store_id>', <shelves 3|4>, <per shelf 2|3>, false, '<AISLE>');
+  REST: POST /rest/v1/rpc/store_info_chatgpt_queue  {"p_store":"<store_id>","p_shelves":4,"p_per_shelf":2,"p_include_reusable":false,"p_aisle":"<AISLE>"}
+  Returns: aisle, display_type, render_no, layout, shelf, spot_on_shelf, slot, product_id, name, size, price,
+           shelf_group, reference_photo, store_brand, shown_now_as, reuse_render_from, upload_path
+Where finished renders go:
+  storage bucket menu-images, path = upload_path (menu-images/store-renders/<store-slug>/<aisle-slug>/rNNNN.png)
+  public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status='draft')
+  public.aisle_slots   (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h)
+Store info tables (read only):
+  store_info_items    one row per product (status 'rendered' or 'code', render_path, crop, universal_id = render elsewhere)
+  store_info_core     renders shared by several stores
+  store_info_summary  per-store counts
+  store_info_aisles   per-store aisle counts
+  store_reuse_links   product -> the original render it reuses
+  Rebuild after new renders: select store_info_refresh();
+Target's own render tables: target_renders, target_render_slots, target_render_spots, view target_render_aisles
+
+4) PUBLIX FREEZER RENDERS (already done, for reference)
+The manifest is the table public.station_render_plan (with products: view public.station_render_v).
+Columns: station, image_path, image_order, spot_no, label, match_label, product_id, label_mode, sold_by,
+         zx0,zy0,zx1,zy1 and hx0,hy0,hx1,hy1 (boxes as 0-1 fractions), tags, match_score
+  "Publix Freezer Bins Priced 20261120"    64 images, 380 spots
+  "Publix Frozen Foods Priced 20261120"   146 images, 869 spots
+  "Publix Frozen Seafood Priced 20261120"  20 images, 119 spots
+Images: menu-images/freezer-scenes/publix/2026-11-20/
+Station lists: grocery_stations, grocery_station_products
+
+5) STUDIO CODE (GitHub, public)
+Repo olympusmajoris-star/sleipnir-ai, branch gh-pages (NOT main)
+  store-info.html (Store info), grocery-entrance.html + grocery-entrance.js (store displays), sleipnir-studio-1120.html (studio home)
+  Browse: https://github.com/olympusmajoris-star/sleipnir-ai/tree/gh-pages
+  Raw:    https://raw.githubusercontent.com/olympusmajoris-star/sleipnir-ai/gh-pages/store-info.html
+These files: https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/START-HERE.txt  and  https://raw.githubusercontent.com/olympusmajoris-star/sleipnir-ai/gh-pages/chatgpt/START-HERE.txt
+
+6) RULES
+Work one aisle at a time, upload, insert the rows as 'draft', tell Danny, then the next aisle.
+Never publish, never delete or overwrite other renders, never hide stores.

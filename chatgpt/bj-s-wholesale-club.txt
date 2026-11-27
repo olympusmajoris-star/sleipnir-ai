@@ -1,0 +1,49 @@
+SLEIPNIR STORE FILE FOR CHATGPT: BJ's Wholesale Club
+Written 2026-11-26. Counts below are from that day; the product lists themselves are always live in Supabase.
+Start-here file (database, tables, rules): https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/START-HERE.txt
+
+Store id:  26cf8931-69ba-47f8-a471-61a1250a0ded
+Address:   5857 FL-100, Palm Coast, FL 32164
+Studio tab (needs JavaScript): https://olympusmajoris-star.github.io/sleipnir-ai/store-info.html?store=26cf8931-69ba-47f8-a471-61a1250a0ded
+Grocery display:               https://olympusmajoris-star.github.io/sleipnir-ai/grocery-entrance.html?store=26cf8931-69ba-47f8-a471-61a1250a0ded
+Products 2,340 · rendered 140 · code-built 2,200 · code-built with a render in another store 16 · aisles 14
+
+OTHER LAYOUTS: the job below uses 4 shelves x 2 products per shelf. If Danny asks for 3 shelves or 3 per shelf,
+change the 2nd and 3rd numbers in the queue call, e.g. store_info_chatgpt_queue('26cf8931-69ba-47f8-a471-61a1250a0ded', 3, 3, false, '<AISLE>').
+
+================================================================
+SLEIPNIR RENDER JOB: BJ's Wholesale Club
+Store id: 26cf8931-69ba-47f8-a471-61a1250a0ded   Supabase project: afnihsdxtisneuyehatw
+2,184 products need a render. Layout Danny picked: 4 shelves, 2 products per shelf (8 products per image).
+
+Work ONE aisle at a time. Read that aisle's list straight from Supabase:
+  select * from public.store_info_chatgpt_queue('26cf8931-69ba-47f8-a471-61a1250a0ded', 4, 2, false, '<AISLE>');
+Put the aisle name from the list below in place of <AISLE>.
+Products that already have a render in another store are left out. Danny reuses those.
+
+Each render_no is ONE image. Draw its products on that row's display_type, in the exact shelf (1 = top) and spot (left to right) order. Use reference_photo for the real packaging. Leave the shelf-edge price strips blank because the app draws the prices.
+
+When an image is done:
+ 1. Upload the PNG to its upload_path (bucket menu-images).
+ 2. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
+    values ('26cf8931-69ba-47f8-a471-61a1250a0ded', <aisle>, <render_no>, <upload_path without "menu-images/">, <width>, <height>, <layout>, 'draft');
+ 3. One public.aisle_slots row per product: (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
+    tag_x/y/w/h = the blank price strip under that product, as 0-1 fractions of the image width and height.
+ 4. Leave it 'draft'. Danny publishes it in the studio.
+Finish an aisle, tell Danny, then start the next one.
+
+AISLES (products to render, images needed, display):
+Frozen 350 products, 44 images (glass freezer)
+Beverages 261 products, 33 images (dark shelf)
+Dairy & Eggs 245 products, 31 images (glass cooler)
+Snacks 216 products, 27 images (dark shelf)
+Deli & Prepared Foods 192 products, 24 images (glass cooler)
+Breakfast 143 products, 18 images (dark shelf)
+Produce 102 products, 13 images (produce bins)
+Canned Goods & Soups 38 products, 5 images (dark shelf)
+Dry Goods & Pasta 16 products, 2 images (dark shelf)
+Bakery 14 products, 2 images (dark shelf)
+Frozen Meat & Seafood 3 products, 1 images (glass freezer)
+Household 267 products, 34 images (dark shelf)
+Personal Care 264 products, 33 images (dark shelf)
+Baby 73 products, 10 images (dark shelf)

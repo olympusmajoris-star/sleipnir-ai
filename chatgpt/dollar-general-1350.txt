@@ -1,0 +1,64 @@
+SLEIPNIR STORE FILE FOR CHATGPT: Dollar General (#1350)
+Written 2026-11-26. Counts below are from that day; the product lists themselves are always live in Supabase.
+Start-here file (database, tables, rules): https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/START-HERE.txt
+
+Store id:  de63fd6f-6f7e-4a87-b309-8458f8fab530
+Address:   894 N Nova Rd, Holly Hill, FL 32117
+Studio tab (needs JavaScript): https://olympusmajoris-star.github.io/sleipnir-ai/store-info.html?store=de63fd6f-6f7e-4a87-b309-8458f8fab530
+Grocery display:               https://olympusmajoris-star.github.io/sleipnir-ai/grocery-entrance.html?store=de63fd6f-6f7e-4a87-b309-8458f8fab530
+Products 6,431 · rendered 175 · code-built 6,256 · code-built with a render in another store 28 · aisles 27
+
+OTHER LAYOUTS: the job below uses 4 shelves x 2 products per shelf. If Danny asks for 3 shelves or 3 per shelf,
+change the 2nd and 3rd numbers in the queue call, e.g. store_info_chatgpt_queue('de63fd6f-6f7e-4a87-b309-8458f8fab530', 3, 3, false, '<AISLE>').
+
+================================================================
+SLEIPNIR RENDER JOB: Dollar General (#1350)
+Store id: de63fd6f-6f7e-4a87-b309-8458f8fab530   Supabase project: afnihsdxtisneuyehatw
+6,228 products need a render. Layout Danny picked: 4 shelves, 2 products per shelf (8 products per image).
+
+WAIT: this store sells the same products as Dollar General (Palm Coast Pkwy). Render Palm Coast first, then have Claude refresh store info. Most of this list will then reuse those renders.
+
+Work ONE aisle at a time. Read that aisle's list straight from Supabase:
+  select * from public.store_info_chatgpt_queue('de63fd6f-6f7e-4a87-b309-8458f8fab530', 4, 2, false, '<AISLE>');
+Put the aisle name from the list below in place of <AISLE>.
+Products that already have a render in another store are left out. Danny reuses those.
+
+Each render_no is ONE image. Draw its products on that row's display_type, in the exact shelf (1 = top) and spot (left to right) order. Use reference_photo for the real packaging. Leave the shelf-edge price strips blank because the app draws the prices.
+
+When an image is done:
+ 1. Upload the PNG to its upload_path (bucket menu-images).
+ 2. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
+    values ('de63fd6f-6f7e-4a87-b309-8458f8fab530', <aisle>, <render_no>, <upload_path without "menu-images/">, <width>, <height>, <layout>, 'draft');
+ 3. One public.aisle_slots row per product: (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
+    tag_x/y/w/h = the blank price strip under that product, as 0-1 fractions of the image width and height.
+ 4. Leave it 'draft'. Danny publishes it in the studio.
+Finish an aisle, tell Danny, then start the next one.
+
+AISLES (products to render, images needed, display):
+Soda, Water & Drinks 306 products, 39 images (dark shelf)
+Meals, Canned Goods & Pantry 247 products, 31 images (dark shelf)
+Candy & Gum 218 products, 28 images (dark shelf)
+Chips, Cookies & Snacks 195 products, 25 images (dark shelf)
+Frozen Foods 110 products, 14 images (glass freezer)
+Coffee & Breakfast 71 products, 9 images (dark shelf)
+Baking & Condiments 58 products, 8 images (dark shelf)
+Fresh Food & Dairy 35 products, 5 images (glass cooler)
+Seasonal & Holidays 609 products, 77 images (dark shelf)
+Household Cleaning 439 products, 55 images (dark shelf)
+Beauty & Hair Care 414 products, 52 images (dark shelf)
+Home Decor & Storage 375 products, 47 images (dark shelf)
+School & Office 321 products, 41 images (dark shelf)
+Personal Care 319 products, 40 images (dark shelf)
+Health & Wellness 315 products, 40 images (dark shelf)
+Party & Celebrations 302 products, 38 images (dark shelf)
+Kitchen & Dining 296 products, 37 images (dark shelf)
+Pet Supplies 272 products, 34 images (dark shelf)
+Toys & Games 247 products, 31 images (dark shelf)
+Laundry & Air Fresheners 212 products, 27 images (dark shelf)
+Apparel & Accessories 164 products, 21 images (dark shelf)
+Auto & Hardware 158 products, 20 images (dark shelf)
+Baby & Diapers 149 products, 19 images (dark shelf)
+Paper, Trash & Storage Bags 128 products, 16 images (dark shelf)
+Outdoor & Garden 99 products, 13 images (dark shelf)
+Electronics & Tech 94 products, 12 images (dark shelf)
+Deals & General Merchandise 75 products, 10 images (dark shelf)

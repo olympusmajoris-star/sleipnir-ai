@@ -1,0 +1,74 @@
+SLEIPNIR STORE FILE FOR CHATGPT: Target
+Written 2026-11-26. Counts below are from that day; the product lists themselves are always live in Supabase.
+Start-here file (database, tables, rules): https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/START-HERE.txt
+
+Store id:  35ef70d0-3d20-4599-96a3-648ee3c7c340
+Address:   5100 E Highway 100, Palm Coast, FL 32164
+Studio tab (needs JavaScript): https://olympusmajoris-star.github.io/sleipnir-ai/store-info.html?store=35ef70d0-3d20-4599-96a3-648ee3c7c340
+Grocery display:               https://olympusmajoris-star.github.io/sleipnir-ai/grocery-entrance.html?store=35ef70d0-3d20-4599-96a3-648ee3c7c340
+Products 18,668 · rendered 8,184 · code-built 10,484 · code-built with a render in another store 39 · aisles 39
+
+OTHER LAYOUTS: the job below uses 4 shelves x 2 products per shelf. If Danny asks for 3 shelves or 3 per shelf,
+change the 2nd and 3rd numbers in the queue call, e.g. store_info_chatgpt_queue('35ef70d0-3d20-4599-96a3-648ee3c7c340', 3, 3, false, '<AISLE>').
+
+================================================================
+SLEIPNIR RENDER JOB: Target
+Store id: 35ef70d0-3d20-4599-96a3-648ee3c7c340   Supabase project: afnihsdxtisneuyehatw
+10,445 products need a render. Layout Danny picked: 4 shelves, 2 products per shelf (8 products per image).
+
+Work ONE aisle at a time. Read that aisle's list straight from Supabase:
+  select * from public.store_info_chatgpt_queue('35ef70d0-3d20-4599-96a3-648ee3c7c340', 4, 2, false, '<AISLE>');
+Put the aisle name from the list below in place of <AISLE>.
+Products that already have a render in another store are left out. Danny reuses those.
+
+Each render_no is ONE image. Draw its products on that row's display_type, in the exact shelf (1 = top) and spot (left to right) order. Use reference_photo for the real packaging. Leave the shelf-edge price strips blank because the app draws the prices.
+
+When an image is done:
+ 1. Upload the PNG to its upload_path (bucket menu-images).
+ 2. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
+    values ('35ef70d0-3d20-4599-96a3-648ee3c7c340', <aisle>, <render_no>, <upload_path without "menu-images/">, <width>, <height>, <layout>, 'draft');
+ 3. One public.aisle_slots row per product: (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
+    tag_x/y/w/h = the blank price strip under that product, as 0-1 fractions of the image width and height.
+ 4. Leave it 'draft'. Danny publishes it in the studio.
+Finish an aisle, tell Danny, then start the next one.
+
+AISLES (products to render, images needed, display):
+Snacks 2,493 products, 312 images (dark shelf)
+Frozen 1,167 products, 146 images (glass freezer)
+Dairy & Eggs 887 products, 111 images (glass cooler)
+Deli & Prepared Foods 362 products, 46 images (glass cooler)
+Breakfast 287 products, 36 images (dark shelf)
+Produce 281 products, 36 images (produce bins)
+Meat & Poultry 275 products, 35 images (glass cooler)
+Bakery 188 products, 24 images (dark shelf)
+Condiments & Sauces 112 products, 14 images (dark shelf)
+Dry Goods & Pasta 111 products, 14 images (dark shelf)
+Canned Goods & Soups 77 products, 10 images (dark shelf)
+Beverages 42 products, 6 images (dark shelf)
+Seafood 26 products, 4 images (glass cooler)
+Frozen Meat & Seafood 18 products, 3 images (glass freezer)
+Alcohol 1,182 products, 148 images (wine liquor shelf)
+Home Decor 382 products, 48 images (floor showroom)
+Personal Care 356 products, 45 images (dark shelf)
+Household 348 products, 44 images (dark shelf)
+Kitchen 312 products, 39 images (appliance counter)
+Electronics 269 products, 34 images (appliance counter)
+Toys 201 products, 26 images (dark shelf)
+Pet Care 188 products, 24 images (dark shelf)
+Furniture 137 products, 18 images (floor showroom)
+Seasonal 108 products, 14 images (floor showroom)
+Office Supplies 101 products, 13 images (dark shelf)
+Sporting Goods 98 products, 13 images (floor showroom)
+Clothing 97 products, 13 images (clothing rack)
+Outdoor Living 87 products, 11 images (floor showroom)
+Hardware 81 products, 11 images (dark shelf)
+Luggage 40 products, 5 images (floor showroom)
+Music 36 products, 5 images (dark shelf)
+Accessories 30 products, 4 images (clothing rack)
+Movies 28 products, 4 images (dark shelf)
+Shoes 23 products, 3 images (shoe wall)
+Health Care 10 products, 2 images (dark shelf)
+Baby 2 products, 1 images (dark shelf)
+Automotive 1 products, 1 images (dark shelf)
+Books 1 products, 1 images (dark shelf)
+Entertainment 1 products, 1 images (dark shelf)
