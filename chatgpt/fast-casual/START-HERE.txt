@@ -1,0 +1,113 @@
+SLEIPNIR FAST-CASUAL MENU BOARDS - JOB FOR CHATGPT
+Written 2026-11-26. Back to the main file: https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/START-HERE.txt
+
+1) WHAT DANNY WANTS
+Every fast-casual store gets in-store digital menu boards like the Subway boards in his video: a row of wide TV
+screens mounted edge to edge above the counter, each screen one or two menu categories, bright and clean, with big
+appetizing food photos. Same idea for every store, but each brand looks like ITS OWN brand (its real colors, type
+feel and food), so no two stores look the same.
+
+Reference (Subway, Palm Coast):
+  video:  https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/fast-casual/subway-reference.mp4
+  stills: https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/fast-casual/subway-ref-1.jpg  https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/fast-casual/subway-ref-2.jpg  https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/fast-casual/subway-ref-3.jpg  https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/fast-casual/subway-ref-4.jpg
+What the Subway screens show, left to right: FRESH VALUE (yellow price-burst deal badges, "Meal of the Day" with a
+drink and chips), MAKE IT A MEAL (meal add-on: drink, chips, cookie), DELI CLASSICS, CLUBS, CHICKEN, ITALIANS,
+CHEESESTEAKS, plus one full-photo promo screen. Each screen: light blue-white background, a bold condensed green
+category heading top-left, one large hero sandwich photo, item names in 2-3 columns with a small description line and
+6-inch / footlong prices, small product photos (drinks, chips, cookies), and a bright green callout strip along the
+bottom ("Make ANY footlong a meal", "Veggie Delite").
+
+2) HOW TO MAKE THE BOARDS (same rule as the drive-thru boards)
+- Render each screen as one landscape image, 1536 x 1024 (or wider 16:9). Photorealistic, looks like a real lit TV screen
+  face-on (no ceiling, no bezel, no camera angle). Danny's app places the screens side by side.
+- NO menu text at all: no item names, no prices, no category titles, no logos, no brand names. Leave clean areas for
+  them: a heading band, item rows (faint row guides are fine), price spots, and the bottom callout strip.
+  The app draws the live names and prices from Supabase on top, so prices are never wrong.
+- Food photos: draw the store's real items. Use each product's image_url as the reference for what it looks like.
+  One big hero item per screen plus a few small item photos, the way the Subway boards do.
+  No image_url? Draw the item from its name and description so it looks like that store's real food.
+- Screens per store: one screen per big category, two small categories can share a screen. Order them like the store
+  would (deals and meals first, mains, then sides/drinks/desserts). Skip catering and party trays.
+- Brand look: the brand's real in-store colors and type feel (Firehouse is not Jersey Mike's is not Subway).
+  Local independent stores: a clean board that fits their food (Chinese, deli, pizza, coffee, Puerto Rican...).
+
+3) DATA (Supabase project afnihsdxtisneuyehatw, read only)
+  select id, name, description, price, image_url, category from public.products where store_id = '<store_id>' order by category, name;
+  select category, sort_order, panel from public.store_categories where store_id = '<store_id>' order by sort_order;
+  (store_categories only exists for some stores; otherwise group by products.category)
+
+4) WHERE FINISHED BOARDS GO (do not change any table)
+  Upload each screen PNG to bucket menu-images:  fast-casual-boards/<store folder>/board-01.png, board-02.png ...
+  Then upload ONE manifest.json to the same folder:
+  {"store_id":"<id>","boards":[{"file":"board-01.png","width":1536,"height":1024,
+     "title_box":[x,y,w,h],
+     "categories":["Deli Classics"],
+     "rows":[{"product_id":"<uuid>","name_box":[x,y,w,h],"price_box":[x,y,w,h]}],
+     "hero_product_id":"<uuid>","callout_box":[x,y,w,h]}]}
+  All boxes are 0-1 fractions of the image width/height (x,y = top-left). One row per product shown on that screen.
+  Claude wires the boards into the app from these files. Danny reviews before anything goes live.
+
+5) STORES (do Subway first, then the rest in this order)
+- Subway  |  store_id daf5b3e3-d19d-4409-ae9f-e6e499bce227  |  folder fast-casual-boards/subway/
+  100 items, 100 with a photo  |  1230 Palm Coast Pkwy SW, Palm Coast, FL 32164
+  categories: Combo Meals 36, Sandwiches 28, Drinks 14, Sides 9, Wraps 7, Salads 6
+- Burger Bros PC  |  store_id 30dd81a7-bb35-4d97-bb37-51291524312c  |  folder fast-casual-boards/burger-bros-pc/
+  45 items, 0 with a photo  |  1475 Palm Coast Pkwy NW #102, Palm Coast, FL 32137
+  categories: Sides 12, Signature Burgers 9, Burgers 5, Chicken 5, Sandwiches 4, Jr. Bros Menu 4, Beverages 4, Hotdogs 2
+- China One Restaurant  |  store_id 7fa8bc01-81ca-4f96-8799-ec93128a5196  |  folder fast-casual-boards/china-one-restaurant/
+  200 items, 0 with a photo  |  1220 Palm Coast Pkwy SW, Palm Coast, FL 32137
+  categories: Lunch Special 30, Combination Platters 20, House Special 20, Appetizers 18, Chicken 15, Fried Rice 15, Soup 15, Seafood 14, Beef 10, Lo Mein 9, Pork 9, Vegetables 7, Chop Suey 6, Chow Mein 6, Egg Foo Young 6
+- Chipotle Mexican Grill  |  store_id 0cf51aa1-a6ce-40e4-bf46-77dce0cf8fc2  |  folder fast-casual-boards/chipotle-mexican-grill/
+  27 items, 11 with a photo  |  5210 E Highway 100, Palm Coast, FL 32164
+  categories: Entrees 13, Sides 6, Kids 3, Lifestyle Bowls 3, Drinks 2
+- Dim Sum Express  |  store_id e70b08e2-75f7-480f-ac14-2bc70f6abdbc  |  folder fast-casual-boards/dim-sum-express/
+  59 items, 0 with a photo  |  160 Cypress Point Pkwy Ste A106, Palm Coast, FL 32164
+  categories: Dim Sum 25, Drinks 14, Entrees 13, Dessert 5, Soup 2
+- Dominics Deli  |  store_id 282f9564-1b1d-4cb8-9c2e-ba9c962a1ef7  |  folder fast-casual-boards/dominics-deli/
+  101 items, 0 with a photo  |  160 Cypress Point Pkwy, Palm Coast, FL 32164
+  categories: Sandwiches 34, Breakfast 23, Salads 15, Drinks 8, Kids 7, Sides 6, Dessert 5, Soup 3
+- Domino's Pizza  |  store_id 72b8b162-6795-439b-bf29-634ad5f839ab  |  folder fast-casual-boards/domino-s-pizza/
+  37 items, 37 with a photo  |  4984 Belle Terre Pkwy, Palm Coast, FL 32137
+  categories: Specialty Pizzas 10, Drinks 4, Sandwiches 4, Chicken 3, Pasta 3, Desserts 3, Sides 3, Wings 3, Classic Pizzas 2, Salads 2
+- El Pollo Colorao  |  store_id 019a74b8-78c9-495b-9212-20da3f0d54eb  |  folder fast-casual-boards/el-pollo-colorao/
+  53 items, 0 with a photo  |  227 St Joe Plaza Dr, Palm Coast, FL 32164
+  categories: Appetizers 13, Drinks 10, Mofongos 5, Combo Meals 4, Extra Sauce 4, Family Meals 3, Sandwiches 3, Chicken Meals 3, Seafood Meals 2, Beef Meals 2, Desserts 1, Vegan Meal 1, Sides 1, Fresh Baked 1
+- Firehouse Subs Palm Coast  |  store_id fb570030-97cf-4b46-b426-9974796adb06  |  folder fast-casual-boards/firehouse-subs-palm-coast/
+  56 items, 56 with a photo  |  1475 Palm Coast Pkwy NW #101, Palm Coast, FL 32137
+  categories: Hot Specialty Subs 19, Sides 8, Beverages 8, Build Your Own Sub 7, Salads 6, Kid's Combos 4, Desserts 3, Cold Subs 1
+- JP's Italian American Bistro  |  store_id 8f6550fd-4bcc-4f4e-9b42-dfd1297a257b  |  folder fast-casual-boards/jp-s-italian-american-bistro/
+  60 items, 0 with a photo  |  5 Utility Dr #19, Palm Coast, FL 32137
+  categories: Signature Heroes 26, Hot Sandwiches 8, Cold Sides 8, Pasta 7, Hot Sides 6, Signature Salads 4, Charcuterie 1
+- Jersey Mike's Subs  |  store_id b47563fd-d29f-4982-a105-ae3ed317a85f  |  folder fast-casual-boards/jersey-mike-s-subs/
+  23 items, 23 with a photo  |  800 Belle Terre Pkwy, Palm Coast, FL 32164
+  categories: Cold Subs 11, Hot Subs 7, Dessert 2, Drinks 2, Sides 1
+- King Palace  |  store_id 9ad1500e-886a-42db-9523-9813862f1fcf  |  folder fast-casual-boards/king-palace/
+  184 items, 0 with a photo  |  515 Palm Coast Pkwy SW Ste 19, Palm Coast, FL 32137
+  categories: Combination Platters 24, Appetizers 20, House Specialties 20, Luncheon Specials 20, Chicken 19, Seafood 15, Pork 9, Beef 8, Vegetables 7, Chow Mein Or Chop Suey 6, Fried Rice 6, Lo Mein 6, Udon 6, Egg Foo Young 5, Mei Fun 5, Side Orders 3, Soups 3, Beverages 2
+- Moe's Southwest Grill  |  store_id 63c2a490-15ea-4d3d-8d09-69c2a0f60dfb  |  folder fast-casual-boards/moe-s-southwest-grill/
+  49 items, 49 with a photo  |  250 Palm Coast Pkwy NE, Palm Coast, FL 32137
+  categories: Drinks 11, Groups & Parties 10, Burritos 4, Dippers 3, Stacks & Quesadillas 3, Bowls 3, Kids 3, Moe Value Meal 3, Dips & Sides 3, Salads 2, Tacos 2, Desserts 1, Nachos 1
+- Panda Express  |  store_id 3eb517cb-1328-4e94-a73e-68ed48398c7d  |  folder fast-casual-boards/panda-express/
+  75 items, 68 with a photo  |  5234 FL-100 #110, Palm Coast, FL 32164
+  categories: Drinks 17, Combos 16, Entrees 12, Appetizers 8, Catering 6, Sides 5, Kids 4, Balanced Protein Plates 3, Premium Entrees 2, Salads 1, Desserts 1
+- Panera Bread  |  store_id 86a231cb-1138-44f0-877e-7c9e002523db  |  folder fast-casual-boards/panera-bread/
+  70 items, 2 with a photo  |  5880 FL-100, Palm Coast, FL 32164
+  categories: Bakery 12, Soups 11, Beverages 10, Hot Sandwiches 8, Salads 6, Breakfast 5, Kids 4, Cold Sandwiches 4, Flatbreads 3, Grain Bowls 3, Sides 3, Combos 1
+- Pizza Hut  |  store_id 1a7783b9-8401-4775-a636-00ee9ce794cc  |  folder fast-casual-boards/pizza-hut/
+  24 items, 13 with a photo  |  1475 Palm Coast Pkwy NW Suite 110, Palm Coast, FL 32137
+  categories: Specialty Pizzas 6, Drinks 4, Kids 3, Melts 2, Wings 2, Sides 2, Dessert 2, Salads 2, Classic Pizzas 1
+- Redefined Food Co  |  store_id a05ff3fe-1a45-4f6d-a1e5-170094f9b3e7  |  folder fast-casual-boards/redefined-food-co/
+  57 items, 0 with a photo  |  1290 Belle Terre Pkwy, Palm Coast, FL 32164
+  categories: Meal Prep 9, Smoothies 7, Mains 7, Beer & Wine 6, Drinks 6, Wraps & Salads 6, Add-ons 5, Sides 4, Burgers & Chicken 3, Bowls 3, Snacks 1
+- Rustic Dough Works  |  store_id 89e20d57-c44e-4718-9ebc-1bf671f3955d  |  folder fast-casual-boards/rustic-dough-works/
+  123 items, 0 with a photo  |  160 Cypress Point Pkwy Ste D101, Palm Coast, FL 32164
+  categories: Pizza 38, Breakfast 24, Drinks 23, Pasta 16, Appetizers 12, Sandwiches 5, Salads 3, Bakery 1, Menu 1
+- Scoops & Subs  |  store_id cd4abecc-d151-420f-bcfa-7479edd2c0a9  |  folder fast-casual-boards/scoops-subs/
+  41 items, 0 with a photo  |  223 St Joe Plaza Dr, Palm Coast, FL 32164
+  categories: Subs & Sandwiches 12, Ice Cream & Desserts 11, Sides 9, Nachos 4, Drinks 3, Milkshakes 2
+- The Jacked Up Bean  |  store_id 5e3bd22e-d702-4752-b07a-5ead492d7764  |  folder fast-casual-boards/the-jacked-up-bean/
+  57 items, 0 with a photo  |  222 St Joe Plaza Dr, Palm Coast, FL 32164
+  categories: Classic Coffee 15, Signature Drinks 15, Other Drinks 9, Breakfasts 6, Croissants 6, Desserts 4, Salads 2
+
+No menu loaded yet (skip until Danny adds one):
+  Bee Fly Grab N Go Cafe, China Express, Cold Stone Creamery, Copacabana Acai, Copperline Coffee, Fish & Chix, Gold Leaf Coffee, Gourmet Deli, Great Wall, Hi! Boba Tea, Oriental Garden Restaurant

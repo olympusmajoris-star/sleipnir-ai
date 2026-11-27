@@ -1,6 +1,10 @@
 SLEIPNIR STUDIO - START HERE (for ChatGPT)
 Written 2026-11-26. Everything you need to render the code-built grocery products, without opening the studio.
 
+0) OTHER JOBS
+Fast-casual menu boards (Subway-style TV screens for every fast-casual store):
+  https://olympusmajoris-star.github.io/sleipnir-ai/chatgpt/fast-casual/START-HERE.txt
+
 1) WHAT THE JOB IS
 Danny's grocery stores show many products as plain code-drawn pictures. Your job: replace them with real
 shelf renders, one store and one aisle at a time, following that store's file below. No store-brand products
