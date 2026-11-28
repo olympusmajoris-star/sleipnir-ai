@@ -386,6 +386,13 @@ async function loadPanels(door,signal){
   deliCatalog=await loadDeliCatalog(old,combined,signal);
   return combined;
  }
+ if(heldSupported(door)&&door.label==='Frozen Foods'){
+  try{
+   const protectedIds=new Set(old.flatMap(p=>p.spots.map(s=>s.id)));
+   const fresh=await pub.load(door.label,{read,media,signal,protectedIds});
+   return [...old,...fresh];
+  }catch(e){if(signal.aborted)throw e;return old;}
+ }
  return old;
 }
 const panelCache=new Map(),appliedScales=new Map();
