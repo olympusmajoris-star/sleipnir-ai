@@ -30,7 +30,7 @@ function makePanels(renders,slots,products,aisle,media,protectedIds=new Set()){
    let start=0,top=0,spots=[],valid=true;
    for(const count of counts){
      const segment=rows.slice(start,start+count),rt=tags.slice(start,start+count);
-     const centers=rt.map(t=>(t[0]+t[2])/2),bottom=Math.max(...rt.map(t=>t[3]));
+     const centers=rt.map(t=>(t[0]+t[2])/2),bottom=Math.min(1,Math.max(...rt.map(t=>t[3]))+(segment.every(s=>s.shelf_group==='Packaged Fruit')?.045:0));
      if(bottom<=top||centers.some((v,i)=>i&&v<=centers[i-1])){valid=false;break;}
      for(let c=0;c<count;c++){
        const s=segment[c],p=products.get(s.product_id),left=c?(centers[c-1]+centers[c])/2:0,right=c<count-1?(centers[c]+centers[c+1])/2:1;
