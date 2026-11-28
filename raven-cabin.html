@@ -16,6 +16,11 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
 <style>.raven-embed body{padding:0;background:#080d13}.raven-embed .rr-heading,.raven-embed .rr-settings,.raven-embed .rr-footer{display:none}.raven-embed .rr-shell{max-width:none}.raven-embed .rr-layout{display:block}.raven-embed #raven-cabin .rw-phone{max-width:none;border-radius:0;box-shadow:none}.raven-embed #raven-cabin .rw-credit{display:none}</style>
+<style>
+#raven-cabin:is([data-cabin-mode="video"],[data-cabin-mode="call"])[data-screen-only="true"] :is(.rw-compose,.rw-input-surface,.rw-control,.rc-camera,.rc-share,.rc-end,.rc-remote-label){display:none!important}
+#raven-cabin:is([data-cabin-mode="video"],[data-cabin-mode="call"])[data-screen-only="true"] .rc-fullscreen{opacity:.65}
+#raven-cabin .rc-mirror-lower{transition-delay:.28s}
+</style>
 </head>
 <body>
 <main class="rr-shell">
@@ -99,10 +104,10 @@
 <script src="raven-cabin-shell.js?v=1125video3"></script>
 <script src="raven-voice-controls.js?v=1124road1"></script>
 <script src="vendor/lucide/lucide-0.468.0.min.js"></script>
-<script src="raven-cabin-geometry.js?v=1125video3"></script>
+<script src="raven-cabin-geometry.js?v=1128glass"></script>
 <script src="raven-cabin-materials.js?v=1125video3"></script>
-<script src="raven-cabin-camera.js?v=1125video3"></script>
-<script src="raven-cabin-modes.js?v=1125video3"></script>
+<script src="raven-cabin-camera.js?v=1128glass"></script>
+<script src="raven-cabin-modes.js?v=1128glass"></script>
 <script src="raven-cabin-icon-catalog.js?v=1125video3"></script>
 <script src="raven-cabin-objects.js?v=1125video3"></script>
 <script src="raven-cabin-editor.js?v=1125video3"></script>

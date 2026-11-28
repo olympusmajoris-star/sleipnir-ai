@@ -315,11 +315,14 @@
       }
       if(!onCall){for(const n of [remote,mirror,sideSelf,sharing,statusNode])n.hidden=true;return;}
       remote.hidden=inShare;
-      const videoBounds=!inShare?windowSurface(remote,P.visibleVideo||(g.videoGlass||g.windshield).map(p=>P.point(...p)),P):[0,0,0,0];
-      const glass=P.sharedRect||P.rect(g.sideContent),hinge=P.point(g.mirror[0]+g.mirror[2]/2,g.mirror[1]),smallFront=!inShare&&(P.width<600||studioSurface==='phone');
-      const mirrorStart=smallFront?clamp(P.width*.2,72,94):clamp(P.width*.2,96,122),mirrorEnd=clamp(P.width*.18,72,94),mirrorWidth=mirrorStart+(mirrorEnd-mirrorStart)*progress,mirrorHeight=mirrorWidth*1.22;
-      const mirrorX=(hinge[0]-mirrorWidth/2)*(1-progress)+(videoBounds[0]+12)*progress,mirrorY=hinge[1]*(1-progress)+(videoBounds[1]+12)*progress;
-      const mr=[clamp(mirrorX,8,P.width-mirrorWidth-8),clamp(mirrorY,8,Math.max(8,compose[1]-mirrorHeight-64)),mirrorWidth,mirrorHeight];mirror.style.transform='none';box(mirror,mr);mirror.hidden=inShare;
+      if(!inShare)windowSurface(remote,P.visibleWindshield,P);
+      const glass=P.sharedRect||P.rect(g.sideContent);
+      const hinge=P.point(g.mirror[0]+g.mirror[2]/2,g.mirror[1]);
+      const mirrorWidth=Math.min(P.width*.32,P.rect([g.mirror[0],g.mirror[1],145,1])[2]);
+      const mirrorHeight=mirrorWidth*.65;
+      mirror.style.transform='none';
+      box(mirror,[hinge[0]-mirrorWidth/2,hinge[1],mirrorWidth,mirrorHeight]);
+      mirror.hidden=inShare;
       for(let i=0;i<2;i++){const panel=selfVideos[i].parentElement;box(panel,[0,mirrorHeight/2*i,mirrorWidth,mirrorHeight/2]);box(selfVideos[i],[0,-mirrorHeight/2*i,mirrorWidth,mirrorHeight]);}
       sideSelf.hidden=!inShare;sharing.hidden=!inShare||!sharedKind;
       if(inShare){
@@ -353,6 +356,7 @@
         const center=overheadVisible?overhead[1][0]:P.width/2;
         [camera,share,end].forEach((button,i)=>nativeHit(button,clamp(center+(i-1)*spacing,30,P.width-30),y,P,18,!overheadVisible));
       }
+      if(focused)nativeHit(fullscreen,P.width-30,P.height-30,P);
       Object.assign(statusNode.style,{position:'absolute',left:'8px',right:'auto',bottom:'5px',top:'auto',width:Math.max(80,P.width-128)+'px',maxHeight:'36px',overflow:'auto'});statusNode.hidden=editing||!onCall||!statusNode.textContent||focused;
     }
     on(scene,'keydown',event=>{if(event.key==='Escape'&&active()){event.preventDefault();open(mode==='sharing'?returnMode:'chat');}});

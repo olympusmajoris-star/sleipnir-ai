@@ -22,7 +22,7 @@
     const videoFocusProgress=videoActive?clamp(finite(presentation.videoFocusProgress,presentation.screenOnly?1:0),0,1):0;
     const screenOnly=(videoActive?videoFocusProgress>=1:!!presentation.screenOnly)&&t2===0&&!['passenger','pan'].includes(studioSurface);
     const controls=videoActive||!screenOnly&&!!presentation.controlsVisible;
-    const videoYaw=finite(cfg.videoYaw,16),sharingYaw=finite(cfg.sharingYaw,58),yaw=(videoYaw*t1+(sharingYaw-videoYaw)*t2)*Math.PI/180,sin=Math.sin(yaw),cos=Math.cos(yaw);
+    const videoYaw=finite(cfg.videoYaw,16),sharingYaw=finite(cfg.sharingYaw,58),yaw=(videoActive && t2===0 ? (videoYaw-16)*t1 : videoYaw*t1+(sharingYaw-videoYaw)*t2)*Math.PI/180,sin=Math.sin(yaw),cos=Math.cos(yaw);
     const z=x=>sin*(x-cx)/f+cos,q=x=>(cos*(x-cx)/f-sin)/z(x),v=(x,y)=>(y-cy)/(f*z(x));
     const mix=(a,b,t)=>a+(b-a)*t;
     function pose(which){
@@ -110,11 +110,22 @@
       }
     }
     if(videoActive&&!['passenger','pan'].includes(studioSurface)&&t2===0){
-      const progress=videoFocusProgress,[x,y,w,h]=g.videoScreenFrame||[569,116,669,281],xs=[q(x),q(x+w)],ys=[v(x,y),v(x+w,y),v(x,y+h),v(x+w,y+h)],left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
-      const endFocal=Math.max(Math.max(1,width-16)/(right-left),Math.max(1,height-16)/(bottom-top))*zoom,startX=(width/2-principalX)/focal,startY=(height/2-principalY)/focal;
-      focal=Math.exp(mix(Math.log(focal),Math.log(endFocal),progress));
-      principalX=width/2-focal*mix(startX,(left+right)/2,progress);principalY=height/2-focal*mix(startY,(top+bottom)/2,progress);neutral=principalY;
-      sourceClip=[569,0,1260-569,mix(g.height,Math.min(g.height,405),progress)];covered=true;
+      // Compose in photographic coordinates so the glass, feed and hinge move together.
+      const entry=g.videoEntryFrame, entryScale=Math.min(width/entry[2],height/entry[3]);
+      const hingeX=g.mirror[0]+g.mirror[2]/2, hingeY=g.mirror[1];
+      const endScale=Math.max(height/325,width/1260)*zoom;
+      const endWidth=width/endScale;
+      const endLeft=clamp(hingeX-endWidth*.21,0,1260-endWidth);
+      const endTop=hingeY-12/endScale;
+      const startCenter=[entry[0]+entry[2]/2,entry[1]+entry[3]/2];
+      const endCenter=[endLeft+endWidth/2,endTop+height/endScale/2];
+      const scale=Math.exp(mix(Math.log(entryScale),Math.log(endScale),videoFocusProgress));
+      focal=f*scale;
+      const targetX=mix(startCenter[0],endCenter[0],videoFocusProgress);
+      const targetY=mix(startCenter[1],endCenter[1],videoFocusProgress);
+      principalX=width/2-focal*q(targetX);
+      principalY=height/2-focal*v(targetX,targetY);
+      neutral=principalY;sourceClip=[0,0,1260,g.height];covered=true;
     }
     function point(x,y){const depth=z(x);if(depth<=1e-7)return [NaN,NaN];return [principalX+focal*q(x),principalY+focal*(y-cy)/(f*depth)];}
     function unproject(x,y){const u=(x-principalX)/focal,vv=(y-principalY)/focal,depth=cos-sin*u;if(depth<=1e-7)return [NaN,NaN];return [cx+f*(cos*u+sin)/depth,cy+f*vv/depth];}
