@@ -117,7 +117,7 @@ async function doorsForStore(row,signal){
  if(mode==='publix')return publixDoors();
  if(mode==='target')return targetDoors(signal);
  const registered=await read('store_entrances',{select:'store_id,label,image_path,sort',store_id:'eq.'+row.id,is_active:'eq.true',order:'sort,label'},signal);
- if(mode==='published'||registered.length){
+ if(!DG_PREVIEW_STORES.has(row.id)&&(mode==='published'||registered.length)){
   const doors=new Map();
   for(const r of registered){if(r.store_id===row.id&&r.label?.trim()&&media(r.image_path)&&!doors.has(r.label))doors.set(r.label,{label:r.label,art:r.image_path,kind:'Published aisles'});}
   return [...doors.values()];
@@ -130,12 +130,13 @@ async function doorsForStore(row,signal){
  if(mode==='dollar-general'&&DG_PREVIEW_STORES.has(row.id)){
    const rendered=await read('aisle_renders',{store_id:'eq.'+row.id,select:'aisle,render_no,publish_status',publish_status:'in.(held,draft,ready)',order:'aisle,render_no'},signal);
    const counts=new Map();
-   for(const item of rendered)if(DG_RENDER_AISLES.includes(item.aisle))counts.set(item.aisle,(counts.get(item.aisle)||0)+1);
+   for(const item of rendered)counts.set(item.aisle,(counts.get(item.aisle)||0)+1);
    if(counts.size){
      const groceries=DG_RENDER_AISLES.filter(a=>counts.has(a)).map(label=>({label,art:'',kind:'Rendered groceries',renderedDG:true,count:counts.get(label),preview:true}));
-     const aliases=/^(Food & Beverage|Beverages|Frozen Food|Fresh Food|Meals & Side Dishes|Snacks & Cookies|Cereal & Breakfast|Coffee & Tea|Baking Cakes & Mixes|Candy & Gum|\$2 Food Items|Better For You|Lunch & After School Snacks|Deals on Chips|Deals on Grocery|Save on Snacks|Save on Soft Drinks|Save on Beverages|Soda Deals)$/i;
+     const special=[...counts.keys()].filter(a=>!DG_RENDER_AISLES.includes(a)).sort((a,b)=>a.localeCompare(b)).map(label=>({label,art:'',kind:'Rendered specialty displays',renderedDG:true,count:counts.get(label),preview:true}));
+     const aliases=/^(Food & Beverage|Beverages|Frozen Food|Fresh Food|Meals & Side Dishes|Snacks & Cookies|Cereal & Breakfast|Coffee & Tea|Baking Cakes & Mixes|Candy & Gum|\$2 Food Items|Better For You|Lunch & After School Snacks|Deals on Chips|Deals on Grocery|Save on Snacks|Save on Soft Drinks|Save on Beverages|Soda Deals|On Sale|DG Brands|Dollar Deals|DG Deal Days)$/i;
      const rest=catalog.filter(d=>!counts.has(d.label)&&!aliases.test(d.label)).map(d=>d.label==='Deals & General Merchandise'?{...d,previewKey:'dg-general-merchandise'}:d);
-     return [...groceries,...rest];
+     return [...groceries,...special,...rest];
    }
  }
  return catalog;
@@ -234,11 +235,11 @@ function destroyDgShelf(){
  const host=$('dgShelfEntrance');host.hidden=true;host.replaceChildren();
 }
 function drawDgRenderShelf(door,label){
- const host=$('dgShelfEntrance');host.hidden=false;host.setAttribute('aria-label',label+' rendered grocery display');
+ const host=$('dgShelfEntrance');host.hidden=false;host.setAttribute('aria-label',label+' rendered product display');
  const frame=document.createElement('iframe');
- frame.title=label+' — Studio rendered groceries';
+ frame.title=label+' — Studio rendered display';
  frame.style.cssText='display:block;width:100%;max-width:390px;height:760px;margin:auto;border:0;background:transparent';
- const params=new URLSearchParams({store:id,aisle:door.label,embed:'1',v:'dg-rendered-20261127'});
+ const params=new URLSearchParams({store:id,aisle:door.label,embed:'1',v:'dg-specialty-20261128'});
  frame.src='dg-render-review.html?'+params;
  let observer;
  frame.onload=()=>{try{const doc=frame.contentDocument;
@@ -429,8 +430,9 @@ async function route(){
   if(!UUID.test(id))throw Error('This link does not identify a store.');
   if(!initialLoaded){
    store=await global.StudioWorkspaceCore.appStoreById(id);
+   if(!store&&DG_PREVIEW_STORES.has(id)){const rows=await read('stores',{select:'id,name,address,is_live',id:'eq.'+id},signal);store=rows.find(r=>r.id===id&&r.is_live===true);}
    if(signal.aborted)return;
-   mode=global.StudioWorkspaceCore.groceryModeForStore(store);
+   mode=DG_PREVIEW_STORES.has(id)&&store?'dollar-general':global.StudioWorkspaceCore.groceryModeForStore(store);
    if(!mode){const route=global.StudioWorkspaceCore.storeEditorForStore(store);if(route){location.replace(route);return;}throw Error('This store is unavailable.');}
    $('storeName').textContent=store.name;$('address').textContent=store.address||'';
    $('repairLink').href='store-repairs.html?'+new URLSearchParams({store:id});
@@ -495,4 +497,5 @@ $('flag').onclick=async()=>{
 };
 global.addEventListener('popstate',route);route();
 })(typeof window!=='undefined'?window:globalThis);
+
 
