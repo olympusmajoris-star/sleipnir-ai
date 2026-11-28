@@ -11,9 +11,9 @@
 'use strict';
 const K = window.StudioKit; if (!K) return;
 const FN = 'https://afnihsdxtisneuyehatw.supabase.co/functions/v1/studio-people';
-const LOCAL_FIG = { 'Test Woman': 'testwoman', Freya: 'freya', Loki: 'loki', Sif: 'sif', Tyr: 'tyr', Baldr: 'baldr', Hel: 'hel' };
-const LOCAL_SPIN = new Set(['testwoman', 'freya', 'tyr', 'baldr']);
-const LOCAL_BUSTS = new Set(['Baldr', 'Bragi', 'Eir', 'Forseti', 'Freya', 'Gerd', 'Hel', 'Loki', 'Njord', 'Saga', 'Sif', 'Skadi', 'TestWoman', 'Tyr', 'Ullr', 'Vidar']);
+const LOCAL_FIG = { Freya: 'freya', Loki: 'loki', Sif: 'sif', Tyr: 'tyr', Baldr: 'baldr', Hel: 'hel' };
+const LOCAL_SPIN = new Set(['freya', 'tyr', 'baldr']);
+const LOCAL_BUSTS = new Set(['Baldr', 'Bragi', 'Eir', 'Forseti', 'Freya', 'Gerd', 'Hel', 'Loki', 'Njord', 'Saga', 'Sif', 'Skadi', 'Tyr', 'Ullr', 'Vidar']);
 const R = { people: [], loaded: false, subs: [], busy: false, timer: 0 };
 const passKey = 'studioPeoplePass1121';
 

@@ -18,7 +18,7 @@ const { clamp, rgba } = K;
 let P = {};
 
 /* ---------- people (the studio's test accounts) ---------- */
-const BUILT = [['freya', 'Freya'], ['loki', 'Loki'], ['baldr', 'Baldr'], ['sif', 'Sif'], ['tyr', 'Tyr'], ['hel', 'Hel'], ['testwoman', 'Test Woman']];
+const BUILT = [['freya', 'Freya'], ['loki', 'Loki'], ['baldr', 'Baldr'], ['sif', 'Sif'], ['tyr', 'Tyr'], ['hel', 'Hel']];
 const COLORS = ['#E8B04A', '#6FD6FF', '#B78CFF', '#7FE0A8', '#FF8A7A', '#F5D76E', '#8FB3FF', '#FF9ED8', '#9BE15D', '#FFB86B'];
 let PEOPLE = BUILT.map(([id, name], i) => ({ id, name, color: COLORS[i % COLORS.length], src: null }));
 let BY_ID = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
@@ -33,7 +33,6 @@ const DEMO = [
   ['you', 'Count me in. Flagler pier at noon?'],
   ['baldr', 'Noon works. I will grab ice on the way'],
   ['hel', 'Running late but I will be there by 1'],
-  ['testwoman', 'Sending the photo from last time'],
   ['freya', 'That photo is legendary'],
   ['loki', 'Delete it'],
   ['tyr', 'Never'],
@@ -43,7 +42,7 @@ const DEMO = [
 ];
 const MORE = [
   ['hel', 'Save me a chair'], ['loki', 'I am bringing a surprise'], ['freya', 'That is what worries me'],
-  ['testwoman', 'Sunscreen people. Seriously'], ['tyr', 'Grill is packed'], ['sif', 'On my way'], ['baldr', 'Parking is wide open'],
+  ['tyr', 'Grill is packed'], ['sif', 'On my way'], ['baldr', 'Parking is wide open'],
 ];
 let MSGS = DEMO.map(([who, text], i) => ({ who, text, t: i }));
 let moreAt = 0;

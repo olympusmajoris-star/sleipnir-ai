@@ -17,7 +17,6 @@ const G0 = 'Unread people';
 
 /* ---------- people with real figures ---------- */
 let PEOPLE = [
-  { id: 'testwoman', name: 'Test Woman', is360: true, spin: true },
   { id: 'freya', name: 'Freya', is360: true, spin: true },
   { id: 'loki', name: 'Loki' },
   { id: 'sif', name: 'Sif' },
@@ -38,7 +37,7 @@ const SPOTS = [
 ];
 // UNREAD LIST: who, newest message, unread count
 const UNREAD = [
-  ['testwoman', 'I sent you the photo', 2], ['freya', 'That looks amazing', 1], ['hel', "I'll be there at six", 1], ['tyr', 'Training at dawn', 3],
+  ['freya', 'That looks amazing', 1], ['hel', "I'll be there at six", 1], ['tyr', 'Training at dawn', 3],
   ['loki', 'See you tonight?', 1], ['sif', 'Hair appointment moved', 2], ['baldr', "Call me when you're free", 1], ['freya', 'Did you see the game?', 2],
   ['hel', 'Running late', 1], ['tyr', 'Gym at 6?', 1], ['loki', 'Guess who I ran into', 4], ['sif', 'Dinner Friday?', 1],
 ];
