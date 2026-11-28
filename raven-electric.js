@@ -76,9 +76,23 @@
   const weatherMaxAge = 3 * 60 * 60 * 1000;
   const instruments = [];
   let observedWeather = null, weatherCheck = 0, refreshingWeather = false, instrumentTimer;
+  function setClockDigit(tile, digit) {
+    const old = tile.dataset.digit;
+    if (old === digit) return;
+    tile.dataset.digit = digit;
+    tile.textContent = digit;
+    if (old === undefined || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const flap = el('span', 'ev-clock-motion', tile);
+    el('span', 'ev-flap-bottom ev-resting', flap, old);
+    el('span', 'ev-flap-top', flap, old);
+    const landing = el('span', 'ev-flap-bottom ev-landing', flap, digit);
+    landing.addEventListener('animationend', () => flap.remove(), {once: true});
+  }
   function paintInstruments() {
     const now = new Date(), parts = coastClock.formatToParts(now);
-    const digits = parts.filter(part => ['hour', 'minute', 'literal'].includes(part.type)).map(part => part.value).join('').trim();
+    const hour = parts.find(part => part.type === 'hour').value.padStart(2, '0');
+    const minute = parts.find(part => part.type === 'minute').value;
     const period = parts.find(part => part.type === 'dayPeriod').value;
     const valid = observedWeather && now.getTime() - observedWeather.at < weatherMaxAge;
     const unit = prefs.tempUnit === 'C' ? 'C' : 'F';
@@ -86,10 +100,10 @@
     const explanation = valid
       ? 'Outdoor temperature at Flagler County Airport, observed at ' + coastClock.format(observedWeather.at) + ' ET. Switch to °' + (unit === 'F' ? 'C' : 'F')
       : refreshingWeather ? 'Checking outdoor temperature in Palm Coast' : 'Outdoor temperature unavailable in Palm Coast. Tap to retry';
-    for (const {clock, hour, ampm, temperature} of instruments) {
+    for (const {clock, tiles, ampm, temperature} of instruments) {
       clock.dateTime = now.toISOString();
       clock.setAttribute('aria-label', coastClock.format(now) + ' Eastern Time');
-      hour.textContent = digits;
+      tiles.forEach((tile, i) => setClockDigit(tile, (hour + minute)[i]));
       ampm.textContent = period;
       temperature.textContent = degrees + '°' + unit;
       temperature.title = explanation;
@@ -134,7 +148,15 @@
     small.prepend(section);
     const row = el('div', 'ev-readings', section);
     const clock = el('time', 'ev-clock', row);
-    const hour = el('span', '', clock), ampm = el('small', '', clock);
+    const tiles = [];
+    for (let i = 0; i < 4; i++) {
+      if (i === 2) el('span', 'ev-clock-colon', clock, ':').ariaHidden = 'true';
+      const tile = el('span', 'ev-clock-digit', clock);
+      tile.setAttribute('aria-hidden', 'true');
+      tiles.push(tile);
+    }
+    const ampm = el('small', 'ev-clock-period', clock);
+    ampm.setAttribute('aria-hidden', 'true');
     const temperature = btn(row, '', () => {
       if (!observedWeather || Date.now() - observedWeather.at >= weatherMaxAge) {
         checkOutdoorTemperature();
@@ -144,7 +166,7 @@
       paintInstruments();
     }, 'ev-temperature');
     el('span', 'ev-weather-location', section, 'Palm Coast · ET');
-    instruments.push({clock, hour, ampm, temperature});
+    instruments.push({clock, tiles, ampm, temperature});
     tickInstruments();
   }
   const alertKinds = {
@@ -275,7 +297,7 @@
   }
   function mountPhone(device){
     const viewport=el('div','ev-phone-viewport',device),scroller=el('div','ev-phone-scroll',viewport);
-    scroller.tabIndex=0;scroller.setAttribute('aria-label','Pan across the cabin');
+    viewport.classList.add('ev-overview');
     const phone=panel(scroller),scene=phone.scene;
     const lift=el('div','ev-lift-zone',scene);
     lift.setAttribute('aria-hidden','true');
@@ -290,19 +312,13 @@
     };
     phone.input.addEventListener('keydown',e=>{if(e.key==='Escape')phone.input.blur();});
     
-    const nav=el('nav','ev-phone-nav',viewport);nav.setAttribute('aria-label','Phone framing');
-    const stops=[['Driver',.16],['Center',.5],['Passenger',.86]];
     const keyboard=keyboardPreview(viewport);
     const nativePhone=matchMedia('(max-width:680px) and (pointer:coarse)');
-    // On a center crop the physical passenger vent falls outside the phone.
-    // Move its existing control to the right end of the visible dash.
     const vent=phone.vent;
-    function placeVent(){
-      const w=scene.offsetWidth,h=scene.offsetHeight,visible=scroller.clientWidth;
-      if(!visible||!h)return;
-      const ventX=.944*w-scroller.scrollLeft;
-      const ventFits=ventX-.046*w>=0 && ventX+.046*w<=visible;
-      if(ventFits&&!typing){
+    function align(){
+      // Keep the physical vent in the passenger fascia in full-cabin mode.
+      // With keys up, bring that same control beside the composer.
+      if(!typing){
         if(vent.parentNode!==scene)scene.append(vent);
         vent.classList.remove('ev-compact-vent');
         vent.style.removeProperty('top');
@@ -310,37 +326,9 @@
       }
       if(vent.parentNode!==viewport)viewport.append(vent);
       vent.classList.add('ev-compact-vent');
-      const rail=phone.input.form;
       const bounds=viewport.getBoundingClientRect();
-      const railBottom=(rail.getBoundingClientRect().bottom-bounds.top)*viewport.offsetWidth/bounds.width;
-      const y=typing?railBottom-44:railBottom+3;
-      vent.style.top=y+'px';
-    }
-    let center=.5;
-    function pan(fraction,smooth=false){
-      scroller.scrollTo({left:scene.offsetWidth*fraction-scroller.clientWidth/2,
-        behavior:smooth&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'smooth':'instant'});
-    }
-    const buttons=stops.map(([name,fraction])=>btn(nav,name,()=>pan(fraction,true)));
-    function align(){
-      const w=scene.offsetWidth,visible=scroller.clientWidth;
-      if(!visible||!w)return;
-      if(typing){
-        Object.assign(phone.input.form.style,{left:'0',width:(visible-50)+'px',right:'auto',visibility:'visible'});
-        Object.assign(phone.thread.style,{left:'12px',width:(visible-24)+'px',right:'auto'});
-        placeVent();
-        return;
-      }
-      const x=scroller.scrollLeft;
-      center=(x+visible/2)/w;
-      const nearest=stops.reduce((best,stop,i)=>Math.abs(stop[1]-center)<Math.abs(stops[best][1]-center)?i:best,0);
-      buttons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===nearest)));
-      // Anchor the input to the visible part of the actual passenger rail.
-      const left=Math.max(.368*w,x+8),right=Math.min(.858*w,x+visible-8);
-      const form=phone.input.form;
-      Object.assign(form.style,{left:left+'px',right:'auto',width:Math.max(0,right-left)+'px',visibility:right-left>=104?'visible':'hidden'});
-      placeVent();
-      phone.thread.style.left=(x+16)+'px';phone.thread.style.width=(visible-32)+'px';phone.thread.style.right='auto';
+      const rail=phone.input.form.getBoundingClientRect();
+      vent.style.top=((rail.bottom-bounds.top)*viewport.offsetWidth/bounds.width-44)+'px';
     }
     // An embedded iOS Safari page reports the on-screen keyboard on the
     // outer visual viewport. Measure down from this cabin in each frame.
@@ -375,21 +363,16 @@
         Object.assign(scene.style,{width:w+'px',height:Math.max(64,usable)+'px'});
         scroller.scrollLeft=0;
       }else{
-        Object.assign(scene.style,{width:Math.max(w,h*1.5)+'px',height:h+'px'});
-        pan(center);
+        Object.assign(scene.style,{width:w+'px',height:h+'px'});
       }
       align();
     }
-    let priorCenter=null;
     phone.syncTyping=()=>{
       const native=nativePhone.matches;
       if(typing&&native&&!device.style.height)device.style.height=device.offsetHeight+'px';
       if(!typing||!native)device.style.removeProperty('height');
       keyboard.hidden=!typing||native;
-      nav.hidden=typing;
       phone.consoleDial.hidden=typing;
-      if(typing&&priorCenter===null){priorCenter=center;center=.5;}
-      if(!typing&&priorCenter!==null){center=priorCenter;priorCenter=null;}
       scroller.classList.toggle('ev-phone-writing',typing);
       if(!typing){
         nativeKeyboardWasOpen=false;
@@ -409,7 +392,6 @@
     }
     nativePhone.addEventListener('change',()=>{phone.syncTyping();resize();});
     phone.syncTyping();
-    scroller.addEventListener('scroll',align,{passive:true});
     scene.setAttribute('aria-label','Live iPhone preview');
     new ResizeObserver(resize).observe(device);resize();
     return phone;

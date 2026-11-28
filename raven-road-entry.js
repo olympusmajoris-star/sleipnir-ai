@@ -2,7 +2,7 @@
 (function(G){
 'use strict';
 const route=hash=>hash==='#raven-scenes'?'scenes':hash==='#raven-cabin'||hash==='#raven-road'?'cabin':null;
-const pages={cabin:{title:'Raven · Cabin designer',url:'raven-cabin-studio.html?embed=1&v=typing6',hash:'#raven-cabin'},scenes:{title:'Raven · Scene designer',url:'raven-scenes-studio.html?embed=1&v=typing6',hash:'#raven-scenes'}};
+const pages={cabin:{title:'Raven · Cabin designer',url:'raven-cabin-studio.html?embed=1&v=overview7',hash:'#raven-cabin'},scenes:{title:'Raven · Scene designer',url:'raven-scenes-studio.html?embed=1&v=overview7',hash:'#raven-scenes'}};
 const requested=route(location.hash);
 let previous=requested?'#conversation':location.hash||'#conversation',opening=null,mounted=false,originalAllow=null;
 function close(){const dialog=document.getElementById('extDlg');if(opening&&dialog?.open)dialog.close();}
