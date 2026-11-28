@@ -1,0 +1,127 @@
+{
+  "version": "2026-11-28",
+  "chain": "Dollar General",
+  "stores": [
+    {
+      "id": "0600cb61-45f9-402b-a209-134abdaef10f",
+      "format": "Standard Dollar General",
+      "catalogMode": "native_categories"
+    },
+    {
+      "id": "fea775c8-8612-4f2e-bfc6-70d8e6ace6be",
+      "format": "Dollar General Market",
+      "catalogMode": "native_categories_with_promotions_grouped"
+    }
+  ],
+  "displayOrder": {
+    "first": [
+      "Chips, Cookies & Snacks",
+      "Candy & Gum",
+      "Soda, Water & Drinks",
+      "Coffee & Breakfast",
+      "Meals, Canned Goods & Pantry",
+      "Baking & Condiments",
+      "Fresh Food & Dairy",
+      "Frozen Foods"
+    ],
+    "then": "all other ready rendered specialty aisles, followed by ordinary catalog aisles",
+    "neverShowCatalogFallbackInGrocery": true
+  },
+  "rendered": {
+    "table": "aisle_renders",
+    "filter": {
+      "publish_status": "ready"
+    },
+    "key": [
+      "store_id",
+      "aisle",
+      "render_no"
+    ],
+    "image": {
+      "bucket": "menu-images",
+      "pathColumn": "image_path",
+      "widthColumn": "width",
+      "heightColumn": "height"
+    },
+    "slots": {
+      "table": "aisle_slots",
+      "join": [
+        "store_id",
+        "aisle",
+        "render_no"
+      ],
+      "sort": "slot",
+      "productId": "product_id",
+      "tagBox": [
+        "tag_x",
+        "tag_y",
+        "tag_w",
+        "tag_h"
+      ],
+      "coordinates": "normalized 0–1 of the render image; do not use unlinked legacy slots",
+      "layout": "rows:n,n,n,...; legacy CxR means C facings per row over R rows",
+      "tapGeometry": "for each layout row, use neighboring price-tag midpoints to split horizontal lane bounds, and the preceding/current row's tag bottom for vertical bounds"
+    },
+    "productDetails": {
+      "table": "products",
+      "join": "products.id = aisle_slots.product_id AND products.store_id = aisle_slots.store_id",
+      "fields": [
+        "id",
+        "name",
+        "price",
+        "description",
+        "image_url",
+        "image_url_orig"
+      ],
+      "showLivePrice": true
+    }
+  },
+  "catalog": {
+    "table": "products",
+    "filter": "by store and category, exclude product IDs already linked to real renders and identified specialty/food SKUs awaiting render",
+    "promotionsForMarket": {
+      "display": "Deals & General Merchandise",
+      "categories": [
+        "On Sale",
+        "DG Brands",
+        "Dollar Deals",
+        "DG Deal Days",
+        "Comfort Bay",
+        "trueliving"
+      ]
+    },
+    "layoutRpc": "studio_grocery_shelf_layout",
+    "default": {
+      "rows": 4,
+      "rail": 5,
+      "facings": 1,
+      "maxUniqueProductsAcross": 4,
+      "groupBy": "type",
+      "stockBy": "physical package size and brand",
+      "fixture": "tan DG pegboard shelves",
+      "photoSelection": [
+        "image_url",
+        "image_url_orig"
+      ]
+    },
+    "sourceFiles": [
+      "dg-shelf-plan.js",
+      "shelf-layout-data.js",
+      "shelf-layout-canvas.js",
+      "dg-shelf-presentation.js"
+    ]
+  },
+  "preferences": {
+    "priceTagScale": 1.4,
+    "priceTextLogicalPx": 13,
+    "shelfPricesUserToggle": true,
+    "productPopupsUserToggle": true
+  },
+  "studio": {
+    "storeInfo": "store-info.html",
+    "shop": "grocery-entrance.html",
+    "renderReview": "dg-render-review.html",
+    "catalogEditor": "grocery-aisle-editor.html"
+  },
+  "notes": "Data and display settings only. No Dart source is created. Reused image paths may be shared by both stores; prices and product IDs remain store-specific."
+}
