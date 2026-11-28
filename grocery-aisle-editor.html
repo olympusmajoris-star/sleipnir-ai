@@ -6,9 +6,9 @@
   <meta name="color-scheme" content="dark">
   <title>Grocery aisle editor · Sleipnir Studio</title>
   <script>
-  (()=>{const p=new URLSearchParams(location.search),isPublix=p.get('store')==='189581c9-d728-4e5d-9e02-ae4de19a15af',supported=new Set(['Snacks','Beverages','Condiments & Sauces','Dry Goods & Pasta']);
+  (()=>{const p=new URLSearchParams(location.search),isPublix=p.get('store')==='189581c9-d728-4e5d-9e02-ae4de19a15af',supported=new Set(['Snacks','Beverages','Condiments & Sauces','Dry Goods & Pasta','Deli','Deli & Prepared Foods']);
   if(!isPublix||p.has('authored'))return;
-  const dest=aisle=>'grocery-entrance.html?'+new URLSearchParams({store:p.get('store'),door:aisle,view:'display'});
+  const dest=aisle=>'grocery-entrance.html?'+new URLSearchParams({store:p.get('store'),door:aisle==='Deli & Prepared Foods'?'Deli':aisle,view:'display'});
   if(p.get('legacy')!=='1'&&supported.has(p.get('aisle'))){location.replace(dest(p.get('aisle')));return;}
   document.addEventListener('DOMContentLoaded',()=>{
    const select=document.getElementById('department'),link=document.getElementById('publix-render-link');if(!select||!link)return;
