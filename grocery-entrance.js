@@ -134,8 +134,9 @@ async function doorsForStore(row,signal){
    if(counts.size){
      const groceries=DG_RENDER_AISLES.filter(a=>counts.has(a)).map(label=>({label,art:'',kind:'Rendered groceries',renderedDG:true,count:counts.get(label),preview:true}));
      const special=[...counts.keys()].filter(a=>!DG_RENDER_AISLES.includes(a)).sort((a,b)=>a.localeCompare(b)).map(label=>({label,art:'',kind:'Rendered specialty displays',renderedDG:true,count:counts.get(label),preview:true}));
-     const aliases=/^(Food & Beverage|Beverages|Frozen Food|Fresh Food|Meals & Side Dishes|Snacks & Cookies|Cereal & Breakfast|Coffee & Tea|Baking Cakes & Mixes|Candy & Gum|\$2 Food Items|Better For You|Lunch & After School Snacks|Deals on Chips|Deals on Grocery|Save on Snacks|Save on Soft Drinks|Save on Beverages|Soda Deals|On Sale|DG Brands|Dollar Deals|DG Deal Days)$/i;
+     const aliases=/^(Food & Beverage|Beverages|Frozen Food|Fresh Food|Meals & Side Dishes|Snacks & Cookies|Cereal & Breakfast|Coffee & Tea|Baking Cakes & Mixes|Candy & Gum|\$2 Food Items|Better For You|Lunch & After School Snacks|Deals on Chips|Deals on Grocery|Save on Snacks|Save on Soft Drinks|Save on Beverages|Soda Deals|On Sale|DG Brands|Dollar Deals|DG Deal Days|Comfort Bay|trueliving)$/i;
      const rest=catalog.filter(d=>!counts.has(d.label)&&!aliases.test(d.label)).map(d=>d.label==='Deals & General Merchandise'?{...d,previewKey:'dg-general-merchandise'}:d);
+     if(row.id==='fea775c8-8612-4f2e-bfc6-70d8e6ace6be'&&catalog.some(d=>/^(On Sale|DG Brands|Dollar Deals|DG Deal Days|Comfort Bay|trueliving)$/i.test(d.label))&&!rest.some(d=>d.label==='Deals & General Merchandise'))rest.unshift({label:'Deals & General Merchandise',art:'',kind:'Aisles',preview:true,previewKey:'dg-general-merchandise'});
      return [...groceries,...special,...rest];
    }
  }
@@ -297,7 +298,7 @@ function drawEntrance(door){
  $('boardName').textContent=appearance.board_title||'';$('boardBody').textContent=appearance.board_body||'';
  board.style.backgroundColor=/^#[a-f0-9]{6}$/i.test(appearance.board_color)?appearance.board_color:'';
  board.style.color=/^#[a-f0-9]{6}$/i.test(appearance.ink_color)?appearance.ink_color:'';
- $('editAisle').href='grocery-aisle-builder.html?'+new URLSearchParams(door.authored?{store:id,aisle:door.authored.aisle_id}:{store:id,source:door.label});
+ $('editAisle').href=door.renderedDG?'dg-render-review.html?'+new URLSearchParams({store:id,aisle:door.label}):'grocery-aisle-builder.html?'+new URLSearchParams(door.authored?{store:id,aisle:door.authored.aisle_id}:{store:id,source:door.label});
  if(denseShelf){if(door.renderedDG){drawDgRenderShelf(door,label);$('enter').textContent='Review '+label;}else drawDgShelf(door,label);}
 }
 async function loadPanels(door,signal){
