@@ -134,9 +134,89 @@ function go(id) {
 
 /* ---------- Core products ---------- */
 let coreRows = null;
+let savedArtworkRows=null, shelfArtworkRows=new Map();
+const artworkURL=value=>{
+  if(typeof value!=='string'||!value.trim())return '';
+  const prefix=C.url+'/storage/v1/object/public/menu-images/';
+  let p=value.startsWith(prefix)?value.slice(prefix.length):value;
+  try{if(/^(?:[a-z][a-z0-9+.-]*:|\/)|[?#\\]/i.test(p))return '';
+    const parts=p.split('/').map(decodeURIComponent);
+    if(parts.some(s=>!s||s==='.'||s==='..'||/[\/\\?#]/.test(s))||!/\.(?:png|jpe?g|webp|avif)$/i.test(parts.at(-1)))return '';
+    return prefix+parts.map(encodeURIComponent).join('/');
+  }catch{return '';}
+};
+function artThumb(t,r){
+  const url=artworkURL(r.render_path);if(!url){paintThumb(t,slug(r.store_name),r.product_id);return;}
+  const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.src=url;
+  img.alt=r.artwork_kind==='Shelf reference'?'Full display reference':r.name||'Saved product artwork';
+  img.style.cssText='display:block;width:80px;height:80px;object-fit:contain;border-radius:5px';
+  img.onerror=()=>{img.remove();t.textContent='Image unavailable';t.style.fontSize='10px';};
+  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.title='Open original artwork';a.append(img);t.replaceChildren(a);
+}
+function renderReferenceCard(r){
+  const c=el('div','card'),t=el('div','th');artThumb(t,r);
+  const details=el('div','',`<div class="nm">${esc(r.name)}</div><div class="sz">${esc(r.size||'')}</div><span class="badge">${esc(r.artwork_kind)}</span><div class="stores-in">${esc(r.store_name)} · ${r.store_brand?'Store brand: same store only':r.artwork_kind==='Shelf reference'?'Full scene: verify before reuse':'Check exact brand, size and variant before reuse'}</div>`);
+  const copy=el('button','btn','Copy reference');copy.style.cssText='font-size:11px;padding:4px;margin-top:5px';
+  copy.onclick=async()=>{try{
+    await navigator.clipboard.writeText(JSON.stringify({product_id:r.product_id,store_id:r.store_id,store_name:r.store_name,name:r.name,size:r.size,category:r.category,store_brand:r.store_brand,artwork_kind:r.artwork_kind,source_url:artworkURL(r.render_path),crop:r.crop||null,aisle:r.aisle,render_no:r.render_no,slot:r.slot,publish_status:r.publish_status}));
+    copy.textContent='Copied';
+  }catch{copy.textContent='Copy unavailable';}};
+  details.append(copy);c.append(t,details);return c;
+}
+async function existingArtwork(){
+  if(!savedArtworkRows)savedArtworkRows=rows('store_info_items?select=product_id,store_id,store_name,name,size,category,store_brand,source,render_path,crop&status=eq.rendered&render_path=not.is.null&order=category,store_name,name,product_id').then(data=>data.filter(r=>artworkURL(r.render_path)).map(r=>({...r,artwork_kind:r.source==='ChatGPT cutout'?'Rendered product cutout':'Existing full-display reference'}))).catch(e=>{savedArtworkRows=null;throw e;});
+  return savedArtworkRows;
+}
+async function savedShelfReferences(store){
+  if(!shelfArtworkRows.has(store))shelfArtworkRows.set(store,(async()=>{
+    const scope='store_id=eq.'+encodeURIComponent(store);
+    const [renders,slots,anchors,catalog]=await Promise.all([
+      rows(`aisle_renders?select=store_id,aisle,render_no,image_path,publish_status,width,height&${scope}&publish_status=in.(held,draft,ready)&order=aisle,render_no`),
+      rows(`aisle_slots_v?select=store_id,aisle,render_no,slot,product_id,name,description&${scope}&order=aisle,render_no,slot`),
+      rows(`aisle_slots?select=aisle,render_no,slot,product_id,tag_x,tag_y,tag_w,tag_h&${scope}&order=aisle,render_no,slot`),
+      rows(`store_info_items?select=product_id,store_brand,category,size,store_name&${scope}&order=product_id`)
+    ]);
+    const key=r=>[r.aisle,r.render_no].join('|'),slotKey=r=>key(r)+'|'+r.slot+'|'+r.product_id;
+    const images=new Map(renders.filter(r=>artworkURL(r.image_path)&&r.width>0&&r.height>0).map(r=>[key(r),r]));
+    const good=new Set(anchors.filter(s=>s.tag_x!=null&&s.tag_y!=null&&+s.tag_w>0&&+s.tag_h>0&&+s.tag_x>=0&&+s.tag_y>=0&&+s.tag_x + +s.tag_w<=1.000001&&+s.tag_y + +s.tag_h<=1.000001).map(slotKey));
+    const items=new Map(catalog.map(p=>[p.product_id,p])),out=new Map();
+    for(const s of slots){
+      const r=images.get(key(s)),p=items.get(s.product_id);if(!r||!p||!good.has(slotKey(s)))continue;
+      // Exclude the Deli images withheld from the visible Studio preview.
+      if(publixStore(store)&&s.aisle==='Deli & Prepared Foods'&&[7,8,9,10,11,35,43].includes(s.render_no))continue;
+      if(out.has(s.product_id))continue;
+      out.set(s.product_id,{...s,...p,name:s.name,category:s.aisle,render_path:r.image_path,publish_status:r.publish_status,artwork_kind:'Shelf reference',crop:null});
+    }
+    return [...out.values()];
+  })().catch(e=>{shelfArtworkRows.delete(store);throw e;}));
+  return shelfArtworkRows.get(store);
+}
+function artworkInventory(host,mode){
+  host.replaceChildren();
+  const controls=el('div','tools'),source=el('select'),category=el('select'),search=el('input'),status=el('p','status'),list=el('div','grid'),more=el('button','btn','Show more');
+  search.type='search';search.placeholder='Find product artwork';search.setAttribute('aria-label','Search saved product artwork');
+  source.setAttribute('aria-label','Artwork source store');category.setAttribute('aria-label','Artwork aisle');
+  source.append(new Option(mode==='shelf'?'Select source store':'Every store',''));
+  const ordered=summary.filter(s=>!dgStore(s.store_id)||s.store_id!==DG_DUPLICATE).sort((a,b)=>a.store_name.localeCompare(b.store_name));
+  for(const s of ordered)source.append(new Option(s.store_name,s.store_id));
+  if(mode==='shelf')source.value='189581c9-d728-4e5d-9e02-ae4de19a15af';
+  controls.append(search,source,category);host.append(controls,status,list,more);more.hidden=true;
+  let data=[],filtered=[],shown=0,seq=0;
+  function append(){const end=Math.min(shown+80,filtered.length);for(const r of filtered.slice(shown,end))list.append(renderReferenceCard(r));shown=end;more.hidden=shown>=filtered.length;status.textContent=`${filtered.length.toLocaleString()} artwork records · showing ${shown.toLocaleString()}`;}
+  function filter(){const q=search.value.trim().toLowerCase(),cat=category.value,store=source.value;filtered=data.filter(r=>(!cat||r.category===cat)&&(!store||r.store_id===store)&&(!q||[r.name,r.size,r.product_id,r.store_name].join(' ').toLowerCase().includes(q)));shown=0;list.replaceChildren();append();}
+  async function load(){
+    const req=++seq;list.replaceChildren();more.hidden=true;status.textContent='Loading saved artwork…';
+    try{
+      const next=mode==='shelf'?(source.value?await savedShelfReferences(source.value):[]):await existingArtwork();
+      if(req!==seq||!host.isConnected)return;data=next;
+      category.replaceChildren(new Option('All aisles',''),...[...new Set(data.map(r=>r.category).filter(Boolean))].sort().map(s=>new Option(s,s)));filter();
+    }catch(e){if(req===seq)status.textContent='Could not load artwork: '+e.message;}
+  }
+  search.oninput=debounce(filter,150);category.onchange=filter;source.onchange=()=>mode==='shelf'?load():filter();more.onclick=append;load();
+}
 async function showCore() {
   main.innerHTML = '<p class="status">Loading core products…</p>';
-  if (!coreRows) coreRows = await rows('store_info_core?select=product_id,store_name,name,size,category,store_count,matches&order=store_count.desc,name');
+  if (!coreRows) coreRows = await rows('store_info_core?select=product_id,store_id,store_name,name,size,category,render_path,crop,store_count,matches&order=store_count.desc,name');
   if (current !== 'core') return;
   main.innerHTML = '';
   const head = el('div', 'store-head', '<h2>Core products</h2><p>Products that already have a real render and are sold in other stores too. Store brands are left out. Each render can be reused in every store listed on its card.</p>');
@@ -145,7 +225,13 @@ async function showCore() {
   const tools = el('div', 'tools'); const q = el('input'); q.type = 'search'; q.placeholder = 'Search core products'; tools.append(q);
   const storeSel = el('select'); storeSel.innerHTML = '<option value="">Every store</option>' + [...stores].sort().map(s => `<option>${esc(s)}</option>`).join(''); tools.append(storeSel);
   const chips = el('div', 'chips'); const body = el('div');
-  main.append(head, st, tools, chips, body);
+  const tabs=el('div','subtabs'),matched=el('div'),inventory=el('div');
+  matched.append(st,tools,chips,body);main.append(head,tabs,matched,inventory);inventory.hidden=true;
+  const choices=[['Cross-store matches','matches'],['All saved artwork','all'],['Full shelf references','shelf']];
+  for(const [label,mode] of choices){
+    const b=el('button',mode==='matches'?'on':'',label);
+    b.onclick=()=>{[...tabs.children].forEach(t=>t.classList.toggle('on',t===b));matched.hidden=mode!=='matches';inventory.hidden=mode==='matches';if(mode!=='matches')artworkInventory(inventory,mode);else inventory.replaceChildren();};tabs.append(b);
+  }
   const cats = groupBy(coreRows, r => r.category);
   let catOn = '';
   const draw = () => {
@@ -167,7 +253,7 @@ async function showCore() {
   q.oninput = debounce(draw, 200); storeSel.onchange = draw; draw();
 }
 function coreCard(r) {
-  const c = el('div', 'card'); const t = el('div', 'th'); paintThumb(t, slug(r.store_name), r.product_id);
+  const c = el('div', 'card'); const t = el('div', 'th'); artThumb(t,r);
   const others = (r.matches || []).map(m => m.store.replace(/\s*\(.*\)$/, ''));
   const info = el('div', '', `<div class="nm">${esc(r.name)}</div><div class="sz">${esc(r.size || '')}</div><span class="badge gold">In ${r.store_count} stores</span><div class="stores-in">Render from ${esc(r.store_name.replace(/\s*\(.*\)$/, ''))} · also ${esc([...new Set(others)].join(', '))}</div>`);
   c.append(t, info); return c;
@@ -213,19 +299,28 @@ async function storeItems(s) {
   if(!storeCache.has(s.store_id))storeCache.set(s.store_id,(async()=>{
     const items=await rows(`store_info_items?select=product_id,category,shelf_group,name,size,price,status,source,store_brand,universal_id,universal_store&store_id=eq.${s.store_id}&order=category,shelf_group.nullslast,shelf_rank.nullslast,name`);
     if(publixStore(s.store_id)){
-      const [renders,slots,menu]=await Promise.all([
+      const [renders,slots,menu,original,produce]=await Promise.all([
         rows(`aisle_renders?select=store_id,aisle,render_no,image_path,width,height,layout,publish_status&store_id=eq.${s.store_id}&order=aisle,render_no`),
         rows(`aisle_slots?select=store_id,aisle,render_no,slot,product_id,shelf_group,tag_x,tag_y,tag_w,tag_h&store_id=eq.${s.store_id}&order=aisle,render_no,slot`),
-        rows(`menu_items_v?select=product_id&store_id=eq.${s.store_id}&station=eq.Subs`)
+        rows(`menu_items_v?select=product_id&store_id=eq.${s.store_id}&station=eq.Subs`),
+        rows(`station_render_v?select=product_id,station,image_path&store_id=eq.${s.store_id}&station=in.(Deli,Deli Cheese,Deli Loaf Counter,Deli Cheese Loaf Counter,Hot Foods,Sushi,Bakery,Meat,Seafood,Publix Frozen Foods Priced 20261120,Publix Frozen Seafood Priced 20261120,Publix Freezer Bins Priced 20261120)`),
+        rows('produce_render_plan?select=product_id,image_path')
       ]);
       const pub=window.PublixHeldDisplays,byId=new Map(items.map(i=>[i.product_id,{id:i.product_id,name:i.name,price:i.price,description:i.size}]));
       const mapped=new Map(),protectedIds=new Set([...menu.map(m=>m.product_id),...items.filter(i=>/^Render:/i.test(i.source||'')).map(i=>i.product_id)]);
+      const originalById=new Map([...original,...produce].filter(p=>artworkURL(p.image_path)).map(p=>[p.product_id,p]));
+      const menuIds=new Set(menu.map(m=>m.product_id));
+      const available=new Set(renders.filter(r=>['held','draft','ready'].includes(r.publish_status)&&artworkURL(r.image_path)).map(r=>r.aisle+'|'+r.render_no));
+      const savedIds=new Set(slots.filter(s=>available.has(s.aisle+'|'+s.render_no)&&s.tag_x!=null&&s.tag_y!=null&&+s.tag_w>0&&+s.tag_h>0).map(s=>s.product_id));
       for(const aisle of [...new Set(renders.map(r=>r.aisle))]){
         if(!pub?.supports(publixDoor(aisle)))continue;
         const accepted=pub.makePanels(renders,slots,byId,aisle,p=>p,protectedIds);
         for(const p of accepted){const render=renders.find(r=>r.aisle===aisle&&r.render_no===p.renderNo);for(const spot of p.spots)mapped.set(spot.id,render);}
       }
-      return items.map(i=>{const r=mapped.get(i.product_id);return r?{...i,status:'rendered',source:'Full shelf render · '+(r.publish_status==='ready'?'Published':'Studio draft'),_render:r}:i;});
+      return items.map(i=>{const r=mapped.get(i.product_id),o=originalById.get(i.product_id),base={...i,_savedDraft:savedIds.has(i.product_id),_onExistingMenu:menuIds.has(i.product_id)};
+        if(r)return {...base,status:'rendered',source:'Full shelf render · '+(r.publish_status==='ready'?'Published':'Studio draft'),_render:r};
+        if(o)return {...base,status:'rendered',source:'Original full display · preserved',_stationImage:o.image_path};
+        return base;});
     }
     if(!dgStore(s.store_id))return items;
     const [renders,slots]=await Promise.all([
@@ -246,7 +341,9 @@ async function aisleInfo(s,order='items.desc') {
   const original=(await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=${order}`)).map(r=>({...r,station:hasStation(r.aisle,st)}));
   if(!dgStore(s.store_id)&&!publixStore(s.store_id))return original;
   const items=await storeItems(s),by=groupBy(items,r=>r.category);
-  return original.map(r=>{const all=by.get(r.aisle)||[],rendered=all.filter(x=>x.status==='rendered').length,code=all.length-rendered,reusable=all.filter(x=>x.status==='code'&&x.universal_id).length;return {...r,items:all.length,rendered,code,reusable,needs:all.filter(dgNeedsPhoto).length};});
+  return original.map(r=>{const all=by.get(r.aisle)||[],rendered=all.filter(x=>x.status==='rendered').length,code=all.length-rendered,reusable=all.filter(x=>x.status==='code'&&x.universal_id).length;
+    const pending=all.filter(x=>x.status==='code'&&!x._savedDraft&&!x._onExistingMenu);
+    return {...r,items:all.length,rendered,code,reusable,needs:all.filter(dgNeedsPhoto).length,pendingNew:pending.filter(x=>!x.universal_id).length,pendingIncludingReuse:pending.length};});
 }
 async function viewRendered(s, body) {
   body.innerHTML = '<p class="status">Loading…</p>';
@@ -254,7 +351,7 @@ async function viewRendered(s, body) {
   body.innerHTML = '';
   if (!items.length) { body.innerHTML = `<p class="status">No renders in this store yet — every product here is code-built.${s.reusable ? ' ' + Number(s.reusable).toLocaleString() + ' of them can reuse renders from other stores (see Code-built).' : ''}</p>`; return; }
   listByCategory(body, items, (grid, r) => {
-    const c = el('div', 'card'); const t = el('div', 'th'); if(r._render){const rr=r._render;t.style.backgroundImage='url('+JSON.stringify(C.url+'/storage/v1/object/public/menu-images/'+rr.image_path.split('/').map(encodeURIComponent).join('/'))+')';t.style.backgroundSize='contain';t.style.backgroundPosition='center';t.style.backgroundRepeat='no-repeat';t.style.cursor='pointer';t.title='Open actual product display';t.onclick=()=>location.assign(publixStore(s.store_id)?publixDisplayURL(s.store_id,rr.aisle,rr.render_no):'dg-render-review.html?'+new URLSearchParams({store:s.store_id,aisle:rr.aisle,render_no:rr.render_no}));}else paintThumb(t, slug(s.store_name), r.product_id);
+    const c = el('div', 'card'); const t = el('div', 'th'); if(r._render){const rr=r._render;t.style.backgroundImage='url('+JSON.stringify(C.url+'/storage/v1/object/public/menu-images/'+rr.image_path.split('/').map(encodeURIComponent).join('/'))+')';t.style.backgroundSize='contain';t.style.backgroundPosition='center';t.style.backgroundRepeat='no-repeat';t.style.cursor='pointer';t.title='Open actual product display';t.onclick=()=>location.assign(publixStore(s.store_id)?publixDisplayURL(s.store_id,rr.aisle,rr.render_no):'dg-render-review.html?'+new URLSearchParams({store:s.store_id,aisle:rr.aisle,render_no:rr.render_no}));}else if(r._stationImage)artThumb(t,{...r,render_path:r._stationImage,artwork_kind:'Existing full-display reference'});else paintThumb(t, slug(s.store_name), r.product_id);
     const unused = /not on the shelf/.test(r.source || '')||r._needsCorrection;
     c.append(t, el('div', '', `<div class="nm">${esc(r.name)}</div><div class="sz">${esc(r.size || '')} ${money(r.price)}</div><span class="badge ${unused ? 'warn' : ''}">${esc(r._needsCorrection ? 'Packaging correction needed' : unused ? 'Not on the shelf yet' : (r.source || '').replace(/^Render:?\s*/, ''))}</span>`));
     grid.append(c);
@@ -291,7 +388,7 @@ async function viewChat(s, body) {
   sel.onchange = () => { chatState.aisle = sel.value; viewChat(s, body); };
   tools.append(el('span', 'muted', `Layout: ${chatState.shelves} shelves × ${chatState.per} (change it in the instructions box)`), sel);
   const per = chatState.shelves * chatState.per;
-  const need = aisles.map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && (dgStore(s.store_id)||(!PROMO.test(a.aisle)&&renderAisle(a.aisle))) && (!chatState.aisle || a.aisle === chatState.aisle));
+  const need = aisles.map(a => ({ ...a, todo: generationTodo(s,a) })).filter(a => a.todo > 0 && eligibleAisle(s,a.aisle) && (!chatState.aisle || a.aisle === chatState.aisle));
   const total = need.reduce((x, a) => x + a.todo, 0), renders = need.reduce((x, a) => x + Math.ceil(a.todo / per), 0);
   const stats = el('div', 'stats', `<div class="stat"><b>${total.toLocaleString()}</b><span>products to render</span></div><div class="stat"><b>${renders.toLocaleString()}</b><span>images at ${chatState.shelves} shelves × ${chatState.per}</span></div>`);
   const table = el('div', '', `<table><thead><tr><th>Aisle</th><th>Display</th><th class="n">Products</th><th class="n">Images</th></tr></thead><tbody>${need.map(a => `<tr><td>${esc(a.aisle)}</td><td class="muted">${esc(nice(a.display_type))}</td><td class="n">${a.todo}</td><td class="n">${Math.ceil(a.todo / per)}</td></tr>`).join('')}</tbody></table>`);
@@ -304,7 +401,7 @@ async function viewChat(s, body) {
     list.innerHTML = '<p class="status">Loading…</p>';
     let q = await rows('rpc/store_info_chatgpt_queue', { p_store: s.store_id, p_shelves: chatState.shelves, p_per_shelf: chatState.per, p_include_reusable: chatState.reuse, p_aisle: chatState.aisle });
     if(dgStore(s.store_id)){const needed=new Set((await storeItems(s)).filter(dgNeedsPhoto).map(x=>x.product_id));q=q.filter(r=>needed.has(r.product_id));}
-    if(publixStore(s.store_id)){const pending=new Set((await storeItems(s)).filter(x=>x.status==='code').map(x=>x.product_id));q=q.filter(r=>pending.has(r.product_id));}
+    if(publixStore(s.store_id)){const pending=new Set((await storeItems(s)).filter(x=>x.status==='code'&&!x._savedDraft&&!x._onExistingMenu).map(x=>x.product_id));q=q.filter(r=>pending.has(r.product_id)&&eligibleAisle(s,r.aisle));}
     list.innerHTML = '';
     for (const [no, slots] of groupBy(q, r => r.render_no)) {
       const d = el('div', 'display', `<h4>Image #${no} · ${esc(nice(slots[0].display_type))} · ${esc(slots[0].layout)} · ${esc(slots[0].upload_path)}</h4>`);
@@ -326,16 +423,22 @@ function orderAisles(list) {
   return [...list].sort((a, b) => rank(a) - rank(b) || b.todo - a.todo);
 }
 const renderAisle = n => FOOD.test(n) || /alcohol|wine|beer|liquor/i.test(n);
+const eligibleAisle=(s,n)=>dgStore(s.store_id)||(!PROMO.test(n)&&renderAisle(n)&&!(publixStore(s.store_id)&&/alcohol|wine|beer|liquor/i.test(n)));
+const generationTodo=(s,a)=>dgStore(s.store_id)?a.needs:publixStore(s.store_id)?(chatState.reuse?a.pendingIncludingReuse:a.pendingNew):(chatState.reuse?a.code:a.code-a.reusable);
 function briefText(s, aisles) {
   const sh = chatState.shelves, ps = chatState.per, id = s.store_id;
-  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && (dgStore(s.store_id)||(!PROMO.test(a.aisle)&&renderAisle(a.aisle)))));
+  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo:generationTodo(s,a) })).filter(a => a.todo > 0 && eligibleAisle(s,a.aisle)));
   const total = todo.reduce((x, a) => x + a.todo, 0);
   return `SLEIPNIR RENDER JOB: ${s.store_name}
 Store id: ${id}   Supabase project: afnihsdxtisneuyehatw
-${total.toLocaleString()} products need a render. Layout Danny picked: ${sh} shelves, ${ps} products per shelf (${sh * ps} products per image).
+${total.toLocaleString()} products are candidates for missing artwork review. Layout Danny picked: ${sh} shelves, ${ps} products per shelf (${sh * ps} products per image).
 ${NOTES[id] ? '\n' + NOTES[id] + '\n' : ''}
 ${dgStore(s.store_id)?'DG: render remaining groceries and unusual fixtures only; ordinary non-grocery catalog photos are approved. Check existing ready aisle_slots before drawing any product, and keep actual product IDs/price zones.': 'GROCERY ONLY: non-grocery aisles are NOT rendered. Ordinary non-grocery items stay code images. Odd items (mops, brooms, long items) get renders later from a separate list.\nDO NOT touch, redo or replace any existing render. Only draw the products in the list; they are the ones missing from the existing renders.'}\nWork ONE aisle at a time. Read that aisle's list straight from Supabase:
-  select * from public.store_info_chatgpt_queue('${id}', ${sh}, ${ps}, ${chatState.reuse}, '<AISLE>');
+  select q.* from public.store_info_chatgpt_queue('${id}', ${sh}, ${ps}, ${chatState.reuse}, '<AISLE>') q
+  where not exists (select 1 from public.aisle_slots s join public.aisle_renders r using(store_id,aisle,render_no)
+    where s.store_id='${id}' and s.product_id=q.product_id and r.publish_status in ('held','draft','ready'));
+Recheck the actual Studio display, all original station / produce renders, and Core products → All saved artwork / Full shelf references before generating. Repack any filtered queue into complete new panels; never reuse an existing render number.
+${publixStore(id)?'PUBLIX: Wine and beer may be realistic code-built displays. Preserve original deli, meat, bakery, produce, seafood and freezer images. Do not regenerate existing saved assets. Only render missing products after checking these sources.':''}
 Put the aisle name from the list below in place of <AISLE>.
 ${chatState.reuse ? '' : "Products that already have a render in another store are left out. Danny reuses those.\n"}
 Each render_no is ONE image. Draw its products on that row's display_type, in the exact shelf (1 = top) and spot (left to right) order. Use reference_photo for the real packaging. Leave the shelf-edge price strips blank because the app draws the prices.
@@ -359,7 +462,7 @@ async function chatBox(s, box) {
   const aisles = await aisleInfo(s,'aisle');
   const draw = () => {
     box.innerHTML = '';
-    const todo = dgStore(s.store_id)?s.needs:aisles.reduce((x, a) => x + ((PROMO.test(a.aisle)||!renderAisle(a.aisle)) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
+    const todo = dgStore(s.store_id)?s.needs:aisles.reduce((x,a)=>x+(eligibleAisle(s,a.aisle)?generationTodo(s,a):0),0);
     const head = el('div', 'chat-head', `<h3>Instructions for ChatGPT</h3><span class="muted">${todo.toLocaleString()} products to render · ${Math.ceil(todo / (chatState.shelves * chatState.per)).toLocaleString()} images at ${chatState.shelves} shelves × ${chatState.per}</span>`);
     const tools = el('div', 'tools');
     const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; draw(); }; g.append(b); }); w.append(g); return w; };
@@ -412,5 +515,6 @@ boot();
 </script>
 </body>
 </html>
+
 
 
