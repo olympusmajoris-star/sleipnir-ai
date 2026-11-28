@@ -4,3 +4,8 @@
 @media(max-width:680px) and (pointer:coarse){.ev .ev-pair{display:block;padding:0}.ev .ev-pair>.ev-scene{display:none}.ev .ev-phone{width:100%;height:calc(100svh - 66px);min-height:500px;aspect-ratio:auto;border:0;border-radius:0}.ev .ev-phone .ev-input{height:44px}.ev .ev-phone .ev-input input{font-size:16px}.ev .ev-phone .ev-dial{min-width:44px;min-height:44px}.ev .ev-phone .ev-tile{min-height:40px}.ev .ev-phone .ev-status button,.ev .ev-phone .ev-aux select{font-size:12px}}
 .ev .ev-main:before{content:"";pointer-events:none;position:absolute;inset:-5% -4%;background:linear-gradient(104deg,#a7c8e6,transparent 26%,transparent 75%,#8cacc8);opacity:var(--depth);border-radius:22% 16% 35% 20%;z-index:-1}.ev .ev-aux .ev-items,.ev .ev-status .ev-items{justify-content:center;gap:2px}.ev .ev-aux .ev-tile,.ev .ev-status .ev-tile{border:none;padding:0;background:transparent;font-size:clamp(8px,1cqw,13px)}.ev .ev-aux .ev-face,.ev .ev-status .ev-face{width:calc(var(--size)*.73);height:calc(var(--size)*.73)}
 @media(min-width:681px),(pointer:fine){.ev .ev-phone .ev-scene{width:390px;height:844px;transform-origin:0 0;transform:scale(var(--phone-scale))}}
+
+.ev .ev-glass-surface{position:absolute;inset:0;background:url(raven/cockpit/panoramic-glass.svg) center/100% 100% no-repeat;pointer-events:none}
+.ev .ev-main,.ev .ev-phone .ev-main{left:33%;width:34%;top:32%;height:21%}
+.ev .ev-status,.ev .ev-phone .ev-status{left:72%;width:16%;top:48%;height:12%}
+.ev .ev-aux{left:10%;width:15%;top:34%;height:14%}

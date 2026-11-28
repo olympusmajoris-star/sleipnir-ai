@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" preserveAspectRatio="none">
+<defs>
+ <linearGradient id="glass" x2=".85" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#12171c"/><stop offset=".26" stop-color="#292f36"/><stop offset=".48" stop-color="#13191f"/><stop offset=".74" stop-color="#0b1015"/><stop offset="1" stop-color="#20272b"/></linearGradient>
+ <linearGradient id="edge" x2=".2" y2="1"><stop stop-color="#dfdfd7"/><stop offset=".23" stop-color="#6a6259"/><stop offset=".64" stop-color="#a5a19b"/><stop offset=".85" stop-color="#f7e7cc"/><stop offset="1" stop-color="#77736b"/></linearGradient>
+</defs>
+<g fill="url(#glass)" stroke="url(#edge)" stroke-width="4">
+ <path d="M113 368 Q144 322 239 318 Q329 309 389 321 C421 332 432 389 449 441 L477 535 Q482 555 454 557 L238 555 Q207 553 189 540 Q209 500 176 484 Q148 473 127 491 L111 475 Q119 432 113 368Z"/>
+ <path d="M413 319 Q435 296 581 297 C713 292 939 294 1061 305 Q1125 311 1101 364 C1074 425 1033 490 977 534 C910 587 819 609 775 651 Q745 679 733 704 Q723 718 704 716 L565 708 Q539 708 541 682 C545 632 509 584 491 530 L433 365 Q426 338 413 319Z"/>
+ <path d="M1125 350 Q1144 323 1212 324 Q1280 321 1353 339 Q1382 345 1369 370 C1343 416 1330 469 1371 502 Q1411 533 1469 518 Q1492 513 1506 503 L1505 600 Q1504 643 1455 651 C1286 658 1064 662 884 682 Q829 687 796 689 C803 648 882 612 954 563 C1031 511 1071 450 1125 350Z"/>
+</g></svg>
