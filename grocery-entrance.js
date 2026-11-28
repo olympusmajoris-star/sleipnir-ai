@@ -341,11 +341,11 @@ async function loadPanels(door,signal){
   for(const r of rows.filter(r=>r.zone==='wall')){const shape=grid.get(r.image_path)||{cols:0,rows:0};shape.cols=Math.max(shape.cols,r.grid_col+1);shape.rows=Math.max(shape.rows,r.grid_row+1);grid.set(r.image_path,shape);}
   for(const r of rows.filter(r=>r.zone==='wall')){const shape=grid.get(r.image_path);r.zx0=r.grid_col/shape.cols;r.zx1=(r.grid_col+1)/shape.cols;r.zy0=Math.max(0,r.ty1-1/shape.rows);r.zy1=r.ty1;}
   const old=panelsFor(rows,await ownedProducts(rows,signal),id,media);
-  if(id===PUBLIX&&['pkg-veg','pkg-fruit'].includes(door.zone)&&door.authored?.stock_mode!=='custom'){
+  if(id===PUBLIX&&['pkg-veg','pkg-fruit','loose-fruit','bag-fruit','veg-bins'].includes(door.zone)&&door.authored?.stock_mode!=='custom'){
    try{
     const protectedIds=new Set(old.flatMap(p=>p.spots.map(s=>s.id)));
     const fresh=await pub.load('Produce',{read,media,signal,protectedIds});
-    const group=door.zone==='pkg-fruit'?'Packaged Fruit':'Packaged Vegetables';
+    const group=({'pkg-fruit':'Packaged Fruit','pkg-veg':'Packaged Vegetables','loose-fruit':'Fresh Fruits','bag-fruit':'Bagged Fruits','veg-bins':'Fresh Veggies'})[door.zone];
     return [...old,...fresh.filter(p=>p.groups.includes(group))];
    }catch(e){if(signal.aborted)throw e;}
   }
