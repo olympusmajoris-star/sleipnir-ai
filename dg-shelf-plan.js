@@ -16,13 +16,22 @@
   }
 
   function packageGroup(item, aisle) {
-    if (aisle !== 'Soda, Water & Drinks') return 0;
-    const name = item.name || '';
-    if (/\b(?:[2-9]|[1-9]\d)\s*[- ]?\s*(?:count|pack|pk|ct)\b|\bfridge pack|\bmultipack/i.test(name)) return 2;
-    if (/\b(?:[1-9]\d*(?:[.,]\d+)?\s*(?:l\b|liters?|litres?|gallons?|gal\b)|(?:4[0-9]|[5-9]\d|1\d\d)\s*(?:fl\.?\s*)?oz)\b/i.test(name)) return 1;
-    return 0;
+    const name=String(item.name||'');
+    if(aisle==='Soda, Water & Drinks') {
+      if (/\b(?:[2-9]|[1-9]\d)\s*[- ]?\s*(?:count|pack|pk|ct)\b|\bfridge pack|\bmultipack/i.test(name)) return 3;
+      if (/\b(?:[1-9]\d*(?:[.,]\d+)?\s*(?:l\b|liters?|litres?|gallons?|gal\b)|(?:4[0-9]|[5-9]\d|1\d\d)\s*(?:fl\.?\s*)?oz)\b/i.test(name)) return 2;
+      return 1;
+    }
+    // Group packages that physically fit the same opening. Avoid mixing tiny
+    // travel bottles, giant jugs, and flat cartons across the same shelf.
+    const fluid=name.match(/(\d+(?:[.,]\s*\d+)?)\s*(?:fl\.?\s*oz|oz(?:\s*bottle)?)/i);
+    const qty=fluid?Number(fluid[1].replace(',','.').replace(/\s/g,'')):0;
+    if(/\b(?:gallon|gal|bulk|family size|value pack|jumbo)\b/i.test(name)||qty>=40)return 4;
+    if(/\b(?:pods|pac[s]?|pouches|tabs|tablets|wipes|refill pads|sponges|plates|bowls|paper cups|napkins)\b/i.test(name))return 3;
+    if(qty&&qty<=10)return 0;
+    if(qty&&qty<=24)return 1;
+    return 2;
   }
-
   function brandKey(name) {
     const title = String(name || '').toLowerCase();
     const familiar = title.match(/coca[ -]?cola|\bcoke\b|pepsi|dr\.? pepper|clover valley/);
@@ -43,11 +52,9 @@
     }
     const result = [];
     for (const [,brands] of [...formats].sort(([a],[b]) => a-b)) {
-      // Show different labels across a row of the same kind before its next flavors.
-      const lines = [...brands.values()];
-      for (let index=0; lines.some(line => line.length>index); index++) {
-        for (const line of lines) if (line[index]) result.push(line[index]);
-      }
+      // Real stores merchandise adjacent variants together rather than alternating
+      // every brand like a computer-generated grid.
+      for (const line of brands.values()) result.push(...line);
     }
     return result;
   }
