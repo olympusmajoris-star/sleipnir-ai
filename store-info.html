@@ -211,8 +211,12 @@ async function storeItems(s) {
   })());
   return storeCache.get(s.store_id);
 }
+const STATION_MAP=[[/dairy|egg/i,/cheese|yogurt|milk|egg|butter|dairy|creamer/i],[/bakery/i,/bakery/i],[/meat/i,/^meat$|meat/i],[/seafood/i,/seafood|sushi/i],[/frozen/i,/frozen|freezer/i],[/deli|prepared/i,/deli|hot foods/i],[/floral/i,/floral/i],[/produce/i,/produce/i]];
+async function storeStations(id){try{return [...new Set((await rows(`station_render_v?select=station&store_id=eq.${id}`)).map(r=>r.station))];}catch(e){return [];}}
+const hasStation=(aisle,st)=>STATION_MAP.some(([a,re])=>a.test(aisle)&&st.some(x=>re.test(x)));
 async function aisleInfo(s,order='items.desc') {
-  const original=await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=${order}`);
+  const st=await storeStations(s.store_id);
+  const original=(await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=${order}`)).map(r=>({...r,station:hasStation(r.aisle,st)}));
   if(!dgStore(s.store_id))return original;
   const items=await storeItems(s),by=groupBy(items,r=>r.category);
   return original.map(r=>{const all=by.get(r.aisle)||[],rendered=all.filter(x=>x.status==='rendered').length,code=all.length-rendered,reusable=all.filter(x=>x.status==='code'&&x.universal_id).length;return {...r,items:all.length,rendered,code,reusable,needs:all.filter(dgNeedsPhoto).length};});
@@ -260,7 +264,7 @@ async function viewChat(s, body) {
   sel.onchange = () => { chatState.aisle = sel.value; viewChat(s, body); };
   tools.append(el('span', 'muted', `Layout: ${chatState.shelves} shelves × ${chatState.per} (change it in the instructions box)`), sel);
   const per = chatState.shelves * chatState.per;
-  const need = aisles.map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && (!chatState.aisle || a.aisle === chatState.aisle));
+  const need = aisles.map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && !a.station && (dgStore(s.store_id)||(!PROMO.test(a.aisle)&&renderAisle(a.aisle))) && (!chatState.aisle || a.aisle === chatState.aisle));
   const total = need.reduce((x, a) => x + a.todo, 0), renders = need.reduce((x, a) => x + Math.ceil(a.todo / per), 0);
   const stats = el('div', 'stats', `<div class="stat"><b>${total.toLocaleString()}</b><span>products to render</span></div><div class="stat"><b>${renders.toLocaleString()}</b><span>images at ${chatState.shelves} shelves × ${chatState.per}</span></div>`);
   const table = el('div', '', `<table><thead><tr><th>Aisle</th><th>Display</th><th class="n">Products</th><th class="n">Images</th></tr></thead><tbody>${need.map(a => `<tr><td>${esc(a.aisle)}</td><td class="muted">${esc(nice(a.display_type))}</td><td class="n">${a.todo}</td><td class="n">${Math.ceil(a.todo / per)}</td></tr>`).join('')}</tbody></table>`);
@@ -296,13 +300,13 @@ function orderAisles(list) {
 const renderAisle = n => FOOD.test(n) || /alcohol|wine|beer|liquor/i.test(n);
 function briefText(s, aisles) {
   const sh = chatState.shelves, ps = chatState.per, id = s.store_id;
-  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && (dgStore(s.store_id)||(!PROMO.test(a.aisle)&&renderAisle(a.aisle)))));
+  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && !a.station && (dgStore(s.store_id)||(!PROMO.test(a.aisle)&&renderAisle(a.aisle)))));
   const total = todo.reduce((x, a) => x + a.todo, 0);
   return `SLEIPNIR RENDER JOB: ${s.store_name}
 Store id: ${id}   Supabase project: afnihsdxtisneuyehatw
 ${total.toLocaleString()} products need a render. Layout Danny picked: ${sh} shelves, ${ps} products per shelf (${sh * ps} products per image).
 ${NOTES[id] ? '\n' + NOTES[id] + '\n' : ''}
-${dgStore(s.store_id)?'DG: render remaining groceries and unusual fixtures only; ordinary non-grocery catalog photos are approved. Check existing ready aisle_slots before drawing any product, and keep actual product IDs/price zones.': 'GROCERY ONLY: non-grocery aisles are NOT rendered. Ordinary non-grocery items stay code images. Odd items (mops, brooms, long items) get renders later from a separate list.'}\nWork ONE aisle at a time. Read that aisle's list straight from Supabase:
+${dgStore(s.store_id)?'DG: render remaining groceries and unusual fixtures only; ordinary non-grocery catalog photos are approved. Check existing ready aisle_slots before drawing any product, and keep actual product IDs/price zones.': 'GROCERY ONLY: non-grocery aisles are NOT rendered. Ordinary non-grocery items stay code images. Odd items (mops, brooms, long items) get renders later from a separate list.\nDO NOT touch, redo or replace any existing render. Aisles that already have renders (bakery, meat, seafood, dairy, deli, frozen, floral stations) are left out of this list.'}\nWork ONE aisle at a time. Read that aisle's list straight from Supabase:
   select * from public.store_info_chatgpt_queue('${id}', ${sh}, ${ps}, ${chatState.reuse}, '<AISLE>');
 Put the aisle name from the list below in place of <AISLE>.
 ${chatState.reuse ? '' : "Products that already have a render in another store are left out. Danny reuses those.\n"}
@@ -327,7 +331,7 @@ async function chatBox(s, box) {
   const aisles = await aisleInfo(s,'aisle');
   const draw = () => {
     box.innerHTML = '';
-    const todo = dgStore(s.store_id)?s.needs:aisles.reduce((x, a) => x + ((PROMO.test(a.aisle)||!renderAisle(a.aisle)) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
+    const todo = dgStore(s.store_id)?s.needs:aisles.reduce((x, a) => x + ((a.station||PROMO.test(a.aisle)||!renderAisle(a.aisle)) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
     const head = el('div', 'chat-head', `<h3>Instructions for ChatGPT</h3><span class="muted">${todo.toLocaleString()} products to render · ${Math.ceil(todo / (chatState.shelves * chatState.per)).toLocaleString()} images at ${chatState.shelves} shelves × ${chatState.per}</span>`);
     const tools = el('div', 'tools');
     const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; draw(); }; g.append(b); }); w.append(g); return w; };
