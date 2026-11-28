@@ -340,7 +340,15 @@ async function loadPanels(door,signal){
   const rows=blocks.flat(),grid=new Map();
   for(const r of rows.filter(r=>r.zone==='wall')){const shape=grid.get(r.image_path)||{cols:0,rows:0};shape.cols=Math.max(shape.cols,r.grid_col+1);shape.rows=Math.max(shape.rows,r.grid_row+1);grid.set(r.image_path,shape);}
   for(const r of rows.filter(r=>r.zone==='wall')){const shape=grid.get(r.image_path);r.zx0=r.grid_col/shape.cols;r.zx1=(r.grid_col+1)/shape.cols;r.zy0=Math.max(0,r.ty1-1/shape.rows);r.zy1=r.ty1;}
-  return panelsFor(rows,await ownedProducts(rows,signal),id,media);
+  const old=panelsFor(rows,await ownedProducts(rows,signal),id,media);
+  if(id===PUBLIX&&door.zone==='pkg-veg'&&door.authored?.stock_mode!=='custom'){
+   try{
+    const protectedIds=new Set(old.flatMap(p=>p.spots.map(s=>s.id)));
+    const fresh=await pub.load('Produce',{read,media,signal,protectedIds});
+    return [...old,...fresh];
+   }catch(e){if(signal.aborted)throw e;}
+  }
+  return old;
  }
  if(['Dairy & Eggs','Beer & Wine'].includes(door.label)){
   const old=global.GroceryStationFixtures?await global.GroceryStationFixtures.load(door.label,id,{read,media,signal}):[];
