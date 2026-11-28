@@ -497,3 +497,291 @@
   clip-path:polygon(35.7% 0,64.5% 0,64% 35%,63.1% 58%,61.8% 68%,55% 70%,54.6% 88%,53.7% 96%,46.4% 96%,45.5% 89%,45% 71%,38.8% 70%,37.3% 64%,36.5% 46%);
   pointer-events:none;z-index:1;
 }
+/* Rounded white mechanical flaps in the passenger glass clock recess. */
+.ev .ev-clock-digit {
+  --flap-surface:linear-gradient(175deg,#fff 0%,#f7f8f9 22%,#e3e6e9 49%,#cdd1d4 50%,#fdfdfd 54%,#e9ecee 100%);
+  color:#22272c;background:var(--flap-surface);
+  border-radius:.2em;box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 #a1a7aa,0 1px 1px #000a;
+  text-shadow:0 1px 0 #ffffffaa;
+}
+.ev .ev-clock-digit::after {background:#656b7188;box-shadow:0 1px #ffffff8c}
+.ev .ev-clock-colon {color:#edf0f2;text-shadow:0 1px 1px #1119}
+.ev .ev-clock .ev-clock-period {color:#e6e9ea}
+.ev .ev-scene > .ev-temperature {
+  position:absolute;z-index:1;left:var(--ev-vent-x,94.4%);top:var(--ev-temperature-y,calc(49.4% + 15px));
+  transform:translateX(-50%);width:11.2%;min-height:44px;max-width:none;margin:0;
+  border:0;border-radius:.3rem;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:.12rem 0;gap:1px;background:transparent;color:#ffe3b9;
+  font:580 clamp(12px,1.9cqw,24px)/1.05 system-ui;font-variant-numeric:tabular-nums;
+}
+.ev .ev-scene > .ev-temperature .ev-weather-location {
+  font:500 clamp(8px,.95cqw,13px)/1.15 system-ui;color:#d7e1e7;white-space:nowrap;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-scene > .ev-temperature {
+  transform:translateX(-50%);padding:.1rem 0;gap:1px;min-height:44px;
+  left:var(--ev-vent-x,94.4%);top:var(--ev-temperature-y,calc(var(--ev-overview-rail,52%) + 17.2cqw + max(22px,5cqw) + 7px));
+  font:580 clamp(10px,3.05cqw,15px)/1.06 system-ui;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-scene > .ev-temperature .ev-weather-location{
+  font:500 clamp(6px,1.9cqw,9px)/1.12 system-ui;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-instruments {min-height:17cqw}
+.ev .ev-phone-writing .ev-scene > .ev-temperature {display:none}
+/* Register the cabin controls in the source photo's 909 × 1731 camera space.
+   cover preserves the real wheel, seat and dial proportions on every handset. */
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) {
+  container-type:size;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-scene {
+  --photo-step:max(calc(100cqw / 909), calc(100cqh / 1731));
+  --photo-left:calc((100cqw - 909 * var(--photo-step)) * .78);
+  --photo-top:calc((100cqh - 1731 * var(--photo-step)) * .18);
+  --ev-vent-x:calc(var(--photo-left) + 832 * var(--photo-step));
+  --ev-vent-y:calc(var(--photo-top) + 936 * var(--photo-step));
+  --ev-overview-rail:calc(var(--photo-top) + 825 * var(--photo-step));
+  --ev-dial-size:max(44px, calc(105 * var(--photo-step)));
+  --ev-temperature-y:calc(var(--ev-vent-y) + var(--ev-dial-size) / 2 + 3px);
+  background:#bca991;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) :is(.ev-photo,.ev-wood) {
+  inset:0; margin:0; width:100%; height:100%; clip-path:none;
+  background:url(raven/cockpit/raven-driver-portrait.webp) 78% 18% / cover no-repeat;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-wood {
+  mask:url(raven/cockpit/raven-driver-portrait-veneer.svg) 78% 18% / cover no-repeat;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-glass-surface,
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) :is(.ev-photo,.ev-scene)::before,
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) :is(.ev-photo,.ev-scene)::after,
+.ev .ev-phone-viewport.ev-overview:not(.ev-writing-view)::before { display:none }
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-thread {
+  top:max(5%,calc(var(--photo-top) + 109 * var(--photo-step)));
+  bottom:auto; height:calc(677 * var(--photo-step)); left:6%;right:7%;width:auto;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-input {
+  left:calc(var(--photo-left) + 320 * var(--photo-step));right:auto;
+  width:calc(472 * var(--photo-step));top:var(--ev-overview-rail);
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main {
+  left:calc(var(--photo-left) + 343 * var(--photo-step));
+  top:calc(var(--photo-top) + 870 * var(--photo-step));
+  width:calc(217 * var(--photo-step));height:auto;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-aux {
+  left:calc(var(--photo-left) + 194 * var(--photo-step));
+  top:calc(var(--photo-top) + 870 * var(--photo-step));
+  width:calc(123 * var(--photo-step));height:calc(87 * var(--photo-step));
+  overflow:auto;text-align:center;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-aux select {
+  appearance:auto;padding:0;min-height:24px;font-size:10px;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-status {
+  left:calc(var(--photo-left) + 610 * var(--photo-step));
+  top:calc(var(--photo-top) + 882 * var(--photo-step));
+  width:calc(158 * var(--photo-step));height:calc(194 * var(--photo-step));
+  justify-content:flex-start;gap:2px;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-instruments {
+  width:100%;padding:0;margin:0;min-height:0;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-alerts {
+  width:100%;margin-top:clamp(2px,1.3cqw,7px);
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-dial[data-dial=vent]{
+  left:var(--ev-vent-x);top:var(--ev-vent-y);
+  width:var(--ev-dial-size);height:var(--ev-dial-size);
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-dial[data-dial=vent] b{display:none}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-dial[data-dial=console]{
+  left:calc(var(--photo-left) + 423 * var(--photo-step));
+  top:calc(var(--photo-top) + 1300 * var(--photo-step));
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-push{
+  left:calc(var(--photo-left) + 248 * var(--photo-step));
+  top:calc(var(--photo-top) + 1017 * var(--photo-step));
+  width:calc(48 * var(--photo-step));
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-lift-zone{
+  top:calc(var(--photo-top) + 1195 * var(--photo-step));
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main {
+  left:calc(var(--photo-left) + 346 * var(--photo-step));
+  top:calc(var(--photo-top) + 859 * var(--photo-step));
+  width:calc(210 * var(--photo-step));
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-tiles {
+  grid-template-columns:repeat(2,minmax(0,1fr)); gap:0;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main .ev-tile {
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:1px 0 0; gap:1px; min-height:0;line-height:1.02;text-align:center;
+  font-size:clamp(8.5px,2.5cqw,11px);
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main .ev-face {
+  width:clamp(14px,3.95cqw,18px);height:clamp(14px,3.95cqw,18px);
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main .ev-tile:nth-child(4) {
+  transform:translateX(-10%);
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-aux select {
+  appearance:none;text-align:center;font-size:clamp(8.5px,2.45cqw,11px);padding:0;background:#1c262c;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-clock {
+  transform:translateX(11%);font-size:clamp(9px,3.2cqw,15px);
+}
+.ev .ev-short-caption,.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main .ev-has-short-caption {display:none}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-main .ev-short-caption {display:inline}
+/* On the wide camera, the wheel, glazing and fascia share one photographic plate. */
+.ev .ev-pair > .ev-scene {
+  --wide-lift: 0px;
+  --ev-vent-x: 92.84%;
+  --ev-temperature-y: 52%;
+}
+.ev .ev-pair > .ev-scene > :is(.ev-photo, .ev-wood) {
+  inset: 0;
+  background: url(raven/cockpit/raven-driver-wide.webp) center / 100% 100% no-repeat;
+}
+.ev .ev-pair > .ev-scene > .ev-wood {
+  mask: url(raven/cockpit/raven-driver-wide-veneer.svg) center / 100% 100% no-repeat;
+}
+.ev .ev-pair > .ev-scene::before,
+.ev .ev-pair > .ev-scene > .ev-photo::before,
+.ev .ev-pair > .ev-scene > .ev-photo::after,
+.ev .ev-pair > .ev-scene > .ev-glass-surface,
+.ev .ev-pair > .ev-scene > .ev-main::before {
+  display: none;
+}
+.ev .ev-pair > .ev-scene > .ev-thread {
+  top: 13.8%;
+  height: 20.8%;
+  left: 15.5%;
+  right: 13%;
+}
+.ev .ev-pair > .ev-scene > .ev-input {
+  top: 37.04%;
+  left: 35.5%;
+  right: 6.5%;
+}
+.ev .ev-pair > .ev-scene > .ev-aux {
+  left: 12.4%;
+  width: 12%;
+  top: 40.6%;
+  height: 6.7%;
+  overflow: auto;
+  justify-content: safe center;
+  scrollbar-width: thin;
+}
+.ev .ev-pair > .ev-scene > .ev-aux > * {
+  flex-shrink: 0;
+}
+.ev .ev-pair > .ev-scene > .ev-main {
+  left: 36%;
+  width: 25.3%;
+  top: 40.15%;
+  height: 14.7%;
+}
+.ev .ev-pair > .ev-scene > .ev-main .ev-tiles {
+  width: 100%;
+  display: grid;
+  grid-auto-columns: minmax(0,1fr);
+  grid-auto-flow: column;
+}
+.ev .ev-pair > .ev-scene > .ev-main .ev-tile {
+  align-self: start;
+  width: 100%;
+}
+.ev .ev-pair > .ev-scene > .ev-status {
+  left: 68.2%;
+  top: 42.4%;
+  width: 19%;
+  height: 12.8%;
+  justify-content: start;
+  gap: 2px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.ev .ev-pair > .ev-scene > .ev-status > * {
+  flex-shrink: 0;
+}
+.ev .ev-pair > .ev-scene > .ev-status .ev-clock {
+  position: static;
+  transform: none;
+  margin: 0;
+  font-size: clamp(12px,1.95cqw,27px);
+}
+.ev .ev-pair > .ev-scene > .ev-status .ev-instruments {
+  justify-content: end;
+  padding-right: 3%;
+}
+.ev .ev-pair > .ev-scene > .ev-status .ev-alerts {
+  padding: 2px 7px;
+}
+.ev .ev-pair > .ev-scene > .ev-push {
+  left: 31.58%;
+  top: 55.96%;
+  width: max(44px,4.5%);
+  height: max(44px,7%);
+  box-shadow: none;
+  background: transparent;
+  border: 0;
+  font-size: 0;
+}
+.ev .ev-pair > .ev-scene > .ev-push::before {
+  content: "↑";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  display: grid;
+  place-items: center;
+  width: 2.15cqw;
+  height: 2.15cqw;
+  border-radius: 50%;
+  background: #40362b77;
+  color: #ead8bc;
+  font: 650 clamp(9px,1.28cqw,19px)/1 system-ui;
+}
+.ev .ev-pair > .ev-scene > .ev-push:enabled::before {
+  background: #4830159c;
+  color: #fff2d8;
+  box-shadow: inset 0 0 0 1px #fde4b9,0 0 7px #ffbd6e;
+}
+.ev .ev-pair > .ev-scene > .ev-dial[data-dial=vent] {
+  left: var(--ev-vent-x);
+  top: 46.39%;
+  width: 7%;
+  height: 10.55%;
+}
+.ev .ev-pair > .ev-scene > .ev-dial[data-dial=vent] b { display: none; }
+.ev .ev-pair > .ev-scene > .ev-temperature {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  padding: 0;
+  gap: .32em;
+  font-size: clamp(10px,1.36cqw,20px);
+}
+.ev .ev-pair > .ev-scene > .ev-temperature .ev-weather-location {
+  position: absolute;
+  right: calc(50% + 2.1em);
+  top: .3em;
+  font-size: clamp(8px,.92cqw,12px);
+}
+.ev .ev-pair > .ev-scene > .ev-dial[data-dial=console] {
+  left: 47.46%;
+  top: 74.12%;
+  height: 6.7%;
+  width: 6.25%;
+}
+/* Raised, tapering inlays follow each camera's photographed glass dividers. */
+.ev .ev-pair > .ev-scene > .ev-glass-surface,
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-glass-surface {
+  display:block;position:absolute;inset:0;width:100%;height:100%;margin:0;
+  opacity:var(--rib-opacity,1);pointer-events:none;background:url(raven/cockpit/raven-driver-wide-trim.svg) center / 100% 100% no-repeat;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-glass-surface {
+  background:url(raven/cockpit/raven-driver-portrait-trim.svg) 78% 18% / cover no-repeat;
+}
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-glass-surface::before,
+.ev .ev-overview .ev-phone-scroll:not(.ev-phone-writing) .ev-glass-surface::after {display:none}

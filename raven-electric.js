@@ -9,7 +9,7 @@
     Find:[['Search','Search','#448ec3'],['Kept','BookmarkCheck','#956fcd'],['Media','Images','#319b91'],['By date','Calendar','#c56955']]
   };
   const names=Object.keys(groups),langs={en:'English',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',ja:'Japanese'};
-  const defaults={veneer:'Honey ash',size:32,curve:16,fade:280,glow:'#ffc074',duration:720,haptics:true,x:0,y:0,order:{},placement:{}};
+  const defaults={veneer:'Honey ash',ribDetail:100,size:32,curve:16,fade:280,glow:'#ffc074',duration:720,haptics:true,x:0,y:0,order:{},placement:{}};
   const key='raven.panoramic.design.1';let prefs={...defaults};
   try{Object.assign(prefs,JSON.parse(localStorage.getItem(key)||'{}'));}catch{}
   let host,dialog,feedback,tools,panels=[],category='Write',draft='',attachment=null,selected=1,target='es',auto=false,spoken=false,reading=false,typing=false;
@@ -100,12 +100,12 @@
     const explanation = valid
       ? 'Outdoor temperature at Flagler County Airport, observed at ' + coastClock.format(observedWeather.at) + ' ET. Switch to °' + (unit === 'F' ? 'C' : 'F')
       : refreshingWeather ? 'Checking outdoor temperature in Palm Coast' : 'Outdoor temperature unavailable in Palm Coast. Tap to retry';
-    for (const {clock, tiles, ampm, temperature} of instruments) {
+    for (const {clock, tiles, ampm, temperature, temperatureValue} of instruments) {
       clock.dateTime = now.toISOString();
       clock.setAttribute('aria-label', coastClock.format(now) + ' Eastern Time');
       tiles.forEach((tile, i) => setClockDigit(tile, (hour + minute)[i]));
       ampm.textContent = period;
-      temperature.textContent = degrees + '°' + unit;
+      temperatureValue.textContent = degrees + '°' + unit;
       temperature.title = explanation;
       temperature.setAttribute('aria-label', explanation);
     }
@@ -157,7 +157,7 @@
     }
     const ampm = el('small', 'ev-clock-period', clock);
     ampm.setAttribute('aria-hidden', 'true');
-    const temperature = btn(row, '', () => {
+    const temperature = btn(small.parentElement, '', () => {
       if (!observedWeather || Date.now() - observedWeather.at >= weatherMaxAge) {
         checkOutdoorTemperature();
         return;
@@ -165,8 +165,9 @@
       prefs.tempUnit = prefs.tempUnit === 'C' ? 'F' : 'C';
       paintInstruments();
     }, 'ev-temperature');
-    el('span', 'ev-weather-location', section, 'Palm Coast · ET');
-    instruments.push({clock, tiles, ampm, temperature});
+    const temperatureValue = el('span', 'ev-temp-value', temperature);
+    el('span', 'ev-weather-location', temperature, 'Palm Coast');
+    instruments.push({clock, tiles, ampm, temperature, temperatureValue});
     tickInstruments();
   }
   const alertKinds = {
@@ -235,6 +236,7 @@
     else el('span','ev-note',p.aux,({Write:'Message Alex',Voice:recorder?'Recording…':recorded?'Voice note ready':'Voice tools',Share:attachment?.name||'Attachments',Conversation:chosen().kept?'Message kept':'Selected message',Find:messages.length+' messages'})[category]);
     if(reading)btn(p.status,'Stop reading',stopVoice);else if(recorder)btn(p.status,'Stop',()=>run(record));else if(recognition)btn(p.status,'Stop',()=>recognition.stop());else el('span','ev-note',p.status,category==='Translate'?[auto?'Auto on':'Manual',spoken?'Voice on':''].filter(Boolean).join(' · '):typing?'Typing':category);
     if(attachment)btn(p.aux,'Remove',()=>{attachment=null;syncDraft();renderAux();});}}
+  const shortCaptions={'Auto-translate':'Auto','Read aloud':'Listen','Speak translation':'Speak','Quick replies':'Replies','Record note':'Record','Play note':'Play','By date':'Date'};
   function drawTiles(){for(const p of panels){p.tiles.replaceChildren();p.midTiles.replaceChildren();p.smallTiles.replaceChildren();p.title.textContent=category;
     const entries=[...groups[category]],offset=Number(prefs.order[category])||0;
     for(let i=0;i<entries.length;i++){
@@ -243,7 +245,13 @@
       const tile=btn(parent,'',()=>{touch(tile);flash(p.aux);run(()=>act(label));},'ev-tile');
       tile.setAttribute('aria-label',label);tile.style.setProperty('--icon',color);
       tile.style.setProperty('--angle',(1.5-i)*prefs.curve/1.5+'deg');
-      icon(el('span','ev-face',tile),glyph);el('span','',tile,label);
+      icon(el('span','ev-face',tile),glyph);
+      const caption=el('span','ev-tile-caption',tile,label);
+      if(shortCaptions[label]&&p.scene.closest('.ev-phone')){
+        caption.classList.add('ev-has-short-caption');
+        el('span','ev-short-caption',tile,shortCaptions[label]);
+        tile.title=label;
+      }
     }
     for(const dial of [p.consoleDial,p.vent]){dial.setAttribute('aria-valuetext',category);dial.setAttribute('aria-valuenow',names.indexOf(category)+1);}
   }renderAux();}
@@ -264,7 +272,7 @@
     mountInstruments(small);
     mountAlerts(status);
     const vent=btn(scene,'',null,'ev-dial'),consoleDial=btn(scene,'',null,'ev-dial');dial(vent,'vent');dial(consoleDial,'console');return {scene,thread,input,send:arr,push,title,tiles,aux,status,midTiles,smallTiles,consoleDial,vent};}
-  function style(){host.style.setProperty('--depth',String(prefs.curve/135));host.style.setProperty('--veneer',({'Honey ash':'none',Walnut:'saturate(.88) brightness(.72)',Driftwood:'saturate(.2) brightness(1.02)',Ebony:'saturate(.2) brightness(.57)',Copper:'sepia(.45) saturate(1.55)'})[prefs.veneer]);
+  function style(){host.style.setProperty('--rib-opacity',String(prefs.ribDetail / 100));host.style.setProperty('--depth',String(prefs.curve/135));host.style.setProperty('--veneer',({'Honey ash':'none',Walnut:'saturate(.88) brightness(.72)',Driftwood:'saturate(.2) brightness(1.02)',Ebony:'saturate(.2) brightness(.57)',Copper:'sepia(.45) saturate(1.55)'})[prefs.veneer]);
     for(const [k,v] of Object.entries({'--size':'clamp(17px,'+prefs.size/7+'cqw,'+prefs.size+'px)','--glow':prefs.glow,'--glow-time':prefs.duration+'ms','--mx':prefs.x+'%','--my':prefs.y+'%'}))host.style.setProperty(k,v);drawTiles();}
   function field(label,name,kind,values){const l=el('label','',tools,label+' '),n=el(kind==='select'?'select':'input','',l);n.name=name;if(kind==='select')values.forEach(v=>n.add(new Option(v,v)));else{n.type=kind;if(kind==='range'){n.min=values[0];n.max=values[1];}}n.value=name==='category'?category:name==='order'?(prefs.order[category]||0):prefs[name];if(kind==='checkbox')n.checked=prefs[name];n.oninput=()=>{if(name==='category')return switchTo(n.value);if(name==='order')prefs.order[category]=+n.value;else prefs[name]=kind==='range'?+n.value:kind==='checkbox'?n.checked:n.value;style();note('Unsaved design changes');};}
   function tileEditor(){
@@ -399,7 +407,7 @@
   function show(){opened=true;const link=new URL(location.href);link.searchParams.set('layout','electric');history.replaceState(null,'',link);const studio=document.getElementById('raven-cabin-studio');studio.hidden=true;if(host){host.hidden=false;tickInstruments();return;}
     host=el('main','ev',document.body);const h=el('header','',host);el('strong','',h,'Raven · Panoramic cabin');btn(h,'Cabin layouts',()=>{host.hidden=true;opened=false;studio.hidden=false;stopVoice();if(recorder)recorder.stop();recognition?.stop();history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('resize'));});btn(h,'Save in browser',()=>{try{localStorage.setItem(key,JSON.stringify(prefs));note('Design saved in this browser.');}catch{note('Browser storage is unavailable.');}});
     const pair=el('div','ev-pair',host),wide=panel(pair),device=el('aside','ev-phone',pair);panels=[wide,mountPhone(device)];
-    tools=el('div','ev-tools',host);field('Category','category','select',names);field('Veneer','veneer','select',['Honey ash','Walnut','Driftwood','Ebony','Copper']);field('Tile size','size','range',[20,52]);field('Glass curve','curve','range',[0,36]);field('Tiles X','x','range',[-20,20]);field('Tiles Y','y','range',[-30,30]);field('First tile','order','range',[0,3]);field('Fade (ms)','fade','range',[0,800]);field('Glow','glow','color');field('Glow (ms)','duration','range',[150,1500]);field('Haptics','haptics','checkbox');btn(tools,'Preview incoming',()=>query('Preview incoming message','text',x=>run(()=>receive(x))));
+    tools=el('div','ev-tools',host);field('Category','category','select',names);field('Veneer','veneer','select',['Honey ash','Walnut','Driftwood','Ebony','Copper']);field('Silver rib detail','ribDetail','range',[0,100]);field('Tile size','size','range',[20,52]);field('Glass curve','curve','range',[0,36]);field('Tiles X','x','range',[-20,20]);field('Tiles Y','y','range',[-30,30]);field('First tile','order','range',[0,3]);field('Fade (ms)','fade','range',[0,800]);field('Glow','glow','color');field('Glow (ms)','duration','range',[150,1500]);field('Haptics','haptics','checkbox');btn(tools,'Preview incoming',()=>query('Preview incoming message','text',x=>run(()=>receive(x))));
     btn(tools,'Preview notification',previewAlert);
     for(const [name,title,options] of [['action','Tile',[]],['zone','Screen',['Main','Middle','Small']]]){
       const select=el('select','',el('label','',tools,title+' '));select.name=name;options.forEach(x=>select.add(new Option(x,x)));
