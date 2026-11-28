@@ -81,6 +81,12 @@
     const layoutChooser=node('details','rce-layout-chooser',undefined,canvasRow),layoutHeading=node('summary','rce-layout-heading',undefined,layoutChooser);node('span','','Layout',layoutHeading);const layoutName=node('strong','','Original dash',layoutHeading);const layoutChevron=icon('ChevronDown',14);if(layoutChevron)layoutHeading.appendChild(layoutChevron);
     const layoutGrid=node('div','rce-layout-grid',undefined,layoutChooser);layoutGrid.setAttribute('role','group');layoutGrid.setAttribute('aria-label','Dashboard layouts');
     for(const layout of LAYOUTS){const b=node('button','rce-layout-card',undefined,layoutGrid);b.type='button';b.dataset.layout=layout.id;b.setAttribute('aria-label','Use '+layout.label+' layout');b.title=layout.description;const image=node('img','rce-layout-image',undefined,b);image.src=layout.image;image.alt='';image.decoding='async';const label=node('span','rce-layout-name',layout.label,b);layoutCards[layout.id]={button:b,image,label};on(b,'click',()=>chooseLayout(layout.id));}
+    const panoramic=node('button','rce-layout-card',undefined,layoutGrid);
+    panoramic.type='button';panoramic.setAttribute('aria-label','Use panoramic electric layout');
+    const electricImage=node('img','rce-layout-image',undefined,panoramic);
+    electricImage.src='raven/cockpit/raven-panoramic.webp';electricImage.alt='';
+    node('span','rce-layout-name','Panoramic electric',panoramic);
+    on(panoramic,'click',()=>{layoutChooser.open=false;G.RavenElectric.open();});
     const viewSwitch=node('div','rce-segmented rce-view-switch',undefined,canvasRow);viewSwitch.setAttribute('role','group');viewSwitch.setAttribute('aria-label','Cabin view');
     for(const [key,label]of [['chat','Chat'],['video','Video'],['sharing','Shared']]){const b=node('button','',label,viewSwitch);b.type='button';viewButtons[key]=b;on(b,'click',()=>chooseView(key));}
     const viewTools=node('details','rce-view-tools',undefined,canvasRow),toolsSummary=node('summary','','View tools',viewTools),toolsPanel=node('div','rce-tools-panel',undefined,viewTools);
