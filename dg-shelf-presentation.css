@@ -34,3 +34,6 @@
 .dg-shelf [hidden]{display:none!important}
 .dg-shelf[data-mode=edit] .sl-faces{cursor:pointer}
 @media(prefers-reduced-motion:reduce){.dg-shelf .dg-shelf-tabs{scroll-behavior:auto}}
+
+
+.dg-shelf .dg-shelf-preferences{display:flex;justify-content:flex-end;gap:12px;padding:6px 3px 0;color:#f2efe4;font-size:11px}.dg-shelf .dg-shelf-preferences label{display:flex;align-items:center;gap:4px;cursor:pointer}.dg-shelf .dg-shelf-preferences input{accent-color:#ffde27;margin:0;width:14px;height:14px}
