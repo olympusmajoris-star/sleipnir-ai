@@ -3,8 +3,8 @@
 'use strict';
 const storeId='189581c9-d728-4e5d-9e02-ae4de19a15af';
 const regular=new Set(['Snacks','Beverages','Condiments & Sauces','Dry Goods & Pasta','Canned Goods & Soups','Breakfast','Bread & Rolls']);
-const sourceFor=label=>label==='Deli'?'Deli & Prepared Foods':label;
-const supports=label=>regular.has(label)||label==='Dairy & Eggs'||label==='Deli';
+const sourceFor=label=>label==='Deli'?'Deli & Prepared Foods':label==='Frozen Foods'?'Frozen':label;
+const supports=label=>regular.has(label)||label==='Dairy & Eggs'||label==='Deli'||label==='Frozen Foods'||label==='Frozen';
 // These complete images contain products from the existing Subs menu. Leave
 // them held and keep the already approved menu instead of duplicating it.
 const excludedDeli=new Set([7,8,9,10,11,35,43]);
