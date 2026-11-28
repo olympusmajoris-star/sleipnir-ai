@@ -1,0 +1,143 @@
+{
+  "store": "Publix (Island Walk)",
+  "store_id": "189581c9-d728-4e5d-9e02-ae4de19a15af",
+  "date": "2026-11-28",
+  "note": "These catalog records were not rendered because packaging/size disagrees with the source or a duplicate needs resolution. Original renders and live catalog records left intact. Use exact product_id. Review the current aisle_slots and storage before generating. The list is not the entire remaining grocery queue.",
+  "items": [
+    {
+      "product_id": "0a40689c-04dd-425d-a789-e5462e5f2918",
+      "name": "Del Monte Red Grapefruit In 100% Juice",
+      "reason": "Catalog title says in 100% juice but actual linked photo says in extra light syrup; refrigerated cup."
+    },
+    {
+      "product_id": "7c38c109-f0d7-40a5-a872-61a81e353801",
+      "name": "Mt. Olive Kosher Dill Chips",
+      "reason": "Catalog 16 oz jar reference is 4.8 oz pouch."
+    },
+    {
+      "product_id": "755e29e9-9c96-445f-b754-174ab37c9278",
+      "name": "Swiss Miss Cocoa",
+      "reason": "Catalog 10-count cocoa; original photo shows 8-count."
+    },
+    {
+      "product_id": "a9a5ac88-0cce-4413-9fd3-75c6e2a849d2",
+      "name": "Almond Breeze Milk",
+      "reason": "Catalog unsweetened vanilla; original photo shows Original sweetened."
+    },
+    {
+      "product_id": "31184454-0282-444a-8f04-c537cb97ae48",
+      "name": "Simply Orange Pulp",
+      "reason": "Catalog says Pulp; original photo explicitly Pulp Free."
+    },
+    {
+      "product_id": "a406b2e9-07c0-4491-878f-9df156d3ad15",
+      "name": "Pop-Tarts Strawberry",
+      "reason": "Catalog Pop-Tarts 8-count; photo Publix 12-count."
+    },
+    {
+      "product_id": "ad6bdb59-d8a6-40b9-84a5-6548bf9f3449",
+      "name": "Vlasic Bread & Butter Chips",
+      "reason": "Likely duplicate of identically packaged 24 fl oz Vlasic pickle SKU; confirm canonical catalog record before duplicate-facing render."
+    },
+    {
+      "product_id": "8781d5fc-a791-47a6-83ee-7cbb2c6c414e",
+      "name": "Kinder's Buttery Buffalo Wing Sauce & Dip",
+      "reason": "Catalog size is 402 oz, original photo indicates 14.2 oz (402g)."
+    },
+    {
+      "product_id": "bef6665d-4a2b-456e-a6be-4f4494038239",
+      "name": "Honey Nut Cheerios",
+      "reason": "Same Honey Nut Cheerios 10.8oz as the new breakfast shelf; check canonical listing and pack/price before duplicating the facing."
+    },
+    {
+      "product_id": "c7b6c301-45fd-4b02-b3a3-a1aa1f8a53fc",
+      "name": "Publix GreenWise Organic Blue Corn Tortilla Chips",
+      "reason": "Catalog 12 oz; original package appears 255g/9 oz."
+    },
+    {
+      "product_id": "20fbb525-0305-48f3-8b17-3e41cb50417f",
+      "name": "Publix Restaurant Style Tortilla Chips",
+      "reason": "Catalog 13 oz; original photo shows 9 oz."
+    },
+    {
+      "product_id": "441d83c9-50e7-4694-9e8e-d2a05b353a33",
+      "name": "Stacy's Pita Chips Simply Naked",
+      "reason": "Catalog 7.3 oz; original photo shows 1.5 oz."
+    },
+    {
+      "product_id": "325c2dd3-9aa8-4db7-92c0-fb938f59a054",
+      "name": "Funyuns Onion Flavored Rings",
+      "reason": "Catalog 6 oz; package photo shows 5.25 oz."
+    },
+    {
+      "product_id": "39fae685-5c88-4f89-8327-cd229a827787",
+      "name": "King's Hawaiian Sweet Rolls",
+      "reason": "Catalog 12-count, stock photo 24-count."
+    },
+    {
+      "product_id": "199e8d5d-af3d-4e55-960c-0ba7c61c4150",
+      "name": "La Banderita White Corn Tortillas",
+      "reason": "Catalog 25 count, photo 18-count."
+    },
+    {
+      "product_id": "41b397a1-4d34-467b-87bb-01789b4012b4",
+      "name": "Mission Street Tacos Flour Tortillas",
+      "reason": "Catalog 24 count, photo 12-count."
+    },
+    {
+      "product_id": "280db1fa-4339-4fb4-8a47-2643ded6915b",
+      "name": "Publix Bakery Brioche Hamburger Buns",
+      "reason": "Catalog says 4-count, package shows two buns with no label."
+    },
+    {
+      "product_id": "3818cae0-f005-4412-98ef-ac6a9cbd9279",
+      "name": "Publix Bakery Everything Hamburger Buns",
+      "reason": "Catalog everything buns 4 ct, photo is 13oz plain hamburger bun bag."
+    },
+    {
+      "product_id": "12882a24-3f65-4250-9cd6-af3203457e21",
+      "name": "Publix Bakery Pretzel Hamburger Buns",
+      "reason": "Catalog Publix bakery, photo Pretzilla 4-count."
+    },
+    {
+      "product_id": "9f603a7f-72bc-4e59-be08-73755a4e0249",
+      "name": "Publix Bakery Pumpernickel Round",
+      "reason": "Catalog whole 16oz round loaf, photo shows bread-and-dip platter."
+    },
+    {
+      "product_id": "e8b09a6f-438e-42ec-96d1-df2d33b97fd2",
+      "name": "Publix Enriched White Seeded Buns",
+      "reason": "Catalog says 12oz, exact same photo as 13oz sesame buns."
+    },
+    {
+      "product_id": "a2a7c014-1c00-4e38-87df-f1904a8344c7",
+      "name": "Publix Hamburger Buns",
+      "reason": "Catalog says 12oz, photo 13oz."
+    },
+    {
+      "product_id": "c8b306cc-71ba-4e80-9002-e8b2af5802a1",
+      "name": "Publix Texas Toast Bread",
+      "reason": "Catalog says Publix, photo Lewis Texas Toast."
+    },
+    {
+      "product_id": "87c0a89a-ec60-4927-86de-cd0704739f5e",
+      "name": "Publix Whole Wheat Hamburger Buns",
+      "reason": "Catalog Publix, photo Brownberry."
+    },
+    {
+      "product_id": "283cdc08-a0b6-4d0b-89f5-fd44e49ae836",
+      "name": "St. Pierre Brioche Burger Buns",
+      "reason": "Catalog St. Pierre 4 count, photo unlabeled two buns."
+    },
+    {
+      "product_id": "639bbad1-e56f-41bc-b98e-ed02ef9a829c",
+      "name": "Thomas' Everything Bagels",
+      "reason": "Duplicate visual/6-count listing for Thomas Everything Bagels."
+    },
+    {
+      "product_id": "e555164b-1a70-446a-a3fe-7e13c847ba72",
+      "name": "Arnold Select Sandwich Thins Whole Wheat",
+      "reason": "Catalog 8 count, photo 6 count."
+    }
+  ]
+}
