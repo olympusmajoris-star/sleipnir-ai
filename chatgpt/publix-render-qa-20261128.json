@@ -423,6 +423,36 @@
       "product_id": "0768ed9e-19c7-40f6-8f3f-a5bf546a2466",
       "name": "Publix Premium Frozen Sea Scallops",
       "reason": "Photo GreenWise 24 oz, not Publix 16 oz."
+    },
+    {
+      "product_id": "ae696526-f3e0-481a-8a16-c34c5d749081",
+      "name": "GreenWise Mushroom, Organic, White, Sliced",
+      "reason": "Only mushroom label visible, no verified package."
+    },
+    {
+      "product_id": "6440ebb1-3a0b-429a-9eee-39f9c32cb4dd",
+      "name": "GreenWise Mushrooms, Organic, Baby Bella, Sliced",
+      "reason": "Only mushroom label visible, no verified package."
+    },
+    {
+      "product_id": "a60a3225-e016-46c5-9706-317cee298509",
+      "name": "Pero Family Farms Snipped Green Beans",
+      "reason": "32 oz listing uses similar 12 oz Pero snipped green beans reference; original already has 12 oz facing."
+    },
+    {
+      "product_id": "77a1fedf-2132-4280-a8ac-0dbaf1302944",
+      "name": "Sunset Brands Teeny Tiny Cucumbers",
+      "reason": "Reference Mucci cute cucumber poppers, not Sunset Teeny Tiny Cucumbers."
+    },
+    {
+      "product_id": "e8684cd6-c607-46c6-baa6-7fc35e25d881",
+      "name": "Publix Snow Peas, Microwavable",
+      "reason": "Photo is Pero Family Farms snow peas; catalog Publix, original already displays Pero."
+    },
+    {
+      "product_id": "25de3721-9ec3-4144-b594-f26f034b1803",
+      "name": "Publix Spinach Salad",
+      "reason": "Unlabeled mixed salad image; exact spinach salad packaging cannot be verified."
     }
   ]
 }
