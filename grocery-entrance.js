@@ -81,6 +81,15 @@ const id=(args().get('store')||'').toLowerCase();
 const media=(path,folder)=>mediaPath(path,conf.url,folder);
 let doors=[],panels=[],currentDoor,activeSku,controller,store,mode,initialLoaded=false,revision=0,dgShelfMount=null;
 const formatPrice=value=>value==null||!Number.isFinite(Number(value))?'Price unavailable':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value));
+const pub=global.PublixHeldDisplays;
+const heldRegular=door=>id===PUBLIX&&pub?.regular.has(door?.label)&&door?.authored?.stock_mode!=='custom';
+const heldSupported=door=>id===PUBLIX&&pub?.supports(door?.label)&&door?.authored?.stock_mode!=='custom';
+let showingPage=0, touchStart=null, groupDoor='';
+const heldSetting=(k,def)=>{try{return localStorage.getItem(k)??def;}catch{return def;}};
+const putHeld=(k,v)=>{try{localStorage.setItem(k,String(v));}catch{}};
+$('heldPrices').checked=heldSetting('publix-held-prices','1')!=='0';
+$('heldPopups').checked=heldSetting('publix-held-popups','1')!=='0';
+$('heldPriceSize').value=heldSetting('publix-held-price-size','125');
 async function read(table,params,signal){
  const rows=[],maximum=params.limit?Math.max(1,Number(params.limit)):Infinity;
  for(let offset=0;offset<maximum;offset+=500){
@@ -219,7 +228,7 @@ async function publishedPanels(door,signal){
  return result;
 }
 function navigate(door,inside=false,page=0,replace=false){
- const here=new URL(location.href);here.searchParams.set('door',doorKey(door));
+ const here=new URL(location.href);here.searchParams.set('door',doorKey(door));here.searchParams.delete('render');
  if(inside){here.searchParams.set('view','display');here.searchParams.set('panel',String(page+1));}
  else{here.searchParams.delete('view');here.searchParams.delete('panel');}
  history[replace?'replaceState':'pushState'](null,'',here);route();
@@ -302,6 +311,9 @@ function drawEntrance(door){
  if(denseShelf){if(door.renderedDG){drawDgRenderShelf(door,label);$('enter').textContent='Review '+label;}else drawDgShelf(door,label);}
 }
 async function loadPanels(door,signal){
+ if(heldRegular(door)){
+  return pub.load(door.label,{read,media,signal});
+ }
  if(door.kind==='Published aisles')return publishedPanels(door,signal);
  if(door.kind==='Rendered aisles')return targetRenderPanels(door,signal);
  if(door.kind==='Produce'){
@@ -312,7 +324,15 @@ async function loadPanels(door,signal){
   for(const r of rows.filter(r=>r.zone==='wall')){const shape=grid.get(r.image_path);r.zx0=r.grid_col/shape.cols;r.zx1=(r.grid_col+1)/shape.cols;r.zy0=Math.max(0,r.ty1-1/shape.rows);r.zy1=r.ty1;}
   return panelsFor(rows,await ownedProducts(rows,signal),id,media);
  }
- if(['Dairy & Eggs','Beer & Wine'].includes(door.label))return global.GroceryStationFixtures?global.GroceryStationFixtures.load(door.label,id,{read,media,signal}):[];
+ if(['Dairy & Eggs','Beer & Wine'].includes(door.label)){
+  const old=global.GroceryStationFixtures?await global.GroceryStationFixtures.load(door.label,id,{read,media,signal}):[];
+  if(!heldSupported(door))return old;
+  try{
+   const protectedIds=new Set(old.filter(p=>!p.layered||p.menu).flatMap(p=>p.spots.map(s=>s.id)));
+   const fresh=await pub.load(door.label,{read,media,signal,protectedIds});
+   return pub.merge(door.label,old,fresh);
+  }catch(e){if(signal.aborted)throw e;return old;}
+ }
  const sections=await read('door_sections',{select:'door,kind,station,ord',door:'eq.'+door.label,order:'ord'},signal);
  const priced={'Frozen Foods':'Publix Frozen Foods Priced 20261120','Frozen Seafood':'Publix Frozen Seafood Priced 20261120','Freezer Bins':'Publix Freezer Bins Priced 20261120'};
  const lists=await Promise.all(sections.map(async section=>{
@@ -326,7 +346,15 @@ async function loadPanels(door,signal){
   const products=rows.filter(r=>r.store_id===id).map(r=>({id:r.product_id,store_id:r.store_id,name:r.product_name,price:r.price}));
   return panelsFor(rows,products,id,media);
  }));
- return lists.flat();
+ const old=lists.flat();
+ if(heldSupported(door)&&door.label==='Deli'){
+  try{
+   const protectedIds=new Set(old.filter(p=>!p.layered||p.menu).flatMap(p=>p.spots.map(s=>s.id)));
+   const fresh=await pub.load(door.label,{read,media,signal,protectedIds});
+   return pub.merge(door.label,old,fresh);
+  }catch(e){if(signal.aborted)throw e;return old;}
+ }
+ return old;
 }
 const panelCache=new Map(),appliedScales=new Map();
 async function loadScales(panel,signal){
@@ -370,7 +398,10 @@ function drawSeafoodLane(product){
  lane.append(stock);$('spots').append(lane);
 }
 function showSku(product,panel,index){
+ if(panel.heldRender&&!$('heldPopups').checked)return;
  activeSku={product,panel,index,door:currentDoor};$('skuName').textContent=product.name;$('skuPrice').textContent=formatPrice(product.price);$('skuContext').textContent=store.name+' · '+currentDoor.label+' · Display '+(index+1);$('skuSource').textContent=panel.layered?'The product photo is a separate layer on this department display.':'This product is part of a published display photograph. A repair flag identifies its exact position for the next render.';
+ $('skuSize').textContent=panel.heldRender?product.description||'':'';$('skuSize').hidden=!$('skuSize').textContent;
+ if(panel.heldRender)$('skuSource').textContent='Full shelf render · Studio review. Product details and prices come from the catalog.';
  const selection=activeSku, doorLabel=currentDoor.label;
  $('skuCatalogEdit').replaceChildren(global.StudioProductDetails.button({
    storeId:id,productId:product.id,current:()=>activeSku===selection && $('sku').open,
@@ -389,6 +420,22 @@ function showSku(product,panel,index){
 }
 function drawPanel(index){
  const panel=panels[index];$('status').textContent='';$('retry').hidden=true;$('storeRepair').hidden=Boolean(panel.spots.length);
+ showingPage=index;
+ const hasHeld=panels.some(p=>p.heldRender);
+ $('heldControls').hidden=!hasHeld;
+ $('heldLegacy').hidden=!heldRegular(currentDoor);
+ if(heldRegular(currentDoor))$('heldLegacy').href='grocery-aisle-editor.html?'+new URLSearchParams({store:id,aisle:currentDoor.label,legacy:'1'});
+ if(hasHeld){
+  const key=currentDoor.label;
+  if(groupDoor!==key){
+   groupDoor=key;$('heldSearch').value='';
+   const groups=[...new Set(panels.flatMap(p=>p.groups||[]))];
+   $('heldGroups').replaceChildren(new Option('All product groups',''),...groups.map(g=>new Option(g,g)));
+  }
+  $('heldGroups').value=panel.groups?.[0]||'';
+  $('heldNotice').textContent=panel.heldRender?(panel.publishStatus==='ready'?'Full shelf render':'Full shelf render · Studio draft'):'Existing display · unchanged';
+ }
+ $('picture').classList.toggle('publix-held-picture',Boolean(panel.heldRender));
  const names=[currentDoor.label];
  if(panel.layered&&panel.station&&!names.includes(panel.station)&&!(panel.label||'').startsWith(panel.station))names.push(panel.station);
  if(panel.label&&!names.includes(panel.label))names.push(panel.label);
@@ -416,10 +463,13 @@ function drawPanel(index){
    for(const face of faces){if(!validBox(face.box))continue;const layer=document.createElement('img');layer.className='product-layer';layer.alt='';productImage(layer,product);layer.dataset.product=product.id;layer.style.transform='scale('+(appliedScales.get(product.id)?.scale||1)+')';layer.style.opacity=String(face.opacity);position(layer,face.box);$('spots').append(layer);}
   }
   if(validBox(product.railBox)){const rail=document.createElement('span');rail.className='front-rail';position(rail,product.railBox);$('spots').append(rail);}
-  if(validBox(product.tagBox)){const price=document.createElement('span');price.className='price-layer'+(product.menuRow?' menu-row':'')+(panel.seafoodFreezer?' seafood-ticket':'');const name=document.createElement('span'),amount=document.createElement('b');if(product.menuRow&&/^#[a-f0-9]{6}$/i.test(product.textColor||''))price.style.color=product.textColor;name.textContent=product.ticketLabel||product.name;amount.textContent=formatPrice(product.price);price.title=product.name;price.append(name,amount);position(price,product.tagBox);$('spots').append(price);}
+  if(panel.heldRender&&validBox(product.tagBox)&&$('heldPrices').checked&&product.price!=null){
+   const price=document.createElement('span');price.className='held-price';price.textContent=formatPrice(product.price);price.title=product.name;
+   position(price,product.tagBox);price.style.setProperty('--held-price-scale',Number($('heldPriceSize').value)/100);$('spots').append(price);
+  }else if(!panel.heldRender&&validBox(product.tagBox)){const price=document.createElement('span');price.className='price-layer'+(product.menuRow?' menu-row':'')+(panel.seafoodFreezer?' seafood-ticket':'');const name=document.createElement('span'),amount=document.createElement('b');if(product.menuRow&&/^#[a-f0-9]{6}$/i.test(product.textColor||''))price.style.color=product.textColor;name.textContent=product.ticketLabel||product.name;amount.textContent=formatPrice(product.price);price.title=product.name;price.append(name,amount);position(price,product.tagBox);$('spots').append(price);}
   for(const [i,box] of product.boxes.filter(validBox).entries()){
    const hit=document.createElement('button');hit.className='hit';hit.type='button';hit.title=product.name;hit.setAttribute('aria-label',product.name+(i===0?'':' price ticket'));if(i>0)hit.tabIndex=-1;
-   hit.dataset.product=product.id;position(hit,box);hit.onclick=()=>showSku(product,panel,index);$('spots').append(hit);
+   hit.dataset.product=product.id;position(hit,box);hit.onclick=()=>showSku(product,panel,index);if(panel.heldRender&&!$('heldPopups').checked)hit.disabled=true;$('spots').append(hit);
   }
   const choice=document.createElement('button');choice.textContent=product.name;choice.dataset.product=product.id;choice.onclick=()=>showSku(product,panel,index);$('productList').append(choice);
  }
@@ -451,12 +501,12 @@ async function route(){
   currentDoor=requested?doors.find(d=>doorKey(d)===requested):doors[0];
   if(!currentDoor&&mode==='dollar-general'&&doors[0]?.renderedDG&&requested==='Deals & General Merchandise')currentDoor=doors[0];
   if(!currentDoor){$('storeRepair').hidden=false;throw Error('This department is unavailable for '+store.name+'.');}
-  if(currentDoor.renderedDG||q.get('view')!=='display'||currentDoor.kind==='Aisles'||currentDoor.authored?.stock_mode==='custom'){drawEntrance(currentDoor);return;}
+   if(currentDoor.renderedDG||q.get('view')!=='display'||(currentDoor.kind==='Aisles'&&!heldRegular(currentDoor))||currentDoor.authored?.stock_mode==='custom'){drawEntrance(currentDoor);return;}
   $('entrances').hidden=true;$('display').hidden=false;$('sectionName').textContent=currentDoor.label;$('status').textContent='Loading shopping displays…';
   const key=currentDoor.label;
   if(!panelCache.has(key)){const collection=await loadPanels(currentDoor,signal);if(signal.aborted||request!==revision)return;panelCache.set(key,collection);}
   panels=panelCache.get(key);if(!panels.length){$('status').textContent='No published product display is available for this department.';$('storeRepair').hidden=false;return;}
-  const wanted=Number(q.get('panel'));const page=Number.isSafeInteger(wanted)&&wanted>0?Math.min(wanted-1,panels.length-1):0;
+   const wanted=Number(q.get('panel')),render=Number(q.get('render'));const exact=render>0?panels.findIndex(p=>p.heldRender&&p.renderNo===render):-1;const page=exact>=0?exact:Number.isSafeInteger(wanted)&&wanted>0?Math.min(wanted-1,panels.length-1):0;
   try{await loadScales(panels[page],signal);}catch(error){if(signal.aborted)return;for(const item of panels[page].spots)appliedScales.delete(item.id);}
   if(signal.aborted||request!==revision)return;drawPanel(page);
   $('prevPage').onclick=()=>navigate(currentDoor,true,page-1);$('nextPage').onclick=()=>navigate(currentDoor,true,page+1);
@@ -466,9 +516,22 @@ function enter(){
  if(!currentDoor)return;
  if(currentDoor.renderedDG){location.assign('dg-render-review.html?'+new URLSearchParams({store:id,aisle:currentDoor.label}));return;}
  if(currentDoor.authored?.stock_mode==='custom'){location.assign('grocery-aisle-editor.html?'+new URLSearchParams({store:id,authored:currentDoor.authored.aisle_id}));return;}
- if(currentDoor.kind==='Aisles'){location.assign('grocery-aisle-editor.html?'+new URLSearchParams({store:id,aisle:currentDoor.label}));return;}
+ if(currentDoor.kind==='Aisles'&&!heldRegular(currentDoor)){location.assign('grocery-aisle-editor.html?'+new URLSearchParams({store:id,aisle:currentDoor.label}));return;}
  navigate(currentDoor,true);
 }
+function findHeld(){
+ const q=$('heldSearch').value.trim().toLowerCase();if(!q)return;
+ const index=panels.findIndex(p=>p.spots.some(s=>[s.name,s.description].join(' ').toLowerCase().includes(q)));
+ if(index>=0)navigate(currentDoor,true,index);else $('heldNotice').textContent='No matching current display. Check the original aisle editor for remaining products.';
+}
+$('heldFind').onclick=findHeld;$('heldSearch').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();findHeld();}};
+$('heldGroups').onchange=()=>{const group=$('heldGroups').value;const index=group?panels.findIndex(p=>p.groups?.includes(group)):0;if(index>=0)navigate(currentDoor,true,index);};
+for(const [input,key] of [['heldPrices','publix-held-prices'],['heldPopups','publix-held-popups']]){
+ $(input).onchange=()=>{putHeld(key,$(input).checked?'1':'0');if(input==='heldPopups'&&!$(input).checked&&$('sku').open)$('sku').close();if(panels[showingPage])drawPanel(showingPage);};
+}
+$('heldPriceSize').oninput=()=>{putHeld('publix-held-price-size',$('heldPriceSize').value);if(panels[showingPage])drawPanel(showingPage);};
+$('picture').addEventListener('touchstart',e=>{if(panels[showingPage]?.heldRender)touchStart=e.touches[0].clientX;},{passive:true});
+$('picture').addEventListener('touchend',e=>{if(touchStart===null)return;const dx=e.changedTouches[0].clientX-touchStart;touchStart=null;if(Math.abs(dx)>50){const next=Math.max(0,Math.min(panels.length-1,showingPage+(dx<0?1:-1)));if(next!==showingPage)navigate(currentDoor,true,next);}}, {passive:true});
 $('retryAuthored').onclick=()=>{initialLoaded=false;route();};
 global.StudioSelectionTarget=()=>!store?null:{item:'grocery',page:'StoreEntrancePage',store:id,
   aisle:currentDoor?doorKey(currentDoor):'',part:activeSku?.product?.id||'',label:activeSku?.product?.name||currentDoor?.label||store.name};
@@ -498,5 +561,6 @@ $('flag').onclick=async()=>{
 };
 global.addEventListener('popstate',route);route();
 })(typeof window!=='undefined'?window:globalThis);
+
 
 
