@@ -354,9 +354,8 @@ async function loadPanels(door,signal){
  const sections=await read('door_sections',{select:'door,kind,station,ord',door:'eq.'+door.label,order:'ord'},signal);
  const priced={'Frozen Foods':'Publix Frozen Foods Priced 20261120','Frozen Seafood':'Publix Frozen Seafood Priced 20261120','Freezer Bins':'Publix Freezer Bins Priced 20261120'};
  const lists=await Promise.all(sections.map(async section=>{
-  if(id===PUBLIX&&door.label==='Seafood'&&section.station==='Frozen Seafood'){
-   return global.PublixSeafoodFreezer.load({read,photoUrl:catalogPhoto,signal});
-  }
+  // Frozen seafood already has 20 complete priced images in the station manifest.
+  // Use that same existing artwork as the Frozen Foods door, not a layered reconstruction.
   if(door.label==='Deli'&&section.kind!=='render'&&global.GroceryStationFixtures?.loadSection){
    return global.GroceryStationFixtures.loadSection(door.label,section,id,{read,media,signal});
   }
@@ -613,6 +612,7 @@ $('flag').onclick=async()=>{
 };
 global.addEventListener('popstate',route);route();
 })(typeof window!=='undefined'?window:globalThis);
+
 
 
 
