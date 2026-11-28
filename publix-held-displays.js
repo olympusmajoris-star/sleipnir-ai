@@ -65,6 +65,15 @@ async function load(label,{read,media,signal,protectedIds=new Set()}){
 // Keep every original photo/menu untouched. Only suppress the covered
 // separately positioned product layers, leaving any uncovered SKU accessible.
 function merge(label,original,fresh){
+ // Deli has a counter, hot foods, sushi and a menu, not a wall of floating
+ // thumbnails. Keep the original complete photographs and the Subs menu.
+ // Any catalog products not on those or on a full render are handled by
+ // the non-photo catalog access in the Deli preview.
+ if(label==='Deli'){
+   const good=original.filter(p=>!p.layered||p.menu);
+   const first=good.findIndex(p=>p.menu||p.label==='Hot Foods'||p.label==='Sushi');
+   return first===-1?[...good,...fresh]:[...good.slice(0,first),...fresh,...good.slice(first)];
+ }
  if(!fresh.length)return original;
  const covered=new Set(fresh.flatMap(p=>p.spots.map(s=>s.id)));
  const remainder=original.flatMap(p=>{
@@ -72,10 +81,6 @@ function merge(label,original,fresh){
    const spots=p.spots.filter(s=>!covered.has(s.id));
    return spots.length?[{...p,spots}]:[];
  });
- if(label==='Deli'){
-   const at=remainder.findIndex(p=>p.layered&&!p.menu);
-   return at===-1?[...remainder,...fresh]:[...remainder.slice(0,at),...fresh,...remainder.slice(at)];
- }
  return [...fresh,...remainder];
 }
 const api={storeId,regular,supports,sourceFor,rowCounts,makePanels,load,merge};
