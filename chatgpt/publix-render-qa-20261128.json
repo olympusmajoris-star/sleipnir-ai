@@ -2,1182 +2,1995 @@
   "store": "Publix (Island Walk)",
   "store_id": "189581c9-d728-4e5d-9e02-ae4de19a15af",
   "date": "2026-11-28",
-  "note": "Records not rendered because of wrong source packaging, duplicate/near-duplicate original artwork, or non-grocery/alcohol exclusion. Original renders and catalog records left intact. Verify SKU and existing images before generating. This list is not the entire remaining queue.",
+  "note": "Current candidate queue cross-checked against original station, produce, menu and held render records. Original artwork preserved. All remaining candidate IDs below have a reason; no unreviewed candidates remain in this specific queue. Not a claim that legacy layered displays or catalog corrections are complete.",
+  "newly_added": {
+    "renders": 76,
+    "products": 739,
+    "status": "held"
+  },
+  "all_held": [
+    {
+      "aisle": "Bakery",
+      "renders": 1,
+      "slots": 9,
+      "distinct_products": 9,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Beverages",
+      "renders": 54,
+      "slots": 677,
+      "distinct_products": 677,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Bread & Rolls",
+      "renders": 5,
+      "slots": 53,
+      "distinct_products": 53,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Breakfast",
+      "renders": 4,
+      "slots": 37,
+      "distinct_products": 37,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Canned Goods & Soups",
+      "renders": 10,
+      "slots": 103,
+      "distinct_products": 103,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Condiments & Sauces",
+      "renders": 59,
+      "slots": 817,
+      "distinct_products": 817,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Dairy & Eggs",
+      "renders": 58,
+      "slots": 706,
+      "distinct_products": 706,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Deli & Prepared Foods",
+      "renders": 49,
+      "slots": 513,
+      "distinct_products": 513,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Dry Goods & Pasta",
+      "renders": 27,
+      "slots": 388,
+      "distinct_products": 388,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Frozen",
+      "renders": 2,
+      "slots": 9,
+      "distinct_products": 9,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Meat & Poultry",
+      "renders": 2,
+      "slots": 17,
+      "distinct_products": 17,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Produce",
+      "renders": 19,
+      "slots": 153,
+      "distinct_products": 153,
+      "bad_slots": 0
+    },
+    {
+      "aisle": "Snacks",
+      "renders": 50,
+      "slots": 620,
+      "distinct_products": 620,
+      "bad_slots": 0
+    }
+  ],
+  "remaining_review": 269,
+  "review_categories": {
+    "Packaging or catalog correction": 106,
+    "Original or duplicate; verify SKU": 100,
+    "Excluded by scope": 55,
+    "Special fixture or menu": 8
+  },
   "items": [
     {
-      "product_id": "0a40689c-04dd-425d-a789-e5462e5f2918",
-      "name": "Del Monte Red Grapefruit In 100% Juice",
-      "reason": "Catalog title says in 100% juice but actual linked photo says in extra light syrup; refrigerated cup."
-    },
-    {
-      "product_id": "7c38c109-f0d7-40a5-a872-61a81e353801",
-      "name": "Mt. Olive Kosher Dill Chips",
-      "reason": "Catalog 16 oz jar reference is 4.8 oz pouch."
-    },
-    {
-      "product_id": "755e29e9-9c96-445f-b754-174ab37c9278",
-      "name": "Swiss Miss Cocoa",
-      "reason": "Catalog 10-count cocoa; original photo shows 8-count."
-    },
-    {
-      "product_id": "a9a5ac88-0cce-4413-9fd3-75c6e2a849d2",
-      "name": "Almond Breeze Milk",
-      "reason": "Catalog unsweetened vanilla; original photo shows Original sweetened."
-    },
-    {
-      "product_id": "31184454-0282-444a-8f04-c537cb97ae48",
-      "name": "Simply Orange Pulp",
-      "reason": "Catalog says Pulp; original photo explicitly Pulp Free."
-    },
-    {
-      "product_id": "a406b2e9-07c0-4491-878f-9df156d3ad15",
-      "name": "Pop-Tarts Strawberry",
-      "reason": "Catalog Pop-Tarts 8-count; photo Publix 12-count."
-    },
-    {
-      "product_id": "ad6bdb59-d8a6-40b9-84a5-6548bf9f3449",
-      "name": "Vlasic Bread & Butter Chips",
-      "reason": "Likely duplicate of identically packaged 24 fl oz Vlasic pickle SKU; confirm canonical catalog record before duplicate-facing render."
-    },
-    {
-      "product_id": "8781d5fc-a791-47a6-83ee-7cbb2c6c414e",
-      "name": "Kinder's Buttery Buffalo Wing Sauce & Dip",
-      "reason": "Catalog size is 402 oz, original photo indicates 14.2 oz (402g)."
-    },
-    {
-      "product_id": "bef6665d-4a2b-456e-a6be-4f4494038239",
-      "name": "Honey Nut Cheerios",
-      "reason": "Same Honey Nut Cheerios 10.8oz as the new breakfast shelf; check canonical listing and pack/price before duplicating the facing."
-    },
-    {
-      "product_id": "c7b6c301-45fd-4b02-b3a3-a1aa1f8a53fc",
-      "name": "Publix GreenWise Organic Blue Corn Tortilla Chips",
-      "reason": "Catalog 12 oz; original package appears 255g/9 oz."
-    },
-    {
-      "product_id": "20fbb525-0305-48f3-8b17-3e41cb50417f",
-      "name": "Publix Restaurant Style Tortilla Chips",
-      "reason": "Catalog 13 oz; original photo shows 9 oz."
-    },
-    {
-      "product_id": "441d83c9-50e7-4694-9e8e-d2a05b353a33",
-      "name": "Stacy's Pita Chips Simply Naked",
-      "reason": "Catalog 7.3 oz; original photo shows 1.5 oz."
-    },
-    {
-      "product_id": "325c2dd3-9aa8-4db7-92c0-fb938f59a054",
-      "name": "Funyuns Onion Flavored Rings",
-      "reason": "Catalog 6 oz; package photo shows 5.25 oz."
-    },
-    {
-      "product_id": "39fae685-5c88-4f89-8327-cd229a827787",
-      "name": "King's Hawaiian Sweet Rolls",
-      "reason": "Catalog 12-count, stock photo 24-count."
-    },
-    {
-      "product_id": "199e8d5d-af3d-4e55-960c-0ba7c61c4150",
-      "name": "La Banderita White Corn Tortillas",
-      "reason": "Catalog 25 count, photo 18-count."
-    },
-    {
-      "product_id": "41b397a1-4d34-467b-87bb-01789b4012b4",
-      "name": "Mission Street Tacos Flour Tortillas",
-      "reason": "Catalog 24 count, photo 12-count."
-    },
-    {
-      "product_id": "280db1fa-4339-4fb4-8a47-2643ded6915b",
-      "name": "Publix Bakery Brioche Hamburger Buns",
-      "reason": "Catalog says 4-count, package shows two buns with no label."
-    },
-    {
-      "product_id": "3818cae0-f005-4412-98ef-ac6a9cbd9279",
-      "name": "Publix Bakery Everything Hamburger Buns",
-      "reason": "Catalog everything buns 4 ct, photo is 13oz plain hamburger bun bag."
-    },
-    {
-      "product_id": "12882a24-3f65-4250-9cd6-af3203457e21",
-      "name": "Publix Bakery Pretzel Hamburger Buns",
-      "reason": "Catalog Publix bakery, photo Pretzilla 4-count."
-    },
-    {
-      "product_id": "9f603a7f-72bc-4e59-be08-73755a4e0249",
-      "name": "Publix Bakery Pumpernickel Round",
-      "reason": "Catalog whole 16oz round loaf, photo shows bread-and-dip platter."
-    },
-    {
-      "product_id": "e8b09a6f-438e-42ec-96d1-df2d33b97fd2",
-      "name": "Publix Enriched White Seeded Buns",
-      "reason": "Catalog says 12oz, exact same photo as 13oz sesame buns."
-    },
-    {
-      "product_id": "a2a7c014-1c00-4e38-87df-f1904a8344c7",
-      "name": "Publix Hamburger Buns",
-      "reason": "Catalog says 12oz, photo 13oz."
-    },
-    {
-      "product_id": "c8b306cc-71ba-4e80-9002-e8b2af5802a1",
-      "name": "Publix Texas Toast Bread",
-      "reason": "Catalog says Publix, photo Lewis Texas Toast."
-    },
-    {
-      "product_id": "87c0a89a-ec60-4927-86de-cd0704739f5e",
-      "name": "Publix Whole Wheat Hamburger Buns",
-      "reason": "Catalog Publix, photo Brownberry."
-    },
-    {
-      "product_id": "283cdc08-a0b6-4d0b-89f5-fd44e49ae836",
-      "name": "St. Pierre Brioche Burger Buns",
-      "reason": "Catalog St. Pierre 4 count, photo unlabeled two buns."
-    },
-    {
-      "product_id": "639bbad1-e56f-41bc-b98e-ed02ef9a829c",
-      "name": "Thomas' Everything Bagels",
-      "reason": "Duplicate visual/6-count listing for Thomas Everything Bagels."
-    },
-    {
-      "product_id": "e555164b-1a70-446a-a3fe-7e13c847ba72",
-      "name": "Arnold Select Sandwich Thins Whole Wheat",
-      "reason": "Catalog 8 count, photo 6 count."
-    },
-    {
-      "product_id": "bb559a10-e7e7-424e-91c3-5c9ee5023a81",
-      "name": "McCormick Grill Mates Montreal Steak",
-      "reason": "3.4 oz catalog size contradicts photo showing 3x 3.4 oz bulk packaging."
-    },
-    {
-      "product_id": "bc64ffc9-dab1-44cb-beda-5c1134f48e8d",
-      "name": "Rao's Homemade Roasted Garlic",
-      "reason": "Duplicate identical 24 oz Rao's roasted garlic photo and product title variant; retain one shelf facing pending SKU merge confirmation."
-    },
-    {
-      "product_id": "2152935b-2afa-47c3-aa95-1bb8d1743a8f",
-      "name": "Tyson Premium Chunk White Chicken Breast, Twin Pack",
-      "reason": "Twin pack reference is only a floating Tyson logo; missing actual packaging."
-    },
-    {
-      "product_id": "2cf9dd5e-7b9c-467f-bd08-7a6a5c9aa035",
-      "name": "Dole Smoothie Shakers Strawberry Banana",
-      "reason": "Already represented by original station product 0c16d1ca-42d5-4ac2-a407-7e036937b5d2, 4 oz individual; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "fda380d4-f0f2-4b28-88ee-35b577bd7fa7",
-      "name": "Gorton's Beer Battered Fish Fillets",
-      "reason": "Already represented by original station product ace9361b-c87b-4198-83ce-faa4e47b8e2a, 10 ct box; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "98f8b847-709d-4a27-bfff-fa3ae54f3038",
-      "name": "Publix Frozen Blueberries",
-      "reason": "Already represented by original station product 9798bbcb-961f-436e-8990-42e795b86eac, 12 oz bag; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "ecf2184c-28e2-44c6-87e6-bf5e807f133e",
-      "name": "Publix Frozen Dark Sweet Cherries",
-      "reason": "Already represented by original station product 8424c137-9fa1-4426-80f5-a29c314cc03e, 12 oz bag; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "d0bfb52f-7c1f-45d4-b04f-52f0f5b08055",
-      "name": "Publix Frozen Mango Chunks",
-      "reason": "Already represented by original station product b0fb11bd-8c76-42f8-83ea-7af3e02d3989, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "4a6522ae-f39a-4f64-9eee-ce2f83125452",
-      "name": "Publix Frozen Mixed Berries",
-      "reason": "Already represented by original station product 104ef148-2a40-49c9-94a6-4e79c59fe9b8, 12 oz bag / Strawberries, Blueberries, Raspberries; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "98403ce8-8240-4053-a1d3-adc59fbd70f9",
-      "name": "Publix Frozen Pineapple Chunks",
-      "reason": "Already represented by original station product 30771d69-af8e-49ff-9e36-5a902fff25da, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "b3dbf929-8a99-415f-b177-e1bda9fa53ca",
-      "name": "Publix Frozen Sliced Peaches",
-      "reason": "Already represented by original station product 182c4d12-9589-4929-8302-e5afdaf63805, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "74686406-489d-457d-bbb1-84363b405271",
-      "name": "Publix Premium Frozen Yogurt Vanilla",
-      "reason": "Already represented by original station product 131af3fe-3bb0-494d-b489-9ee193590853, 48 oz; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "684084e9-4f44-4cdb-9ca3-c70ccae52b2f",
-      "name": "Wyman's Wild Blueberries",
-      "reason": "Already represented by original station product 12cb17c9-0c1b-4f8c-8730-91ef1942c938, 15 oz bag; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "f7c61f17-d09a-4465-a9a8-e00f0c0c5b05",
-      "name": "Lobster Tails",
-      "reason": "Already represented by original station product bff4e3fe-80e2-4cb0-876f-2ba3afa39ae5, 4oz cold water tail, each; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "66378a98-d998-4766-925d-d419d7d77852",
-      "name": "Baby Back Ribs",
-      "reason": "Already represented by original station product 04264806-0c09-4c58-ba0c-98412571aee3, Pork back ribs, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "243ae2f6-ceb9-470b-9aa0-19af68152ba4",
-      "name": "Beef Skirt Steak",
-      "reason": "Already represented by original station product 0622ff8f-435f-4329-863c-3ce29f650cdf, Perfect for fajitas, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "5efbd7ec-f11b-4ac4-9af7-70de874867ab",
-      "name": "Beef Tenderloin Roast",
-      "reason": "Already represented by original station product 3122160f-577b-4596-9021-efab3e55e994, Whole roast, approx 4lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "5a6fa733-440e-4191-a936-29f4db70d4c4",
-      "name": "Cornish Game Hen",
-      "reason": "Already represented by original station product 47bd1c52-8b47-40aa-8b0d-8265235077f5, Fresh whole hen, 20oz; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "93670799-e578-4b4f-a379-593bf0cbeec8",
-      "name": "Flank Steak",
-      "reason": "Already represented by original station product c622d3e6-963a-43af-a0e5-09c15e985cb4, Lean and flavorful, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "bc54ccb0-aafb-49d4-8a24-6df24c13b053",
-      "name": "Ground Chicken",
-      "reason": "Already represented by original station product 0538ee3a-d14d-4525-85e8-cd5c939f1ca2, 92% lean, 1lb pack; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "f2587c24-522d-4166-aff3-145f33c8c91c",
-      "name": "Lamb Shoulder Chops",
-      "reason": "Already represented by original station product 2a92f4cc-49d5-4359-99d3-cc9046904acc, Fresh domestic lamb, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "b192abdd-8560-422d-ba79-85c2fce1e49e",
-      "name": "New York Strip Steak",
-      "reason": "Already represented by original station product 91ac379f-fa94-4d2f-b454-2f7119d89065, Boneless center cut, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "1580f758-8818-4125-8fe9-306e1e082533",
-      "name": "New York Strip Steak",
-      "reason": "Already represented by original station product 91ac379f-fa94-4d2f-b454-2f7119d89065, Boneless center cut, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "f27c789d-d81c-46bd-859f-8ebdd406dc07",
-      "name": "Pork Loin Butterfly Chops",
-      "reason": "Already represented by original station product 47fa9c13-2e7c-4575-a7f7-bece1be195fc, Boneless center cut, 1lb pack; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "8d0e79bd-aed5-41d8-9628-8ad3a3ff74ce",
-      "name": "Porterhouse Steak",
-      "reason": "Already represented by original station product aeab5f98-c55d-4ed7-8078-f0d80d47d245, Publix Premium Beef, thick cut per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "a5a6d71b-001b-4024-a8f0-14eb92baca48",
-      "name": "Publix Corned Beef Brisket",
-      "reason": "Already represented by original station product 1dda8e83-6926-4bdc-9f09-3186b7df6938, Flat cut with spice pack, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "b77b078d-6b11-4e08-bd2c-7d98d5039585",
-      "name": "Whole Chicken",
-      "reason": "Already represented by original station product 9a11bfaa-450f-40cd-a090-4392f53b2f7b, Publix fresh young chicken, approx 4lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "a211a13c-4450-4c2f-9374-39da3b302868",
-      "name": "Blueberries",
-      "reason": "Already represented by original station product e338f56e-5a35-4501-b44e-e8d4ee5e59d1, 11 oz clamshell; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "1cdf4f85-cddf-42b7-8812-ce8406e09a1f",
-      "name": "Cod Fillets",
-      "reason": "Already represented by original station product 4cc91e9d-14f6-4368-928a-dd3802410493, Wild caught Atlantic cod, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "22c27ab1-1037-4165-85c5-34fcf4f70917",
-      "name": "Fresh Catfish Fillets",
-      "reason": "Already represented by original station product 05d49bb7-0447-499b-93cf-33c19f006f26, Farm raised, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "933af502-07d5-46a4-9446-0beba9b8cb62",
-      "name": "Fresh Grouper Fillet",
-      "reason": "Already represented by original station product a455eaa7-cd5d-471e-97dd-a9d17b4db4fa, Wild caught local favorite, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "b0c358c2-af28-4c38-9916-171e3e6d47fd",
-      "name": "Little Neck Clams",
-      "reason": "Already represented by original station product 6a58e31b-dfb8-4b1c-a2c5-5f0b70965766, Fresh whole in shell, 12-count; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "556ac618-b9e5-4763-98f7-bbe8f768b036",
-      "name": "Mahi Mahi Fillets",
-      "reason": "Already represented by original station product d3027bac-79bd-46c6-905c-4f0764b21237, Fresh wild caught, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "a1160999-e26c-4371-a73d-0ae5e1fc40b0",
-      "name": "Publix Aprons Salmon Pinwheels with Spinach",
-      "reason": "Already represented by original station product 9f90f4d7-0adf-4f56-bb72-9db35328fdbb, 2 ct / Fresh from meat case; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "43d4006c-5b18-4fdb-995a-0fb8b4ed199d",
-      "name": "Red Snapper Fillet",
-      "reason": "Already represented by original station product 3b94e1ab-f628-4816-bf40-c362124cf9c4, Fresh skin-on, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "c170b49a-ee4f-43dd-ade0-fa9f59c78c37",
-      "name": "Sea Scallops",
-      "reason": "Already represented by original station product 7204d6c3-f9a7-4e7c-92e5-78f0e5d54ebd, Fresh jumbo wild caught, per lb; duplicate catalog record or near variant—do not redraw original."
-    },
-    {
-      "product_id": "0073e9e7-fb99-4d25-b61e-7012f6f90af7",
-      "name": "Aunt Jemima (Pearl Milling) Pancakes",
-      "reason": "Photo is unboxed pancake stack, no exact packaging."
-    },
-    {
-      "product_id": "99c694a2-2fe7-4a6d-b8f3-6c6f5bbde355",
-      "name": "Bubba Burger Grass-Fed Beef",
-      "reason": "Bubba grass-fed already exists in original station, catalog photo is only logo."
-    },
-    {
-      "product_id": "e1fc8d0b-3018-4f4e-b823-4cefd6772bd5",
-      "name": "Generic Citrus Chicken Entree",
-      "reason": "Photo shows refrigerated prepared grilled chicken, not frozen entrée."
-    },
-    {
-      "product_id": "447965fb-7732-4779-ab45-25edf8410d2e",
-      "name": "Kodiak Cakes Power Waffles",
-      "reason": "Reference 13.4 oz Kodiak waffles already rendered; catalog 10.72 oz."
-    },
-    {
-      "product_id": "d07c8a73-810f-48e4-8ace-f2bc97c9fdd9",
-      "name": "Publix Beef Burgers 1/4 lb Patties",
-      "reason": "Publix title but photo Philly Gourmet."
-    },
-    {
-      "product_id": "f79c1f19-77e8-469d-a75d-c7c15202b8b9",
-      "name": "Publix Beef Meatballs",
-      "reason": "Catalog 26 oz frozen bag; photo fresh tray."
-    },
-    {
-      "product_id": "444c1b7a-b18c-4ed1-a3d3-100cc881e98d",
-      "name": "Publix Frozen Tropical Fruit Blend",
-      "reason": "Photo shows loose fruit pieces instead of bag."
-    },
-    {
-      "product_id": "2b21f9e2-c2a3-4558-b853-3ae4235e23b6",
-      "name": "Publix Mozzarella Sticks",
-      "reason": "Photo shows fresh string cheese rather than breaded frozen mozzarella sticks."
-    },
-    {
-      "product_id": "73bd8783-3bbf-4361-ac68-dad0dd03627e",
-      "name": "Publix Mozzarella Sticks",
-      "reason": "Photo shows fresh string cheese rather than breaded frozen mozzarella sticks."
-    },
-    {
-      "product_id": "55c4e63a-3c3a-4d9e-b0b6-b81b67a8b251",
-      "name": "Publix Premium Chicken Tikka Masala",
-      "reason": "Photo shows Deep Indian Kitchen, not Publix."
-    },
-    {
-      "product_id": "450ff664-0329-4979-b2b0-ae35219edf67",
-      "name": "Publix Premium Ice Cream Bourbon Pecan Praline",
-      "reason": "Photo is bourbon praline crumble, not 48 oz Bourbon Pecan Praline."
-    },
-    {
-      "product_id": "1afff7bd-e5de-4372-a819-1dc093e522f6",
-      "name": "Publix Premium Ice Cream Hula Hula Holiday",
-      "reason": "Photo Hula Hula Macadamia, not Holiday."
-    },
-    {
-      "product_id": "0c2e6e15-f4eb-471c-bd42-ba98b20c9bce",
-      "name": "Publix Premium Ice Cream Mint Mountain",
-      "reason": "Photo generic Mint Chocolate Chip, not Mint Mountain."
-    },
-    {
-      "product_id": "029bb777-6225-42fe-ac16-a96fef090734",
-      "name": "Cooked Shrimp",
-      "reason": "Photo cooked peel-and-eat 16 oz, not 12 oz."
-    },
-    {
-      "product_id": "1713586f-d1a3-412b-87d3-f260494776db",
-      "name": "Publix Frozen Cod Fillets",
-      "reason": "GreenWise cod loins 10 oz, not Publix 12 oz fillets."
-    },
-    {
-      "product_id": "5977aa76-92c3-4ffc-b212-e686cb0ab999",
-      "name": "Publix Frozen Ground Beef",
-      "reason": "Fresh tray ground beef rather than frozen roll."
-    },
-    {
-      "product_id": "fc751316-4d40-4067-81b9-aab2a97195ab",
-      "name": "Publix Frozen Meatballs Italian Style",
-      "reason": "Package size appears 16 oz, catalog 12 oz."
-    },
-    {
-      "product_id": "b6061bc8-94a2-4c88-9e43-cf19e50488fb",
-      "name": "Publix Frozen Pork Sausage Patties",
-      "reason": "Jones sausage patties 7 oz, not Publix 12 oz."
-    },
-    {
-      "product_id": "00732992-e185-4c22-9aab-35bbbc84712e",
-      "name": "Publix Premium Clams in Natural Juice",
-      "reason": "Photo clam juice bottle, not frozen clams."
-    },
-    {
-      "product_id": "4fc0f5af-5842-423a-8502-eb76e0d4f617",
-      "name": "Publix Premium Frozen Raw Shrimp",
-      "reason": "Photo 24 oz, not 2 lb."
-    },
-    {
-      "product_id": "0768ed9e-19c7-40f6-8f3f-a5bf546a2466",
-      "name": "Publix Premium Frozen Sea Scallops",
-      "reason": "Photo GreenWise 24 oz, not Publix 16 oz."
-    },
-    {
-      "product_id": "ae696526-f3e0-481a-8a16-c34c5d749081",
-      "name": "GreenWise Mushroom, Organic, White, Sliced",
-      "reason": "Only mushroom label visible, no verified package."
-    },
-    {
-      "product_id": "6440ebb1-3a0b-429a-9eee-39f9c32cb4dd",
-      "name": "GreenWise Mushrooms, Organic, Baby Bella, Sliced",
-      "reason": "Only mushroom label visible, no verified package."
-    },
-    {
-      "product_id": "a60a3225-e016-46c5-9706-317cee298509",
-      "name": "Pero Family Farms Snipped Green Beans",
-      "reason": "32 oz listing uses similar 12 oz Pero snipped green beans reference; original already has 12 oz facing."
-    },
-    {
-      "product_id": "77a1fedf-2132-4280-a8ac-0dbaf1302944",
-      "name": "Sunset Brands Teeny Tiny Cucumbers",
-      "reason": "Reference Mucci cute cucumber poppers, not Sunset Teeny Tiny Cucumbers."
-    },
-    {
-      "product_id": "e8684cd6-c607-46c6-baa6-7fc35e25d881",
-      "name": "Publix Snow Peas, Microwavable",
-      "reason": "Photo is Pero Family Farms snow peas; catalog Publix, original already displays Pero."
-    },
-    {
-      "product_id": "25de3721-9ec3-4144-b594-f26f034b1803",
-      "name": "Publix Spinach Salad",
-      "reason": "Unlabeled mixed salad image; exact spinach salad packaging cannot be verified."
-    },
-    {
+      "category": "Bakery",
       "product_id": "18268c44-470c-480e-aa65-6987e83b3c87",
       "name": "Dunkin Donuts Coffee",
+      "size": "12oz bag Original Blend",
       "reason": "Catalog 12 oz ground coffee bag, photo bottled iced coffee."
     },
     {
+      "category": "Bakery",
       "product_id": "8de07b10-1f6a-44bf-8656-177b285a9ee6",
       "name": "Dunkin' Caramel Coffee Cake K-Cup Pods",
+      "size": "Dunkin' 10 ct",
       "reason": "Catalog Caramel Coffee Cake pods; photo Dunkin Caramel (not coffee cake)."
     },
     {
-      "product_id": "9f607b9c-e207-45b3-891d-61d11da14b69",
-      "name": "Purely Elizabeth Protein Oatmeal, Maple Cinnamon Roll",
-      "reason": "Catalog 1.66 oz, photo multi-pack 5 servings."
+      "category": "Bakery",
+      "product_id": "39fae685-5c88-4f89-8327-cd229a827787",
+      "name": "King's Hawaiian Sweet Rolls",
+      "size": "12 ct",
+      "reason": "Catalog 12-count, stock photo 24-count."
     },
     {
-      "product_id": "9d0e4196-dbdc-41ad-b13b-8d8b0dc8b308",
-      "name": "Kodiak Granola Bars, Peanut Butter, Crunchy",
-      "reason": "Kodiak photo mostly erased, exact packaging not verifiable."
+      "category": "Bakery",
+      "product_id": "199e8d5d-af3d-4e55-960c-0ba7c61c4150",
+      "name": "La Banderita White Corn Tortillas",
+      "size": "25 ct / 25 oz",
+      "reason": "Catalog 25 count, photo 18-count."
     },
     {
-      "product_id": "d7a1fd4a-47cd-4ead-8712-54e53fffa5ad",
-      "name": "Larabar Peanut Butter Cookie",
-      "reason": "Catalog peanut butter cookie 5 ct, photo chocolate chip 8 ct."
-    },
-    {
+      "category": "Bakery",
       "product_id": "72d4825b-f0db-4ad5-b999-c2459a92f564",
       "name": "Little Debbie Chocolate Chip Mini Muffins",
+      "size": "Little Debbie 8.27 oz",
       "reason": "No package in reference, loose muffins only."
     },
     {
-      "product_id": "bd74a718-07f7-4f33-a64d-6970b96e4b5e",
-      "name": "Publix Flavored Croutons, Garlic & Butter",
-      "reason": "Reference package text is erased; no verified variant."
+      "category": "Bakery",
+      "product_id": "41b397a1-4d34-467b-87bb-01789b4012b4",
+      "name": "Mission Street Tacos Flour Tortillas",
+      "size": "24 ct / Mini",
+      "reason": "Catalog 24 count, photo 12-count."
     },
     {
-      "product_id": "1212938b-fb49-414d-a9d3-db61200cda3c",
-      "name": "Publix Cheese Squares",
-      "reason": "Catalog cracker box, photo cheese party tray."
-    },
-    {
-      "product_id": "691a8c28-089c-45d2-bc70-6bac27369fff",
-      "name": "Green Life Farms Sandwich Leaf",
-      "reason": "Photo Kalera Krunch Leaf, not Green Life Farms Sandwich Leaf."
-    },
-    {
-      "product_id": "9a161745-eb06-451f-a2a5-621226bab708",
-      "name": "Publix Carrots, Dip Chip",
-      "reason": "Catalog photo mostly erased, original produce display already has carrot chip style."
-    },
-    {
-      "product_id": "31b672b2-7f63-4c29-b85e-f270797f8e40",
-      "name": "Château d’Esclans Whispering Angel Rosé",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "e31152b6-48fd-48f8-937c-825f0ba594b3",
-      "name": "Hampton Water Rosé",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "eae17509-72cc-489e-bf4f-5417e2e6bdb3",
-      "name": "Mike's HARDER Lemonade",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "ce51fac7-c407-4f8e-aa56-7c3be4c65dcb",
-      "name": "mike’s HARDER Pink Lemonade, 23.5 fl oz Can, 8% ABV",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "f2b574dc-9936-41c0-a49f-425419630263",
-      "name": "Mike’s Lemonade Flavors Of America",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "a2cd7beb-dec7-47e9-9a07-134e0c383985",
-      "name": "Mike’s Original Hard Lemonade",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "48587dc1-093c-42e5-8ec4-0583c858590b",
-      "name": "Mom Water Mom Squad Variety Pack",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "b7c140d2-3b4a-4ca0-bae4-d661611a61a7",
-      "name": "Mom Water Vacation Mode Variety Pack",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "cd7b364d-96b0-4413-962d-69f4c4f3ec28",
-      "name": "Simply Spiked Variety Pack Hard Lemonade",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "85508f3c-4e35-48a8-8aef-449b2a5195b7",
-      "name": "Smirnoff Ice Neon Lemonade Variety, 12 pack Cans, 12 fl oz, 4.5% ABV",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "e407e2a4-5fe0-4801-a7b8-abd5d1f9f320",
-      "name": "Sun Cruiser Assorted Iced Teas & Lemonades Sampler Pack",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "299418ad-1b54-47e0-887d-ecac3960785d",
-      "name": "Sun Cruiser Lemonade Variety Pack",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "6ccff925-574c-4767-a6ff-3dcec1fe793c",
-      "name": "Surfside Iced Tea Pack",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "c8cbb68a-a18f-4e53-b069-f0e66fcecb3f",
-      "name": "Surfside Lemonade Pack",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "8265166b-98ff-4470-b581-9894581f44a6",
-      "name": "The Long Drink Traditional, Citrus Soda, With Premium Liquor",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "3fa18be2-8946-4371-a1e6-8c235e4d7492",
-      "name": "Twisted Tea Extreme Assorted Hard Iced Tea",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "fda0fc04-9a54-48d2-bc1d-c72ec35a31f4",
-      "name": "Twisted Tea Light Variety Pack, Hard Iced Tea (12 fl. oz. Can, 12pk.)",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "47cd4ce9-33e8-4a93-9f46-8167fc58ab0f",
-      "name": "Twisted Tea Original, Hard Iced Tea (12 fl. oz. Can, 12pk.)",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "09a78855-cb7f-40dc-a159-adc7b558efc2",
-      "name": "Twisted Tea Original, Hard Iced Tea (24 fl. oz. Can)",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "5944861d-b5e4-4cd9-9939-9369647e1f02",
-      "name": "Arnold Palmer Spiked Original Half & Half Iced Tea Lemonade",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "981c6b8c-dc6f-4c82-836f-88bf2f4dcf85",
-      "name": "Twisted Tea Half & Half, Hard Iced Tea",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "d50cc636-4727-4ef4-b244-b5aef332a44b",
-      "name": "Riunite Lambrusco, Emilia",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "b9c8e3c3-099a-413f-a4df-e738f6a49da2",
-      "name": "BeatBox Blue Razzberry Malt Beverage",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "109ab06b-d3f1-41d9-aa29-aa70d082c320",
-      "name": "Stella Rosa Berry",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "613679b2-b6fb-4174-8c93-0177f5a99eaf",
-      "name": "Stella Rosa Tropical Mango",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "0a980de2-57cb-4446-aa8c-47e57845a9d0",
-      "name": "Verdi Raspberry Sparkletini",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "35f88d3f-6881-4150-93f8-e2af6722d5b1",
-      "name": "Victory Brewing Company Berry Monkey",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "adfef12a-4b37-4eef-bfea-e1edd915c446",
-      "name": "Oyster Bay Chardonnay",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "2064b4d2-4157-481a-998d-664d03f7e3f8",
-      "name": "Oyster Bay Pinot Grigio White Wine",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "974efaed-7811-4453-a251-72c68f85b8eb",
-      "name": "Oyster Bay Sauvignon Blanc",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "88812014-f61c-452f-b221-e7b731ab7473",
-      "name": "Chandon Garden Spritz",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "17bb439b-99ea-4b94-ac0b-bfff2e389ba1",
-      "name": "ChocoVine Dark Chocolate",
-      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
-    },
-    {
-      "product_id": "a46043fe-00a6-459f-bad7-1ad0183bed55",
-      "name": "Beech-Nut Breakfast Stage 4 Toddler Food, Yogurt Banana & Berry, 3.5 oz Pouch",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "b63b81c0-421b-454f-a200-55df87cac864",
-      "name": "Beech-Nut Breakfast Stage 4 Toddler Food, Yogurt Banana & Strawberry, 3.5 oz Pouch",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "10ae31b1-0e4d-441a-a896-ae2502c45524",
-      "name": "Blue Buffalo Health Bars Natural Crunchy Dog Treats Biscuits, Apple & Yogurt",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "91465276-5a6a-4c2c-b0ba-14115c9dd75a",
-      "name": "Earth's Best Fruit Yogurt Smoothie, Mixed Berry",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "9b336754-efc4-4508-a5fa-733083b79790",
-      "name": "Earth's Best Organic Strawberry Banana Fruit Yogurt Smoothie 4.2 oz",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "31011d36-0b9f-4dcf-a90e-2d3f19fa0f20",
-      "name": "Earth's Best Yogurt Smoothie, Organic, Immune Support, Banana Orange Pineapple, Kids Ages 2+",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "116088ac-a30a-4dcd-9e4a-8b84b7c98f18",
-      "name": "Gerber Stage 2 Baby Food Strawberry Yogurt Tubs 16Pk",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "2489d8dd-9794-4c1d-89b5-322d6a5ee182",
-      "name": "Gerber Stage 3 Baby Food Snacks Banana Vanilla Yogurt Melts Baby Led Feeding",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "ab5218c0-0890-4d92-a0a1-506e7b597c5a",
-      "name": "Gerber Stage 3 Baby Food Snacks Strawberry Yogurt Melts Baby Led Feeding",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "f2069f58-a1b8-4f7f-b683-dfe8b7ce4f80",
-      "name": "Gerber Strawberry Banana Yogurt",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "d10f5af3-679e-472b-87fe-31347cd6050f",
-      "name": "Gerber Toddler (12+ Months) Strawberry Banana with Yogurt Fruit Smoothie Value Pack",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "59a7f5ec-b0cf-4163-a94b-2ea9ae0a5f24",
-      "name": "GreenWise Baby Food, Organic, Apple, Banana & Strawberry Yogurt, Stage 2",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "1dada0a1-e15a-42ef-86f9-3119f82b093f",
-      "name": "GreenWise Baby Food, Organic, Banana & Mixed Berry Yogurt, Stage 2 (6 Months+)",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "19836cbe-b777-4622-a3bb-b51b1839ac6d",
-      "name": "Happy Baby Organics Organics Organic Greek Yogis Freeze-Dried Greek Yogurt & Fruit Snacks Strawberry Banana",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "d4062671-c0bc-4023-bae1-31909fe8fb43",
-      "name": "Happy Tot Organics Stage 4 Baby Food Pouch, Gluten Free, Super Morning Fruit & Oat Blend, Apple, Cinnamon, Yogurt, Oats & Chia, 4 oz.",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "4cdb7d13-7db6-4b2d-802f-c3f3545a5a13",
-      "name": "Happy Tot Organics Stage 4 Baby Food Pouch, Gluten Free, Super Morning Fruit & Oat Blend, Bananas, Blueberries, Yogurt, Oats & Chia, 4 oz.",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "0ffa4708-d2a5-4c30-a649-3b21313a7a53",
-      "name": "Happy Tot Organics Super Morning 2-Flavor Variety Pack, Stage 4, Organic Bananas, Blueberries, Yogurt, Oats & Chia, Organic Apples, Cinnamon, Yogurt, Oats & Chia, 4 oz Pouches (Pack of 8)",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "0cc50a1b-c6dc-49fd-8e8a-61a6ef35c200",
-      "name": "Little Bellies Organic 10+ Months Berry Yogurt Pick-Me Sticks",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "99796f08-5e1f-4bc7-8dbb-a81f6c993662",
-      "name": "Plum Organics Blends Strawberry Banana, Greek Yogurt, Kale, Oat & Amaranth",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "e1bc04fd-a31c-4e0e-9b1a-5afaa2ce5241",
-      "name": "Earth's Best Organic Sunny Days Blueberry Flavored Snack Bars",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "7a83cadc-c217-44f1-b705-58b061861359",
-      "name": "Earth's Best Organic Sunny Days Snack Bars, Apple",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "12e6d3b8-9192-4408-bded-3a0cff2cf3ba",
-      "name": "Plum Organics® Teensy Snacks® Berry Tots Snacks",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "22736ffb-2030-4398-a1af-4ab879a68386",
-      "name": "Happy Baby Organics Organic Teether Crackers Strawberry & Beet with Amaranth, Gluten Free, 12 Packs",
-      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
-    },
-    {
-      "product_id": "7996be46-fbb5-4339-ae4c-3d78edf53826",
-      "name": "A.1. Steak Sauce",
-      "reason": "A.1. Original 10 oz just rendered in condiment bay 55."
-    },
-    {
-      "product_id": "77949b3d-6989-465c-9276-37f9bb643f1e",
-      "name": "Ken's Steak House Dressing, Italian",
-      "reason": "Ken’s Italian 16 fl oz just rendered in bay 56."
-    },
-    {
-      "product_id": "aae2ca9a-010a-40e7-bc87-aaff33778a8a",
-      "name": "Ken's Steak House Italian Dressing",
-      "reason": "Ken’s Italian 16 oz just rendered in bay 56."
-    },
-    {
-      "product_id": "2fe9eabc-0e93-4b91-9eb0-ecebd87aab9c",
-      "name": "Apple",
-      "reason": "Original produce shows multiple apple varieties; generic Apple 1lb listing has no variety."
-    },
-    {
-      "product_id": "254b6ade-8861-4d7a-ad00-6ba92dcaeba8",
-      "name": "Baby Spinach",
-      "reason": "Original packaged produce has Publix spinach 9 oz."
-    },
-    {
-      "product_id": "8ea401e0-351a-4c33-bb59-87d697a6305f",
-      "name": "Banana",
-      "reason": "Original loose fruit has Publix bananas per lb."
-    },
-    {
-      "product_id": "cf7c9ac0-08c0-4f0b-ab6b-6cb12560346d",
-      "name": "Bulk Sweet Corn",
-      "reason": "Original vegetable bins have loose sweet corn."
-    },
-    {
-      "product_id": "334b3dbb-ae7e-4286-8347-2ec75434202e",
-      "name": "Corn on the Cob",
-      "reason": "Original vegetable bins have yellow corn 4-count."
-    },
-    {
-      "product_id": "74b96446-5a0a-417a-94b4-0e1006cc9b1a",
-      "name": "Fresh Cilantro",
-      "reason": "Original produce wall has Cilantro bunch."
-    },
-    {
-      "product_id": "c48fee49-d8cc-49ad-afb7-e88ec4a11c18",
-      "name": "Ginger",
-      "reason": "Original produce wall has fresh whole ginger per lb; check unit each."
-    },
-    {
-      "product_id": "9feef0f8-aa02-4e06-b0c8-b0bef50ab559",
-      "name": "Grape Tomatoes",
-      "reason": "Original packaged produce has grape tomatoes 1 pint."
-    },
-    {
-      "product_id": "689df547-7ecf-47bc-b5f3-801d1000ee43",
-      "name": "Green Onions (Scallions) Bunch",
-      "reason": "Original produce wall has fresh onion/scallions style; verify exact catalog unit."
-    },
-    {
-      "product_id": "45ff3391-1f9c-4f28-b00a-ab8a717565b4",
-      "name": "Habaneros Peppers",
-      "reason": "Original produce wall has Habanero pepper, verify pack size."
-    },
-    {
-      "product_id": "1bd6eec5-7ced-4c81-b779-f187618c18bd",
-      "name": "Jalapeño Peppers",
-      "reason": "Original produce wall has Jalapeño pepper per lb."
-    },
-    {
-      "product_id": "126d1835-a99e-4f31-8713-f3c28281f626",
-      "name": "Lemons",
-      "reason": "Original loose fruit has whole lemon each."
-    },
-    {
-      "product_id": "a271a7c4-1b7d-4b21-b07e-a7cbcda7b49f",
-      "name": "Lettuce",
-      "reason": "Generic lettuce 4ct lacks variety and original produce includes multiple lettuce types."
-    },
-    {
-      "product_id": "07ce1a83-c6fa-41b7-9e3d-45db752ebe69",
-      "name": "Potato",
-      "reason": "Original vegetable bins have red potatoes per lb/russet potato each; generic name lacks type."
-    },
-    {
-      "product_id": "d923bd1f-b74f-4b8c-8fe5-b2ccb36efa0c",
-      "name": "Premium Pineapple",
-      "reason": "Original loose fruit has golden pineapple each."
-    },
-    {
-      "product_id": "a782192d-dd56-4a44-8044-fee3412c4503",
-      "name": "Publix Grapes And Strawberries Snack Pack",
-      "reason": "Original packaged fruit has grape & strawberry snack pack; verify exact weight versus per lb."
-    },
-    {
-      "product_id": "c51db9b9-1ed3-47d9-bbda-f52e9f865605",
-      "name": "Publix Medium Pineapple Chunks",
-      "reason": "Original packaged fruit has pineapple chunks small; medium weight is not specified."
-    },
-    {
-      "product_id": "4a15b10f-2d06-436c-ba89-da3b178ddea1",
-      "name": "Publix Spinach, Baby",
-      "reason": "Original packaged produce has Publix baby spinach 6oz bag."
-    },
-    {
-      "product_id": "11a6f4ca-3fd3-43f1-ae96-22fa2a97171e",
-      "name": "Publix Whole Pineapple",
-      "reason": "Original loose fruit has golden pineapple each."
-    },
-    {
-      "product_id": "50899f43-fb7e-49ce-8ca2-a02f93558026",
-      "name": "Red Bell Peppers",
-      "reason": "Original produce wall has red bell pepper each."
-    },
-    {
-      "product_id": "56f58e98-7cfc-4704-a138-e7a13d8058de",
-      "name": "Red Bell Peppers",
-      "reason": "Original produce wall has red bell pepper each."
-    },
-    {
-      "product_id": "82f27020-29cd-4068-a36c-0b91499f81d9",
-      "name": "Red Raspberries",
-      "reason": "Original packaged fruits have 6 oz raspberries."
-    },
-    {
-      "product_id": "1f957335-1e2b-4c86-9bd6-ce28a85f9c66",
-      "name": "Seedless Grapes Medium",
-      "reason": "Original packaged grapes and loose fruit stock cover seedless grapes; generic size 'Medium' requires clarification."
-    },
-    {
-      "product_id": "679166db-77c6-4d90-8fe3-f554fe76cfa0",
-      "name": "Seedless Watermelon",
-      "reason": "Original loose fruit has seedless watermelon."
-    },
-    {
-      "product_id": "5aa3eae7-2bee-4864-8df8-fce30e8cc35a",
-      "name": "Tomatoes",
-      "reason": "Original produce shows multiple varieties of tomatoes; generic title and unit 'L' cannot distinguish."
-    },
-    {
-      "product_id": "aae98796-61c1-46f8-af78-c7fa884583d6",
-      "name": "Whole Pineapple",
-      "reason": "Original loose fruit has golden pineapple each."
-    },
-    {
-      "product_id": "e6ab9100-c970-4291-84c6-35b8de5f7e4b",
-      "name": "Yellow Bell Peppers",
-      "reason": "Original produce wall has whole yellow bell pepper each."
-    },
-    {
-      "product_id": "ac34256c-fa6e-4928-b583-88bb4a280d28",
-      "name": "Organic Peppers Mini Sweet",
-      "reason": "Catalog mini sweet peppers 3 oz, photo 8 oz."
-    },
-    {
-      "product_id": "a138b214-224e-48f6-97b2-a0bb79266f8e",
-      "name": "Organic Red Grape Tomato",
-      "reason": "Unlabeled organic grape tomato photo; original grape tomato facing already exists, confirm organic listing."
-    },
-    {
-      "product_id": "c250fc75-89e8-4825-a705-07c8ab99234e",
-      "name": "Rock Garden Basil, Organic",
-      "reason": "Rock Garden basil photo is a different brand."
-    },
-    {
-      "product_id": "dc90d9ee-50a2-41e3-b960-e26dc6ab5d23",
-      "name": "GreenWise Lemon, Organic",
-      "reason": "GreenWise organic lemon photo badly erased."
-    },
-    {
-      "product_id": "9f6fc418-2df6-468c-af1f-a33e9ce16270",
-      "name": "J&C Tropicals Tamarind, Sweet, Fresh",
-      "reason": "Loose tamarind photo; no package verified."
-    },
-    {
-      "product_id": "50aff91e-a380-498b-9b45-de9e2344aa83",
-      "name": "Publix Honeydew Chunks",
-      "reason": "Honeydew chunks generic 1 each vs same small pack; clarify size, retain distinct small tray."
-    },
-    {
-      "product_id": "c57906af-fe48-4169-8512-9c41a32b3dd7",
-      "name": "Wholly Smashed Avocado Nothing Added Minis",
-      "reason": "Wholly smashed avocado package is 4 cups but record just 1 each; review pack quantity."
-    },
-    {
-      "product_id": "48d8acfb-6baf-4ab3-bab1-94b5620907fb",
-      "name": "MORRISON EL Toro Sweet Serrano Ham",
-      "reason": "Serrano ham sold per lb belongs to original deli loaf counter, do not add generic package bay."
-    },
-    {
-      "product_id": "48c97ae8-a961-43cf-ab86-0a00b73f3218",
-      "name": "Perdue Honey Roasted Chicken Breast Strips with Rib Meat",
-      "reason": "Perdue Honey Roasted original packaging erased."
-    },
-    {
-      "product_id": "99dd1d7d-7286-4dd2-ad5f-30ed4579401d",
-      "name": "Short Cuts Carved Fajita Style Chicken Breast Strips",
-      "reason": "Perdue Short Cuts fajita package erased."
-    },
-    {
-      "product_id": "3c9a7a72-021e-47c8-a709-63f92bb16f3b",
-      "name": "Smithfield Turkey Breast, Oven Roasted",
-      "reason": "Smithfield turkey photo only logo and turkey; no exact package variant."
-    },
-    {
-      "product_id": "0cf26758-ab23-4e97-8cf7-adcc480a3755",
-      "name": "Publix Bakery Butter Croissants",
-      "reason": "Four count croissants but photo two."
-    },
-    {
-      "product_id": "14c6d321-32af-48e0-8ad3-1a9a50228f33",
-      "name": "Publix Bakery Egg Bagels",
-      "reason": "Photo GreenWise bagels not Publix Bakery."
-    },
-    {
-      "product_id": "1c398dc7-6d85-410a-bc9b-529aa2c1e22b",
-      "name": "Ball Park Classic Hot Dog Buns",
-      "reason": "Photo is just buns with logo rather than actual package."
-    },
-    {
-      "product_id": "ce98edba-86f0-46cc-b74a-443808f4cdf3",
-      "name": "Publix Bakery Potato Long Rolls",
-      "reason": "Photo shows dinner rolls rather than hot dog style long rolls."
-    },
-    {
-      "product_id": "216ed474-d89d-47a6-a9e7-2ff3293570de",
-      "name": "Publix Hot Dog Buns",
-      "reason": "Photo 13 oz; catalog 12 oz."
-    },
-    {
-      "product_id": "78918cbf-351b-4e51-8e4a-ce6f38d6656f",
-      "name": "Italian Sausage Links",
-      "reason": "Catalog hot or mild unspecified; photo explicitly mild."
-    },
-    {
-      "product_id": "465a3ce5-ad10-401c-83a1-821b7229e2bf",
-      "name": "Publix Aprons Bacon Wrapped Jalapenos",
-      "reason": "Catalog six bacon wrapped jalapenos, original meat case already has jalapeno variant; photo not clear as six items."
-    },
-    {
-      "product_id": "8fc2726a-733e-4ba2-b021-fb748c479643",
-      "name": "Publix Aprons Bacon Wrapped Meatloaf",
-      "reason": "Cooked meatloaf picture, not ready-to-cook package."
-    },
-    {
-      "product_id": "51f2dba9-3585-4360-9a4d-b677a0a40df6",
-      "name": "Publix Aprons Chicken Parmigiana",
-      "reason": "Actual product photo chicken parmigiana style dip, not ready-to-cook chicken."
-    },
-    {
-      "product_id": "1ca8bad5-88d4-4d05-a70e-dc20a69239fe",
-      "name": "Publix Aprons Slow Cooker Pot Roast Meal",
-      "reason": "Catalog meal 3.5 lb, photo 4.74 lb."
-    },
-    {
-      "product_id": "6f1e803d-4725-4625-90c5-962c0ada581a",
-      "name": "Publix Aprons Stuffed Chicken Breast",
-      "reason": "Same exact photo as spinach feta chicken; original Cordon Bleu display exists."
-    },
-    {
-      "product_id": "af98d4b2-667b-4250-97d8-5565d2ec8625",
-      "name": "Applegate Organic Turkey Bacon",
-      "reason": "Applegate uncured 8oz exists in original meat case; verify organic variation before duplicating."
-    },
-    {
-      "product_id": "1f51aa61-2543-49c6-b9d9-0eef6e8bc133",
-      "name": "Nathan’s Famous Hot Dogs",
-      "reason": "Photo natural casing 10 oz, catalog skinless 12 oz."
-    },
-    {
-      "product_id": "671bf29e-f52e-4ead-9ddc-8497b912fab1",
-      "name": "Publix Breakfast Sausage Links",
-      "reason": "Photo Banquet instead of Publix."
-    },
-    {
-      "product_id": "9e0c3378-3f67-407f-ad53-888873a23e11",
-      "name": "Publix Pork Sausage",
-      "reason": "Photo mild pork sausage links not roll."
-    },
-    {
-      "product_id": "d438324b-7ab5-4d17-8223-4bbde882e13c",
-      "name": "Publix Sliced Bacon",
-      "reason": "Original meat case already has 16 oz Publix original bacon."
-    },
-    {
-      "product_id": "62bbff8c-6a3e-4984-8695-d2371a04502d",
-      "name": "Turkey Bacon",
-      "reason": "Photo GreenWise turkey bacon not Applegate; original both exist."
-    },
-    {
-      "product_id": "cf5a2cea-4121-4c99-9902-aaa2063265b3",
-      "name": "Snow Crab Clusters, Cooked Previously Frozen, Wild",
-      "reason": "Original seafood case already has snow crab clusters."
-    },
-    {
-      "product_id": "f052b588-1d2e-4478-b2b3-a8b48220d40e",
-      "name": "Live Maine Lobster",
-      "reason": "Live Maine lobster needs separate tank display; not a shelf product."
-    },
-    {
-      "product_id": "d634a95d-39fe-410e-9ebb-0aacf79af595",
-      "name": "Fresh Large Sea Scallops",
-      "reason": "Photo GreenWise frozen scallops; original fresh scallops display exists."
-    },
-    {
-      "product_id": "ec109e1c-3ea7-4f3b-9640-6a66534f095d",
-      "name": "Perdue Chicken Nuggets",
-      "reason": "Perdue photo packaging partially erased, need full verified 12oz label."
-    },
-    {
-      "product_id": "0430adc9-6c3c-4fb8-9c33-6573efdbf53b",
-      "name": "Publix Frozen Tropical Fruit Blend",
-      "reason": "Loose fruit picture instead of frozen bag."
-    },
-    {
-      "product_id": "7dc9ae09-9a34-46a0-bb18-5479f11261d3",
-      "name": "Veggies Made Great Banana Chocolate Chip Muffins",
-      "reason": "No packaging, only muffin and logo."
-    },
-    {
-      "product_id": "6a2a566a-e9ac-40d4-b406-4642ab322be3",
-      "name": "Whole Fruit Pineapple",
-      "reason": "No box or wrap, only pop and pineapple."
-    },
-    {
+      "category": "Bakery",
       "product_id": "bdef6e3b-87d5-4d96-b80f-a426c0209abe",
       "name": "Publix Bakery Brioche Hamburger Buns",
+      "size": "4 ct",
       "reason": "Photo two buns, catalog four."
     },
     {
-      "product_id": "6b9adc25-b722-4848-9ce2-5430d9543843",
-      "name": "White Bread",
-      "reason": "Original new Bread & Rolls has Publix Premium White Bread 20oz."
+      "category": "Bakery",
+      "product_id": "280db1fa-4339-4fb4-8a47-2643ded6915b",
+      "name": "Publix Bakery Brioche Hamburger Buns",
+      "size": "4 ct / Fresh baked",
+      "reason": "Catalog says 4-count, package shows two buns with no label."
     },
     {
-      "product_id": "75799891-11e2-46ae-a163-ac2d18127480",
-      "name": "Wonder White Bread",
-      "reason": "Original new Bread & Rolls has Wonder Classic White Bread 20oz."
+      "category": "Bakery",
+      "product_id": "3818cae0-f005-4412-98ef-ac6a9cbd9279",
+      "name": "Publix Bakery Everything Hamburger Buns",
+      "size": "4 ct / Fresh baked",
+      "reason": "Catalog everything buns 4 ct, photo is 13oz plain hamburger bun bag."
     },
     {
-      "product_id": "7b4ae218-1f23-4e98-b97b-925c2e782d47",
-      "name": "Publix Bakery Chocolate Chip Cookies",
-      "reason": "Photo two cookies, catalog 13."
+      "category": "Bakery",
+      "product_id": "07cc3760-66f8-4756-9315-0f9b201419cb",
+      "name": "Publix Bakery Key Lime Pie",
+      "size": "Whole pie / Famous recipe",
+      "reason": "Original bakery station has Publix Key Lime Pie whole award-winning pie; duplicate title."
     },
     {
+      "category": "Bakery",
+      "product_id": "12882a24-3f65-4250-9cd6-af3203457e21",
+      "name": "Publix Bakery Pretzel Hamburger Buns",
+      "size": "4 ct / Fresh baked",
+      "reason": "Catalog Publix bakery, photo Pretzilla 4-count."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "9f603a7f-72bc-4e59-be08-73755a4e0249",
+      "name": "Publix Bakery Pumpernickel Round",
+      "size": "16 oz loaf",
+      "reason": "Catalog whole 16oz round loaf, photo shows bread-and-dip platter."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "e8b09a6f-438e-42ec-96d1-df2d33b97fd2",
+      "name": "Publix Enriched White Seeded Buns",
+      "size": "8 ct / 12 oz",
+      "reason": "Catalog says 12oz, exact same photo as 13oz sesame buns."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "c7b6c301-45fd-4b02-b3a3-a1aa1f8a53fc",
+      "name": "Publix GreenWise Organic Blue Corn Tortilla Chips",
+      "size": "12 oz bag",
+      "reason": "Catalog 12 oz; original package appears 255g/9 oz."
+    },
+    {
+      "category": "Bakery",
       "product_id": "187512a5-8aea-4d4c-8168-7519c4b336e7",
       "name": "Publix GreenWise Organic Blue Corn Tortilla Chips",
+      "size": "12 oz bag",
       "reason": "Catalog says 12 oz, photo 9 oz and new Snacks already includes 9 oz GreenWise Blue Corn."
     },
     {
+      "category": "Bakery",
+      "product_id": "a2a7c014-1c00-4e38-87df-f1904a8344c7",
+      "name": "Publix Hamburger Buns",
+      "size": "8 ct / 12 oz",
+      "reason": "Catalog says 12oz, photo 13oz."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "24269cb0-4d4a-46ef-a2ad-6abac5a7f7a9",
+      "name": "Publix Hamburger Buns",
+      "size": "8-count enriched rolls",
+      "reason": "Generic eight count enriched hamburger rolls; source 13 oz vs prior 12 oz catalog variants; duplicate listing needs exact identity."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "20fbb525-0305-48f3-8b17-3e41cb50417f",
+      "name": "Publix Restaurant Style Tortilla Chips",
+      "size": "13 oz bag",
+      "reason": "Catalog 13 oz; original photo shows 9 oz."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "c8b306cc-71ba-4e80-9002-e8b2af5802a1",
+      "name": "Publix Texas Toast Bread",
+      "size": "24 oz loaf",
+      "reason": "Catalog says Publix, photo Lewis Texas Toast."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "87c0a89a-ec60-4927-86de-cd0704739f5e",
+      "name": "Publix Whole Wheat Hamburger Buns",
+      "size": "8 ct / 13 oz",
+      "reason": "Catalog Publix, photo Brownberry."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "9f607b9c-e207-45b3-891d-61d11da14b69",
+      "name": "Purely Elizabeth Protein Oatmeal, Maple Cinnamon Roll",
+      "size": "Purely Elizabeth 1.66 oz",
+      "reason": "Catalog 1.66 oz, photo multi-pack 5 servings."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "283cdc08-a0b6-4d0b-89f5-fd44e49ae836",
+      "name": "St. Pierre Brioche Burger Buns",
+      "size": "4 ct / Premium import",
+      "reason": "Catalog St. Pierre 4 count, photo unlabeled two buns."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "441d83c9-50e7-4694-9e8e-d2a05b353a33",
+      "name": "Stacy's Pita Chips Simply Naked",
+      "size": "7.3 oz bag",
+      "reason": "Catalog 7.3 oz; original photo shows 1.5 oz."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "639bbad1-e56f-41bc-b98e-ed02ef9a829c",
+      "name": "Thomas' Everything Bagels",
+      "size": "6 ct pack",
+      "reason": "Duplicate visual/6-count listing for Thomas Everything Bagels."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "7dc9ae09-9a34-46a0-bb18-5479f11261d3",
+      "name": "Veggies Made Great Banana Chocolate Chip Muffins",
+      "size": "Veggies Made Great 6 ct",
+      "reason": "No packaging, only muffin and logo."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "6b9adc25-b722-4848-9ce2-5430d9543843",
+      "name": "White Bread",
+      "size": "Publix 20oz loaf",
+      "reason": "Original new Bread & Rolls has Publix Premium White Bread 20oz."
+    },
+    {
+      "category": "Bakery",
+      "product_id": "75799891-11e2-46ae-a163-ac2d18127480",
+      "name": "Wonder White Bread",
+      "size": "20 oz loaf",
+      "reason": "Original new Bread & Rolls has Wonder Classic White Bread 20oz."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "31b672b2-7f63-4c29-b85e-f270797f8e40",
+      "name": "Château d’Esclans Whispering Angel Rosé",
+      "size": "Château D’Esclans 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "0a40689c-04dd-425d-a789-e5462e5f2918",
+      "name": "Del Monte Red Grapefruit In 100% Juice",
+      "size": "Del Monte 8 oz",
+      "reason": "Catalog title says in 100% juice but actual linked photo says in extra light syrup; refrigerated cup."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "e31152b6-48fd-48f8-937c-825f0ba594b3",
+      "name": "Hampton Water Rosé",
+      "size": "Hampton Water 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "eae17509-72cc-489e-bf4f-5417e2e6bdb3",
+      "name": "Mike's HARDER Lemonade",
+      "size": "Mike'S Harder 23.5 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "ce51fac7-c407-4f8e-aa56-7c3be4c65dcb",
+      "name": "mike’s HARDER Pink Lemonade, 23.5 fl oz Can, 8% ABV",
+      "size": "Mike’S Harder 23.5 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "f2b574dc-9936-41c0-a49f-425419630263",
+      "name": "Mike’s Lemonade Flavors Of America",
+      "size": "Mike’S 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "a2cd7beb-dec7-47e9-9a07-134e0c383985",
+      "name": "Mike’s Original Hard Lemonade",
+      "size": "Mike’S 11.2 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "48587dc1-093c-42e5-8ec4-0583c858590b",
+      "name": "Mom Water Mom Squad Variety Pack",
+      "size": "Mom Water 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "b7c140d2-3b4a-4ca0-bae4-d661611a61a7",
+      "name": "Mom Water Vacation Mode Variety Pack",
+      "size": "Mom Water 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "cd7b364d-96b0-4413-962d-69f4c4f3ec28",
+      "name": "Simply Spiked Variety Pack Hard Lemonade",
+      "size": "Simply Spiked Variety Pack 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "85508f3c-4e35-48a8-8aef-449b2a5195b7",
+      "name": "Smirnoff Ice Neon Lemonade Variety, 12 pack Cans, 12 fl oz, 4.5% ABV",
+      "size": "Smirnoff 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "e407e2a4-5fe0-4801-a7b8-abd5d1f9f320",
+      "name": "Sun Cruiser Assorted Iced Teas & Lemonades Sampler Pack",
+      "size": "Sun Cruiser 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "299418ad-1b54-47e0-887d-ecac3960785d",
+      "name": "Sun Cruiser Lemonade Variety Pack",
+      "size": "Sun Cruiser 12 oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "6ccff925-574c-4767-a6ff-3dcec1fe793c",
+      "name": "Surfside Iced Tea Pack",
+      "size": "Surfside 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "c8cbb68a-a18f-4e53-b069-f0e66fcecb3f",
+      "name": "Surfside Lemonade Pack",
+      "size": "Surfside 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "8265166b-98ff-4470-b581-9894581f44a6",
+      "name": "The Long Drink Traditional, Citrus Soda, With Premium Liquor",
+      "size": "The Long Drink 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "3fa18be2-8946-4371-a1e6-8c235e4d7492",
+      "name": "Twisted Tea Extreme Assorted Hard Iced Tea",
+      "size": "Twisted Tea 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "fda0fc04-9a54-48d2-bc1d-c72ec35a31f4",
+      "name": "Twisted Tea Light Variety Pack, Hard Iced Tea (12 fl. oz. Can, 12pk.)",
+      "size": "Twisted Tea 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "47cd4ce9-33e8-4a93-9f46-8167fc58ab0f",
+      "name": "Twisted Tea Original, Hard Iced Tea (12 fl. oz. Can, 12pk.)",
+      "size": "Twisted Tea 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Beverages",
+      "product_id": "09a78855-cb7f-40dc-a159-adc7b558efc2",
+      "name": "Twisted Tea Original, Hard Iced Tea (24 fl. oz. Can)",
+      "size": "Twisted Tea 24 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Condiments & Sauces",
+      "product_id": "bef6665d-4a2b-456e-a6be-4f4494038239",
+      "name": "Honey Nut Cheerios",
+      "size": "10.8oz box heart healthy cereal",
+      "reason": "Same Honey Nut Cheerios 10.8oz as the new breakfast shelf; check canonical listing and pack/price before duplicating the facing."
+    },
+    {
+      "category": "Condiments & Sauces",
+      "product_id": "7c38c109-f0d7-40a5-a872-61a81e353801",
+      "name": "Mt. Olive Kosher Dill Chips",
+      "size": "16 oz jar",
+      "reason": "Catalog 16 oz jar reference is 4.8 oz pouch."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "5944861d-b5e4-4cd9-9939-9369647e1f02",
+      "name": "Arnold Palmer Spiked Original Half & Half Iced Tea Lemonade",
+      "size": "Arnold Palmer Spiked 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "a46043fe-00a6-459f-bad7-1ad0183bed55",
+      "name": "Beech-Nut Breakfast Stage 4 Toddler Food, Yogurt Banana & Berry, 3.5 oz Pouch",
+      "size": "Beech-Nut 3.5 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "b63b81c0-421b-454f-a200-55df87cac864",
+      "name": "Beech-Nut Breakfast Stage 4 Toddler Food, Yogurt Banana & Strawberry, 3.5 oz Pouch",
+      "size": "Beech-Nut 3.5 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "10ae31b1-0e4d-441a-a896-ae2502c45524",
+      "name": "Blue Buffalo Health Bars Natural Crunchy Dog Treats Biscuits, Apple & Yogurt",
+      "size": "Blue Buffalo 16 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "91465276-5a6a-4c2c-b0ba-14115c9dd75a",
+      "name": "Earth's Best Fruit Yogurt Smoothie, Mixed Berry",
+      "size": "Earth'S Best 4.2 fl oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "9b336754-efc4-4508-a5fa-733083b79790",
+      "name": "Earth's Best Organic Strawberry Banana Fruit Yogurt Smoothie 4.2 oz",
+      "size": "Earth'S Best 4.2 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "31011d36-0b9f-4dcf-a90e-2d3f19fa0f20",
+      "name": "Earth's Best Yogurt Smoothie, Organic, Immune Support, Banana Orange Pineapple, Kids Ages 2+",
+      "size": "Earth'S Best 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "116088ac-a30a-4dcd-9e4a-8b84b7c98f18",
+      "name": "Gerber Stage 2 Baby Food Strawberry Yogurt Tubs 16Pk",
+      "size": "Gerber 8 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "2489d8dd-9794-4c1d-89b5-322d6a5ee182",
+      "name": "Gerber Stage 3 Baby Food Snacks Banana Vanilla Yogurt Melts Baby Led Feeding",
+      "size": "Gerber 1 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "ab5218c0-0890-4d92-a0a1-506e7b597c5a",
+      "name": "Gerber Stage 3 Baby Food Snacks Strawberry Yogurt Melts Baby Led Feeding",
+      "size": "Gerber 1 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "f2069f58-a1b8-4f7f-b683-dfe8b7ce4f80",
+      "name": "Gerber Strawberry Banana Yogurt",
+      "size": "Gerber 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "d10f5af3-679e-472b-87fe-31347cd6050f",
+      "name": "Gerber Toddler (12+ Months) Strawberry Banana with Yogurt Fruit Smoothie Value Pack",
+      "size": "Gerber 3.5 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
       "product_id": "f12d5d63-38b2-4b3b-9d10-7dd0849d8d2d",
       "name": "GoGo Squeez YogurtZ Strawberry Low Fat Yogurt Pouches",
+      "size": "Gogo Squeez 3 oz",
       "reason": "Reference erased multipack, single pouch remains; check correct quantity."
     },
     {
+      "category": "Dairy & Eggs",
+      "product_id": "59a7f5ec-b0cf-4163-a94b-2ea9ae0a5f24",
+      "name": "GreenWise Baby Food, Organic, Apple, Banana & Strawberry Yogurt, Stage 2",
+      "size": "Greenwise 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "1dada0a1-e15a-42ef-86f9-3119f82b093f",
+      "name": "GreenWise Baby Food, Organic, Banana & Mixed Berry Yogurt, Stage 2 (6 Months+)",
+      "size": "Greenwise 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "19836cbe-b777-4622-a3bb-b51b1839ac6d",
+      "name": "Happy Baby Organics Organics Organic Greek Yogis Freeze-Dried Greek Yogurt & Fruit Snacks Strawberry Banana",
+      "size": "Happy Baby Organics 1 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "d4062671-c0bc-4023-bae1-31909fe8fb43",
+      "name": "Happy Tot Organics Stage 4 Baby Food Pouch, Gluten Free, Super Morning Fruit & Oat Blend, Apple, Cinnamon, Yogurt, Oats & Chia, 4 oz.",
+      "size": "Happy Tot 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "4cdb7d13-7db6-4b2d-802f-c3f3545a5a13",
+      "name": "Happy Tot Organics Stage 4 Baby Food Pouch, Gluten Free, Super Morning Fruit & Oat Blend, Bananas, Blueberries, Yogurt, Oats & Chia, 4 oz.",
+      "size": "Happy Tot 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "0ffa4708-d2a5-4c30-a649-3b21313a7a53",
+      "name": "Happy Tot Organics Super Morning 2-Flavor Variety Pack, Stage 4, Organic Bananas, Blueberries, Yogurt, Oats & Chia, Organic Apples, Cinnamon, Yogurt, Oats & Chia, 4 oz Pouches (Pack of 8)",
+      "size": "Happy Tot 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "9d0e4196-dbdc-41ad-b13b-8d8b0dc8b308",
+      "name": "Kodiak Granola Bars, Peanut Butter, Crunchy",
+      "size": "Kodiak 6 each",
+      "reason": "Kodiak photo mostly erased, exact packaging not verifiable."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "d7a1fd4a-47cd-4ead-8712-54e53fffa5ad",
+      "name": "Larabar Peanut Butter Cookie",
+      "size": "5 ct box",
+      "reason": "Catalog peanut butter cookie 5 ct, photo chocolate chip 8 ct."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "0cc50a1b-c6dc-49fd-8e8a-61a6ef35c200",
+      "name": "Little Bellies Organic 10+ Months Berry Yogurt Pick-Me Sticks",
+      "size": "Little Bellies 0.56 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "99796f08-5e1f-4bc7-8dbb-a81f6c993662",
+      "name": "Plum Organics Blends Strawberry Banana, Greek Yogurt, Kale, Oat & Amaranth",
+      "size": "Plum Organics 4 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "0cf26758-ab23-4e97-8cf7-adcc480a3755",
+      "name": "Publix Bakery Butter Croissants",
+      "size": "4 ct",
+      "reason": "Four count croissants but photo two."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "14c6d321-32af-48e0-8ad3-1a9a50228f33",
+      "name": "Publix Bakery Egg Bagels",
+      "size": "Publix Bakery 4 x oz",
+      "reason": "Photo GreenWise bagels not Publix Bakery."
+    },
+    {
+      "category": "Dairy & Eggs",
+      "product_id": "bd74a718-07f7-4f33-a64d-6970b96e4b5e",
+      "name": "Publix Flavored Croutons, Garlic & Butter",
+      "size": "Publix 5 oz",
+      "reason": "Reference package text is erased; no verified variant."
+    },
+    {
+      "category": "Dairy & Eggs",
       "product_id": "9dad37c2-12e2-47e6-8088-e0628f80760f",
       "name": "Reeses Peanut Butter Cups",
+      "size": "Standard 2-count pack",
       "reason": "Already rendered exact Reese's two-cup 1.5oz in snacks."
     },
     {
-      "product_id": "dfcd38ef-f9af-4f4e-ae24-45e790d421cd",
-      "name": "That’s it Apple + Cherries Fruit Bars",
-      "reason": "Title 1.2 oz bar; photo multiple-bar box with one 1.2 oz bar; verify sell unit."
+      "category": "Dairy & Eggs",
+      "product_id": "981c6b8c-dc6f-4c82-836f-88bf2f4dcf85",
+      "name": "Twisted Tea Half & Half, Hard Iced Tea",
+      "size": "Twisted Tea 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
     },
     {
-      "product_id": "cac61359-5cb4-41b4-bd7d-027e26b2b161",
-      "name": "Reser’s Main St Bistro Scalloped Potatoes, Baked",
-      "reason": "Reference package name obscured, no verified exact variant."
+      "category": "Dairy & Eggs",
+      "product_id": "ad6bdb59-d8a6-40b9-84a5-6548bf9f3449",
+      "name": "Vlasic Bread & Butter Chips",
+      "size": "24 oz jar",
+      "reason": "Likely duplicate of identically packaged 24 fl oz Vlasic pickle SKU; confirm canonical catalog record before duplicate-facing render."
     },
     {
+      "category": "Deli & Prepared Foods",
+      "product_id": "e555164b-1a70-446a-a3fe-7e13c847ba72",
+      "name": "Arnold Select Sandwich Thins Whole Wheat",
+      "size": "8 ct",
+      "reason": "Catalog 8 count, photo 6 count."
+    },
+    {
+      "category": "Deli & Prepared Foods",
+      "product_id": "691a8c28-089c-45d2-bc70-6bac27369fff",
+      "name": "Green Life Farms Sandwich Leaf",
+      "size": "Green Life Farms 4.5 oz",
+      "reason": "Photo Kalera Krunch Leaf, not Green Life Farms Sandwich Leaf."
+    },
+    {
+      "category": "Deli & Prepared Foods",
+      "product_id": "8781d5fc-a791-47a6-83ee-7cbb2c6c414e",
+      "name": "Kinder's Buttery Buffalo Wing Sauce & Dip",
+      "size": "Kinder'S 402 oz",
+      "reason": "Catalog size is 402 oz, original photo indicates 14.2 oz (402g)."
+    },
+    {
+      "category": "Deli & Prepared Foods",
+      "product_id": "9a161745-eb06-451f-a2a5-621226bab708",
+      "name": "Publix Carrots, Dip Chip",
+      "size": "Publix 16 oz",
+      "reason": "Catalog photo mostly erased, original produce display already has carrot chip style."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "0073e9e7-fb99-4d25-b61e-7012f6f90af7",
+      "name": "Aunt Jemima (Pearl Milling) Pancakes",
+      "size": "12 ct box",
+      "reason": "Photo is unboxed pancake stack, no exact packaging."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "99c694a2-2fe7-4a6d-b8f3-6c6f5bbde355",
+      "name": "Bubba Burger Grass-Fed Beef",
+      "size": "2 lb / 6 ct box",
+      "reason": "Bubba grass-fed already exists in original station, catalog photo is only logo."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "2cf9dd5e-7b9c-467f-bd08-7a6a5c9aa035",
+      "name": "Dole Smoothie Shakers Strawberry Banana",
+      "size": "4 oz individual",
+      "reason": "Already represented by original station product 0c16d1ca-42d5-4ac2-a407-7e036937b5d2, 4 oz individual; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "e1fc8d0b-3018-4f4e-b823-4cefd6772bd5",
+      "name": "Generic Citrus Chicken Entree",
+      "size": "Generic 16 oz",
+      "reason": "Photo shows refrigerated prepared grilled chicken, not frozen entrée."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "fda380d4-f0f2-4b28-88ee-35b577bd7fa7",
+      "name": "Gorton's Beer Battered Fish Fillets",
+      "size": "10 ct / 19 oz",
+      "reason": "Already represented by original station product ace9361b-c87b-4198-83ce-faa4e47b8e2a, 10 ct box; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "447965fb-7732-4779-ab45-25edf8410d2e",
+      "name": "Kodiak Cakes Power Waffles",
+      "size": "10.72 oz / Protein",
+      "reason": "Reference 13.4 oz Kodiak waffles already rendered; catalog 10.72 oz."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "d07c8a73-810f-48e4-8ace-f2bc97c9fdd9",
+      "name": "Publix Beef Burgers 1/4 lb Patties",
+      "size": "2 lb box / 8 ct",
+      "reason": "Publix title but photo Philly Gourmet."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "f79c1f19-77e8-469d-a75d-c7c15202b8b9",
+      "name": "Publix Beef Meatballs",
+      "size": "26 oz bag",
+      "reason": "Catalog 26 oz frozen bag; photo fresh tray."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "852d34cd-57cf-42a1-9ad6-c88a9f9964f3",
+      "name": "Publix Drumsticks & Thighs Fried Chicken",
+      "size": "Publix 8 each",
+      "reason": "Hot chicken box belongs in existing hot food station; needs station menu addition, not refrigerated shelf."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "98f8b847-709d-4a27-bfff-fa3ae54f3038",
+      "name": "Publix Frozen Blueberries",
+      "size": "12 oz bag",
+      "reason": "Already represented by original station product 9798bbcb-961f-436e-8990-42e795b86eac, 12 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "ecf2184c-28e2-44c6-87e6-bf5e807f133e",
+      "name": "Publix Frozen Dark Sweet Cherries",
+      "size": "12 oz bag",
+      "reason": "Already represented by original station product 8424c137-9fa1-4426-80f5-a29c314cc03e, 12 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "d0bfb52f-7c1f-45d4-b04f-52f0f5b08055",
+      "name": "Publix Frozen Mango Chunks",
+      "size": "16 oz bag",
+      "reason": "Already represented by original station product b0fb11bd-8c76-42f8-83ea-7af3e02d3989, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "4a6522ae-f39a-4f64-9eee-ce2f83125452",
+      "name": "Publix Frozen Mixed Berries",
+      "size": "12 oz bag / Strawberries, Blueberries, Raspberries",
+      "reason": "Already represented by original station product 104ef148-2a40-49c9-94a6-4e79c59fe9b8, 12 oz bag / Strawberries, Blueberries, Raspberries; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "98403ce8-8240-4053-a1d3-adc59fbd70f9",
+      "name": "Publix Frozen Pineapple Chunks",
+      "size": "16 oz bag",
+      "reason": "Already represented by original station product 30771d69-af8e-49ff-9e36-5a902fff25da, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "b3dbf929-8a99-415f-b177-e1bda9fa53ca",
+      "name": "Publix Frozen Sliced Peaches",
+      "size": "16 oz bag",
+      "reason": "Already represented by original station product 182c4d12-9589-4929-8302-e5afdaf63805, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "444c1b7a-b18c-4ed1-a3d3-100cc881e98d",
+      "name": "Publix Frozen Tropical Fruit Blend",
+      "size": "16 oz bag / Mango, Pineapple, Papaya",
+      "reason": "Photo shows loose fruit pieces instead of bag."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "0430adc9-6c3c-4fb8-9c33-6573efdbf53b",
+      "name": "Publix Frozen Tropical Fruit Blend",
+      "size": "16 oz bag / Mango, Pineapple, Papaya",
+      "reason": "Loose fruit picture instead of frozen bag."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "73bd8783-3bbf-4361-ac68-dad0dd03627e",
+      "name": "Publix Mozzarella Sticks",
+      "size": "12oz box breaded cheese",
+      "reason": "Photo shows fresh string cheese rather than breaded frozen mozzarella sticks."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "2b21f9e2-c2a3-4558-b853-3ae4235e23b6",
+      "name": "Publix Mozzarella Sticks",
+      "size": "10 oz box with marinara",
+      "reason": "Photo shows fresh string cheese rather than breaded frozen mozzarella sticks."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "55c4e63a-3c3a-4d9e-b0b6-b81b67a8b251",
+      "name": "Publix Premium Chicken Tikka Masala",
+      "size": "10 oz",
+      "reason": "Photo shows Deep Indian Kitchen, not Publix."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "74686406-489d-457d-bbb1-84363b405271",
+      "name": "Publix Premium Frozen Yogurt Vanilla",
+      "size": "48 oz",
+      "reason": "Already represented by original station product 131af3fe-3bb0-494d-b489-9ee193590853, 48 oz; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "450ff664-0329-4979-b2b0-ae35219edf67",
+      "name": "Publix Premium Ice Cream Bourbon Pecan Praline",
+      "size": "48 oz tub",
+      "reason": "Photo is bourbon praline crumble, not 48 oz Bourbon Pecan Praline."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "1afff7bd-e5de-4372-a819-1dc093e522f6",
+      "name": "Publix Premium Ice Cream Hula Hula Holiday",
+      "size": "48 oz tub / Seasonal",
+      "reason": "Photo Hula Hula Macadamia, not Holiday."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "0c2e6e15-f4eb-471c-bd42-ba98b20c9bce",
+      "name": "Publix Premium Ice Cream Mint Mountain",
+      "size": "48 oz tub",
+      "reason": "Photo generic Mint Chocolate Chip, not Mint Mountain."
+    },
+    {
+      "category": "Frozen",
+      "product_id": "684084e9-4f44-4cdb-9ca3-c70ccae52b2f",
+      "name": "Wyman's Wild Blueberries",
+      "size": "15 oz bag",
+      "reason": "Already represented by original station product 12cb17c9-0c1b-4f8c-8730-91ef1942c938, 15 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "af98d4b2-667b-4250-97d8-5565d2ec8625",
+      "name": "Applegate Organic Turkey Bacon",
+      "size": "8 oz",
+      "reason": "Applegate uncured 8oz exists in original meat case; verify organic variation before duplicating."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "60ec5ae0-1d0a-47c4-9de3-441d5d69afc9",
+      "name": "Blue Crab Meat",
+      "size": "8oz container lump crab",
+      "reason": "Same title and 8 oz lump crab as newly rendered deli case 48."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "0b74e4cc-231a-456d-87eb-b260154e8b77",
+      "name": "Chicken Tender Sub",
+      "size": "Whole pub sub with tenders",
+      "reason": "Existing Subs menu includes Publix Deli Chicken Tender Sub; do not add to grocery shelf."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "029bb777-6225-42fe-ac16-a96fef090734",
+      "name": "Cooked Shrimp",
+      "size": "Tail-on, 12oz frozen bag",
+      "reason": "Photo cooked peel-and-eat 16 oz, not 12 oz."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "22f6b6f8-d4ba-4a5c-9641-8f80a04ea50f",
+      "name": "Hillshire Farm Smoked Sausage",
+      "size": "14oz rope link",
+      "reason": "Same title and 14 oz pack as new meat bay 2; duplicate."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "78918cbf-351b-4e51-8e4a-ce6f38d6656f",
+      "name": "Italian Sausage Links",
+      "size": "19 oz / Hot or Mild",
+      "reason": "Catalog hot or mild unspecified; photo explicitly mild."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "f052b588-1d2e-4478-b2b3-a8b48220d40e",
+      "name": "Live Maine Lobster",
+      "size": "Each / Approx 1.25 lb",
+      "reason": "Live Maine lobster needs separate tank display; not a shelf product."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "f7c61f17-d09a-4465-a9a8-e00f0c0c5b05",
+      "name": "Lobster Tails",
+      "size": "4oz cold water tail, each",
+      "reason": "Already represented by original station product bff4e3fe-80e2-4cb0-876f-2ba3afa39ae5, 4oz cold water tail, each; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "1f51aa61-2543-49c6-b9d9-0eef6e8bc133",
+      "name": "Nathan’s Famous Hot Dogs",
+      "size": "12oz skinless beef franks",
+      "reason": "Photo natural casing 10 oz, catalog skinless 12 oz."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "cc81c547-76d5-4187-ab0c-2e0f0aecb2c7",
+      "name": "Nathan’s Famous Hot Dogs",
+      "size": "12oz skinless beef franks",
+      "reason": "Duplicate 12oz Nathan skinless listing; other reference is 10oz natural casing, verify."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "ec109e1c-3ea7-4f3b-9640-6a66534f095d",
+      "name": "Perdue Chicken Nuggets",
+      "size": "Perdue 12 oz",
+      "reason": "Perdue photo packaging partially erased, need full verified 12oz label."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "465a3ce5-ad10-401c-83a1-821b7229e2bf",
+      "name": "Publix Aprons Bacon Wrapped Jalapenos",
+      "size": "6 ct / Ready to cook",
+      "reason": "Catalog six bacon wrapped jalapenos, original meat case already has jalapeno variant; photo not clear as six items."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "8fc2726a-733e-4ba2-b021-fb748c479643",
+      "name": "Publix Aprons Bacon Wrapped Meatloaf",
+      "size": "Each / Ready to cook",
+      "reason": "Cooked meatloaf picture, not ready-to-cook package."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "51f2dba9-3585-4360-9a4d-b677a0a40df6",
+      "name": "Publix Aprons Chicken Parmigiana",
+      "size": "Each / Ready to cook",
+      "reason": "Actual product photo chicken parmigiana style dip, not ready-to-cook chicken."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "bb894c53-b1be-45ac-8c5c-eaeb91d5f183",
+      "name": "Publix Aprons Parmesan Chicken with Asparagus",
+      "size": "Meal for 2 / Ready to bake",
+      "reason": "Same ready-to-bake Parmesan chicken meal as newly rendered meat bay 1."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "1ca8bad5-88d4-4d05-a70e-dc20a69239fe",
+      "name": "Publix Aprons Slow Cooker Pot Roast Meal",
+      "size": "3.5 lb / Beef, potatoes, carrots, onions",
+      "reason": "Catalog meal 3.5 lb, photo 4.74 lb."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "be81a072-584d-49d7-a257-622511135796",
+      "name": "Publix Aprons Slow Cooker Pot Roast Meal",
+      "size": "3.5 lb / Beef, potatoes, carrots, onions",
+      "reason": "Duplicate pot roast meal with size conflict 3.5 lb versus 4.74 lb."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "6f1e803d-4725-4625-90c5-962c0ada581a",
+      "name": "Publix Aprons Stuffed Chicken Breast",
+      "size": "Each / Cordon Bleu style",
+      "reason": "Same exact photo as spinach feta chicken; original Cordon Bleu display exists."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "7ce1ac7d-8360-4c4c-aaaa-f2fe265d147a",
+      "name": "Publix Baked Chicken Tender",
+      "size": "Publix 1 each",
+      "reason": "Catalog tender, photo prepared chicken wrap; check menu variant."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "756e3a57-6945-4d54-8f4f-a41bf8b9ff90",
+      "name": "Publix Breakfast Sausage Links",
+      "size": "12oz original pork links",
+      "reason": "Duplicate 12oz breakfast sausage links; wrong reference on duplicate record."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "85476f5e-f9cb-43c5-b066-9c7b1ab548b7",
+      "name": "Publix Breakfast Sausage Links",
+      "size": "12 oz pack",
+      "reason": "Photo Banquet sausage, not Publix."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "671bf29e-f52e-4ead-9ddc-8497b912fab1",
+      "name": "Publix Breakfast Sausage Links",
+      "size": "12oz original pork links",
+      "reason": "Photo Banquet instead of Publix."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "9d023fe9-f0ee-4d8b-9621-acd3e422c8da",
+      "name": "Publix Buffalo Chicken Tender",
+      "size": "Publix 1 each",
+      "reason": "Catalog tender, photo buffalo chicken wrap; check menu variant."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "073d6068-ce3f-44af-8196-7cb31f9821ec",
+      "name": "Publix Buffalo Chicken Tender Sub",
+      "size": "Publix each",
+      "reason": "Chicken tender sub flavor belongs in existing Subs menu, not grocery shelf."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "1713586f-d1a3-412b-87d3-f260494776db",
+      "name": "Publix Frozen Cod Fillets",
+      "size": "12 oz bag",
+      "reason": "GreenWise cod loins 10 oz, not Publix 12 oz fillets."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "5977aa76-92c3-4ffc-b212-e686cb0ab999",
+      "name": "Publix Frozen Ground Beef",
+      "size": "1 lb roll / 80% lean",
+      "reason": "Fresh tray ground beef rather than frozen roll."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "fc751316-4d40-4067-81b9-aab2a97195ab",
+      "name": "Publix Frozen Meatballs Italian Style",
+      "size": "12 oz bag",
+      "reason": "Package size appears 16 oz, catalog 12 oz."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "b6061bc8-94a2-4c88-9e43-cf19e50488fb",
+      "name": "Publix Frozen Pork Sausage Patties",
+      "size": "12 oz box",
+      "reason": "Jones sausage patties 7 oz, not Publix 12 oz."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "4c8721d7-563f-46f7-a9a7-a84755877c95",
+      "name": "Publix Homestyle Meatball Hot Sub",
+      "size": "Publix 1 each",
+      "reason": "Hot meatball sub belongs in existing Subs menu, not grocery shelf."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "4e6931d0-27bc-4cb3-bf12-939e453407b0",
+      "name": "Publix Hot Honey Chicken Tender Sub",
+      "size": "Publix 1 each",
+      "reason": "Hot honey tender sub belongs in existing Subs menu, not grocery shelf."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "9e0c3378-3f67-407f-ad53-888873a23e11",
+      "name": "Publix Pork Sausage",
+      "size": "16oz roll, original",
+      "reason": "Photo mild pork sausage links not roll."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "00732992-e185-4c22-9aab-35bbbc84712e",
+      "name": "Publix Premium Clams in Natural Juice",
+      "size": "16 oz frozen",
+      "reason": "Photo clam juice bottle, not frozen clams."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "4fc0f5af-5842-423a-8502-eb76e0d4f617",
+      "name": "Publix Premium Frozen Raw Shrimp",
+      "size": "2 lb bag / 26-30 ct",
+      "reason": "Photo 24 oz, not 2 lb."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "0768ed9e-19c7-40f6-8f3f-a5bf546a2466",
+      "name": "Publix Premium Frozen Sea Scallops",
+      "size": "16 oz bag",
+      "reason": "Photo GreenWise 24 oz, not Publix 16 oz."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "d438324b-7ab5-4d17-8223-4bbde882e13c",
+      "name": "Publix Sliced Bacon",
+      "size": "16 oz pack",
+      "reason": "Original meat case already has 16 oz Publix original bacon."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "5b6250df-dafc-420f-94b7-73807342ca7a",
+      "name": "Publix Sliced Pepperoni",
+      "size": "6oz resealable bag",
+      "reason": "Same sliced pepperoni 6oz as newly rendered meat bay 2."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "174225a8-dac8-4bcf-9ccc-3259c928a38d",
+      "name": "Publix Sweet & Spicy Chicken Tender Sub",
+      "size": "Publix each",
+      "reason": "Sweet & Spicy tender sub variant belongs in existing Subs menu, not grocery shelf."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "697b89ce-cb7f-45a0-94e3-0c5e2e893bc4",
+      "name": "Smithfield Bone-in Ham Steak",
+      "size": "8oz original smoked",
+      "reason": "Duplicate 8oz Smithfield ham steak already rendered in new meat bay 2."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "5ad18576-ed17-423c-91b3-6d7f92dd61e9",
+      "name": "Smoked Atlantic Salmon",
+      "size": "4oz premium sliced pack",
+      "reason": "Duplicate smoked Atlantic salmon 4 oz already new deli bay 48."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "cf5a2cea-4121-4c99-9902-aaa2063265b3",
+      "name": "Snow Crab Clusters, Cooked Previously Frozen, Wild",
+      "size": "per lb",
+      "reason": "Original seafood case already has snow crab clusters."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "0daf977c-2734-4618-b2f1-65b938af45c3",
+      "name": "Turkey Bacon",
+      "size": "Applegate Naturals 8oz",
+      "reason": "Duplicate Applegate 8oz turkey bacon, original meat case already contains original variant."
+    },
+    {
+      "category": "Frozen Meat & Seafood",
+      "product_id": "62bbff8c-6a3e-4984-8695-d2371a04502d",
+      "name": "Turkey Bacon",
+      "size": "Applegate Naturals 8oz",
+      "reason": "Photo GreenWise turkey bacon not Applegate; original both exist."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "7996be46-fbb5-4339-ae4c-3d78edf53826",
+      "name": "A.1. Steak Sauce",
+      "size": "10 oz bottle",
+      "reason": "A.1. Original 10 oz just rendered in condiment bay 55."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "66378a98-d998-4766-925d-d419d7d77852",
+      "name": "Baby Back Ribs",
+      "size": "Pork back ribs, per lb",
+      "reason": "Already represented by original station product 04264806-0c09-4c58-ba0c-98412571aee3, Pork back ribs, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "1c398dc7-6d85-410a-bc9b-529aa2c1e22b",
+      "name": "Ball Park Classic Hot Dog Buns",
+      "size": "8 ct / 13 oz",
+      "reason": "Photo is just buns with logo rather than actual package."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "243ae2f6-ceb9-470b-9aa0-19af68152ba4",
+      "name": "Beef Skirt Steak",
+      "size": "Perfect for fajitas, per lb",
+      "reason": "Already represented by original station product 0622ff8f-435f-4329-863c-3ce29f650cdf, Perfect for fajitas, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "5efbd7ec-f11b-4ac4-9af7-70de874867ab",
+      "name": "Beef Tenderloin Roast",
+      "size": "Whole roast, approx 4lb",
+      "reason": "Already represented by original station product 3122160f-577b-4596-9021-efab3e55e994, Whole roast, approx 4lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "5a6fa733-440e-4191-a936-29f4db70d4c4",
+      "name": "Cornish Game Hen",
+      "size": "Fresh whole hen, 20oz",
+      "reason": "Already represented by original station product 47bd1c52-8b47-40aa-8b0d-8265235077f5, Fresh whole hen, 20oz; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "93670799-e578-4b4f-a379-593bf0cbeec8",
+      "name": "Flank Steak",
+      "size": "Lean and flavorful, per lb",
+      "reason": "Already represented by original station product c622d3e6-963a-43af-a0e5-09c15e985cb4, Lean and flavorful, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "bc54ccb0-aafb-49d4-8a24-6df24c13b053",
+      "name": "Ground Chicken",
+      "size": "92% lean, 1lb pack",
+      "reason": "Already represented by original station product 0538ee3a-d14d-4525-85e8-cd5c939f1ca2, 92% lean, 1lb pack; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "77949b3d-6989-465c-9276-37f9bb643f1e",
+      "name": "Ken's Steak House Dressing, Italian",
+      "size": "Ken'S Steak House 16 fl oz",
+      "reason": "Ken’s Italian 16 fl oz just rendered in bay 56."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "aae2ca9a-010a-40e7-bc87-aaff33778a8a",
+      "name": "Ken's Steak House Italian Dressing",
+      "size": "16 oz bottle",
+      "reason": "Ken’s Italian 16 oz just rendered in bay 56."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "f2587c24-522d-4166-aff3-145f33c8c91c",
+      "name": "Lamb Shoulder Chops",
+      "size": "Fresh domestic lamb, per lb",
+      "reason": "Already represented by original station product 2a92f4cc-49d5-4359-99d3-cc9046904acc, Fresh domestic lamb, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "bb559a10-e7e7-424e-91c3-5c9ee5023a81",
+      "name": "McCormick Grill Mates Montreal Steak",
+      "size": "3.4 oz",
+      "reason": "3.4 oz catalog size contradicts photo showing 3x 3.4 oz bulk packaging."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "48d8acfb-6baf-4ab3-bab1-94b5620907fb",
+      "name": "MORRISON EL Toro Sweet Serrano Ham",
+      "size": "Morrison El per lb",
+      "reason": "Serrano ham sold per lb belongs to original deli loaf counter, do not add generic package bay."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "1580f758-8818-4125-8fe9-306e1e082533",
+      "name": "New York Strip Steak",
+      "size": "Per lb / USDA Choice",
+      "reason": "Already represented by original station product 91ac379f-fa94-4d2f-b454-2f7119d89065, Boneless center cut, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "b192abdd-8560-422d-ba79-85c2fce1e49e",
+      "name": "New York Strip Steak",
+      "size": "Boneless center cut, per lb",
+      "reason": "Already represented by original station product 91ac379f-fa94-4d2f-b454-2f7119d89065, Boneless center cut, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "48c97ae8-a961-43cf-ab86-0a00b73f3218",
+      "name": "Perdue Honey Roasted Chicken Breast Strips with Rib Meat",
+      "size": "Perdue 8 oz",
+      "reason": "Perdue Honey Roasted original packaging erased."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "f27c789d-d81c-46bd-859f-8ebdd406dc07",
+      "name": "Pork Loin Butterfly Chops",
+      "size": "Boneless center cut, 1lb pack",
+      "reason": "Already represented by original station product 47fa9c13-2e7c-4575-a7f7-bece1be195fc, Boneless center cut, 1lb pack; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "8d0e79bd-aed5-41d8-9628-8ad3a3ff74ce",
+      "name": "Porterhouse Steak",
+      "size": "Publix Premium Beef, thick cut per lb",
+      "reason": "Already represented by original station product aeab5f98-c55d-4ed7-8078-f0d80d47d245, Publix Premium Beef, thick cut per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "ce98edba-86f0-46cc-b74a-443808f4cdf3",
+      "name": "Publix Bakery Potato Long Rolls",
+      "size": "6 ct / Hot dog style",
+      "reason": "Photo shows dinner rolls rather than hot dog style long rolls."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "76c1cf35-81b0-4a12-8d7f-ec7a6a62fc2a",
+      "name": "Publix Chicken Bacon Ranch Tender Sub",
+      "size": "Publix each",
+      "reason": "Chicken bacon ranch tender sub variant belongs in original Subs menu, not grocery shelf."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "a5a6d71b-001b-4024-a8f0-14eb92baca48",
+      "name": "Publix Corned Beef Brisket",
+      "size": "Flat cut with spice pack, per lb",
+      "reason": "Already represented by original station product 1dda8e83-6926-4bdc-9f09-3186b7df6938, Flat cut with spice pack, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "216ed474-d89d-47a6-a9e7-2ff3293570de",
+      "name": "Publix Hot Dog Buns",
+      "size": "8 ct / 12 oz",
+      "reason": "Photo 13 oz; catalog 12 oz."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "bc64ffc9-dab1-44cb-beda-5c1134f48e8d",
+      "name": "Rao's Homemade Roasted Garlic",
+      "size": "24 oz jar / Premium",
+      "reason": "Duplicate identical 24 oz Rao's roasted garlic photo and product title variant; retain one shelf facing pending SKU merge confirmation."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "d50cc636-4727-4ef4-b244-b5aef332a44b",
+      "name": "Riunite Lambrusco, Emilia",
+      "size": "Riunite 1.5 L",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "99dd1d7d-7286-4dd2-ad5f-30ed4579401d",
+      "name": "Short Cuts Carved Fajita Style Chicken Breast Strips",
+      "size": "Short Cuts 8 oz",
+      "reason": "Perdue Short Cuts fajita package erased."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "3c9a7a72-021e-47c8-a709-63f92bb16f3b",
+      "name": "Smithfield Turkey Breast, Oven Roasted",
+      "size": "Smithfield 7 oz",
+      "reason": "Smithfield turkey photo only logo and turkey; no exact package variant."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "2152935b-2afa-47c3-aa95-1bb8d1743a8f",
+      "name": "Tyson Premium Chunk White Chicken Breast, Twin Pack",
+      "size": "Tyson 12.5 oz",
+      "reason": "Twin pack reference is only a floating Tyson logo; missing actual packaging."
+    },
+    {
+      "category": "Meat & Poultry",
+      "product_id": "b77b078d-6b11-4e08-bd2c-7d98d5039585",
+      "name": "Whole Chicken",
+      "size": "Publix fresh young chicken, approx 4lb",
+      "reason": "Already represented by original station product 9a11bfaa-450f-40cd-a090-4392f53b2f7b, Publix fresh young chicken, approx 4lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Produce",
+      "product_id": "2fe9eabc-0e93-4b91-9eb0-ecebd87aab9c",
+      "name": "Apple",
+      "size": "1 lb",
+      "reason": "Original produce shows multiple apple varieties; generic Apple 1lb listing has no variety."
+    },
+    {
+      "category": "Produce",
+      "product_id": "a150863f-4e87-4b6a-a2d6-c74aeee7d40f",
+      "name": "Apple #2 Bag",
+      "size": "2 lb",
+      "reason": "Catalog placeholder and generic apple variety."
+    },
+    {
+      "category": "Produce",
       "product_id": "0b13e56d-6a0f-4151-ad65-adfa39ac5638",
       "name": "Baby Romaine Lettuce",
+      "size": "1 container",
       "reason": "Loose baby romaine photo, catalog says container."
     },
     {
+      "category": "Produce",
       "product_id": "39bb7f13-64f9-45cf-a911-6d25e85ebbd3",
       "name": "Baby Spinach",
+      "size": "Publix Organic 5oz bag",
       "reason": "Publix conventional baby spinach package, not organic 5 oz; original 6oz exists."
     },
     {
+      "category": "Produce",
+      "product_id": "254b6ade-8861-4d7a-ad00-6ba92dcaeba8",
+      "name": "Baby Spinach",
+      "size": "Publix 9oz bag",
+      "reason": "Original packaged produce has Publix spinach 9 oz."
+    },
+    {
+      "category": "Produce",
+      "product_id": "8ea401e0-351a-4c33-bb59-87d697a6305f",
+      "name": "Banana",
+      "size": "per lb",
+      "reason": "Original loose fruit has Publix bananas per lb."
+    },
+    {
+      "category": "Produce",
+      "product_id": "b9c8e3c3-099a-413f-a4df-e738f6a49da2",
+      "name": "BeatBox Blue Razzberry Malt Beverage",
+      "size": "Beatbox 500 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Produce",
+      "product_id": "26492808-5be3-4651-aacc-5fa0b420ee5c",
+      "name": "Black Figs",
+      "size": "8 oz",
+      "reason": "Identical image to Mecca Gold 8 oz fig already in packaged fruit case; duplicate."
+    },
+    {
+      "category": "Produce",
+      "product_id": "a211a13c-4450-4c2f-9374-39da3b302868",
+      "name": "Blueberries",
+      "size": "1 pt",
+      "reason": "Already represented by original station product e338f56e-5a35-4501-b44e-e8d4ee5e59d1, 11 oz clamshell; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Produce",
+      "product_id": "cf7c9ac0-08c0-4f0b-ab6b-6cb12560346d",
+      "name": "Bulk Sweet Corn",
+      "size": "each",
+      "reason": "Original vegetable bins have loose sweet corn."
+    },
+    {
+      "category": "Produce",
+      "product_id": "334b3dbb-ae7e-4286-8347-2ec75434202e",
+      "name": "Corn on the Cob",
+      "size": "Sweet yellow corn, 4-count pack",
+      "reason": "Original vegetable bins have yellow corn 4-count."
+    },
+    {
+      "category": "Produce",
+      "product_id": "e1bc04fd-a31c-4e0e-9b1a-5afaa2ce5241",
+      "name": "Earth's Best Organic Sunny Days Blueberry Flavored Snack Bars",
+      "size": "Earth'S Best 0.67 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Produce",
+      "product_id": "7a83cadc-c217-44f1-b705-58b061861359",
+      "name": "Earth's Best Organic Sunny Days Snack Bars, Apple",
+      "size": "Earth'S Best 0.67 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Produce",
+      "product_id": "74b96446-5a0a-417a-94b4-0e1006cc9b1a",
+      "name": "Fresh Cilantro",
+      "size": "Bunch",
+      "reason": "Original produce wall has Cilantro bunch."
+    },
+    {
+      "category": "Produce",
+      "product_id": "325c2dd3-9aa8-4db7-92c0-fb938f59a054",
+      "name": "Funyuns Onion Flavored Rings",
+      "size": "Funyuns 6 oz",
+      "reason": "Catalog 6 oz; package photo shows 5.25 oz."
+    },
+    {
+      "category": "Produce",
+      "product_id": "c48fee49-d8cc-49ad-afb7-e88ec4a11c18",
+      "name": "Ginger",
+      "size": "1 each",
+      "reason": "Original produce wall has fresh whole ginger per lb; check unit each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "9feef0f8-aa02-4e06-b0c8-b0bef50ab559",
+      "name": "Grape Tomatoes",
+      "size": "1 ct",
+      "reason": "Original packaged produce has grape tomatoes 1 pint."
+    },
+    {
+      "category": "Produce",
+      "product_id": "689df547-7ecf-47bc-b5f3-801d1000ee43",
+      "name": "Green Onions (Scallions) Bunch",
+      "size": "per lb",
+      "reason": "Original produce wall has fresh onion/scallions style; verify exact catalog unit."
+    },
+    {
+      "category": "Produce",
       "product_id": "1329225a-4c51-47dc-b6dd-50d1256e5af6",
       "name": "GreenWise Carrots, Juicing",
+      "size": "Greenwise 25 lb",
       "reason": "25 lb listed, photo appears standard small carrot bag; verify bulk size."
     },
     {
+      "category": "Produce",
+      "product_id": "dc90d9ee-50a2-41e3-b960-e26dc6ab5d23",
+      "name": "GreenWise Lemon, Organic",
+      "size": "Greenwise 1 lb",
+      "reason": "GreenWise organic lemon photo badly erased."
+    },
+    {
+      "category": "Produce",
+      "product_id": "ae696526-f3e0-481a-8a16-c34c5d749081",
+      "name": "GreenWise Mushroom, Organic, White, Sliced",
+      "size": "Greenwise 8 oz",
+      "reason": "Only mushroom label visible, no verified package."
+    },
+    {
+      "category": "Produce",
+      "product_id": "6440ebb1-3a0b-429a-9eee-39f9c32cb4dd",
+      "name": "GreenWise Mushrooms, Organic, Baby Bella, Sliced",
+      "size": "Greenwise 8 oz",
+      "reason": "Only mushroom label visible, no verified package."
+    },
+    {
+      "category": "Produce",
+      "product_id": "45ff3391-1f9c-4f28-b00a-ab8a717565b4",
+      "name": "Habaneros Peppers",
+      "size": "4 oz",
+      "reason": "Original produce wall has Habanero pepper, verify pack size."
+    },
+    {
+      "category": "Produce",
+      "product_id": "13882aea-059f-4eeb-9b32-8646405fb97d",
+      "name": "Hass Avocados",
+      "size": "Each / Large",
+      "reason": "Same photograph as standard Hass avocado, no size identification."
+    },
+    {
+      "category": "Produce",
+      "product_id": "9f6fc418-2df6-468c-af1f-a33e9ce16270",
+      "name": "J&C Tropicals Tamarind, Sweet, Fresh",
+      "size": "J&C Tropicals 16 oz",
+      "reason": "Loose tamarind photo; no package verified."
+    },
+    {
+      "category": "Produce",
+      "product_id": "1bd6eec5-7ced-4c81-b779-f187618c18bd",
+      "name": "Jalapeño Peppers",
+      "size": "Fresh spicy peppers, per lb",
+      "reason": "Original produce wall has Jalapeño pepper per lb."
+    },
+    {
+      "category": "Produce",
+      "product_id": "0e69a91d-88b6-45e4-baa9-233ddc705387",
+      "name": "Lemons",
+      "size": "32 oz",
+      "reason": "32 oz bag listing has a single lemon photo."
+    },
+    {
+      "category": "Produce",
+      "product_id": "126d1835-a99e-4f31-8713-f3c28281f626",
+      "name": "Lemons",
+      "size": "Fresh whole lemon, each",
+      "reason": "Original loose fruit has whole lemon each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "a271a7c4-1b7d-4b21-b07e-a7cbcda7b49f",
+      "name": "Lettuce",
+      "size": "4 ct",
+      "reason": "Generic lettuce 4ct lacks variety and original produce includes multiple lettuce types."
+    },
+    {
+      "category": "Produce",
+      "product_id": "e8a2cef5-45aa-4b0b-9f99-07b0076f2c86",
+      "name": "Melissa's Hami Melons",
+      "size": "Melissa'S 1 each",
+      "reason": "Catalog placeholder, no Hami melon reference."
+    },
+    {
+      "category": "Produce",
+      "product_id": "b8e0240e-f78b-44ed-80ea-96bd7ece4bd2",
+      "name": "Organic Bananas",
+      "size": "1 each",
+      "reason": "Same organic banana reference as per-lb Publix Organic Bananas; different selling unit requires clarification."
+    },
+    {
+      "category": "Produce",
+      "product_id": "e33cd1cb-53ab-4121-93aa-901c6bef7785",
+      "name": "Organic English Seedless Cucumber",
+      "size": "1 ct",
+      "reason": "Original produce shelf already has organic wrapped cucumber (Pero), check generic duplicate."
+    },
+    {
+      "category": "Produce",
+      "product_id": "ffe30e6c-1757-4acd-9bd5-8c01a12529ca",
+      "name": "Organic Lime Bag",
+      "size": "1 lb",
+      "reason": "Organic lime bag photo unlabelled; original already has lime bag."
+    },
+    {
+      "category": "Produce",
+      "product_id": "908077cb-e2e0-449d-8de1-4bc92d2f49fd",
+      "name": "Organic Peach",
+      "size": "1 each",
+      "reason": "Photo multipack of organic peaches, catalog each, verify unit."
+    },
+    {
+      "category": "Produce",
+      "product_id": "ac34256c-fa6e-4928-b583-88bb4a280d28",
+      "name": "Organic Peppers Mini Sweet",
+      "size": "3 oz",
+      "reason": "Catalog mini sweet peppers 3 oz, photo 8 oz."
+    },
+    {
+      "category": "Produce",
+      "product_id": "a138b214-224e-48f6-97b2-a0bb79266f8e",
+      "name": "Organic Red Grape Tomato",
+      "size": "1 ct",
+      "reason": "Unlabeled organic grape tomato photo; original grape tomato facing already exists, confirm organic listing."
+    },
+    {
+      "category": "Produce",
+      "product_id": "a60a3225-e016-46c5-9706-317cee298509",
+      "name": "Pero Family Farms Snipped Green Beans",
+      "size": "Pero Family Farms 32 oz",
+      "reason": "32 oz listing uses similar 12 oz Pero snipped green beans reference; original already has 12 oz facing."
+    },
+    {
+      "category": "Produce",
       "product_id": "d7f9d801-7af8-467a-b48a-65463ac33449",
       "name": "Persian Lime Bag",
+      "size": "each",
       "reason": "Original bagged fruit has lime bag; no brand or differentiated size."
     },
     {
+      "category": "Produce",
+      "product_id": "12e6d3b8-9192-4408-bded-3a0cff2cf3ba",
+      "name": "Plum Organics® Teensy Snacks® Berry Tots Snacks",
+      "size": "Plum Organics® Teensy Snacks® 0.35 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Produce",
+      "product_id": "07ce1a83-c6fa-41b7-9e3d-45db752ebe69",
+      "name": "Potato",
+      "size": "1 lb",
+      "reason": "Original vegetable bins have red potatoes per lb/russet potato each; generic name lacks type."
+    },
+    {
+      "category": "Produce",
       "product_id": "023d6bb2-cbaf-47a7-a544-32f184278412",
       "name": "Potted Basil",
+      "size": "6 in",
       "reason": "Potted basil needs separate actual herb plant stand, don't show on cold shelf."
     },
     {
+      "category": "Produce",
+      "product_id": "d923bd1f-b74f-4b8c-8fe5-b2ccb36efa0c",
+      "name": "Premium Pineapple",
+      "size": "1 ct",
+      "reason": "Original loose fruit has golden pineapple each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "a782192d-dd56-4a44-8044-fee3412c4503",
+      "name": "Publix Grapes And Strawberries Snack Pack",
+      "size": "Publix per lb",
+      "reason": "Original packaged fruit has grape & strawberry snack pack; verify exact weight versus per lb."
+    },
+    {
+      "category": "Produce",
+      "product_id": "50aff91e-a380-498b-9b45-de9e2344aa83",
+      "name": "Publix Honeydew Chunks",
+      "size": "Publix 1 each",
+      "reason": "Honeydew chunks generic 1 each vs same small pack; clarify size, retain distinct small tray."
+    },
+    {
+      "category": "Produce",
+      "product_id": "2190c9cc-20cc-4b39-9770-8ef2d7b86827",
+      "name": "Publix Lemon",
+      "size": "Publix 1 gal",
+      "reason": "Catalog lemon with 1 gallon unit is ambiguous; existing single whole lemon and bag sections."
+    },
+    {
+      "category": "Produce",
+      "product_id": "c51db9b9-1ed3-47d9-bbda-f52e9f865605",
+      "name": "Publix Medium Pineapple Chunks",
+      "size": "Publix per lb",
+      "reason": "Original packaged fruit has pineapple chunks small; medium weight is not specified."
+    },
+    {
+      "category": "Produce",
+      "product_id": "e8684cd6-c607-46c6-baa6-7fc35e25d881",
+      "name": "Publix Snow Peas, Microwavable",
+      "size": "Publix 6 oz",
+      "reason": "Photo is Pero Family Farms snow peas; catalog Publix, original already displays Pero."
+    },
+    {
+      "category": "Produce",
+      "product_id": "25de3721-9ec3-4144-b594-f26f034b1803",
+      "name": "Publix Spinach Salad",
+      "size": "Publix 9.5 oz",
+      "reason": "Unlabeled mixed salad image; exact spinach salad packaging cannot be verified."
+    },
+    {
+      "category": "Produce",
+      "product_id": "4a15b10f-2d06-436c-ba89-da3b178ddea1",
+      "name": "Publix Spinach, Baby",
+      "size": "Publix 6 oz",
+      "reason": "Original packaged produce has Publix baby spinach 6oz bag."
+    },
+    {
+      "category": "Produce",
+      "product_id": "11a6f4ca-3fd3-43f1-ae96-22fa2a97171e",
+      "name": "Publix Whole Pineapple",
+      "size": "Each / Cored on request",
+      "reason": "Original loose fruit has golden pineapple each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "56f58e98-7cfc-4704-a138-e7a13d8058de",
+      "name": "Red Bell Peppers",
+      "size": "Each",
+      "reason": "Original produce wall has red bell pepper each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "50899f43-fb7e-49ce-8ca2-a02f93558026",
+      "name": "Red Bell Peppers",
+      "size": "Fresh whole, each",
+      "reason": "Original produce wall has red bell pepper each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "82f27020-29cd-4068-a36c-0b91499f81d9",
+      "name": "Red Raspberries",
+      "size": "6 oz",
+      "reason": "Original packaged fruits have 6 oz raspberries."
+    },
+    {
+      "category": "Produce",
       "product_id": "6f6fd7e6-5248-4b45-bda9-11db67042dc8",
       "name": "Red Raspberries Organic",
+      "size": "6 oz",
       "reason": "Unlabeled raspberry clamshell; original 6oz raspberry display; organic claim unverified."
+    },
+    {
+      "category": "Produce",
+      "product_id": "c250fc75-89e8-4825-a705-07c8ab99234e",
+      "name": "Rock Garden Basil, Organic",
+      "size": "Rock Garden 0.75 oz",
+      "reason": "Rock Garden basil photo is a different brand."
+    },
+    {
+      "category": "Produce",
+      "product_id": "1f957335-1e2b-4c86-9bd6-ce28a85f9c66",
+      "name": "Seedless Grapes Medium",
+      "size": "per lb",
+      "reason": "Original packaged grapes and loose fruit stock cover seedless grapes; generic size 'Medium' requires clarification."
+    },
+    {
+      "category": "Produce",
+      "product_id": "679166db-77c6-4d90-8fe3-f554fe76cfa0",
+      "name": "Seedless Watermelon",
+      "size": "1 each",
+      "reason": "Original loose fruit has seedless watermelon."
+    },
+    {
+      "category": "Produce",
+      "product_id": "31184454-0282-444a-8f04-c537cb97ae48",
+      "name": "Simply Orange Pulp",
+      "size": "Simply 89 fl oz",
+      "reason": "Catalog says Pulp; original photo explicitly Pulp Free."
+    },
+    {
+      "category": "Produce",
+      "product_id": "109ab06b-d3f1-41d9-aa29-aa70d082c320",
+      "name": "Stella Rosa Berry",
+      "size": "Stella Rosa 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Produce",
+      "product_id": "613679b2-b6fb-4174-8c93-0177f5a99eaf",
+      "name": "Stella Rosa Tropical Mango",
+      "size": "Stella Rosa 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Produce",
+      "product_id": "77a1fedf-2132-4280-a8ac-0dbaf1302944",
+      "name": "Sunset Brands Teeny Tiny Cucumbers",
+      "size": "Sunset Brands 9 oz",
+      "reason": "Reference Mucci cute cucumber poppers, not Sunset Teeny Tiny Cucumbers."
+    },
+    {
+      "category": "Produce",
+      "product_id": "dfcd38ef-f9af-4f4e-ae24-45e790d421cd",
+      "name": "That’s it Apple + Cherries Fruit Bars",
+      "size": "That’S It 1.2 oz",
+      "reason": "Title 1.2 oz bar; photo multiple-bar box with one 1.2 oz bar; verify sell unit."
+    },
+    {
+      "category": "Produce",
+      "product_id": "5aa3eae7-2bee-4864-8df8-fce30e8cc35a",
+      "name": "Tomatoes",
+      "size": "L",
+      "reason": "Original produce shows multiple varieties of tomatoes; generic title and unit 'L' cannot distinguish."
+    },
+    {
+      "category": "Produce",
+      "product_id": "0a980de2-57cb-4446-aa8c-47e57845a9d0",
+      "name": "Verdi Raspberry Sparkletini",
+      "size": "Verdi 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Produce",
+      "product_id": "35f88d3f-6881-4150-93f8-e2af6722d5b1",
+      "name": "Victory Brewing Company Berry Monkey",
+      "size": "Victory Brewing Company 12 fl oz",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Produce",
+      "product_id": "aae98796-61c1-46f8-af78-c7fa884583d6",
+      "name": "Whole Pineapple",
+      "size": "Fresh golden pineapple",
+      "reason": "Original loose fruit has golden pineapple each."
+    },
+    {
+      "category": "Produce",
+      "product_id": "c57906af-fe48-4169-8512-9c41a32b3dd7",
+      "name": "Wholly Smashed Avocado Nothing Added Minis",
+      "size": "Wholly 1 each",
+      "reason": "Wholly smashed avocado package is 4 cups but record just 1 each; review pack quantity."
+    },
+    {
+      "category": "Produce",
+      "product_id": "e6ab9100-c970-4291-84c6-35b8de5f7e4b",
+      "name": "Yellow Bell Peppers",
+      "size": "1 pepper",
+      "reason": "Original produce wall has whole yellow bell pepper each."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "1cdf4f85-cddf-42b7-8812-ce8406e09a1f",
+      "name": "Cod Fillets",
+      "size": "Wild caught Atlantic cod, per lb",
+      "reason": "Already represented by original station product 4cc91e9d-14f6-4368-928a-dd3802410493, Wild caught Atlantic cod, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "22c27ab1-1037-4165-85c5-34fcf4f70917",
+      "name": "Fresh Catfish Fillets",
+      "size": "Farm raised, per lb",
+      "reason": "Already represented by original station product 05d49bb7-0447-499b-93cf-33c19f006f26, Farm raised, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "933af502-07d5-46a4-9446-0beba9b8cb62",
+      "name": "Fresh Grouper Fillet",
+      "size": "Wild caught local favorite, per lb",
+      "reason": "Already represented by original station product a455eaa7-cd5d-471e-97dd-a9d17b4db4fa, Wild caught local favorite, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "d634a95d-39fe-410e-9ebb-0aacf79af595",
+      "name": "Fresh Large Sea Scallops",
+      "size": "Per lb / Wild caught",
+      "reason": "Photo GreenWise frozen scallops; original fresh scallops display exists."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "b0c358c2-af28-4c38-9916-171e3e6d47fd",
+      "name": "Little Neck Clams",
+      "size": "Fresh whole in shell, 12-count",
+      "reason": "Already represented by original station product 6a58e31b-dfb8-4b1c-a2c5-5f0b70965766, Fresh whole in shell, 12-count; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "556ac618-b9e5-4763-98f7-bbe8f768b036",
+      "name": "Mahi Mahi Fillets",
+      "size": "Fresh wild caught, per lb",
+      "reason": "Already represented by original station product d3027bac-79bd-46c6-905c-4f0764b21237, Fresh wild caught, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "adfef12a-4b37-4eef-bfea-e1edd915c446",
+      "name": "Oyster Bay Chardonnay",
+      "size": "Oyster Bay 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "2064b4d2-4157-481a-998d-664d03f7e3f8",
+      "name": "Oyster Bay Pinot Grigio White Wine",
+      "size": "Oyster Bay 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "974efaed-7811-4453-a251-72c68f85b8eb",
+      "name": "Oyster Bay Sauvignon Blanc",
+      "size": "Oyster Bay 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "a1160999-e26c-4371-a73d-0ae5e1fc40b0",
+      "name": "Publix Aprons Salmon Pinwheels with Spinach",
+      "size": "2 ct / Fresh from meat case",
+      "reason": "Already represented by original station product 9f90f4d7-0adf-4f56-bb72-9db35328fdbb, 2 ct / Fresh from meat case; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "43d4006c-5b18-4fdb-995a-0fb8b4ed199d",
+      "name": "Red Snapper Fillet",
+      "size": "Fresh skin-on, per lb",
+      "reason": "Already represented by original station product 3b94e1ab-f628-4816-bf40-c362124cf9c4, Fresh skin-on, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "cac61359-5cb4-41b4-bd7d-027e26b2b161",
+      "name": "Reser’s Main St Bistro Scalloped Potatoes, Baked",
+      "size": "Reser’S Main St Bistro 20 oz",
+      "reason": "Reference package name obscured, no verified exact variant."
+    },
+    {
+      "category": "Seafood",
+      "product_id": "c170b49a-ee4f-43dd-ade0-fa9f59c78c37",
+      "name": "Sea Scallops",
+      "size": "Fresh jumbo wild caught, per lb",
+      "reason": "Already represented by original station product 7204d6c3-f9a7-4e7c-92e5-78f0e5d54ebd, Fresh jumbo wild caught, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "a9a5ac88-0cce-4413-9fd3-75c6e2a849d2",
+      "name": "Almond Breeze Milk",
+      "size": "64oz Unsweetened Vanilla",
+      "reason": "Catalog unsweetened vanilla; original photo shows Original sweetened."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "88812014-f61c-452f-b221-e7b731ab7473",
+      "name": "Chandon Garden Spritz",
+      "size": "Chandon 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "17bb439b-99ea-4b94-ac0b-bfff2e389ba1",
+      "name": "ChocoVine Dark Chocolate",
+      "size": "Chocovine 750 ml",
+      "reason": "Alcohol misclassified under groceries; user permits realistic coded beer/wine/liquor display, do not render as groceries."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "22736ffb-2030-4398-a1af-4ab879a68386",
+      "name": "Happy Baby Organics Organic Teether Crackers Strawberry & Beet with Amaranth, Gluten Free, 12 Packs",
+      "size": "Happy Baby Organics 0.14 oz",
+      "reason": "Baby, toddler or pet product misclassified in grocery aisle; use non-grocery display policy."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "a406b2e9-07c0-4491-878f-9df156d3ad15",
+      "name": "Pop-Tarts Strawberry",
+      "size": "8-count frosted toaster pastries",
+      "reason": "Catalog Pop-Tarts 8-count; photo Publix 12-count."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "7b4ae218-1f23-4e98-b97b-925c2e782d47",
+      "name": "Publix Bakery Chocolate Chip Cookies",
+      "size": "13 ct / Fresh baked",
+      "reason": "Photo two cookies, catalog 13."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "e6e13292-9c4d-4f84-bb9c-024d6a1abb9e",
+      "name": "Publix Bakery Chocolate Chip Cookies, 13ct",
+      "size": "Publix Bakery 14 oz",
+      "reason": "13-count chocolate chip cookies 14oz needs verified packet; duplicate title/photo of 13ct record with wrong count. Original cookie bay exists."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "1212938b-fb49-414d-a9d3-db61200cda3c",
+      "name": "Publix Cheese Squares",
+      "size": "12oz cracker box",
+      "reason": "Catalog cracker box, photo cheese party tray."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "221ca31e-69d5-486e-8f5b-1db2fe88cd31",
+      "name": "Publix Deli Boar's Head Jerky",
+      "size": "2 oz pouch original",
+      "reason": "Catalog beef jerky photo is a deli sandwich."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "755e29e9-9c96-445f-b754-174ab37c9278",
+      "name": "Swiss Miss Cocoa",
+      "size": "10-count Milk Chocolate envelopes",
+      "reason": "Catalog 10-count cocoa; original photo shows 8-count."
+    },
+    {
+      "category": "Snacks",
+      "product_id": "6a2a566a-e9ac-40d4-b406-4642ab322be3",
+      "name": "Whole Fruit Pineapple",
+      "size": "Whole Fruit 2.75 fl oz",
+      "reason": "No box or wrap, only pop and pineapple."
     }
   ]
 }
