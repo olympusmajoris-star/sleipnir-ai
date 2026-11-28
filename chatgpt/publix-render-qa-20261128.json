@@ -1008,6 +1008,176 @@
       "product_id": "216ed474-d89d-47a6-a9e7-2ff3293570de",
       "name": "Publix Hot Dog Buns",
       "reason": "Photo 13 oz; catalog 12 oz."
+    },
+    {
+      "product_id": "78918cbf-351b-4e51-8e4a-ce6f38d6656f",
+      "name": "Italian Sausage Links",
+      "reason": "Catalog hot or mild unspecified; photo explicitly mild."
+    },
+    {
+      "product_id": "465a3ce5-ad10-401c-83a1-821b7229e2bf",
+      "name": "Publix Aprons Bacon Wrapped Jalapenos",
+      "reason": "Catalog six bacon wrapped jalapenos, original meat case already has jalapeno variant; photo not clear as six items."
+    },
+    {
+      "product_id": "8fc2726a-733e-4ba2-b021-fb748c479643",
+      "name": "Publix Aprons Bacon Wrapped Meatloaf",
+      "reason": "Cooked meatloaf picture, not ready-to-cook package."
+    },
+    {
+      "product_id": "51f2dba9-3585-4360-9a4d-b677a0a40df6",
+      "name": "Publix Aprons Chicken Parmigiana",
+      "reason": "Actual product photo chicken parmigiana style dip, not ready-to-cook chicken."
+    },
+    {
+      "product_id": "1ca8bad5-88d4-4d05-a70e-dc20a69239fe",
+      "name": "Publix Aprons Slow Cooker Pot Roast Meal",
+      "reason": "Catalog meal 3.5 lb, photo 4.74 lb."
+    },
+    {
+      "product_id": "6f1e803d-4725-4625-90c5-962c0ada581a",
+      "name": "Publix Aprons Stuffed Chicken Breast",
+      "reason": "Same exact photo as spinach feta chicken; original Cordon Bleu display exists."
+    },
+    {
+      "product_id": "af98d4b2-667b-4250-97d8-5565d2ec8625",
+      "name": "Applegate Organic Turkey Bacon",
+      "reason": "Applegate uncured 8oz exists in original meat case; verify organic variation before duplicating."
+    },
+    {
+      "product_id": "1f51aa61-2543-49c6-b9d9-0eef6e8bc133",
+      "name": "Nathan’s Famous Hot Dogs",
+      "reason": "Photo natural casing 10 oz, catalog skinless 12 oz."
+    },
+    {
+      "product_id": "671bf29e-f52e-4ead-9ddc-8497b912fab1",
+      "name": "Publix Breakfast Sausage Links",
+      "reason": "Photo Banquet instead of Publix."
+    },
+    {
+      "product_id": "9e0c3378-3f67-407f-ad53-888873a23e11",
+      "name": "Publix Pork Sausage",
+      "reason": "Photo mild pork sausage links not roll."
+    },
+    {
+      "product_id": "d438324b-7ab5-4d17-8223-4bbde882e13c",
+      "name": "Publix Sliced Bacon",
+      "reason": "Original meat case already has 16 oz Publix original bacon."
+    },
+    {
+      "product_id": "62bbff8c-6a3e-4984-8695-d2371a04502d",
+      "name": "Turkey Bacon",
+      "reason": "Photo GreenWise turkey bacon not Applegate; original both exist."
+    },
+    {
+      "product_id": "cf5a2cea-4121-4c99-9902-aaa2063265b3",
+      "name": "Snow Crab Clusters, Cooked Previously Frozen, Wild",
+      "reason": "Original seafood case already has snow crab clusters."
+    },
+    {
+      "product_id": "f052b588-1d2e-4478-b2b3-a8b48220d40e",
+      "name": "Live Maine Lobster",
+      "reason": "Live Maine lobster needs separate tank display; not a shelf product."
+    },
+    {
+      "product_id": "d634a95d-39fe-410e-9ebb-0aacf79af595",
+      "name": "Fresh Large Sea Scallops",
+      "reason": "Photo GreenWise frozen scallops; original fresh scallops display exists."
+    },
+    {
+      "product_id": "ec109e1c-3ea7-4f3b-9640-6a66534f095d",
+      "name": "Perdue Chicken Nuggets",
+      "reason": "Perdue photo packaging partially erased, need full verified 12oz label."
+    },
+    {
+      "product_id": "0430adc9-6c3c-4fb8-9c33-6573efdbf53b",
+      "name": "Publix Frozen Tropical Fruit Blend",
+      "reason": "Loose fruit picture instead of frozen bag."
+    },
+    {
+      "product_id": "7dc9ae09-9a34-46a0-bb18-5479f11261d3",
+      "name": "Veggies Made Great Banana Chocolate Chip Muffins",
+      "reason": "No packaging, only muffin and logo."
+    },
+    {
+      "product_id": "6a2a566a-e9ac-40d4-b406-4642ab322be3",
+      "name": "Whole Fruit Pineapple",
+      "reason": "No box or wrap, only pop and pineapple."
+    },
+    {
+      "product_id": "bdef6e3b-87d5-4d96-b80f-a426c0209abe",
+      "name": "Publix Bakery Brioche Hamburger Buns",
+      "reason": "Photo two buns, catalog four."
+    },
+    {
+      "product_id": "6b9adc25-b722-4848-9ce2-5430d9543843",
+      "name": "White Bread",
+      "reason": "Original new Bread & Rolls has Publix Premium White Bread 20oz."
+    },
+    {
+      "product_id": "75799891-11e2-46ae-a163-ac2d18127480",
+      "name": "Wonder White Bread",
+      "reason": "Original new Bread & Rolls has Wonder Classic White Bread 20oz."
+    },
+    {
+      "product_id": "7b4ae218-1f23-4e98-b97b-925c2e782d47",
+      "name": "Publix Bakery Chocolate Chip Cookies",
+      "reason": "Photo two cookies, catalog 13."
+    },
+    {
+      "product_id": "187512a5-8aea-4d4c-8168-7519c4b336e7",
+      "name": "Publix GreenWise Organic Blue Corn Tortilla Chips",
+      "reason": "Catalog says 12 oz, photo 9 oz and new Snacks already includes 9 oz GreenWise Blue Corn."
+    },
+    {
+      "product_id": "f12d5d63-38b2-4b3b-9d10-7dd0849d8d2d",
+      "name": "GoGo Squeez YogurtZ Strawberry Low Fat Yogurt Pouches",
+      "reason": "Reference erased multipack, single pouch remains; check correct quantity."
+    },
+    {
+      "product_id": "9dad37c2-12e2-47e6-8088-e0628f80760f",
+      "name": "Reeses Peanut Butter Cups",
+      "reason": "Already rendered exact Reese's two-cup 1.5oz in snacks."
+    },
+    {
+      "product_id": "dfcd38ef-f9af-4f4e-ae24-45e790d421cd",
+      "name": "That’s it Apple + Cherries Fruit Bars",
+      "reason": "Title 1.2 oz bar; photo multiple-bar box with one 1.2 oz bar; verify sell unit."
+    },
+    {
+      "product_id": "cac61359-5cb4-41b4-bd7d-027e26b2b161",
+      "name": "Reser’s Main St Bistro Scalloped Potatoes, Baked",
+      "reason": "Reference package name obscured, no verified exact variant."
+    },
+    {
+      "product_id": "0b13e56d-6a0f-4151-ad65-adfa39ac5638",
+      "name": "Baby Romaine Lettuce",
+      "reason": "Loose baby romaine photo, catalog says container."
+    },
+    {
+      "product_id": "39bb7f13-64f9-45cf-a911-6d25e85ebbd3",
+      "name": "Baby Spinach",
+      "reason": "Publix conventional baby spinach package, not organic 5 oz; original 6oz exists."
+    },
+    {
+      "product_id": "1329225a-4c51-47dc-b6dd-50d1256e5af6",
+      "name": "GreenWise Carrots, Juicing",
+      "reason": "25 lb listed, photo appears standard small carrot bag; verify bulk size."
+    },
+    {
+      "product_id": "d7f9d801-7af8-467a-b48a-65463ac33449",
+      "name": "Persian Lime Bag",
+      "reason": "Original bagged fruit has lime bag; no brand or differentiated size."
+    },
+    {
+      "product_id": "023d6bb2-cbaf-47a7-a544-32f184278412",
+      "name": "Potted Basil",
+      "reason": "Potted basil needs separate actual herb plant stand, don't show on cold shelf."
+    },
+    {
+      "product_id": "6f6fd7e6-5248-4b45-bda9-11db67042dc8",
+      "name": "Red Raspberries Organic",
+      "reason": "Unlabeled raspberry clamshell; original 6oz raspberry display; organic claim unverified."
     }
   ]
 }
