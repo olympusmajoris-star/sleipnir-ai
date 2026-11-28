@@ -30,10 +30,11 @@ function makePanels(renders,slots,products,aisle,media,protectedIds=new Set()){
    let start=0,top=0,spots=[],valid=true;
    for(const count of counts){
      const segment=rows.slice(start,start+count),rt=tags.slice(start,start+count);
-     const centers=rt.map(t=>(t[0]+t[2])/2),bottom=Math.min(1,Math.max(...rt.map(t=>t[3]))+(segment.every(s=>s.shelf_group==='Packaged Fruit')?.045:0));
+     const group=segment[0]?.shelf_group,bin=['Fresh Fruits','Bagged Fruits'].includes(group);
+     const centers=rt.map(t=>(t[0]+t[2])/2),bottom=bin?(group==='Fresh Fruits'?.69:.8):Math.min(1,Math.max(...rt.map(t=>t[3]))+(['Packaged Fruit','Fresh Veggies'].includes(group)?.065:0));
      if(bottom<=top||centers.some((v,i)=>i&&v<=centers[i-1])){valid=false;break;}
      for(let c=0;c<count;c++){
-       const s=segment[c],p=products.get(s.product_id),left=c?(centers[c-1]+centers[c])/2:0,right=c<count-1?(centers[c]+centers[c+1])/2:1;
+       const s=segment[c],p=products.get(s.product_id),left=bin?c/count:(c?(centers[c-1]+centers[c])/2:0),right=bin?(c+1)/count:(c<count-1?(centers[c]+centers[c+1])/2:1);
        const click=[left,top,right,bottom];if(!boxOK(click)){valid=false;break;}
        spots.push({id:p.id,name:p.name,price:p.price,description:p.description||'',shelfGroup:s.shelf_group||'',boxes:[click,rt[c]],tagBox:rt[c]});
      }
