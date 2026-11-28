@@ -346,7 +346,7 @@ async function loadPanels(door,signal){
     const protectedIds=new Set(old.flatMap(p=>p.spots.map(s=>s.id)));
     const fresh=await pub.load('Produce',{read,media,signal,protectedIds});
     const group=({'pkg-fruit':'Packaged Fruit','pkg-veg':'Packaged Vegetables','loose-fruit':'Fresh Fruits','bag-fruit':'Bagged Fruits','veg-bins':'Fresh Veggies'})[door.zone];
-    return [...old,...fresh.filter(p=>p.groups.includes(group))];
+    return [...old,...fresh.filter(p=>p.groups.includes(group)||(door.zone==='veg-bins'&&p.groups.includes('Fresh Herbs')))];
    }catch(e){if(signal.aborted)throw e;}
   }
   return old;
