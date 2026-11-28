@@ -2,7 +2,7 @@
 (function(global){
 'use strict';
 const storeId='189581c9-d728-4e5d-9e02-ae4de19a15af';
-const regular=new Set(['Snacks','Beverages','Condiments & Sauces','Dry Goods & Pasta','Canned Goods & Soups','Breakfast']);
+const regular=new Set(['Snacks','Beverages','Condiments & Sauces','Dry Goods & Pasta','Canned Goods & Soups','Breakfast','Bread & Rolls']);
 const sourceFor=label=>label==='Deli'?'Deli & Prepared Foods':label;
 const supports=label=>regular.has(label)||label==='Dairy & Eggs'||label==='Deli';
 // These complete images contain products from the existing Subs menu. Leave
