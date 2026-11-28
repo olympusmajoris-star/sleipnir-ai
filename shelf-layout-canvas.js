@@ -72,6 +72,7 @@
       if (carton && ml < 400) height = Math.max(height,14);
       return clamp(height/34,.34,.95);
     }
+    if (ml && /\b(cleaner|detergent|dish soap|liquid soap|shampoo|body wash|lotion|spray|disinfectant|conditioner)\b/i.test(name)) return clamp(.76*Math.cbrt(ml/650),.37,.94);
     if (unit === 'oz' && /\b(chips|pretzels|popcorn|corn snacks|crackers)\b/i.test(name))
       return clamp(.82*Math.cbrt(quantity/9),.48,.94);
     return .88;
@@ -386,7 +387,7 @@
       // While organizing, a product click selects it for editing; its tag opens the details.
       const shopping=host.closest('.shelf-shopping') || !host.closest('#layout-workspace');
       const target=tag || (shopping ? face : null);
-      if(target?.dataset.productId)openDetail(host,target.dataset.productId);
+      if(target?.dataset.productId && (surfaces.get(host)?.config.showPopups!==false || !shopping))openDetail(host,target.dataset.productId);
     });
     host.addEventListener('keydown',e=>{if(e.key==='Escape' && host.dataset.detailId)closeDetail(host);});
   }
@@ -425,6 +426,11 @@
         if (!isDG(config.theme)) { face.style.width=width;faces.append(face);return; }
         const unit=element('span','sl-unit');
         unit.style.width=width;
+        // A single staggered rear unit gives catalog shelves depth, without a uniform cloned train. Use only prepared transparent cutouts.
+        const seed=String(p.id).split('').reduce((n,c)=>n+c.charCodeAt(0),0);
+        if((p.packshot || (face.tagName==='SPAN'&&face.style.backgroundImage))&&slot.facings===1&&seed%5!==0){
+          const rear=face.cloneNode(true);rear.classList.add('sl-rear-face');rear.style.setProperty('--rear-x',3+seed%7+'%');rear.style.setProperty('--rear-y',-(2+seed%5)+'%');unit.append(rear);
+        }
         unit.append(face);
         faces.append(unit);
       };
@@ -488,15 +494,17 @@
       tag.style.setProperty('--price-width-units',price.textContent.length+2.5);
       tag.title=[[p.name,p.size].filter(Boolean).join(' · '),price.textContent].filter(Boolean).join(', ');
       tag.setAttribute('aria-label',tag.title);
+      if(config.showPrices===false&&isDG(config.theme))tag.hidden=true;
       tag.append(name,price);cell.append(faces,tag);fragment.append(cell);
     }
     const openId=host.dataset.detailId;
     host.replaceChildren(fragment);
     bindDetail(host);
-    if(openId)openDetail(host,openId);
+    if(openId&&config.showPopups!==false)openDetail(host,openId);else if(openId)closeDetail(host);
     return m;
   }
   const api={render,layout,stockHeight,shortName,packageSize};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.ShelfLayoutCanvas=api;
 })(typeof window==='undefined'?globalThis:window);
+
