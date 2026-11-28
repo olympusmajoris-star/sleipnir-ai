@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>Grocery aisle editor · Sleipnir Studio</title>
+  <script>
+  (()=>{const p=new URLSearchParams(location.search),isPublix=p.get('store')==='189581c9-d728-4e5d-9e02-ae4de19a15af',supported=new Set(['Snacks','Beverages','Condiments & Sauces','Dry Goods & Pasta']);
+  if(!isPublix||p.has('authored'))return;
+  const dest=aisle=>'grocery-entrance.html?'+new URLSearchParams({store:p.get('store'),door:aisle,view:'display'});
+  if(p.get('legacy')!=='1'&&supported.has(p.get('aisle'))){location.replace(dest(p.get('aisle')));return;}
+  document.addEventListener('DOMContentLoaded',()=>{
+   const select=document.getElementById('department'),link=document.getElementById('publix-render-link');if(!select||!link)return;
+   const update=()=>{const aisle=select.value||p.get('aisle');link.hidden=!supported.has(aisle);if(supported.has(aisle))link.href=dest(aisle);};
+   select.addEventListener('change',e=>{update();if(p.get('legacy')!=='1'&&supported.has(select.value)){e.stopImmediatePropagation();location.assign(dest(select.value));}},true);
+   update();
+  },{once:true});
+  })();
+  </script>
   <link rel="stylesheet" href="aisle-shelf-editor.css?v=dg-specialty-final-20261128">
 <link rel="stylesheet" href="product-details-editor.css">
   <link rel="stylesheet" href="shelf-layout-canvas.css?v=dg-specialty-final-20261128">
@@ -23,6 +36,7 @@
         <div class="field"><label for="department" id="preview-heading">Store aisle</label><select id="department"></select></div>
         <button type="button" id="open-layout" aria-haspopup="dialog" disabled>Aisle organizer</button>
         <button type="button" id="mode-toggle" aria-haspopup="dialog" aria-controls="shopping-preview" disabled>Preview shopping</button>
+        <a id="publix-render-link" hidden style="color:#a8edc5">View new full shelf renders</a>
       </div>
       <div id="preview-host">
         <p id="frame-status" role="status">Loading the compiled preview…</p>
@@ -110,4 +124,5 @@
   <script src="aisle-shelf-editor.js?v=dg-specialty-final-20261128"></script>
 <script src="store-toolbox-entry.js?v=1"></script></body>
 </html>
+
 
