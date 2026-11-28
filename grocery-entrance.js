@@ -395,7 +395,7 @@ async function loadPanels(door,signal){
   deliCatalog=await loadDeliCatalog(old,combined,signal);
   return combined;
  }
- if(heldSupported(door)&&door.label==='Frozen Foods'){
+ if(heldSupported(door)&&['Frozen Foods','Bakery','Meat & Poultry'].includes(door.label)){
   try{
    const protectedIds=new Set(old.flatMap(p=>p.spots.map(s=>s.id)));
    const fresh=await pub.load(door.label,{read,media,signal,protectedIds});
