@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Store info · Sleipnir Studio</title>
 <script src="studio-transfer-config.js"></script>
-<script src="publix-held-displays.js?v=20261128-breakfast"></script>
+<script src="publix-held-displays.js?v=20261128-bread"></script>
 <style>
 :root{color-scheme:dark;--bg:#0d1518;--card:#172226;--card2:#1b2a2e;--line:#304044;--ink:#edf3f1;--quiet:#b1c6c5;--dim:#7f9696;--accent:#a1e8dc;--gold:#e8c86a;--red:#f09a8a;font:15px/1.45 Inter,system-ui,sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}
@@ -437,7 +437,7 @@ ${dgStore(s.store_id)?'DG: render remaining groceries and unusual fixtures only;
   where not exists (select 1 from public.aisle_slots s join public.aisle_renders r using(store_id,aisle,render_no)
     where s.store_id='${id}' and s.product_id=q.product_id and r.publish_status in ('held','draft','ready'));
 Recheck the actual Studio display, all original station / produce renders, and Core products → All saved artwork / Full shelf references before generating. Repack any filtered queue into complete new panels; never reuse an existing render number.
-${publixStore(id)?'PUBLIX: Wine and beer may be realistic code-built displays. Preserve original deli, meat, bakery, produce, seafood and freezer images. Do not regenerate existing saved assets. Only render missing products after checking these sources.':''}
+${publixStore(id)?'PUBLIX: Before rendering, consult chatgpt/publix-render-qa-20261128.json for packaging conflicts and duplicate candidates. Wine and beer may be realistic code-built displays. Preserve original deli, meat, bakery, produce, seafood and freezer images. Do not regenerate existing saved assets. Only render missing products after checking these sources.':''}
 Put the aisle name from the list below in place of <AISLE>.
 ${chatState.reuse ? '' : "Products that already have a render in another store are left out. Danny reuses those.\n"}
 Each render_no is ONE image. Draw its products on that row's display_type, in the exact shelf (1 = top) and spot (left to right) order. Use reference_photo for the real packaging. Leave the shelf-edge price strips blank because the app draws the prices.
@@ -472,6 +472,7 @@ async function chatBox(s, box) {
     const pre = el('pre', 'brief', esc(text));
     if (!todo) { box.append(head, el('p', 'status', 'Nothing left to render here.')); return; }
     box.append(head, tools, pre);
+    if(publixStore(s.store_id)){const qa=el('p','status','<a class="btn" href="chatgpt/publix-render-qa-20261128.json" target="_blank" rel="noopener">Packaging and catalog review notes</a> · Check before rendering mismatched or duplicate products.');box.append(qa);}
   };
   draw();
 }
