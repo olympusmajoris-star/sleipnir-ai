@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const dollarGeneralStore = '0600cb61-45f9-402b-a209-134abdaef10f';
+  const dollarGeneralStores = new Set(['0600cb61-45f9-402b-a209-134abdaef10f','fea775c8-8612-4f2e-bfc6-70d8e6ace6be']);
   const target = '35ef70d0-3d20-4599-96a3-648ee3c7c340';
   const uuid = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
   const targetRooms = new Map([
@@ -172,24 +172,29 @@
       source = match.source_aisle || match.title;
       if (match.stock_mode==='custom') custom=match.product_ids;
     }
-    const stockPromise = custom ? Promise.resolve(custom) :
-      pages('rpc/studio_grocery_aisle_original_stock',{p_store_id:store,p_source_aisle:source,order:'position'},signal)
-        .then(rows=>rows.map(row=>row.product_id));
+    const isDollarGeneral = dollarGeneralStores.has(store);
     const catalogPromise = custom ? Promise.resolve([]) :
-      pages('products',{select:fields,store_id:'eq.'+store,category:'eq.'+source,order:'id'},signal);
-    const isDollarGeneral = store === dollarGeneralStore;
-    const [ids,stock,art,rulesJSON,dgRules] = await Promise.all([
+      pages('products',{select:fields,store_id:'eq.'+store,category:'eq.'+source,order:'shelf_group.nullslast,name,id'},signal);
+    // Both DG formats use their own live catalog for ordinary merchandise; a special
+    // physical render is shown in its own bay, not duplicated on a code shelf.
+    const stockPromise = custom ? Promise.resolve(custom) : isDollarGeneral && !authoredId ?
+      catalogPromise.then(rows=>rows.map(row=>row.id)) :
+      pages('rpc/studio_grocery_aisle_original_stock',{p_store_id:store,p_source_aisle:source,order:'position'},signal).then(rows=>rows.map(row=>row.product_id));
+    const renderedPromise = isDollarGeneral && !authoredId ? pages('aisle_slots',{select:'product_id',store_id:'eq.'+store,tag_x:'not.is.null',tag_y:'not.is.null',tag_w:'not.is.null',tag_h:'not.is.null',order:'product_id'},signal).then(rows=>new Set(rows.map(row=>row.product_id))) : Promise.resolve(new Set());
+    const [ids,stock,art,rulesJSON,dgRules,renderedIds] = await Promise.all([
       stockPromise,catalogPromise,store===target ? sourceArt(source,signal) : Promise.resolve(new Map()),staticJSON(rulesURL),
-      isDollarGeneral ? staticJSON(dgRulesURL) : Promise.resolve(null)
+      isDollarGeneral ? staticJSON(dgRulesURL) : Promise.resolve(null),renderedPromise
     ]);
     const scoped = new Map(stock.filter(row=>row.store_id===store).map(row=>[row.id,row]));
-    const ordered = [...new Set(ids.filter(id=>typeof id==='string' && uuid.test(id)))];
+    const ordered = [...new Set(ids.filter(id=>typeof id==='string' && uuid.test(id) && !renderedIds.has(id)))];
     const missing = ordered.filter(id=>!scoped.has(id));
     for (const row of await byIds(store,missing,signal)) if (row.store_id===store) scoped.set(row.id,row);
     const rules = Object.fromEntries(Object.entries(rulesJSON).map(([key,value])=>[key,{
       aliases:value.aliases,rules:value.rules.map(([kind,pattern])=>[kind,new RegExp(pattern,'i')])
     }]));
-    const classify = isDollarGeneral ? dollarGeneralKinds(dgRules[source] || [],source) : null;
+    const dgAlias={'Cleaning':'Household Cleaning','Household':'Home Decor & Storage','Beauty':'Beauty & Hair Care','Health':'Health & Wellness','Electronics':'Electronics & Tech','Baby':'Baby & Diapers','Pet':'Pet Supplies','Office & School Supplies':'School & Office','Party & Occasions':'Party & Celebrations','Outdoor Living':'Outdoor & Garden','Seasonal':'Seasonal & Holidays','Apparel':'Apparel & Accessories','Toys':'Toys & Games'};
+    const dgEntries=isDollarGeneral?(dgRules[source]||dgRules[dgAlias[source]]):null;
+    const classify = dgEntries ? dollarGeneralKinds(dgEntries,source) : null;
     const items=[];
     for (const [sourceIndex,id] of ordered.entries()) {
       const row = scoped.get(id);
@@ -198,7 +203,7 @@
       const name=String(row.name||row.full_name||'').trim();
       const price=row.price==null || !Number.isFinite(Number(row.price)) || Number(row.price)<0 ? null : Number(row.price);
       const originals=[...new Set([photo(row.image_url),photo(row.image_url_orig)].filter(Boolean))];
-      const dollarGeneral=mode==='dollar-general' || store==='0600cb61-45f9-402b-a209-134abdaef10f';
+      const dollarGeneral=mode==='dollar-general' || isDollarGeneral;
       const photos=[...new Set([...(dollarGeneral?originals.map(dollarGeneralPhoto):[]),...originals])];
       const type = classify ? classify(name,group) : {kind:kindFor(rules,source,group,name,Boolean(calibrated?.group))};
       items.push({...calibrated,id,sourceIndex,name,price,group,...type,
@@ -212,3 +217,4 @@
 
   window.ShelfLayoutData = {load};
 })();
+
