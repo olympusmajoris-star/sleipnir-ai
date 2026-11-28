@@ -173,3 +173,6 @@
 /* Understated mixed rear stock; the catalog's front label remains unobstructed. */
 .sl-bay[data-theme="dollar-general"] .sl-unit > .sl-rear-face {position:absolute;inset:0;width:100%;height:100%;z-index:-1;transform:translate(var(--rear-x,6%),var(--rear-y,-4%)) scale(.93);filter:brightness(.78) saturate(.92);opacity:.94;}
 .sl-bay[data-theme="dollar-general"] .sl-label[hidden]{display:none!important}
+
+.sl-bay.shelf-shopping[data-preparing="true"]::after{content:'Stocking this bay…';position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(#221d16ee,#26231eee);color:#f8efd6;font:600 14px system-ui;pointer-events:auto}
+.sl-bay[data-theme="dollar-general"] .sl-tag-price{font-size:min(90cqh,var(--dg-price-font,21cqw),25cqw)}
