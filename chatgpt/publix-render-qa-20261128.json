@@ -138,6 +138,291 @@
       "product_id": "e555164b-1a70-446a-a3fe-7e13c847ba72",
       "name": "Arnold Select Sandwich Thins Whole Wheat",
       "reason": "Catalog 8 count, photo 6 count."
+    },
+    {
+      "product_id": "bb559a10-e7e7-424e-91c3-5c9ee5023a81",
+      "name": "McCormick Grill Mates Montreal Steak",
+      "reason": "3.4 oz catalog size contradicts photo showing 3x 3.4 oz bulk packaging."
+    },
+    {
+      "product_id": "bc64ffc9-dab1-44cb-beda-5c1134f48e8d",
+      "name": "Rao's Homemade Roasted Garlic",
+      "reason": "Duplicate identical 24 oz Rao's roasted garlic photo and product title variant; retain one shelf facing pending SKU merge confirmation."
+    },
+    {
+      "product_id": "2152935b-2afa-47c3-aa95-1bb8d1743a8f",
+      "name": "Tyson Premium Chunk White Chicken Breast, Twin Pack",
+      "reason": "Twin pack reference is only a floating Tyson logo; missing actual packaging."
+    },
+    {
+      "product_id": "2cf9dd5e-7b9c-467f-bd08-7a6a5c9aa035",
+      "name": "Dole Smoothie Shakers Strawberry Banana",
+      "reason": "Already represented by original station product 0c16d1ca-42d5-4ac2-a407-7e036937b5d2, 4 oz individual; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "fda380d4-f0f2-4b28-88ee-35b577bd7fa7",
+      "name": "Gorton's Beer Battered Fish Fillets",
+      "reason": "Already represented by original station product ace9361b-c87b-4198-83ce-faa4e47b8e2a, 10 ct box; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "98f8b847-709d-4a27-bfff-fa3ae54f3038",
+      "name": "Publix Frozen Blueberries",
+      "reason": "Already represented by original station product 9798bbcb-961f-436e-8990-42e795b86eac, 12 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "ecf2184c-28e2-44c6-87e6-bf5e807f133e",
+      "name": "Publix Frozen Dark Sweet Cherries",
+      "reason": "Already represented by original station product 8424c137-9fa1-4426-80f5-a29c314cc03e, 12 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "d0bfb52f-7c1f-45d4-b04f-52f0f5b08055",
+      "name": "Publix Frozen Mango Chunks",
+      "reason": "Already represented by original station product b0fb11bd-8c76-42f8-83ea-7af3e02d3989, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "4a6522ae-f39a-4f64-9eee-ce2f83125452",
+      "name": "Publix Frozen Mixed Berries",
+      "reason": "Already represented by original station product 104ef148-2a40-49c9-94a6-4e79c59fe9b8, 12 oz bag / Strawberries, Blueberries, Raspberries; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "98403ce8-8240-4053-a1d3-adc59fbd70f9",
+      "name": "Publix Frozen Pineapple Chunks",
+      "reason": "Already represented by original station product 30771d69-af8e-49ff-9e36-5a902fff25da, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "b3dbf929-8a99-415f-b177-e1bda9fa53ca",
+      "name": "Publix Frozen Sliced Peaches",
+      "reason": "Already represented by original station product 182c4d12-9589-4929-8302-e5afdaf63805, 16 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "74686406-489d-457d-bbb1-84363b405271",
+      "name": "Publix Premium Frozen Yogurt Vanilla",
+      "reason": "Already represented by original station product 131af3fe-3bb0-494d-b489-9ee193590853, 48 oz; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "684084e9-4f44-4cdb-9ca3-c70ccae52b2f",
+      "name": "Wyman's Wild Blueberries",
+      "reason": "Already represented by original station product 12cb17c9-0c1b-4f8c-8730-91ef1942c938, 15 oz bag; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "f7c61f17-d09a-4465-a9a8-e00f0c0c5b05",
+      "name": "Lobster Tails",
+      "reason": "Already represented by original station product bff4e3fe-80e2-4cb0-876f-2ba3afa39ae5, 4oz cold water tail, each; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "66378a98-d998-4766-925d-d419d7d77852",
+      "name": "Baby Back Ribs",
+      "reason": "Already represented by original station product 04264806-0c09-4c58-ba0c-98412571aee3, Pork back ribs, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "243ae2f6-ceb9-470b-9aa0-19af68152ba4",
+      "name": "Beef Skirt Steak",
+      "reason": "Already represented by original station product 0622ff8f-435f-4329-863c-3ce29f650cdf, Perfect for fajitas, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "5efbd7ec-f11b-4ac4-9af7-70de874867ab",
+      "name": "Beef Tenderloin Roast",
+      "reason": "Already represented by original station product 3122160f-577b-4596-9021-efab3e55e994, Whole roast, approx 4lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "5a6fa733-440e-4191-a936-29f4db70d4c4",
+      "name": "Cornish Game Hen",
+      "reason": "Already represented by original station product 47bd1c52-8b47-40aa-8b0d-8265235077f5, Fresh whole hen, 20oz; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "93670799-e578-4b4f-a379-593bf0cbeec8",
+      "name": "Flank Steak",
+      "reason": "Already represented by original station product c622d3e6-963a-43af-a0e5-09c15e985cb4, Lean and flavorful, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "bc54ccb0-aafb-49d4-8a24-6df24c13b053",
+      "name": "Ground Chicken",
+      "reason": "Already represented by original station product 0538ee3a-d14d-4525-85e8-cd5c939f1ca2, 92% lean, 1lb pack; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "f2587c24-522d-4166-aff3-145f33c8c91c",
+      "name": "Lamb Shoulder Chops",
+      "reason": "Already represented by original station product 2a92f4cc-49d5-4359-99d3-cc9046904acc, Fresh domestic lamb, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "b192abdd-8560-422d-ba79-85c2fce1e49e",
+      "name": "New York Strip Steak",
+      "reason": "Already represented by original station product 91ac379f-fa94-4d2f-b454-2f7119d89065, Boneless center cut, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "1580f758-8818-4125-8fe9-306e1e082533",
+      "name": "New York Strip Steak",
+      "reason": "Already represented by original station product 91ac379f-fa94-4d2f-b454-2f7119d89065, Boneless center cut, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "f27c789d-d81c-46bd-859f-8ebdd406dc07",
+      "name": "Pork Loin Butterfly Chops",
+      "reason": "Already represented by original station product 47fa9c13-2e7c-4575-a7f7-bece1be195fc, Boneless center cut, 1lb pack; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "8d0e79bd-aed5-41d8-9628-8ad3a3ff74ce",
+      "name": "Porterhouse Steak",
+      "reason": "Already represented by original station product aeab5f98-c55d-4ed7-8078-f0d80d47d245, Publix Premium Beef, thick cut per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "a5a6d71b-001b-4024-a8f0-14eb92baca48",
+      "name": "Publix Corned Beef Brisket",
+      "reason": "Already represented by original station product 1dda8e83-6926-4bdc-9f09-3186b7df6938, Flat cut with spice pack, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "b77b078d-6b11-4e08-bd2c-7d98d5039585",
+      "name": "Whole Chicken",
+      "reason": "Already represented by original station product 9a11bfaa-450f-40cd-a090-4392f53b2f7b, Publix fresh young chicken, approx 4lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "a211a13c-4450-4c2f-9374-39da3b302868",
+      "name": "Blueberries",
+      "reason": "Already represented by original station product e338f56e-5a35-4501-b44e-e8d4ee5e59d1, 11 oz clamshell; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "1cdf4f85-cddf-42b7-8812-ce8406e09a1f",
+      "name": "Cod Fillets",
+      "reason": "Already represented by original station product 4cc91e9d-14f6-4368-928a-dd3802410493, Wild caught Atlantic cod, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "22c27ab1-1037-4165-85c5-34fcf4f70917",
+      "name": "Fresh Catfish Fillets",
+      "reason": "Already represented by original station product 05d49bb7-0447-499b-93cf-33c19f006f26, Farm raised, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "933af502-07d5-46a4-9446-0beba9b8cb62",
+      "name": "Fresh Grouper Fillet",
+      "reason": "Already represented by original station product a455eaa7-cd5d-471e-97dd-a9d17b4db4fa, Wild caught local favorite, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "b0c358c2-af28-4c38-9916-171e3e6d47fd",
+      "name": "Little Neck Clams",
+      "reason": "Already represented by original station product 6a58e31b-dfb8-4b1c-a2c5-5f0b70965766, Fresh whole in shell, 12-count; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "556ac618-b9e5-4763-98f7-bbe8f768b036",
+      "name": "Mahi Mahi Fillets",
+      "reason": "Already represented by original station product d3027bac-79bd-46c6-905c-4f0764b21237, Fresh wild caught, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "a1160999-e26c-4371-a73d-0ae5e1fc40b0",
+      "name": "Publix Aprons Salmon Pinwheels with Spinach",
+      "reason": "Already represented by original station product 9f90f4d7-0adf-4f56-bb72-9db35328fdbb, 2 ct / Fresh from meat case; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "43d4006c-5b18-4fdb-995a-0fb8b4ed199d",
+      "name": "Red Snapper Fillet",
+      "reason": "Already represented by original station product 3b94e1ab-f628-4816-bf40-c362124cf9c4, Fresh skin-on, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "c170b49a-ee4f-43dd-ade0-fa9f59c78c37",
+      "name": "Sea Scallops",
+      "reason": "Already represented by original station product 7204d6c3-f9a7-4e7c-92e5-78f0e5d54ebd, Fresh jumbo wild caught, per lb; duplicate catalog record or near variant—do not redraw original."
+    },
+    {
+      "product_id": "0073e9e7-fb99-4d25-b61e-7012f6f90af7",
+      "name": "Aunt Jemima (Pearl Milling) Pancakes",
+      "reason": "Photo is unboxed pancake stack, no exact packaging."
+    },
+    {
+      "product_id": "99c694a2-2fe7-4a6d-b8f3-6c6f5bbde355",
+      "name": "Bubba Burger Grass-Fed Beef",
+      "reason": "Bubba grass-fed already exists in original station, catalog photo is only logo."
+    },
+    {
+      "product_id": "e1fc8d0b-3018-4f4e-b823-4cefd6772bd5",
+      "name": "Generic Citrus Chicken Entree",
+      "reason": "Photo shows refrigerated prepared grilled chicken, not frozen entrée."
+    },
+    {
+      "product_id": "447965fb-7732-4779-ab45-25edf8410d2e",
+      "name": "Kodiak Cakes Power Waffles",
+      "reason": "Reference 13.4 oz Kodiak waffles already rendered; catalog 10.72 oz."
+    },
+    {
+      "product_id": "d07c8a73-810f-48e4-8ace-f2bc97c9fdd9",
+      "name": "Publix Beef Burgers 1/4 lb Patties",
+      "reason": "Publix title but photo Philly Gourmet."
+    },
+    {
+      "product_id": "f79c1f19-77e8-469d-a75d-c7c15202b8b9",
+      "name": "Publix Beef Meatballs",
+      "reason": "Catalog 26 oz frozen bag; photo fresh tray."
+    },
+    {
+      "product_id": "444c1b7a-b18c-4ed1-a3d3-100cc881e98d",
+      "name": "Publix Frozen Tropical Fruit Blend",
+      "reason": "Photo shows loose fruit pieces instead of bag."
+    },
+    {
+      "product_id": "2b21f9e2-c2a3-4558-b853-3ae4235e23b6",
+      "name": "Publix Mozzarella Sticks",
+      "reason": "Photo shows fresh string cheese rather than breaded frozen mozzarella sticks."
+    },
+    {
+      "product_id": "73bd8783-3bbf-4361-ac68-dad0dd03627e",
+      "name": "Publix Mozzarella Sticks",
+      "reason": "Photo shows fresh string cheese rather than breaded frozen mozzarella sticks."
+    },
+    {
+      "product_id": "55c4e63a-3c3a-4d9e-b0b6-b81b67a8b251",
+      "name": "Publix Premium Chicken Tikka Masala",
+      "reason": "Photo shows Deep Indian Kitchen, not Publix."
+    },
+    {
+      "product_id": "450ff664-0329-4979-b2b0-ae35219edf67",
+      "name": "Publix Premium Ice Cream Bourbon Pecan Praline",
+      "reason": "Photo is bourbon praline crumble, not 48 oz Bourbon Pecan Praline."
+    },
+    {
+      "product_id": "1afff7bd-e5de-4372-a819-1dc093e522f6",
+      "name": "Publix Premium Ice Cream Hula Hula Holiday",
+      "reason": "Photo Hula Hula Macadamia, not Holiday."
+    },
+    {
+      "product_id": "0c2e6e15-f4eb-471c-bd42-ba98b20c9bce",
+      "name": "Publix Premium Ice Cream Mint Mountain",
+      "reason": "Photo generic Mint Chocolate Chip, not Mint Mountain."
+    },
+    {
+      "product_id": "029bb777-6225-42fe-ac16-a96fef090734",
+      "name": "Cooked Shrimp",
+      "reason": "Photo cooked peel-and-eat 16 oz, not 12 oz."
+    },
+    {
+      "product_id": "1713586f-d1a3-412b-87d3-f260494776db",
+      "name": "Publix Frozen Cod Fillets",
+      "reason": "GreenWise cod loins 10 oz, not Publix 12 oz fillets."
+    },
+    {
+      "product_id": "5977aa76-92c3-4ffc-b212-e686cb0ab999",
+      "name": "Publix Frozen Ground Beef",
+      "reason": "Fresh tray ground beef rather than frozen roll."
+    },
+    {
+      "product_id": "fc751316-4d40-4067-81b9-aab2a97195ab",
+      "name": "Publix Frozen Meatballs Italian Style",
+      "reason": "Package size appears 16 oz, catalog 12 oz."
+    },
+    {
+      "product_id": "b6061bc8-94a2-4c88-9e43-cf19e50488fb",
+      "name": "Publix Frozen Pork Sausage Patties",
+      "reason": "Jones sausage patties 7 oz, not Publix 12 oz."
+    },
+    {
+      "product_id": "00732992-e185-4c22-9aab-35bbbc84712e",
+      "name": "Publix Premium Clams in Natural Juice",
+      "reason": "Photo clam juice bottle, not frozen clams."
+    },
+    {
+      "product_id": "4fc0f5af-5842-423a-8502-eb76e0d4f617",
+      "name": "Publix Premium Frozen Raw Shrimp",
+      "reason": "Photo 24 oz, not 2 lb."
+    },
+    {
+      "product_id": "0768ed9e-19c7-40f6-8f3f-a5bf546a2466",
+      "name": "Publix Premium Frozen Sea Scallops",
+      "reason": "Photo GreenWise 24 oz, not Publix 16 oz."
     }
   ]
 }
