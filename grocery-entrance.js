@@ -3,6 +3,8 @@
 'use strict';
 const PUBLIX='189581c9-d728-4e5d-9e02-ae4de19a15af';
 const TARGET='35ef70d0-3d20-4599-96a3-648ee3c7c340';
+const DG_RENDER_AISLES=['Chips, Cookies & Snacks','Candy & Gum','Soda, Water & Drinks','Coffee & Breakfast','Meals, Canned Goods & Pantry','Baking & Condiments','Fresh Food & Dairy','Frozen Foods'];
+const DG_PREVIEW_STORES=new Set(['0600cb61-45f9-402b-a209-134abdaef10f','fea775c8-8612-4f2e-bfc6-70d8e6ace6be']);
 const UUID=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const aisles=['Snacks','Beverages','Breakfast','Canned Goods & Soups','Dry Goods & Pasta','Condiments & Sauces','Personal Care','Health Care','Household','Baby','Pet Care','Bread & Rolls'];
 const produce=[
@@ -62,7 +64,7 @@ function mergeAuthoredDoors(original,records,storeId){
  }
  return doors;
 }
-const doorKey=door=>door.authored&&!door.authored.source_aisle?'studio:'+door.authored.aisle_id:door.label;
+const doorKey=door=>door.previewKey||(door.authored&&!door.authored.source_aisle?'studio:'+door.authored.aisle_id:door.label);
 function authoredImage(value,base){
  if(typeof value!=='string'||!value.startsWith(base+'/storage/v1/object/public/'))return '';
  try{const u=new URL(value),parts=u.pathname.split('/').slice(5).map(decodeURIComponent);
@@ -124,7 +126,19 @@ async function doorsForStore(row,signal){
    read('store_categories',{select:'category,sort_order',store_id:'eq.'+row.id,order:'sort_order,category'},signal)]);
  const countByLabel=new Map(categories.filter(c=>typeof c.category==='string'&&c.category.trim()&&Number(c.product_count)>0).map(c=>[c.category,Number(c.product_count)]));
  const priority=new Map(sort.map((r,i)=>[r.category,i]));
- return [...countByLabel].sort(([a],[b])=>(priority.get(a)??Infinity)-(priority.get(b)??Infinity)||a.localeCompare(b)).map(([label,count])=>({label,art:'',count,kind:'Aisles',preview:true}));
+ const catalog=[...countByLabel].sort(([a],[b])=>(priority.get(a)??Infinity)-(priority.get(b)??Infinity)||a.localeCompare(b)).map(([label,count])=>({label,art:'',count,kind:'Aisles',preview:true}));
+ if(mode==='dollar-general'&&DG_PREVIEW_STORES.has(row.id)){
+   const rendered=await read('aisle_renders',{store_id:'eq.'+row.id,select:'aisle,render_no,publish_status',publish_status:'in.(held,draft,ready)',order:'aisle,render_no'},signal);
+   const counts=new Map();
+   for(const item of rendered)if(DG_RENDER_AISLES.includes(item.aisle))counts.set(item.aisle,(counts.get(item.aisle)||0)+1);
+   if(counts.size){
+     const groceries=DG_RENDER_AISLES.filter(a=>counts.has(a)).map(label=>({label,art:'',kind:'Rendered groceries',renderedDG:true,count:counts.get(label),preview:true}));
+     const aliases=/^(Food & Beverage|Beverages|Frozen Food|Fresh Food|Meals & Side Dishes|Snacks & Cookies|Cereal & Breakfast|Coffee & Tea|Baking Cakes & Mixes|Candy & Gum|\$2 Food Items|Better For You|Lunch & After School Snacks|Deals on Chips|Deals on Grocery|Save on Snacks|Save on Soft Drinks|Save on Beverages|Soda Deals)$/i;
+     const rest=catalog.filter(d=>!counts.has(d.label)&&!aliases.test(d.label)).map(d=>d.label==='Deals & General Merchandise'?{...d,previewKey:'dg-general-merchandise'}:d);
+     return [...groceries,...rest];
+   }
+ }
+ return catalog;
 }
 function catalogPhoto(value){
  const internal=media(value);if(internal)return internal;
@@ -219,6 +233,21 @@ function destroyDgShelf(){
  mounted?.destroy();
  const host=$('dgShelfEntrance');host.hidden=true;host.replaceChildren();
 }
+function drawDgRenderShelf(door,label){
+ const host=$('dgShelfEntrance');host.hidden=false;host.setAttribute('aria-label',label+' rendered grocery display');
+ const frame=document.createElement('iframe');
+ frame.title=label+' — Studio rendered groceries';
+ frame.style.cssText='display:block;width:100%;max-width:390px;height:760px;margin:auto;border:0;background:transparent';
+ const params=new URLSearchParams({store:id,aisle:door.label,embed:'1',v:'dg-rendered-20261127'});
+ frame.src='dg-render-review.html?'+params;
+ let observer;
+ frame.onload=()=>{try{const doc=frame.contentDocument;
+   const resize=()=>{if(frame.isConnected)frame.style.height=Math.max(300,Math.ceil(doc.body.getBoundingClientRect().height))+'px';};
+   resize();observer?.disconnect();observer=new ResizeObserver(resize);observer.observe(doc.body);
+ }catch{}};
+ host.replaceChildren(frame);
+ dgShelfMount={destroy(){observer?.disconnect();frame.remove();}};
+}
 function drawDgShelf(door,label){
  const host=$('dgShelfEntrance');host.hidden=false;host.setAttribute('aria-label',label+' product shelves');
  if(!global.DollarGeneralShelf?.mount)throw Error('The Dollar General shelf preview could not load. Please try again.');
@@ -244,7 +273,7 @@ function drawEntrance(door){
  const appearance=door.authored?.appearance||{},label=appearance.entrance_title||door.authored?.title||door.label;
  const originalArt=media(door.art,id===TARGET?'target-entrances':'');
  const art=authoredImage(appearance.entrance_url,conf.url)||originalArt;
- const decorated=Boolean(global.GroceryDoorPreview&&door.authored&&(!door.authored.source_aisle||appearance.entrance_url||appearance.entrance_title||appearance.board_title||appearance.board_body));
+ const decorated=Boolean(!door.renderedDG&&global.GroceryDoorPreview&&door.authored&&(!door.authored.source_aisle||appearance.entrance_url||appearance.entrance_title||appearance.board_title||appearance.board_body));
  const denseShelf=mode==='dollar-general'&&door.preview&&!decorated;
  $('publishedDoor').hidden=!decorated;$('originalDoor').hidden=decorated||denseShelf;
  if(decorated){
@@ -268,7 +297,7 @@ function drawEntrance(door){
  board.style.backgroundColor=/^#[a-f0-9]{6}$/i.test(appearance.board_color)?appearance.board_color:'';
  board.style.color=/^#[a-f0-9]{6}$/i.test(appearance.ink_color)?appearance.ink_color:'';
  $('editAisle').href='grocery-aisle-builder.html?'+new URLSearchParams(door.authored?{store:id,aisle:door.authored.aisle_id}:{store:id,source:door.label});
- if(denseShelf)drawDgShelf(door,label);
+ if(denseShelf){if(door.renderedDG){drawDgRenderShelf(door,label);$('enter').textContent='Review '+label;}else drawDgShelf(door,label);}
 }
 async function loadPanels(door,signal){
  if(door.kind==='Published aisles')return publishedPanels(door,signal);
@@ -417,8 +446,9 @@ async function route(){
   }
   const q=args(),requested=q.get('door');
   currentDoor=requested?doors.find(d=>doorKey(d)===requested):doors[0];
+  if(!currentDoor&&mode==='dollar-general'&&doors[0]?.renderedDG&&requested==='Deals & General Merchandise')currentDoor=doors[0];
   if(!currentDoor){$('storeRepair').hidden=false;throw Error('This department is unavailable for '+store.name+'.');}
-  if(q.get('view')!=='display'||currentDoor.kind==='Aisles'||currentDoor.authored?.stock_mode==='custom'){drawEntrance(currentDoor);return;}
+  if(currentDoor.renderedDG||q.get('view')!=='display'||currentDoor.kind==='Aisles'||currentDoor.authored?.stock_mode==='custom'){drawEntrance(currentDoor);return;}
   $('entrances').hidden=true;$('display').hidden=false;$('sectionName').textContent=currentDoor.label;$('status').textContent='Loading shopping displays…';
   const key=currentDoor.label;
   if(!panelCache.has(key)){const collection=await loadPanels(currentDoor,signal);if(signal.aborted||request!==revision)return;panelCache.set(key,collection);}
@@ -431,6 +461,7 @@ async function route(){
 }
 function enter(){
  if(!currentDoor)return;
+ if(currentDoor.renderedDG){location.assign('dg-render-review.html?'+new URLSearchParams({store:id,aisle:currentDoor.label}));return;}
  if(currentDoor.authored?.stock_mode==='custom'){location.assign('grocery-aisle-editor.html?'+new URLSearchParams({store:id,authored:currentDoor.authored.aisle_id}));return;}
  if(currentDoor.kind==='Aisles'){location.assign('grocery-aisle-editor.html?'+new URLSearchParams({store:id,aisle:currentDoor.label}));return;}
  navigate(currentDoor,true);
@@ -464,3 +495,4 @@ $('flag').onclick=async()=>{
 };
 global.addEventListener('popstate',route);route();
 })(typeof window!=='undefined'?window:globalThis);
+
