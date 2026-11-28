@@ -37,3 +37,190 @@
 .ev-phone-nav{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;align-items:center;padding:3px;border-radius:19px;background:#121a1eeb}
 .ev .ev-phone-nav button{background:transparent;color:#eee;font:500 13px/1 system-ui;padding:9px 12px;border:none;border-radius:16px}
 .ev .ev-phone-nav button[aria-pressed=true]{background:#48565e;color:white}
+/* The passenger rail carries the composer. Sample its leather just below the
+   former vent opening so its stitching and the dashboard edge stay continuous. */
+.ev .ev-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: url(raven/cockpit/raven-panoramic-ash.webp) 0 -.94cqw / 100% 100% no-repeat;
+  clip-path: polygon(36.6% 25.45%, 50% 25.4%, 68% 25.6%, 83.2% 26%, 86% 26.24%,
+                     86% 27.15%, 83.2% 27.03%, 68% 26.65%, 50% 26.48%, 36.6% 26.5%);
+}
+.ev .ev-scene .ev-input, .ev .ev-phone .ev-input {
+  top: 26.4%;
+  transform: translateY(-50%);
+  height: 44px;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #202226;
+}
+.ev .ev-input input, .ev .ev-phone .ev-input input {
+  color: #202226;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font: 500 16px/1.15 system-ui, sans-serif;
+  text-shadow: 0 1px 0 #fff9;
+  caret-color: #00616d;
+}
+.ev .ev-input input::placeholder { color: #3b3a3b; opacity: 1; }
+.ev .ev-input button, .ev .ev-input button:disabled {
+  flex-basis: 44px;
+  color: #30363b;
+  background: transparent;
+  text-shadow: 0 1px 0 #fffa;
+}
+.ev .ev-input button:enabled { color: #005666; }
+.ev .ev-input input:focus-visible { outline: 0; }
+.ev .ev-input:focus-within::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  bottom: calc(50% - 12px);
+  left: 8px;
+  right: 44px;
+  height: 1px;
+  background: linear-gradient(90deg, #795b37a6, #795b3712);
+}
+/* The right passenger display shares its glass with the active chat mode. */
+.ev .ev-status,.ev .ev-phone .ev-status{
+  left:69%;width:20%;top:39%;height:23%;
+  gap:clamp(2px,.48cqw,6px);
+}
+.ev .ev-instruments{width:100%;display:grid;justify-items:center;gap:2px}
+.ev .ev-readings{display:flex;align-items:baseline;justify-content:center;gap:clamp(6px,1.05cqw,17px);white-space:nowrap}
+.ev .ev-clock{
+  color:#fff9ee;display:inline-flex;align-items:baseline;gap:.2em;
+  font:550 clamp(15px,2.55cqw,33px)/1.05 system-ui;font-variant-numeric:tabular-nums;letter-spacing:-.045em
+}
+.ev .ev-clock small{font-size:.38em;letter-spacing:.035em;font-weight:600}
+.ev .ev-status .ev-temperature,.ev .ev-phone .ev-status .ev-temperature{
+  margin:0;padding:.35em .12em;min-width:0;min-height:0;
+  background:transparent;border:0;border-radius:4px;color:#f6d0a2;
+  font:550 clamp(12px,1.7cqw,23px)/1 system-ui;font-variant-numeric:tabular-nums
+}
+.ev .ev-weather-location{font:500 clamp(9px,1.12cqw,15px)/1.1 system-ui;color:#b9c7cd;white-space:nowrap}
+.ev .ev-instruments + div:empty,.ev .ev-status > .ev-items:empty{display:none}
+.ev .ev-status:has(.ev-items:not(:empty)){gap:2px}
+.ev .ev-status:has(.ev-items:not(:empty)) .ev-clock{font-size:clamp(13px,1.9cqw,24px)}
+.ev .ev-status .ev-alerts {
+  color:#f1f1ec;display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+  max-width:100%;padding:4px 8px;background:#ffffff10;border:1px solid #ffffff20;
+  border-radius:1em;font:500 clamp(11px,1.25cqw,16px)/1.1 system-ui;
+}
+.ev-alert-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-alert-symbol{position:relative;flex:none;display:grid;place-items:center}
+.ev-alert-symbol svg{height:1em;width:1em}
+.ev-alert-symbol.unread:after{content:"";position:absolute;right:-2px;top:-1px;border-radius:50%;width:5px;height:5px;background:#ffc482}
+.ev .ev-alert-list{display:grid;max-height:min(55vh,440px);overflow:auto;overscroll-behavior:contain}
+.ev-alert-row{display:grid;gap:.7em;grid-template-columns:auto minmax(0,1fr) auto;align-items:baseline;border-bottom:1px solid #ffffff19;padding:.6em 0}
+.ev-alert-row p{margin:.2em 0;overflow-wrap:anywhere;color:#cbd4da}
+.ev-alert-row time{font-size:.78em;color:#bcc9d1}
+/* The lower cabin keeps the scale of the cabin photograph. A taller opening
+   above it gives the portrait windshield and conversation more vertical room. */
+.ev .ev-phone .ev-scene {
+  --windshield-rise: 7.7333cqw; /* 11.6% of the 3:2 scene height */
+}
+.ev .ev-phone .ev-scene > :not(.ev-thread) {
+  margin-top: var(--windshield-rise);
+}
+.ev .ev-phone .ev-thread {
+  top: 5%; height: 28.6%;
+}
+/* Retain the original pillar silhouettes at the edges of the larger opening. */
+.ev .ev-phone .ev-photo::before,
+.ev .ev-phone .ev-scene::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: 0;
+  width: 100%;
+  height: 36%;
+  background: url(raven/cockpit/raven-panoramic-ash.webp) center top / 100% 409.84% no-repeat;
+}
+.ev .ev-phone .ev-photo::before {
+  top: calc(-1 * var(--windshield-rise));
+}
+.ev .ev-phone .ev-scene::before {
+  top: 0;
+  z-index: 1;
+  background-size: auto 409.84%;
+  clip-path: polygon(.55% 0,99.45% 0,89.5% 88%,88.2% 96%,87.2% 99%,83% 97.5%,67% 95.4%,50% 94.8%,36% 95%,21% 96.4%,12.6% 99%,11.2% 95%,10.1% 88%);
+}
+.ev .ev-phone .ev-thread, .ev .ev-phone .ev-input {
+  z-index: 1;
+}
+.ev .ev-phone .ev-photo, .ev .ev-phone .ev-wood, .ev .ev-phone .ev-glass-surface {
+  height:100%; bottom:auto;
+}
+/* The portrait dash carries the same turbine wheel as the passenger fascia. */
+.ev .ev-phone .ev-compact-vent[data-dial=vent]{
+  left:auto;right:5px;transform:none;width:52px;height:52px;min-width:44px;min-height:44px;
+  z-index:2;border:0;border-radius:50%;
+  background: url(raven/cockpit/raven-panoramic-ash.webp) 99.84% 41.02% / 914.286% 609.524% no-repeat;
+  box-shadow:0 1px 3px #090909a6;
+}
+.ev .ev-compact-vent b{display:none}
+.ev-phone-viewport:has(.ev-compact-vent) .ev-tiles{max-width:100%}
+.ev-keyboard-preview{
+  position:absolute;inset:auto 0 0;height:34%;max-height:320px;min-height:180px;
+  display:flex;flex-direction:column;justify-content:center;gap:7px;padding:12px 4px 9px;
+  background:linear-gradient(#cbd0d8,#bfc5cf);box-shadow:0 -1px 0 #fff9;
+  font:400 19px/1 system-ui,sans-serif;color:#15181d;user-select:none;
+}
+.ev-keyboard-row{flex:1;display:flex;align-items:stretch;justify-content:center;gap:4px;max-height:46px}
+.ev-keyboard-row span{
+  display:grid;place-items:center;background:#fff;border-radius:5px;
+  min-width:0;flex:0 1 9%;box-shadow:0 1px 1px #6c7582;
+}
+.ev-keyboard-row .ev-modifier{background:#a6aebc;flex:1;font-size:16px}
+.ev-keyboard-row .ev-space{flex:3;font-size:16px}
+.ev-home-indicator{height:5px;width:31%;border-radius:3px;background:#393e44;align-self:center;margin-top:5px}
+.ev-phone-scroll.ev-phone-writing{overflow-x:hidden}
+.ev .ev-phone .ev-scene > .ev-lift-zone{
+  position:absolute;left:0;right:0;top:71%;bottom:0;margin:0;
+  touch-action:pan-x;cursor:n-resize;
+}
+.ev .ev-phone .ev-scene > .ev-dial{z-index:1}
+.ev .ev-phone .ev-phone-writing .ev-scene{
+  --windshield-rise:0px;
+  background: url(raven/cockpit/raven-panoramic-ash.webp) center 26.4% / auto 1600% no-repeat #cebfae;
+}
+.ev .ev-phone .ev-phone-writing .ev-scene::before,
+.ev .ev-phone .ev-phone-writing .ev-photo::after,
+.ev .ev-phone .ev-phone-writing .ev-photo::before,
+.ev .ev-phone .ev-phone-writing :is(.ev-wood,.ev-glass-surface,.ev-lift-zone,.ev-aux,.ev-status,.ev-push,.ev-main){display:none}
+.ev .ev-phone .ev-phone-writing .ev-photo{
+  margin:0;top:0;bottom:46px;height:auto;z-index:0;
+  background:url(raven/cockpit/raven-panoramic-ash.webp) 31% 0 / auto 435% no-repeat #96bdd4;
+}
+.ev .ev-phone .ev-phone-writing .ev-thread{
+  top:10%;bottom:58px;height:auto;margin:0;z-index:1;
+}
+.ev .ev-phone .ev-phone-writing .ev-input{
+  margin:0;top:auto;bottom:1px;height:44px;transform:none;
+}
+.ev .ev-phone .ev-writing-view .ev-compact-vent[data-dial=vent]{
+  width:44px;height:44px;right:2px;
+}
+.ev .ev-phone .ev-phone-writing.ev-options-open .ev-main{
+  display:flex;z-index:1;left:4px;right:4px;bottom:48px;top:auto;width:auto;height:76px;
+  margin:0;padding:3px;gap:1px;transform:none;background:linear-gradient(#202b31ee,#10191ce8);
+  color:#fff;border-radius:9px;
+}
+.ev .ev-phone .ev-phone-writing.ev-options-open .ev-main::before{display:none}
+.ev .ev-phone .ev-phone-writing.ev-options-open .ev-thread{bottom:130px}
+.ev .ev-phone .ev-phone-writing .ev-heading{font-size:12px}
+.ev .ev-phone .ev-phone-writing .ev-face{width:26px;height:26px}
+.ev .ev-phone .ev-phone-writing .ev-tile{font-size:11px;min-height:40px}
+.ev .ev-phone .ev-phone-writing .ev-scene::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:46px;pointer-events:none;
+  background:url(raven/cockpit/raven-panoramic-ash.webp) 55% 27.7% / auto 4400% no-repeat #d9c9b8;
+}

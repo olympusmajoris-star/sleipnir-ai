@@ -67,6 +67,147 @@
     case 'By date':return query('Jump to date','date',x=>list('Messages on '+x,messages.filter(m=>m.date.toLocaleDateString('en-CA')===x||[m.date.getFullYear(),String(m.date.getMonth()+1).padStart(2,'0'),String(m.date.getDate()).padStart(2,'0')].join('-')===x)));
   }renderAux();}
   function run(fn){Promise.resolve().then(fn).catch(e=>{if(e.name!=='AbortError')note(e.message);renderAux();});}
+
+  // Both cabin views share the clock and the same weather observation.
+  const coastClock = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York'
+  });
+  const weatherInterval = 15 * 60 * 1000;
+  const weatherMaxAge = 3 * 60 * 60 * 1000;
+  const instruments = [];
+  let observedWeather = null, weatherCheck = 0, refreshingWeather = false, instrumentTimer;
+  function paintInstruments() {
+    const now = new Date(), parts = coastClock.formatToParts(now);
+    const digits = parts.filter(part => ['hour', 'minute', 'literal'].includes(part.type)).map(part => part.value).join('').trim();
+    const period = parts.find(part => part.type === 'dayPeriod').value;
+    const valid = observedWeather && now.getTime() - observedWeather.at < weatherMaxAge;
+    const unit = prefs.tempUnit === 'C' ? 'C' : 'F';
+    const degrees = valid ? Math.round(unit === 'C' ? observedWeather.c : observedWeather.c * 9 / 5 + 32) : '—';
+    const explanation = valid
+      ? 'Outdoor temperature at Flagler County Airport, observed at ' + coastClock.format(observedWeather.at) + ' ET. Switch to °' + (unit === 'F' ? 'C' : 'F')
+      : refreshingWeather ? 'Checking outdoor temperature in Palm Coast' : 'Outdoor temperature unavailable in Palm Coast. Tap to retry';
+    for (const {clock, hour, ampm, temperature} of instruments) {
+      clock.dateTime = now.toISOString();
+      clock.setAttribute('aria-label', coastClock.format(now) + ' Eastern Time');
+      hour.textContent = digits;
+      ampm.textContent = period;
+      temperature.textContent = degrees + '°' + unit;
+      temperature.title = explanation;
+      temperature.setAttribute('aria-label', explanation);
+    }
+  }
+  async function checkOutdoorTemperature() {
+    if (refreshingWeather) return;
+    refreshingWeather = true;
+    weatherCheck = Date.now();
+    paintInstruments();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch('https://api.weather.gov/stations/KFIN/observations/latest', {signal: controller.signal});
+      if (!response.ok) return;
+      const observation = (await response.json()).properties;
+      const reading = observation?.temperature;
+      const at = Date.parse(observation?.timestamp);
+      if (reading?.unitCode === 'wmoUnit:degC' && Number.isFinite(reading.value) &&
+          Number.isFinite(at) && at <= Date.now() + 60000 && Date.now() - at < weatherMaxAge) {
+        observedWeather = {c: reading.value, at};
+      }
+    } catch {
+      // Retain the last reading only while it is still fresh.
+    } finally {
+      clearTimeout(timer);
+      refreshingWeather = false;
+      paintInstruments();
+    }
+  }
+  function tickInstruments() {
+    clearTimeout(instrumentTimer);
+    if (!opened || document.hidden || !instruments.length) return;
+    paintInstruments();
+    if (Date.now() - weatherCheck >= weatherInterval) checkOutdoorTemperature();
+    instrumentTimer = setTimeout(tickInstruments, 60000 - Date.now() % 60000);
+  }
+  document.addEventListener('visibilitychange', tickInstruments);
+  function mountInstruments(small) {
+    const section = el('div', 'ev-instruments');
+    small.prepend(section);
+    const row = el('div', 'ev-readings', section);
+    const clock = el('time', 'ev-clock', row);
+    const hour = el('span', '', clock), ampm = el('small', '', clock);
+    const temperature = btn(row, '', () => {
+      if (!observedWeather || Date.now() - observedWeather.at >= weatherMaxAge) {
+        checkOutdoorTemperature();
+        return;
+      }
+      prefs.tempUnit = prefs.tempUnit === 'C' ? 'F' : 'C';
+      paintInstruments();
+    }, 'ev-temperature');
+    el('span', 'ev-weather-location', section, 'Palm Coast · ET');
+    instruments.push({clock, hour, ampm, temperature});
+    tickInstruments();
+  }
+  const alertKinds = {
+    message: ['Message', 'MessageCircle'], call: ['Missed call', 'PhoneMissed'],
+    reaction: ['Reaction', 'Heart'], mention: ['Mention', 'AtSign'], other: ['Notification', 'Bell']
+  };
+  const alerts = [{kind:'message', title:'Alex', body:messages[0].text, at:messages[0].date}];
+  const alertButtons = [];
+  let unread = alerts.length;
+  function paintAlerts() {
+    for (const button of alertButtons) {
+      button.replaceChildren();
+      const badge = el('span','ev-alert-symbol',button);
+      icon(badge, 'Bell');
+      if (unread) badge.classList.add('unread');
+      const latest=alerts[0];
+      const title=latest?.kind==='message' ? latest.title+' · '+latest.body : latest?.title;
+      el('span','ev-alert-title',button,title || 'Notifications');
+      button.setAttribute('aria-label','Notifications, '+unread+' unread');
+      button.title = alerts[0]?.body || 'Notifications';
+    }
+  }
+  function showAlerts() {
+    unread = 0;
+    paintAlerts();
+    modal('Notifications', body => {
+      body.classList.add('ev-alert-list');
+      for (const alert of alerts) {
+        const row = el('article','ev-alert-row',body);
+        icon(el('span','ev-alert-symbol',row),alertKinds[alert.kind][1]);
+        const details = el('div','',row);
+        el('strong','',details,alert.title);
+        el('p','',details,alert.body);
+        const stamp=el('time','',row,alert.at.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
+        stamp.dateTime=alert.at.toISOString();
+      }
+    });
+  }
+  function addAlert({kind='other', title, body=''}) {
+    if (typeof title!=='string' || !title.trim() || typeof body!=='string') return;
+    if (!Object.hasOwn(alertKinds,kind)) kind='other';
+    alerts.unshift({kind,title:title.trim(),body,at:new Date()});
+    if (alerts.length>60) alerts.pop();
+    unread=Math.min(alerts.length,unread+1);
+    paintAlerts();
+    if (dialog?.open && dialog.querySelector('.ev-alert-list')) showAlerts();
+  }
+  function mountAlerts(status) {
+    const button=btn(status.parentNode,'',showAlerts,'ev-alerts');
+    status.before(button);
+    button.setAttribute('aria-haspopup','dialog');
+    alertButtons.push(button);
+    paintAlerts();
+  }
+  function previewAlert() {
+    const examples={'Missed call':['call','Missed call','Alex tried to call you.'],
+      'Reaction':['reaction','New reaction','Alex liked your message.'],
+      'Mention':['mention','New mention','Alex mentioned you in a conversation.']};
+    choices('Preview notification',Object.keys(examples),choice=>{
+      const [kind,title,body]=examples[choice];
+      addAlert({kind,title,body});
+    });
+  }
   function renderAux(){for(const p of panels){p.aux.replaceChildren();p.status.replaceChildren();
     if(category==='Translate'){const s=el('select','',p.aux);s.setAttribute('aria-label','Translation language');Object.entries(langs).forEach(([k,v])=>s.add(new Option(v,k)));s.value=target;s.onchange=()=>{target=s.value;renderAux();};}
     else el('span','ev-note',p.aux,({Write:'Message Alex',Voice:recorder?'Recording…':recorded?'Voice note ready':'Voice tools',Share:attachment?.name||'Attachments',Conversation:chosen().kept?'Message kept':'Selected message',Find:messages.length+' messages'})[category]);
@@ -76,7 +217,7 @@
     const entries=[...groups[category]],offset=Number(prefs.order[category])||0;
     for(let i=0;i<entries.length;i++){
       const [label,glyph,color]=entries[(i+offset)%entries.length],zone=prefs.placement[label]||'Main';
-      const parent=zone==='Middle'?p.midTiles:zone==='Small'?p.smallTiles:p.tiles;
+      const parent=typing&&p.syncTyping?p.tiles:zone==='Middle'?p.midTiles:zone==='Small'?p.smallTiles:p.tiles;
       const tile=btn(parent,'',()=>{touch(tile);flash(p.aux);run(()=>act(label));},'ev-tile');
       tile.setAttribute('aria-label',label);tile.style.setProperty('--icon',color);
       tile.style.setProperty('--angle',(1.5-i)*prefs.curve/1.5+'deg');
@@ -88,16 +229,18 @@
     category=name;tileEditor();tools.querySelector('[name=category]').value=name;tools.querySelector('[name=order]').value=prefs.order[name]||0;
     panels.flatMap(p=>[p.tiles,p.midTiles,p.smallTiles]).forEach(n=>n.animate([{opacity:1},{opacity:0}],{duration:ms,fill:'forwards'}));setTimeout(()=>{if(ticket!==turn)return;drawTiles();panels.forEach(p=>{for(const n of [p.tiles,p.midTiles,p.smallTiles]){n.getAnimations().forEach(a=>a.cancel());n.animate([{opacity:0},{opacity:1}],{duration:ms});}flash(p.status);});},ms);}
   function dial(n,id){n.dataset.dial=id;n.setAttribute('aria-label',id+' category dial');n.setAttribute('role','slider');n.setAttribute('aria-valuemin','1');n.setAttribute('aria-valuemax','6');let start=null,turned=false;
-    const step=d=>{switchTo(names[(names.indexOf(category)+d+6)%6]);n.setAttribute('aria-valuenow',names.indexOf(category)+1);touch(n);};
+    const step=d=>{if(typing&&id==='vent')document.querySelector('.ev-phone-writing')?.classList.add('ev-options-open');switchTo(names[(names.indexOf(category)+d+6)%6]);n.setAttribute('aria-valuenow',names.indexOf(category)+1);touch(n);};
     n.onpointerdown=e=>{e.preventDefault();n.setPointerCapture(e.pointerId);start={x:e.clientX,y:e.clientY};turned=false;};
     n.onpointermove=e=>{if(!start)return;const dx=e.clientX-start.x,dy=start.y-e.clientY;const delta=Math.abs(dx)>Math.abs(dy)?dx:dy;if(Math.abs(delta)>16){step(Math.sign(delta));start={x:e.clientX,y:e.clientY};turned=true;}};
     n.onpointerup=()=>{start=null;};n.onpointercancel=()=>{start=null;turned=true;};n.onclick=()=>{if(!turned)step(1);turned=false;};
     n.onkeydown=e=>{if(['ArrowLeft','ArrowDown','ArrowRight','ArrowUp'].includes(e.key)){e.preventDefault();step(['ArrowLeft','ArrowDown'].includes(e.key)?-1:1);}};el('b','',n,id==='console'?'Categories':'Options');}
-  function panel(parent){const scene=el('section','ev-scene',parent);el('div','ev-photo',scene);el('div','ev-wood',scene);el('div','ev-glass-surface',scene);const thread=el('div','ev-thread',scene),form=el('form','ev-input',scene),input=el('input','',form);input.setAttribute('aria-label','Message Alex');input.enterKeyHint='send';input.oninput=()=>{draft=input.value;syncDraft();};input.onfocus=()=>{typing=true;renderAux();};input.onblur=()=>{typing=false;renderAux();};
+  function panel(parent){const scene=el('section','ev-scene',parent);el('div','ev-photo',scene);el('div','ev-wood',scene);el('div','ev-glass-surface',scene);const thread=el('div','ev-thread',scene),form=el('form','ev-input',scene),input=el('input','',form);input.setAttribute('aria-label','Message Alex');input.enterKeyHint='send';input.oninput=()=>{draft=input.value;syncDraft();};input.onfocus=()=>setTyping(true);input.onblur=()=>setTyping(false);
     const arr=el('button','',form);arr.type='submit';arr.setAttribute('aria-label','Send message');icon(arr,'ArrowUp');form.onsubmit=e=>{e.preventDefault();touch(arr);send();input.focus();};
     const push=btn(scene,'PUSH\nSEND',()=>{touch(push);send();},'ev-push');push.setAttribute('aria-label','Push to send');
     for(const b of [push,arr])b.onpointerdown=e=>e.preventDefault();
     const main=el('div','ev-main',scene),title=el('strong','ev-heading',main),tiles=el('div','ev-tiles',main),middle=el('div','ev-aux',scene),small=el('div','ev-status',scene),aux=el('div','',middle),midTiles=el('div','ev-items',middle),status=el('div','',small),smallTiles=el('div','ev-items',small);
+    mountInstruments(small);
+    mountAlerts(status);
     const vent=btn(scene,'',null,'ev-dial'),consoleDial=btn(scene,'',null,'ev-dial');dial(vent,'vent');dial(consoleDial,'console');return {scene,thread,input,send:arr,push,title,tiles,aux,status,midTiles,smallTiles,consoleDial,vent};}
   function style(){host.style.setProperty('--depth',String(prefs.curve/135));host.style.setProperty('--veneer',({'Honey ash':'none',Walnut:'saturate(.88) brightness(.72)',Driftwood:'saturate(.2) brightness(1.02)',Ebony:'saturate(.2) brightness(.57)',Copper:'sepia(.45) saturate(1.55)'})[prefs.veneer]);
     for(const [k,v] of Object.entries({'--size':'clamp(17px,'+prefs.size/7+'cqw,'+prefs.size+'px)','--glow':prefs.glow,'--glow-time':prefs.duration+'ms','--mx':prefs.x+'%','--my':prefs.y+'%'}))host.style.setProperty(k,v);drawTiles();}
@@ -110,13 +253,69 @@
     action.onchange=update;update();
     zone.onchange=()=>{prefs.placement[action.value]=zone.value;drawTiles();note('Unsaved tile placement');};
   }
-  async function receive(text,language='en'){if(!text.trim())return;const m={id:++sequence,text,lang:language,date:new Date(),out:false};messages.push(m);selected=m.id;thread();renderAux();if(auto||spoken){const t=await translate(m,target);if(spoken)speak(t,target);}}
+  async function receive(text,language='en'){if(!text.trim())return;const m={id:++sequence,text,lang:language,date:new Date(),out:false};messages.push(m);addAlert({kind:'message',title:'Alex',body:m.text});selected=m.id;thread();renderAux();if(auto||spoken){const t=await translate(m,target);if(spoken)speak(t,target);}}
+  function setTyping(value){
+    typing=value;
+    for(const p of panels)p.syncTyping?.();
+    drawTiles();
+  }
+  function keyboardPreview(parent){
+    const keyboard=el('div','ev-keyboard-preview',parent);
+    keyboard.setAttribute('aria-hidden','true');
+    for(const keys of ['Q W E R T Y U I O P','A S D F G H J K L','⇧ Z X C V B N M ⌫','123 space return']){
+      const row=el('div','ev-keyboard-row',keyboard);
+      for(const key of keys.split(' ')){
+        el('span',key==='space'?'ev-space':key.length>1||'⇧⌫'.includes(key)?'ev-modifier':'',row,key);
+      }
+    }
+    el('div','ev-home-indicator',keyboard);
+    // The desktop hardware keyboard drives this visual preview.
+    keyboard.onpointerdown=e=>e.preventDefault();
+    return keyboard;
+  }
   function mountPhone(device){
     const viewport=el('div','ev-phone-viewport',device),scroller=el('div','ev-phone-scroll',viewport);
     scroller.tabIndex=0;scroller.setAttribute('aria-label','Pan across the cabin');
     const phone=panel(scroller),scene=phone.scene;
+    const lift=el('div','ev-lift-zone',scene);
+    lift.setAttribute('aria-hidden','true');
+    let drag=null;
+    lift.onpointerdown=e=>{if(e.isPrimary){drag={x:e.clientX,y:e.clientY};lift.setPointerCapture(e.pointerId);}};
+    lift.onpointercancel=()=>{drag=null;};
+    lift.onpointerup=e=>{
+      if(!drag)return;
+      const up=drag.y-e.clientY,side=Math.abs(e.clientX-drag.x);
+      drag=null;
+      if(up>32&&up>side*1.5)phone.input.focus({preventScroll:true});
+    };
+    phone.input.addEventListener('keydown',e=>{if(e.key==='Escape')phone.input.blur();});
+    
     const nav=el('nav','ev-phone-nav',viewport);nav.setAttribute('aria-label','Phone framing');
     const stops=[['Driver',.16],['Center',.5],['Passenger',.86]];
+    const keyboard=keyboardPreview(viewport);
+    const nativePhone=matchMedia('(max-width:680px) and (pointer:coarse)');
+    // On a center crop the physical passenger vent falls outside the phone.
+    // Move its existing control to the right end of the visible dash.
+    const vent=phone.vent;
+    function placeVent(){
+      const w=scene.offsetWidth,h=scene.offsetHeight,visible=scroller.clientWidth;
+      if(!visible||!h)return;
+      const ventX=.944*w-scroller.scrollLeft;
+      const ventFits=ventX-.046*w>=0 && ventX+.046*w<=visible;
+      if(ventFits&&!typing){
+        if(vent.parentNode!==scene)scene.append(vent);
+        vent.classList.remove('ev-compact-vent');
+        vent.style.removeProperty('top');
+        return;
+      }
+      if(vent.parentNode!==viewport)viewport.append(vent);
+      vent.classList.add('ev-compact-vent');
+      const rail=phone.input.form;
+      const bounds=viewport.getBoundingClientRect();
+      const railBottom=(rail.getBoundingClientRect().bottom-bounds.top)*viewport.offsetWidth/bounds.width;
+      const y=typing?railBottom-44:railBottom+3;
+      vent.style.top=y+'px';
+    }
     let center=.5;
     function pan(fraction,smooth=false){
       scroller.scrollTo({left:scene.offsetWidth*fraction-scroller.clientWidth/2,
@@ -126,6 +325,12 @@
     function align(){
       const w=scene.offsetWidth,visible=scroller.clientWidth;
       if(!visible||!w)return;
+      if(typing){
+        Object.assign(phone.input.form.style,{left:'0',width:(visible-50)+'px',right:'auto',visibility:'visible'});
+        Object.assign(phone.thread.style,{left:'12px',width:(visible-24)+'px',right:'auto'});
+        placeVent();
+        return;
+      }
       const x=scroller.scrollLeft;
       center=(x+visible/2)/w;
       const nearest=stops.reduce((best,stop,i)=>Math.abs(stop[1]-center)<Math.abs(stops[best][1]-center)?i:best,0);
@@ -134,31 +339,92 @@
       const left=Math.max(.368*w,x+8),right=Math.min(.858*w,x+visible-8);
       const form=phone.input.form;
       Object.assign(form.style,{left:left+'px',right:'auto',width:Math.max(0,right-left)+'px',visibility:right-left>=104?'visible':'hidden'});
+      placeVent();
       phone.thread.style.left=(x+16)+'px';phone.thread.style.width=(visible-32)+'px';phone.thread.style.right='auto';
     }
+    // An embedded iOS Safari page reports the on-screen keyboard on the
+    // outer visual viewport. Measure down from this cabin in each frame.
+    const windows=[window];
+    try{
+      while(windows.at(-1).frameElement)windows.push(windows.at(-1).parent);
+    }catch{}
+    function visibleCabinHeight(){
+      let top=device.getBoundingClientRect().top,bottom=device.clientHeight;
+      for(const frame of windows){
+        const view=frame.visualViewport;
+        bottom=Math.min(bottom,(view?view.offsetTop+view.height:frame.innerHeight)-top);
+        if(frame!==windows.at(-1))top+=frame.frameElement.getBoundingClientRect().top;
+      }
+      return bottom;
+    }
+    let nativeKeyboardWasOpen=false;
     function resize(){
       if(!device.clientWidth||!device.clientHeight)return;
-      const native=matchMedia('(max-width:680px) and (pointer:coarse)').matches;
+      const native=nativePhone.matches;
       const w=native?device.clientWidth:390,scale=device.clientWidth/w,h=device.clientHeight/scale;
       Object.assign(viewport.style,{width:w+'px',height:h+'px',transform:'scale('+scale+')'});
-      Object.assign(scene.style,{width:Math.max(w,h*1.5)+'px',height:h+'px'});
-      pan(center);align();
+      if(typing){
+        const usable=native?visibleCabinHeight():h-keyboard.offsetHeight;
+        if(native){
+          if(usable<h-125)nativeKeyboardWasOpen=true;
+          else if(nativeKeyboardWasOpen&&usable>h-80){
+            phone.input.blur();
+            return;
+          }
+        }
+        Object.assign(scene.style,{width:w+'px',height:Math.max(64,usable)+'px'});
+        scroller.scrollLeft=0;
+      }else{
+        Object.assign(scene.style,{width:Math.max(w,h*1.5)+'px',height:h+'px'});
+        pan(center);
+      }
+      align();
     }
+    let priorCenter=null;
+    phone.syncTyping=()=>{
+      const native=nativePhone.matches;
+      if(typing&&native&&!device.style.height)device.style.height=device.offsetHeight+'px';
+      if(!typing||!native)device.style.removeProperty('height');
+      keyboard.hidden=!typing||native;
+      nav.hidden=typing;
+      phone.consoleDial.hidden=typing;
+      if(typing&&priorCenter===null){priorCenter=center;center=.5;}
+      if(!typing&&priorCenter!==null){center=priorCenter;priorCenter=null;}
+      scroller.classList.toggle('ev-phone-writing',typing);
+      if(!typing){
+        nativeKeyboardWasOpen=false;
+        scroller.classList.remove('ev-options-open');
+      }
+      viewport.classList.toggle('ev-writing-view',typing);
+      resize();
+    };
+    // Retain the chat keyboard when tapping actions on the main glass.
+    host.addEventListener('pointerdown',event=>{
+      if(typing&&event.target.closest('.ev-tile'))event.preventDefault();
+    });
+    for(const frame of windows){
+      for(const event of ['resize','scroll'])frame.visualViewport?.addEventListener(event,()=>{
+        if(typing&&nativePhone.matches)resize();
+      },{passive:true});
+    }
+    nativePhone.addEventListener('change',()=>{phone.syncTyping();resize();});
+    phone.syncTyping();
     scroller.addEventListener('scroll',align,{passive:true});
     scene.setAttribute('aria-label','Live iPhone preview');
     new ResizeObserver(resize).observe(device);resize();
     return phone;
   }
-  function show(){opened=true;const link=new URL(location.href);link.searchParams.set('layout','electric');history.replaceState(null,'',link);const studio=document.getElementById('raven-cabin-studio');studio.hidden=true;if(host){host.hidden=false;return;}
+  function show(){opened=true;const link=new URL(location.href);link.searchParams.set('layout','electric');history.replaceState(null,'',link);const studio=document.getElementById('raven-cabin-studio');studio.hidden=true;if(host){host.hidden=false;tickInstruments();return;}
     host=el('main','ev',document.body);const h=el('header','',host);el('strong','',h,'Raven · Panoramic cabin');btn(h,'Cabin layouts',()=>{host.hidden=true;opened=false;studio.hidden=false;stopVoice();if(recorder)recorder.stop();recognition?.stop();history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('resize'));});btn(h,'Save in browser',()=>{try{localStorage.setItem(key,JSON.stringify(prefs));note('Design saved in this browser.');}catch{note('Browser storage is unavailable.');}});
     const pair=el('div','ev-pair',host),wide=panel(pair),device=el('aside','ev-phone',pair);panels=[wide,mountPhone(device)];
     tools=el('div','ev-tools',host);field('Category','category','select',names);field('Veneer','veneer','select',['Honey ash','Walnut','Driftwood','Ebony','Copper']);field('Tile size','size','range',[20,52]);field('Glass curve','curve','range',[0,36]);field('Tiles X','x','range',[-20,20]);field('Tiles Y','y','range',[-30,30]);field('First tile','order','range',[0,3]);field('Fade (ms)','fade','range',[0,800]);field('Glow','glow','color');field('Glow (ms)','duration','range',[150,1500]);field('Haptics','haptics','checkbox');btn(tools,'Preview incoming',()=>query('Preview incoming message','text',x=>run(()=>receive(x))));
+    btn(tools,'Preview notification',previewAlert);
     for(const [name,title,options] of [['action','Tile',[]],['zone','Screen',['Main','Middle','Small']]]){
       const select=el('select','',el('label','',tools,title+' '));select.name=name;options.forEach(x=>select.add(new Option(x,x)));
     }
     tileEditor();
     feedback=el('div','ev-feedback',host);feedback.setAttribute('role','status');dialog=el('dialog','',host);style();thread();syncDraft();}
-  window.RavenElectric={open:show,receive:(text,lang)=>opened&&run(()=>receive(text,lang))};
+  window.RavenElectric={open:show,notify:addAlert,receive:(text,lang)=>opened&&run(()=>receive(text,lang))};
   if(new URLSearchParams(location.search).get('layout')==='electric')show();
   window.addEventListener('pagehide',()=>{recorder?.stream.getTracks().forEach(t=>t.stop());recognition?.abort();uris.forEach(u=>URL.revokeObjectURL(u));});
 })();
