@@ -285,6 +285,7 @@
       // This native route selects Bakery + shelf_group even when a direct category shares its name.
       if (!breadAlias) categories.delete('Bread & Rolls');
     }
+    if(store==='fea775c8-8612-4f2e-bfc6-70d8e6ace6be'&&categories.has('On Sale'))categories.add('Deals & General Merchandise');
     state.catalog = [...categories].sort((a,b) => a.localeCompare(b));
     state.breadAlias = breadAlias;
     state.catalogReady = true;
@@ -888,9 +889,11 @@
     if(requestedAuthored!==null&&!idPattern.test(requestedAuthored))throw Error('Invalid published aisle link.');
     const core = window.StudioWorkspaceCore;
     if (!core?.appStoreById || !core.groceryModeForStore) throw Error('The store directory could not load.');
-    const info = await core.appStoreById(store);
+    let info = await core.appStoreById(store);
+    const localDG=store==='0600cb61-45f9-402b-a209-134abdaef10f'||store==='fea775c8-8612-4f2e-bfc6-70d8e6ace6be';
+    if(!info&&localDG){const rows=await request('stores',{select:'id,name,address,is_live',id:'eq.'+store},false);info=rows.find(x=>x.id===store&&x.is_live===true);}
     if (!info) { message('frame-status','This store is unavailable in the app.'); return; }
-    state.mode = core.groceryModeForStore(info);
+    state.mode = localDG?'dollar-general':core.groceryModeForStore(info);
     if (!state.mode) {
       message('frame-status',info.name + ' uses a different store editor.');
       const route = core.storeEditorForStore?.(info);
@@ -919,3 +922,4 @@
     el('retry-store').hidden = false;
   });
 })();
+
