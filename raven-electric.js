@@ -111,9 +111,47 @@
     zone.onchange=()=>{prefs.placement[action.value]=zone.value;drawTiles();note('Unsaved tile placement');};
   }
   async function receive(text,language='en'){if(!text.trim())return;const m={id:++sequence,text,lang:language,date:new Date(),out:false};messages.push(m);selected=m.id;thread();renderAux();if(auto||spoken){const t=await translate(m,target);if(spoken)speak(t,target);}}
+  function mountPhone(device){
+    const viewport=el('div','ev-phone-viewport',device),scroller=el('div','ev-phone-scroll',viewport);
+    scroller.tabIndex=0;scroller.setAttribute('aria-label','Pan across the cabin');
+    const phone=panel(scroller),scene=phone.scene;
+    const nav=el('nav','ev-phone-nav',viewport);nav.setAttribute('aria-label','Phone framing');
+    const stops=[['Driver',.16],['Center',.5],['Passenger',.86]];
+    let center=.5;
+    function pan(fraction,smooth=false){
+      scroller.scrollTo({left:scene.offsetWidth*fraction-scroller.clientWidth/2,
+        behavior:smooth&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'smooth':'instant'});
+    }
+    const buttons=stops.map(([name,fraction])=>btn(nav,name,()=>pan(fraction,true)));
+    function align(){
+      const w=scene.offsetWidth,visible=scroller.clientWidth;
+      if(!visible||!w)return;
+      const x=scroller.scrollLeft;
+      center=(x+visible/2)/w;
+      const nearest=stops.reduce((best,stop,i)=>Math.abs(stop[1]-center)<Math.abs(stops[best][1]-center)?i:best,0);
+      buttons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===nearest)));
+      // Anchor the input to the visible part of the actual passenger rail.
+      const left=Math.max(.368*w,x+8),right=Math.min(.858*w,x+visible-8);
+      const form=phone.input.form;
+      Object.assign(form.style,{left:left+'px',right:'auto',width:Math.max(0,right-left)+'px',visibility:right-left>=104?'visible':'hidden'});
+      phone.thread.style.left=(x+16)+'px';phone.thread.style.width=(visible-32)+'px';phone.thread.style.right='auto';
+    }
+    function resize(){
+      if(!device.clientWidth||!device.clientHeight)return;
+      const native=matchMedia('(max-width:680px) and (pointer:coarse)').matches;
+      const w=native?device.clientWidth:390,scale=device.clientWidth/w,h=device.clientHeight/scale;
+      Object.assign(viewport.style,{width:w+'px',height:h+'px',transform:'scale('+scale+')'});
+      Object.assign(scene.style,{width:Math.max(w,h*1.5)+'px',height:h+'px'});
+      pan(center);align();
+    }
+    scroller.addEventListener('scroll',align,{passive:true});
+    scene.setAttribute('aria-label','Live iPhone preview');
+    new ResizeObserver(resize).observe(device);resize();
+    return phone;
+  }
   function show(){opened=true;const link=new URL(location.href);link.searchParams.set('layout','electric');history.replaceState(null,'',link);const studio=document.getElementById('raven-cabin-studio');studio.hidden=true;if(host){host.hidden=false;return;}
     host=el('main','ev',document.body);const h=el('header','',host);el('strong','',h,'Raven · Panoramic cabin');btn(h,'Cabin layouts',()=>{host.hidden=true;opened=false;studio.hidden=false;stopVoice();if(recorder)recorder.stop();recognition?.stop();history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('resize'));});btn(h,'Save in browser',()=>{try{localStorage.setItem(key,JSON.stringify(prefs));note('Design saved in this browser.');}catch{note('Browser storage is unavailable.');}});
-    const pair=el('div','ev-pair',host),wide=panel(pair),device=el('aside','ev-phone',pair);panels=[wide,panel(device)];const resizePhone=()=>device.style.setProperty('--phone-scale',device.clientWidth/390);new ResizeObserver(resizePhone).observe(device);resizePhone();panels[1].scene.setAttribute('aria-label','Live iPhone preview');
+    const pair=el('div','ev-pair',host),wide=panel(pair),device=el('aside','ev-phone',pair);panels=[wide,mountPhone(device)];
     tools=el('div','ev-tools',host);field('Category','category','select',names);field('Veneer','veneer','select',['Honey ash','Walnut','Driftwood','Ebony','Copper']);field('Tile size','size','range',[20,52]);field('Glass curve','curve','range',[0,36]);field('Tiles X','x','range',[-20,20]);field('Tiles Y','y','range',[-30,30]);field('First tile','order','range',[0,3]);field('Fade (ms)','fade','range',[0,800]);field('Glow','glow','color');field('Glow (ms)','duration','range',[150,1500]);field('Haptics','haptics','checkbox');btn(tools,'Preview incoming',()=>query('Preview incoming message','text',x=>run(()=>receive(x))));
     for(const [name,title,options] of [['action','Tile',[]],['zone','Screen',['Main','Middle','Small']]]){
       const select=el('select','',el('label','',tools,title+' '));select.name=name;options.forEach(x=>select.add(new Option(x,x)));
