@@ -36,7 +36,7 @@
   function packageSize(item) {
     const cached = packageSizes.get(item);
     if (cached) return cached;
-    const name = String(item.name || '').replace(/[‐‑–]/g,'-');
+    const name = String(item.name || '').replace(/[‐‑–]/g,'-').replace(/(\d)\.\s+(\d)/g,'$1.$2');
     const lessFractions = name.replace(/(\d+)\s+(\d+)\/(\d+)\b/g, (_,whole,num,den) => String(Number(whole)+Number(num)/Number(den)));
     const expression = /(?:^|[^\w./])(\d+(?:\.\d+)?)\s*[- ]?\s*(fl\.?\s*oz\.?|fluid ounces?|ounces?|oz\.?|liters?|litres?|l|milliliters?|ml|gallons?|gal|quarts?|qt|pints?|pt|pounds?|lbs?|kg|g)\b/ig;
     const measurements = Array.from(lessFractions.matchAll(expression));
@@ -293,7 +293,7 @@
       img.src=photo;
     });
     const worker = isDG(theme) ? global.DollarGeneralShelfPhotos : null;
-    const prepared = worker?.prepare ? Promise.resolve().then(()=>worker.prepare(photo)).catch(()=>null) : Promise.resolve(null);
+    const prepared = worker?.prepare ? Promise.race([Promise.resolve().then(()=>worker.prepare(photo)).catch(()=>null),new Promise(resolve=>setTimeout(()=>resolve(null),12000))]) : Promise.resolve(null);
     const task=prepared.then(data=>data || measureOnCanvas()).then(data=>{
       measuring.delete(key);
       if(data) {
@@ -406,6 +406,7 @@
     fragment.append(art);
     const record={config,model:m};
     surfaces.set(host,record);
+    let pendingPhotos=0;
     for(const slot of m.slots) {
       const p=slot.item, c=slot.cell;
       const cell=element('div','sl-slot shelf-layout-cell');
@@ -429,7 +430,7 @@
         // A single staggered rear unit gives catalog shelves depth, without a uniform cloned train. Use only prepared transparent cutouts.
         const seed=String(p.id).split('').reduce((n,c)=>n+c.charCodeAt(0),0);
         if((p.packshot || (face.tagName==='SPAN'&&face.style.backgroundImage))&&slot.facings===1&&seed%5!==0){
-          const rear=face.cloneNode(true);rear.classList.add('sl-rear-face');rear.style.setProperty('--rear-x',3+seed%7+'%');rear.style.setProperty('--rear-y',-(2+seed%5)+'%');unit.append(rear);
+          const rear=face.cloneNode(true);rear.classList.add('sl-rear-face');rear.style.setProperty('--rear-x',7+seed%9+'%');rear.style.setProperty('--rear-y',-(3+seed%5)+'%');unit.append(rear);
         }
         unit.append(face);
         faces.append(unit);
@@ -444,6 +445,7 @@
         const published=p.packshot && key===p.image;
         const metric=metricsKey(key,config.theme),info=published ? {aspect:p.aspect} : photoMetrics.get(metric);
         const preparing=isDG(config.theme) && !info;
+        if(preparing)pendingPhotos++;
         if(!info) {
           measurePhoto(metric,photo,config.theme).then(loaded=>{
             // If pixel reads are unavailable, an ordinary image can still display.
@@ -482,8 +484,10 @@
       const tag=element('button','sl-label');
       tag.type='button';tag.tabIndex=-1;tag.dataset.productId=p.id;
       if (isDG(config.theme)) {
-        const width=Math.min(c.width*.91,.159);
-        styleRect(tag,(1-width/c.width)/2,(slot.tag.top-c.top+slot.tag.height*.08)/c.height,width/c.width,slot.tag.height*.87/c.height);
+        const zoom=clamp(finite(config.priceTagScale,1.4),.75,2.2)/1.4;
+        const width=Math.min(c.width*.96,.159*zoom);const tall=Math.min(slot.tag.height*.96,slot.tag.height*.87*zoom);
+        styleRect(tag,(1-width/c.width)/2,(slot.tag.top-c.top+(slot.tag.height-tall)/2)/c.height,width/c.width,tall/c.height);
+        if(finite(config.priceTextSize,0)>0)tag.style.setProperty('--dg-price-font',clamp(config.priceTextSize,9,22)+'px');
       } else styleRect(tag,(slot.tag.left-c.left)/c.width,(slot.tag.top-c.top)/c.height,slot.tag.width/c.width,slot.tag.height/c.height);
       const name=element('span','sl-tag-name'), price=element('b','sl-tag-price');
       name.textContent=isDG(config.theme) ? packageSize(p).label : shortName(p);
@@ -498,12 +502,16 @@
       tag.append(name,price);cell.append(faces,tag);fragment.append(cell);
     }
     const openId=host.dataset.detailId;
+    m.pendingPhotos=pendingPhotos;host.dataset.preparing=String(pendingPhotos>0);
     host.replaceChildren(fragment);
     bindDetail(host);
     if(openId&&config.showPopups!==false)openDetail(host,openId);else if(openId)closeDetail(host);
     return m;
   }
-  const api={render,layout,stockHeight,shortName,packageSize};
+  function prefetch(items,theme){
+    for(const item of items||[]){const photo=photoKey(item);if(!photo||item.packshot)continue;const k=metricsKey(photo,theme);if(!photoMetrics.has(k))measurePhoto(k,photo,theme).then(info=>{if(!info)photoMetrics.set(k,{aspect:0});});}
+  }
+  const api={render,layout,stockHeight,shortName,packageSize,prefetch};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   global.ShelfLayoutCanvas=api;
 })(typeof window==='undefined'?globalThis:window);
