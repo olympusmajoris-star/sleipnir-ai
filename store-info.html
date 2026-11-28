@@ -169,10 +169,11 @@ function coreCard(r) {
 /* ---------- One store ---------- */
 const storeCache = new Map();
 async function showStore(s) {
+  if(dgStore(s.store_id)){main.innerHTML='<p class="status">Checking real rendered displays…</p>';const inventory=await storeItems(s);if(current!==s.store_id)return;const actual=inventory.filter(x=>x.status==='rendered');s={...s,items:inventory.length,rendered:actual.length,code:inventory.length-actual.length,reusable:inventory.filter(x=>x.status==='code'&&x.universal_id).length,rendered_unused:0};}
   main.innerHTML = '';
   const head = el('div', 'store-head', `<h2>${esc(s.store_name)}<span class="live ${s.is_live ? '' : 'off'}">${s.is_live ? 'Live' : 'Not live'}</span></h2><p>${esc(s.address || '')}</p>`);
   const st = el('div', 'stats', [
-    [s.items, 'products'], [s.aisles, 'aisles'], [s.rendered, 'rendered'], [s.code, 'code-built'],
+    [s.items, 'products'], [s.aisles, 'aisles'], [s.rendered, dgStore(s.store_id)?'real displayed products':'rendered'], [s.code, dgStore(s.store_id)?'catalog-photo products':'code-built'],
     [s.reusable, 'code-built with a render in another store'], ...(s.rendered_unused ? [[s.rendered_unused, 'rendered but not on the shelf yet']] : [])
   ].map(([n, l]) => `<div class="stat"><b>${Number(n).toLocaleString()}</b><span>${l}</span></div>`).join(''));
   const tabs = el('div', 'subtabs'); const body = el('div');
@@ -185,7 +186,7 @@ async function showStore(s) {
       const b = el('button', id === s.store_id ? 'on' : '', label); b.onclick = () => go(id); formats.append(b);
     }
     if (formats.children.length > 1) main.append(formats);
-    const review = el('a', 'btn solid', 'Review rendered DG groceries'); review.href = 'dg-render-review.html?store=' + encodeURIComponent(s.store_id); main.append(review);
+    const review = el('a', 'btn solid', 'Review actual DG renders'); review.href = 'dg-render-review.html?store=' + encodeURIComponent(s.store_id); main.append(review);const shopping=el('a','btn','Shop DG · all aisles');shopping.href='grocery-entrance.html?store='+encodeURIComponent(s.store_id);main.append(shopping);
   }
   main.append(st, chat, tabs, body);
   chatBox(s, chat).catch(e => { chat.innerHTML = '<p class="status">Could not load the ChatGPT instructions: ' + esc(e.message) + '</p>'; });
@@ -194,8 +195,24 @@ async function showStore(s) {
   views[0][1]();
 }
 async function storeItems(s) {
-  if (!storeCache.has(s.store_id)) storeCache.set(s.store_id, rows(`store_info_items?select=product_id,category,shelf_group,name,size,price,status,source,store_brand,universal_id,universal_store&store_id=eq.${s.store_id}&order=category,shelf_group.nullslast,shelf_rank.nullslast,name`));
+  if(!storeCache.has(s.store_id))storeCache.set(s.store_id,(async()=>{
+    const items=await rows(`store_info_items?select=product_id,category,shelf_group,name,size,price,status,source,store_brand,universal_id,universal_store&store_id=eq.${s.store_id}&order=category,shelf_group.nullslast,shelf_rank.nullslast,name`);
+    if(!dgStore(s.store_id))return items;
+    const [renders,slots]=await Promise.all([
+      rows(`aisle_renders?select=aisle,render_no,image_path,publish_status&store_id=eq.${s.store_id}&order=aisle,render_no`),
+      rows(`aisle_slots?select=aisle,render_no,product_id,tag_x,tag_y,tag_w,tag_h&store_id=eq.${s.store_id}&tag_x=not.is.null&order=aisle,render_no,slot`)
+    ]);
+    const bay=new Map(renders.filter(r=>['held','ready'].includes(r.publish_status)).map(r=>[r.aisle+'|'+r.render_no,r]));
+    const actual=new Map();for(const slot of slots){const render=bay.get(slot.aisle+'|'+slot.render_no);if(render&&slot.tag_y!=null&&slot.tag_w>0&&slot.tag_h>0)actual.set(slot.product_id,{...render,...slot});}
+    return items.map(item=>{const render=actual.get(item.product_id);return {...item,status:render?'rendered':'code',source:render?'Full shelf render · '+(render.publish_status==='ready'?'Published':'Draft'):'Catalog product photo (code display)',_render:render};});
+  })());
   return storeCache.get(s.store_id);
+}
+async function aisleInfo(s,order='items.desc') {
+  const original=await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=${order}`);
+  if(!dgStore(s.store_id))return original;
+  const items=await storeItems(s),by=groupBy(items,r=>r.category);
+  return original.map(r=>{const all=by.get(r.aisle)||[],rendered=all.filter(x=>x.status==='rendered').length,code=all.length-rendered,reusable=all.filter(x=>x.status==='code'&&x.universal_id).length;return {...r,items:all.length,rendered,code,reusable};});
 }
 async function viewRendered(s, body) {
   body.innerHTML = '<p class="status">Loading…</p>';
@@ -203,7 +220,7 @@ async function viewRendered(s, body) {
   body.innerHTML = '';
   if (!items.length) { body.innerHTML = `<p class="status">No renders in this store yet — every product here is code-built.${s.reusable ? ' ' + Number(s.reusable).toLocaleString() + ' of them can reuse renders from other stores (see Code-built).' : ''}</p>`; return; }
   listByCategory(body, items, (grid, r) => {
-    const c = el('div', 'card'); const t = el('div', 'th'); paintThumb(t, slug(s.store_name), r.product_id);
+    const c = el('div', 'card'); const t = el('div', 'th'); if(r._render){const rr=r._render;t.style.backgroundImage='url('+JSON.stringify(C.url+'/storage/v1/object/public/menu-images/'+rr.image_path.split('/').map(encodeURIComponent).join('/'))+')';t.style.backgroundSize='contain';t.style.backgroundPosition='center';t.style.backgroundRepeat='no-repeat';t.style.cursor='pointer';t.title='Open actual product display';t.onclick=()=>location.assign('dg-render-review.html?'+new URLSearchParams({store:s.store_id,aisle:rr.aisle,render_no:rr.render_no}));}else paintThumb(t, slug(s.store_name), r.product_id);
     const unused = /not on the shelf/.test(r.source || '');
     c.append(t, el('div', '', `<div class="nm">${esc(r.name)}</div><div class="sz">${esc(r.size || '')} ${money(r.price)}</div><span class="badge ${unused ? 'warn' : ''}">${esc(unused ? 'Not on the shelf yet' : (r.source || '').replace(/^Render:?\s*/, ''))}</span>`));
     grid.append(c);
@@ -222,7 +239,7 @@ async function viewCode(s, body) {
 }
 async function viewAisles(s, body) {
   body.innerHTML = '<p class="status">Loading…</p>';
-  const a = await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=items.desc`);
+  const a = await aisleInfo(s);
   body.innerHTML = `<table><thead><tr><th>Aisle</th><th>Display</th><th class="n">Products</th><th class="n">Rendered</th><th class="n">Code-built</th><th class="n">Render in another store</th><th class="n">Still needs a render</th></tr></thead><tbody>${a.map(r => `<tr><td>${esc(r.aisle)}</td><td class="muted">${esc(nice(r.display_type))}</td><td class="n">${r.items}</td><td class="n">${r.rendered}</td><td class="n">${r.code}</td><td class="n">${r.reusable}</td><td class="n">${r.code - r.reusable}</td></tr>`).join('')}</tbody></table>`;
 }
 
@@ -230,7 +247,7 @@ async function viewAisles(s, body) {
 const chatState = { shelves: 4, per: 2, reuse: false, aisle: '' };
 async function viewChat(s, body) {
   body.innerHTML = '<p class="status">Loading…</p>';
-  const aisles = await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=aisle`);
+  const aisles = await aisleInfo(s,'aisle');
   body.innerHTML = '';
   const tools = el('div', 'tools');
   const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; viewChat(s, body); }; g.append(b); }); w.append(g); return w; };
@@ -251,7 +268,8 @@ async function viewChat(s, body) {
   copy.onclick = async () => { try { await navigator.clipboard.writeText(briefText(s, aisles)); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy instructions for ChatGPT', 1500); } catch { brief.focus(); } };
   show.onclick = async () => {
     list.innerHTML = '<p class="status">Loading…</p>';
-    const q = await rows('rpc/store_info_chatgpt_queue', { p_store: s.store_id, p_shelves: chatState.shelves, p_per_shelf: chatState.per, p_include_reusable: chatState.reuse, p_aisle: chatState.aisle });
+    let q = await rows('rpc/store_info_chatgpt_queue', { p_store: s.store_id, p_shelves: chatState.shelves, p_per_shelf: chatState.per, p_include_reusable: chatState.reuse, p_aisle: chatState.aisle });
+    if(dgStore(s.store_id)){const actual=new Set((await storeItems(s)).filter(x=>x.status==='rendered').map(x=>x.product_id));q=q.filter(r=>!actual.has(r.product_id));}
     list.innerHTML = '';
     for (const [no, slots] of groupBy(q, r => r.render_no)) {
       const d = el('div', 'display', `<h4>Image #${no} · ${esc(nice(slots[0].display_type))} · ${esc(slots[0].layout)} · ${esc(slots[0].upload_path)}</h4>`);
@@ -289,10 +307,10 @@ Each render_no is ONE image. Draw its products on that row's display_type, in th
 When an image is done:
  1. Upload the PNG to its upload_path (bucket menu-images).
  2. insert into public.aisle_renders (store_id, aisle, render_no, image_path, width, height, layout, publish_status)
-    values ('${id}', <aisle>, <render_no>, <upload_path without "menu-images/">, <width>, <height>, <layout>, 'draft');
+    values ('${id}', <aisle>, <render_no>, <upload_path without "menu-images/">, <width>, <height>, <layout>, 'held');
  3. One public.aisle_slots row per product: (store_id, aisle, render_no, slot, product_id, shelf_group, tag_x, tag_y, tag_w, tag_h).
     tag_x/y/w/h = the blank price strip under that product, as 0-1 fractions of the image width and height.
- 4. Leave it 'draft'. Danny publishes it in the studio.
+ 4. Leave it 'held' (Studio draft). Danny publishes it in the studio.
 Finish an aisle, tell Danny, then start the next one.
 
 AISLES (products to render, images needed, display):
@@ -302,7 +320,7 @@ ${todo.map(a => `${a.aisle} ${a.todo.toLocaleString()} products, ${Math.ceil(a.t
 /* ---------- instructions box shown on every store ---------- */
 async function chatBox(s, box) {
   box.innerHTML = '<p class="status">Loading ChatGPT instructions…</p>';
-  const aisles = await rows(`store_info_aisles?select=*&store_id=eq.${s.store_id}&order=aisle`);
+  const aisles = await aisleInfo(s,'aisle');
   const draw = () => {
     box.innerHTML = '';
     const todo = aisles.reduce((x, a) => x + (PROMO.test(a.aisle) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
@@ -358,3 +376,4 @@ boot();
 </script>
 </body>
 </html>
+
