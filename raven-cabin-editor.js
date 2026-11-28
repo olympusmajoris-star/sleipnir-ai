@@ -478,6 +478,15 @@
       getState,subscribe(fn){if(typeof fn!=='function')return()=>{};subscribers.add(fn);fn(getState());return()=>subscribers.delete(fn);},subscribeSelection(fn){if(typeof fn!=='function'||disposed)return()=>{};selectionSubscribers.add(fn);if(selection.revision)fn({...selection});return()=>selectionSubscribers.delete(fn);},select,setEditing,setStudioViewport,updateControl,selectObject,updateObject,
       resetObject(id){if(!objectById.has(id))return false;return changed('reset-object:'+id,()=>{current().objects[id]=clone(objectDefaults[id]);});},
       resetControl(id){if(!specById.has(id))return false;return changed('reset:'+id,()=>{current().controls[id]=clone(defaults[id]);});},undo,redo,beginEdit,endEdit,setView,setPanProgress,playPan,replayVideoFocus,pauseVideoFocus,updateMotion,updatePresentation,updateMaterials,setSkin,save,
+      monitorPose(){return c.cabin.monitorPose();},
+      followMonitor(pose,settings){
+        if(settings){design=validate(JSON.parse(settings));activeDesign=true;}
+        editing=false;
+        studioViewport={surface:'phone',device:'iphone',orientation:'portrait'};
+        c.cabin.followPose(pose);
+        applyEnvironment();
+        requestLayout();
+      },
       exportDesign(){return JSON.stringify(design,null,2);},importDesign,
       getCatalog(){const action=selected.startsWith('end-')?'end':selected==='play'?'motion':selected;return {all:catalog,suggestions:catalog.forAction?catalog.forAction(action).map(entry=>entry.name):[]};},
       layout,notifyComparison:notify,

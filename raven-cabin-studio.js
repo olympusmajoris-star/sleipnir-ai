@@ -96,6 +96,37 @@
     on(layoutChooser,'toggle',()=>{if(layoutChooser.open)viewTools.open=false;});on(viewTools,'toggle',()=>{if(viewTools.open)layoutChooser.open=false;});
     on(D,'pointerdown',event=>{if(!layoutChooser.contains(event.target))layoutChooser.open=false;if(!viewTools.contains(event.target))viewTools.open=false;});
     const bay=node('div','rce-preview-bay',undefined,center),footprint=node('div','rce-preview-footprint',undefined,bay),stage=node('div','rce-preview-stage',undefined,footprint);
+    const canvasPair=node('div','rce-canvas-pair',undefined,center);
+    center.insertBefore(canvasPair,bay);canvasPair.appendChild(bay);
+    const monitor=node('aside','rce-live-phone',undefined,canvasPair);
+    node('span','rce-live-phone-label','Live iPhone',monitor);
+    const device=node('div','rce-monitor-device',undefined,monitor);
+    const phoneFrame=node('iframe','rce-monitor-frame',undefined,device);
+    phoneFrame.title='Live iPhone preview, 390 by 844';phoneFrame.tabIndex=-1;
+    phoneFrame.setAttribute('inert','');
+    let follower=null,pendingSettings='',lastSettings='',lastPose='',monitorTick=0;
+    function syncPhoneSettings(){
+      if(!api||!api.exportDesign)return;
+      const settings=api.exportDesign();
+      if(settings!==lastSettings){lastSettings=settings;pendingSettings=settings;}
+    }
+    function drawPhone(){
+      if(disposed)return;
+      if(follower&&api?.monitorPose&&!monitor.hidden&&!D.hidden){
+        const pose=api.monitorPose(),stamp=JSON.stringify(pose);
+        if(stamp!==lastPose||pendingSettings){
+          follower.followMonitor(pose,pendingSettings);
+          pendingSettings='';lastPose=stamp;
+        }
+      }
+      monitorTick=G.requestAnimationFrame(drawPhone);
+    }
+    on(phoneFrame,'load',()=>{
+      follower=phoneFrame.contentWindow.RavenCabinEditor;
+      pendingSettings=lastSettings;lastPose='';
+    });
+    phoneFrame.src='raven-cabin.html?editor=1&embed=1&monitor=1&v=1128pair';
+    monitorTick=G.requestAnimationFrame(drawPhone);
     if(preview){preview.classList.add('rce-preview-node');stage.appendChild(preview);}else node('div','rce-preview-placeholder','Supply a live cabin preview to begin.',stage);
     const hint=node('p','rce-preview-hint',undefined,center),hintIcon=icon('Move',16);if(hintIcon)hint.appendChild(hintIcon);const hintText=node('span','','Select a control on the cabin, then drag it or use its resize handle.',hint);
     const panSection=node('div','rce-pan',undefined,center),panTop=node('div','rce-pan-top',undefined,panSection),panLabel=node('label','rce-pan-label','Camera pan',panTop),panOutput=node('output','','0%',panLabel),playPan=button('Play pan','Play',panTop,'rce-play-pan rce-quiet'),pan=node('input','',undefined,panSection);pan.type='range';pan.min='0';pan.max='1000';pan.step='1';pan.value='0';pan.setAttribute('aria-label','Scrub camera from front to passenger side');const panEnds=node('div','rce-pan-ends',undefined,panSection);node('span','','Front',panEnds);node('span','','Passenger side',panEnds);on(pan,'input',()=>invoke('setPanProgress',Number(pan.value)/1000));on(playPan,'click',()=>invoke('playPan'));
@@ -165,6 +196,7 @@
     function updateColor(field,value,force=false){setValue(field.picker,COLOR.test(value||'')?value:field.fallback,force);setValue(field.hex,value||'',force);}
     function render(){
       if(disposed)return;try{state=api?api.getState():{};}catch(e){notice(e.message||'The live cabin is unavailable.',true);state={};}
+      syncPhoneSettings();
       const controls=Array.isArray(state.controls)?state.controls:[],id=typeof state.selected==='object'&&state.selected?state.selected.id:state.selected||'',changed=id!==selectedId;selectedId=id;selected=controls.find(c=>c.id===id)||null;
       undo.disabled=!api||!state.canUndo;redo.disabled=!api||!state.canRedo;save.disabled=!api;exportButton.disabled=importButton.disabled=!api;
       saveState.textContent=!api?'Connecting…':state.saved?'Saved in this browser':'Unsaved changes';saveState.dataset.dirty=String(!!api&&!state.saved);
@@ -225,6 +257,13 @@
       if(disposed)return;
       const p=viewport(),phone=p.surface==='phone',landscape=p.orientation==='landscape',mobile=G.matchMedia&&G.matchMedia('(max-width:980px)').matches,freeHeight=mobile&&!expanded;
       const css=G.getComputedStyle?G.getComputedStyle(bay):null,paddingX=css?(parseFloat(css.paddingLeft)||0)+(parseFloat(css.paddingRight)||0):24,paddingY=css?(parseFloat(css.paddingTop)||0)+(parseFloat(css.paddingBottom)||0):24;
+      monitor.hidden=phone;
+      if(!phone){
+        const scale=Math.min(1,Math.max(1,monitor.clientWidth-16)/390,
+          Math.max(130,(freeHeight?Math.min(440,G.innerHeight*.48):canvasPair.clientHeight)-44)/844);
+        device.style.width=390*scale+'px';device.style.height=844*scale+'px';
+        phoneFrame.style.transform='scale('+scale+')';
+      }
       const availableW=Math.max(180,(bay.clientWidth||center.clientWidth||760)-paddingX),availableH=Math.max(160,(bay.clientHeight||480)-paddingY);
       let width,height,scale=1;
       if(phone){width=landscape?844:390;height=landscape?390:844;scale=fitMode==='actual'?1:Math.min(1,availableW/width,freeHeight?1:availableH/height);}
@@ -249,9 +288,9 @@
     }
     function connect(nextApi,nextLibrary){if(unsubscribe)unsubscribe();if(unsubscribeSelection)unsubscribeSelection();unsubscribe=unsubscribeSelection=null;api=nextApi||null;if(nextLibrary)library=nextLibrary;catalog=[];suggestions=[];libraryKey=heroKey=controlKey=objectKey='';selectionObserved=false;if(api&&typeof api.subscribe==='function')unsubscribe=api.subscribe(schedule);if(api&&typeof api.subscribeSelection==='function')unsubscribeSelection=api.subscribeSelection(selection=>{if(disposed)return;selectionIntent=selection.kind==='icon'?'icons':'objects';if(selection.kind==='object')chosenObjectId=selection.id||'__windshield';setInspectorMode(selectionIntent,true);schedule();});render();applyEntryNavigation();render();fitPreview();notice(api?'Drag the Screen frame or choose an icon. Changes appear live.':'Connecting to the live cabin…');return !!api;}
     setInspectorMode('objects');connect(initialApi,initialLibrary);fitPreview();
-    return {connect,refresh:schedule,element:shell,dispose(){if(disposed)return;end();disposed=true;if(unsubscribe)unsubscribe();if(unsubscribeSelection)unsubscribeSelection();if(resize)resize.disconnect();if(raf&&G.cancelAnimationFrame)G.cancelAnimationFrame(raf);clearTimeout(statusTimer);handlers.splice(0).forEach(remove=>remove());if(dialog.open)closeDialog();shell.remove();}};
+    return {connect,refresh:schedule,element:shell,dispose(){if(disposed)return;end();disposed=true;if(unsubscribe)unsubscribe();if(unsubscribeSelection)unsubscribeSelection();G.cancelAnimationFrame(monitorTick);if(resize)resize.disconnect();if(raf&&G.cancelAnimationFrame)G.cancelAnimationFrame(raf);clearTimeout(statusTimer);handlers.splice(0).forEach(remove=>remove());if(dialog.open)closeDialog();shell.remove();}};
   }
-  function boot({host,src='raven-cabin.html?editor=1&embed=1&v=1125video3',lucide=G.lucide}={}){
+  function boot({host,src='raven-cabin.html?editor=1&embed=1&v=1128pair',lucide=G.lucide}={}){
     const D=host.ownerDocument,frame=D.createElement('iframe');frame.title='Live Raven cabin editor';frame.allow='camera; microphone; autoplay';frame.setAttribute('loading','eager');
     const editor=mount({host,lucide,preview:frame});let timer=0,generation=0,disposed=false;
     function loaded(){const token=++generation;let attempts=0;clearTimeout(timer);const probe=()=>{if(disposed||token!==generation)return;try{const child=frame.contentWindow;if(child&&child.RavenCabinEditor){editor.connect(child.RavenCabinEditor,child.lucide||lucide);return;}}catch(_){}if(++attempts<80)timer=setTimeout(probe,125);else{const message=editor.element.querySelector('.rce-message');message.textContent='The live editor did not connect. Reload this Studio page to try again.';message.dataset.error='true';}};probe();}

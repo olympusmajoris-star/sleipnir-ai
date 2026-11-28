@@ -227,6 +227,19 @@
         for(const track of stream.getTracks())on(track,'ended',()=>{if(stream&&stream.getTracks().every(item=>item.readyState==='ended')){stopDevices();status('Camera stopped.');}});
       }catch(error){if(token!==cameraToken||disposed)return;cameraPending=false;status(error&&error.name==='NotAllowedError'?'Camera permission was not granted.':'The camera could not be opened.');sync();}
     }
+    // The second renderer uses the editor's pose and media without opening devices.
+    function monitorPose(){
+      return {mode,view,videoFocusProgress,screenOnly,sharedSource,sharedKind,sharedName,sharedFit};
+    }
+    function followPose(pose){
+      mode=pose.mode; view=pose.view.slice(); videoFocusProgress=pose.videoFocusProgress;
+      screenOnly=pose.screenOnly; sharedFit=pose.sharedFit;
+      if(pose.sharedSource!==sharedSource){
+        if(pose.sharedSource)useMedia(pose.sharedSource,pose.sharedKind,pose.sharedName,false);
+        else releaseShared();
+      }
+      sync();
+    }
     function stopDevices(){
       ++cameraToken;cameraPending=false;
       if(stream){const old=stream;stream=null;old.getTracks().forEach(track=>track.stop());}
@@ -364,7 +377,7 @@
     on(G,'pagehide',stopDevices);
     root.dataset.cabinMode='chat';mirrorPresentation();for(const n of [remote,mirror,sideSelf,sharing,camera,end,share,back,pick,statusNode])n.hidden=true;
     return {
-      getView:()=>view.slice(),open,openShare,shareFile,receiveShared,previewPan,stopDevices,isActive:active,layout,setControlsVisible,getControlsVisible:()=>controlsVisible,setScreenOnly,getScreenOnly:()=>screenOnly,isScreenOnly:()=>screenOnly,replayVideoFocus,pauseVideoFocus,getVideoFocusState:focusState,setRemoteStream,setRemoteMedia,
+      monitorPose,followPose,getView:()=>view.slice(),open,openShare,shareFile,receiveShared,previewPan,stopDevices,isActive:active,layout,setControlsVisible,getControlsVisible:()=>controlsVisible,setScreenOnly,getScreenOnly:()=>screenOnly,isScreenOnly:()=>screenOnly,replayVideoFocus,pauseVideoFocus,getVideoFocusState:focusState,setRemoteStream,setRemoteMedia,
       dispose(){if(disposed)return;cancelFocus();stopDevices();disposed=true;if(frame)caf(frame);if(mirrorFrame)caf(mirrorFrame);animation=null;frame=mirrorFrame=0;releaseShared();remoteVideo.pause();sidePeerVideo.pause();remoteVideo.srcObject=sidePeerVideo.srcObject=null;remoteStream=null;listeners.splice(0).forEach(remove=>remove());nodes.forEach(n=>n.remove());delete root.dataset.cabinMode;delete root.dataset.screenOnly;delete root.dataset.videoFocus;}
     };
   }
