@@ -293,15 +293,16 @@ function orderAisles(list) {
   const rank = a => PROMO.test(a.aisle) ? 3 : /alcohol|wine|beer|liquor/i.test(a.aisle) ? 1 : FOOD.test(a.aisle) ? 0 : 2;
   return [...list].sort((a, b) => rank(a) - rank(b) || b.todo - a.todo);
 }
+const renderAisle = n => FOOD.test(n) || /alcohol|wine|beer|liquor/i.test(n);
 function briefText(s, aisles) {
   const sh = chatState.shelves, ps = chatState.per, id = s.store_id;
-  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && (dgStore(s.store_id)||!PROMO.test(a.aisle))));
+  const todo = orderAisles((aisles || []).map(a => ({ ...a, todo: dgStore(s.store_id)?a.needs:(chatState.reuse ? a.code : a.code - a.reusable) })).filter(a => a.todo > 0 && (dgStore(s.store_id)||(!PROMO.test(a.aisle)&&renderAisle(a.aisle)))));
   const total = todo.reduce((x, a) => x + a.todo, 0);
   return `SLEIPNIR RENDER JOB: ${s.store_name}
 Store id: ${id}   Supabase project: afnihsdxtisneuyehatw
 ${total.toLocaleString()} products need a render. Layout Danny picked: ${sh} shelves, ${ps} products per shelf (${sh * ps} products per image).
 ${NOTES[id] ? '\n' + NOTES[id] + '\n' : ''}
-${dgStore(s.store_id)?'DG: render remaining groceries and unusual fixtures only; ordinary non-grocery catalog photos are approved. Check existing ready aisle_slots before drawing any product, and keep actual product IDs/price zones.': ''}\nWork ONE aisle at a time. Read that aisle's list straight from Supabase:
+${dgStore(s.store_id)?'DG: render remaining groceries and unusual fixtures only; ordinary non-grocery catalog photos are approved. Check existing ready aisle_slots before drawing any product, and keep actual product IDs/price zones.': 'GROCERY ONLY: non-grocery aisles are NOT rendered. Ordinary non-grocery items stay code images. Odd items (mops, brooms, long items) get renders later from a separate list.'}\nWork ONE aisle at a time. Read that aisle's list straight from Supabase:
   select * from public.store_info_chatgpt_queue('${id}', ${sh}, ${ps}, ${chatState.reuse}, '<AISLE>');
 Put the aisle name from the list below in place of <AISLE>.
 ${chatState.reuse ? '' : "Products that already have a render in another store are left out. Danny reuses those.\n"}
@@ -326,7 +327,7 @@ async function chatBox(s, box) {
   const aisles = await aisleInfo(s,'aisle');
   const draw = () => {
     box.innerHTML = '';
-    const todo = dgStore(s.store_id)?s.needs:aisles.reduce((x, a) => x + (PROMO.test(a.aisle) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
+    const todo = dgStore(s.store_id)?s.needs:aisles.reduce((x, a) => x + ((PROMO.test(a.aisle)||!renderAisle(a.aisle)) ? 0 : (chatState.reuse ? a.code : a.code - a.reusable)), 0);
     const head = el('div', 'chat-head', `<h3>Instructions for ChatGPT</h3><span class="muted">${todo.toLocaleString()} products to render · ${Math.ceil(todo / (chatState.shelves * chatState.per)).toLocaleString()} images at ${chatState.shelves} shelves × ${chatState.per}</span>`);
     const tools = el('div', 'tools');
     const seg = (label, key, opts) => { const w = el('span', '', `<span class="muted">${label}</span> `); const g = el('span', 'seg'); opts.forEach(v => { const b = el('button', chatState[key] === v ? 'on' : '', String(v)); b.onclick = () => { chatState[key] = v; draw(); }; g.append(b); }); w.append(g); return w; };
