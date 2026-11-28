@@ -310,6 +310,24 @@ function drawEntrance(door){
  $('editAisle').href=door.renderedDG?'dg-render-review.html?'+new URLSearchParams({store:id,aisle:door.label}):'grocery-aisle-builder.html?'+new URLSearchParams(door.authored?{store:id,aisle:door.authored.aisle_id}:{store:id,source:door.label});
  if(denseShelf){if(door.renderedDG){drawDgRenderShelf(door,label);$('enter').textContent='Review '+label;}else drawDgShelf(door,label);}
 }
+let deliCatalog=[];
+const restoredCounter=station=>['Deli Loaf Counter','Deli Cheese Loaf Counter'].includes(station);
+async function loadDeliCatalog(old,combined,signal){
+ const covered=new Set(combined.flatMap(p=>p.spots.map(s=>s.id)));
+ const notShown=new Map();
+ for(const p of old.filter(p=>p.layered&&!p.menu))for(const s of p.spots)if(!covered.has(s.id))notShown.set(s.id,s);
+ const values=[...notShown.values()],routes=new Map();
+ if(values.length){
+  try{
+   for(let i=0;i<values.length;i+=40){
+    const ids=values.slice(i,i+40).map(s=>s.id);
+    const rows=await read('aisle_slots',{store_id:'eq.'+id,product_id:'in.('+ids.join(',')+')',select:'product_id,aisle,render_no',order:'aisle,render_no'},signal);
+    for(const r of rows)if(pub.supports(r.aisle)&&r.aisle!=='Deli & Prepared Foods')routes.set(r.product_id,r);
+   }
+  }catch(e){if(signal.aborted)throw e;}
+ }
+ return values.map(s=>({...s,renderRoute:routes.get(s.id)})).sort((a,b)=>a.name.localeCompare(b.name));
+}
 async function loadPanels(door,signal){
  if(heldRegular(door)){
   return pub.load(door.label,{read,media,signal});
@@ -342,17 +360,32 @@ async function loadPanels(door,signal){
   if(door.label==='Deli'&&section.kind!=='render'&&global.GroceryStationFixtures?.loadSection){
    return global.GroceryStationFixtures.loadSection(door.label,section,id,{read,media,signal});
   }
-  const rows=await read('station_render_v',{select:'station,image_path,image_order,spot_no,product_id,zx0,zy0,zx1,zy1,tags,store_id,product_name,price',store_id:'eq.'+id,station:'eq.'+(priced[section.station]||section.station),order:'image_order,spot_no'},signal);
+  const rows=await read('station_render_v',{select:'station,image_path,image_order,spot_no,product_id,zx0,zy0,zx1,zy1,tags,hx0,hy0,hx1,hy1,store_id,product_name,price,sold_by',store_id:'eq.'+id,station:'eq.'+(priced[section.station]||section.station),order:'image_order,spot_no'},signal);
   const products=rows.filter(r=>r.store_id===id).map(r=>({id:r.product_id,store_id:r.store_id,name:r.product_name,price:r.price}));
-  return panelsFor(rows,products,id,media);
+  const pages=panelsFor(rows,products,id,media);
+  if(id===PUBLIX&&door.label==='Deli'&&restoredCounter(section.station)){
+   for(const p of pages){p.restoredLoaf=true;p.groups=[section.station];for(const s of p.spots){
+    const r=rows.find(r=>media(r.image_path)===p.url&&r.product_id===s.id);
+    const box=r?[r.hx0,r.hy0,r.hx1,r.hy1].map(Number):[];
+    if(validBox(box))s.loafPriceBox=box;s.soldBy=r?.sold_by;
+   }}
+  }
+  return pages;
  }));
  const old=lists.flat();
  if(heldSupported(door)&&door.label==='Deli'){
+  let fresh=[];
   try{
-   const protectedIds=new Set(old.filter(p=>!p.layered||p.menu).flatMap(p=>p.spots.map(s=>s.id)));
-   const fresh=await pub.load(door.label,{read,media,signal,protectedIds});
-   return pub.merge(door.label,old,fresh);
-  }catch(e){if(signal.aborted)throw e;return old;}
+   // The five owner-supplied counter photographs are separate physical
+   // displays; keep existing good packaged photographs too, even when one
+   // catalog item is sold at both the counter and grab-and-go case.
+   const protectedIds=new Set(old.filter(p=>(!p.layered||p.menu)&&!p.restoredLoaf).flatMap(p=>p.spots.map(s=>s.id)));
+   fresh=await pub.load(door.label,{read,media,signal,protectedIds});
+  }catch(e){if(signal.aborted)throw e;}
+  const combined=pub.merge(door.label,old,fresh);
+  for(const p of combined)if(!p.groups?.length)p.groups=[p.label||p.station||'Deli'];
+  deliCatalog=await loadDeliCatalog(old,combined,signal);
+  return combined;
  }
  return old;
 }
@@ -398,10 +431,12 @@ function drawSeafoodLane(product){
  lane.append(stock);$('spots').append(lane);
 }
 function showSku(product,panel,index){
- if(panel.heldRender&&!$('heldPopups').checked)return;
+ if((panel.heldRender||panel.restoredLoaf)&&!$('heldPopups').checked)return;
  activeSku={product,panel,index,door:currentDoor};$('skuName').textContent=product.name;$('skuPrice').textContent=formatPrice(product.price);$('skuContext').textContent=store.name+' · '+currentDoor.label+' · Display '+(index+1);$('skuSource').textContent=panel.layered?'The product photo is a separate layer on this department display.':'This product is part of a published display photograph. A repair flag identifies its exact position for the next render.';
  $('skuSize').textContent=panel.heldRender?product.description||'':'';$('skuSize').hidden=!$('skuSize').textContent;
  if(panel.heldRender)$('skuSource').textContent='Full shelf render · Studio review. Product details and prices come from the catalog.';
+ if(panel.restoredLoaf){$('skuSource').textContent='Original deli counter photograph · preserved.';if(product.soldBy==='lb')$('skuPrice').textContent=formatPrice(product.price)+' / lb';}
+ if(panel.catalogOnly){$('skuContext').textContent=store.name+' · Deli catalog';$('skuSource').textContent='Catalog product. No full shelf photograph is assigned to this item yet.';}
  const selection=activeSku, doorLabel=currentDoor.label;
  $('skuCatalogEdit').replaceChildren(global.StudioProductDetails.button({
    storeId:id,productId:product.id,current:()=>activeSku===selection && $('sku').open,
@@ -421,7 +456,7 @@ function showSku(product,panel,index){
 function drawPanel(index){
  const panel=panels[index];$('status').textContent='';$('retry').hidden=true;$('storeRepair').hidden=Boolean(panel.spots.length);
  showingPage=index;
- const hasHeld=panels.some(p=>p.heldRender);
+ const hasHeld=panels.some(p=>p.heldRender||p.restoredLoaf);
  $('heldControls').hidden=!hasHeld;
  $('heldLegacy').hidden=!heldRegular(currentDoor);
  if(heldRegular(currentDoor))$('heldLegacy').href='grocery-aisle-editor.html?'+new URLSearchParams({store:id,aisle:currentDoor.label,legacy:'1'});
@@ -433,9 +468,9 @@ function drawPanel(index){
    $('heldGroups').replaceChildren(new Option('All product groups',''),...groups.map(g=>new Option(g,g)));
   }
   $('heldGroups').value=panel.groups?.[0]||'';
-  $('heldNotice').textContent=panel.heldRender?(panel.publishStatus==='ready'?'Full shelf render':'Full shelf render · Studio draft'):'Existing display · unchanged';
+  $('heldNotice').textContent=panel.restoredLoaf?'Original deli loaf counter · preserved':panel.heldRender?(panel.publishStatus==='ready'?'Full shelf render':'Full shelf render · Studio draft'):'Existing display · unchanged';
  }
- $('picture').classList.toggle('publix-held-picture',Boolean(panel.heldRender));
+ $('picture').classList.toggle('publix-held-picture',Boolean(panel.heldRender||panel.restoredLoaf));
  const names=[currentDoor.label];
  if(panel.layered&&panel.station&&!names.includes(panel.station)&&!(panel.label||'').startsWith(panel.station))names.push(panel.station);
  if(panel.label&&!names.includes(panel.label))names.push(panel.label);
@@ -443,6 +478,15 @@ function drawPanel(index){
  $('prevPage').disabled=index===0;$('nextPage').disabled=index===panels.length-1;
  $('pageInfo').textContent='Display '+(index+1)+' of '+panels.length;
  $('pagination').hidden=false;$('spots').replaceChildren();$('productList').replaceChildren();
+ const showDeliCatalog=id===PUBLIX&&currentDoor.label==='Deli'&&deliCatalog.length>0;
+ $('deliCatalog').hidden=!showDeliCatalog;$('deliCatalogList').replaceChildren();
+ if(showDeliCatalog)for(const product of deliCatalog){
+  const r=product.renderRoute,link=document.createElement(r?'a':'button');
+  link.textContent=product.name+' · '+formatPrice(product.price)+(r?' · View rendered shelf':'');
+  if(r)link.href='grocery-entrance.html?'+new URLSearchParams({store:id,door:r.aisle,view:'display',render:r.render_no});
+  else link.onclick=()=>showSku(product,{catalogOnly:true},index);
+  $('deliCatalogList').append(link);
+ }
  $('picture').classList.toggle('seafood-freezer',Boolean(panel.seafoodFreezer));
  if(panel.seafoodFreezer){const glass=document.createElement('span');glass.className='seafood-glass';glass.setAttribute('aria-hidden','true');$('spots').append(glass);}
  const image=$('scene'),drawRevision=revision;
@@ -453,6 +497,9 @@ function drawPanel(index){
  if(image.complete&&image.naturalWidth)image.onload();
  for(const heading of panel.headings||[]){if(!validBox(heading.box))continue;const text=document.createElement('span');text.className='menu-heading';text.textContent=heading.label;position(text,heading.box);$('spots').append(text);}
  for(const product of panel.spots){
+  if(panel.restoredLoaf&&validBox(product.loafPriceBox)&&$('heldPrices').checked&&product.price!=null){
+   const price=document.createElement('span');price.className='loaf-price';price.textContent=formatPrice(product.price)+(product.soldBy==='lb'?'/LB':'');position(price,product.loafPriceBox);$('spots').append(price);
+  }
   if(validBox(product.nameBox)){const tag=document.createElement('span');tag.className='produce-name';tag.textContent=product.name;position(tag,product.nameBox);$('spots').append(tag);}
   if(validBox(product.priceBox)&&product.price!=null){const price=document.createElement('span');price.className='produce-price '+product.produceTag;price.textContent=formatPrice(product.price);const b=product.priceBox;
    const box=product.produceTag==='chip'?[Math.max(b[0],b[2]-.14),Math.max(0,b[1]-.023),b[2],Math.max(.042,b[1]+.019)]:b;position(price,box);$('spots').append(price);}
@@ -469,7 +516,7 @@ function drawPanel(index){
   }else if(!panel.heldRender&&validBox(product.tagBox)){const price=document.createElement('span');price.className='price-layer'+(product.menuRow?' menu-row':'')+(panel.seafoodFreezer?' seafood-ticket':'');const name=document.createElement('span'),amount=document.createElement('b');if(product.menuRow&&/^#[a-f0-9]{6}$/i.test(product.textColor||''))price.style.color=product.textColor;name.textContent=product.ticketLabel||product.name;amount.textContent=formatPrice(product.price);price.title=product.name;price.append(name,amount);position(price,product.tagBox);$('spots').append(price);}
   for(const [i,box] of product.boxes.filter(validBox).entries()){
    const hit=document.createElement('button');hit.className='hit';hit.type='button';hit.title=product.name;hit.setAttribute('aria-label',product.name+(i===0?'':' price ticket'));if(i>0)hit.tabIndex=-1;
-   hit.dataset.product=product.id;position(hit,box);hit.onclick=()=>showSku(product,panel,index);if(panel.heldRender&&!$('heldPopups').checked)hit.disabled=true;$('spots').append(hit);
+   hit.dataset.product=product.id;position(hit,box);hit.onclick=()=>showSku(product,panel,index);if((panel.heldRender||panel.restoredLoaf)&&!$('heldPopups').checked)hit.disabled=true;$('spots').append(hit);
   }
   const choice=document.createElement('button');choice.textContent=product.name;choice.dataset.product=product.id;choice.onclick=()=>showSku(product,panel,index);$('productList').append(choice);
  }
@@ -522,7 +569,12 @@ function enter(){
 function findHeld(){
  const q=$('heldSearch').value.trim().toLowerCase();if(!q)return;
  const index=panels.findIndex(p=>p.spots.some(s=>[s.name,s.description].join(' ').toLowerCase().includes(q)));
- if(index>=0)navigate(currentDoor,true,index);else $('heldNotice').textContent='No matching current display. Check the original aisle editor for remaining products.';
+ if(index>=0){navigate(currentDoor,true,index);return;}
+ if(currentDoor.label==='Deli'){
+  const p=deliCatalog.find(s=>s.name.toLowerCase().includes(q));
+  if(p){$('deliCatalog').open=true;const match=[...$('deliCatalogList').children].find(n=>n.textContent.startsWith(p.name));if(match){match.scrollIntoView({block:'nearest'});match.focus();}return;}
+ }
+ $('heldNotice').textContent='No matching current display. Check the remaining catalog products.';
 }
 $('heldFind').onclick=findHeld;$('heldSearch').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();findHeld();}};
 $('heldGroups').onchange=()=>{const group=$('heldGroups').value;const index=group?panels.findIndex(p=>p.groups?.includes(group)):0;if(index>=0)navigate(currentDoor,true,index);};
@@ -530,7 +582,7 @@ for(const [input,key] of [['heldPrices','publix-held-prices'],['heldPopups','pub
  $(input).onchange=()=>{putHeld(key,$(input).checked?'1':'0');if(input==='heldPopups'&&!$(input).checked&&$('sku').open)$('sku').close();if(panels[showingPage])drawPanel(showingPage);};
 }
 $('heldPriceSize').oninput=()=>{putHeld('publix-held-price-size',$('heldPriceSize').value);if(panels[showingPage])drawPanel(showingPage);};
-$('picture').addEventListener('touchstart',e=>{if(panels[showingPage]?.heldRender)touchStart=e.touches[0].clientX;},{passive:true});
+$('picture').addEventListener('touchstart',e=>{if(panels[showingPage]?.heldRender||panels[showingPage]?.restoredLoaf)touchStart=e.touches[0].clientX;},{passive:true});
 $('picture').addEventListener('touchend',e=>{if(touchStart===null)return;const dx=e.changedTouches[0].clientX-touchStart;touchStart=null;if(Math.abs(dx)>50){const next=Math.max(0,Math.min(panels.length-1,showingPage+(dx<0?1:-1)));if(next!==showingPage)navigate(currentDoor,true,next);}}, {passive:true});
 $('retryAuthored').onclick=()=>{initialLoaded=false;route();};
 global.StudioSelectionTarget=()=>!store?null:{item:'grocery',page:'StoreEntrancePage',store:id,
