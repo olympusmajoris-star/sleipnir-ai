@@ -31,7 +31,7 @@
   function mount(host, options) {
     if (!host || !options?.store || !options?.aisle) throw Error('Choose a store and aisle for this shelf.');
     instances.get(host)?.destroy();
-    const state = {destroyed:false,ticket:0,abort:null,data:null,layout:null,revision:0,saving:false,items:[],byId:new Map(),sourceIndex:new Map(),groups:new Map(),
+    const state = {showPopups:true,showPrices:true,destroyed:false,ticket:0,abort:null,data:null,layout:null,revision:0,saving:false,items:[],byId:new Map(),sourceIndex:new Map(),groups:new Map(),
       group:'',page:0,query:'',selection:null,geometry:null,scales:{...(options.scales || {})},previewScales:{...(options.draftScales || {})},shopping:options.shopping===true};
     const events = [];
     const listen = (target,name,fn,capture=false) => {target.addEventListener(name,fn,capture);events.push(()=>target.removeEventListener(name,fn,capture));};
@@ -45,9 +45,12 @@
     const searchMark = node('span','dg-shelf-search-mark');searchMark.append(icon('search'));
     const search = node('input');search.type='search';search.placeholder='Search this aisle…';search.setAttribute('aria-label','Search '+options.aisle);search.autocomplete='off';
     form.append(menu,searchMark,search);
+    const prefs=node('div','dg-shelf-preferences');
+    const pref=(label,key,field)=>{const wrap=node('label');const input=node('input');input.type='checkbox';try{input.checked=localStorage.getItem(key)!=='0';}catch{input.checked=true;}state[field]=input.checked;input.onchange=()=>{state[field]=input.checked;try{localStorage.setItem(key,input.checked?'1':'0')}catch{}paint();};wrap.append(input,document.createTextNode(label));prefs.append(wrap);};
+    pref('Prices','sleipnir-shelf-prices','showPrices');pref('Product info','sleipnir-product-popups','showPopups');
     const tabs = node('nav','dg-shelf-tabs');tabs.setAttribute('aria-label','Product groups');
     const chooser = node('div','dg-shelf-group-list');chooser.hidden=true;
-    header.append(form,tabs,chooser);
+    header.append(form,prefs,tabs,chooser);
     const stage = node('div','dg-shelf-stage');
     const surface = node('div','dg-shelf-surface');surface.setAttribute('aria-label','Products on shelves');
     const loading = node('div','dg-shelf-loading','Loading shelf products…');loading.setAttribute('role','status');
@@ -140,7 +143,7 @@
       for(const [id,scale] of Object.entries(state.previewScales))if(finite(scale))transforms[id]={...transforms[id],scale};
       state.geometry=root.ShelfLayoutCanvas.render(surface,{items,fixture:state.data.fixture,plate:state.data.plate,theme:THEME,
         rows:state.layout.rows,rail:state.layout.rail,productsPerRow:state.layout.productsPerRow,facings:state.layout.facings,
-        autoStockHeight:state.layout.autoStockHeight,transforms,page:state.page,anchorId,selected:state.selection?[state.selection]:[]});
+        showPrices:state.showPrices,showPopups:state.showPopups,autoStockHeight:state.layout.autoStockHeight,transforms,page:state.page,anchorId,selected:state.selection?[state.selection]:[]});
       state.page=state.geometry.page;
       if(state.layout.groupBy!=='type' && !anchorId && state.geometry.slots[0])state.group=groupOf(state.geometry.slots[0].item);
       const names=[...state.groups.keys()],groupIndex=names.indexOf(state.group),grouped=state.layout.groupBy==='type';
@@ -259,3 +262,4 @@
   }
   root.DollarGeneralShelf={mount};
 })(window);
+
