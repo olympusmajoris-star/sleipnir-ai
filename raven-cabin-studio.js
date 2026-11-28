@@ -84,7 +84,7 @@
     const panoramic=node('button','rce-layout-card',undefined,layoutGrid);
     panoramic.type='button';panoramic.setAttribute('aria-label','Use panoramic electric layout');
     const electricImage=node('img','rce-layout-image',undefined,panoramic);
-    electricImage.src='raven/cockpit/raven-panoramic.webp';electricImage.alt='';
+    electricImage.src='raven/cockpit/raven-panoramic-ash.webp';electricImage.alt='';
     node('span','rce-layout-name','Panoramic electric',panoramic);
     on(panoramic,'click',()=>{layoutChooser.open=false;G.RavenElectric.open();});
     const viewSwitch=node('div','rce-segmented rce-view-switch',undefined,canvasRow);viewSwitch.setAttribute('role','group');viewSwitch.setAttribute('aria-label','Cabin view');
