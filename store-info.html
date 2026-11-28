@@ -170,22 +170,21 @@ async function existingArtwork(){
 async function savedShelfReferences(store){
   if(!shelfArtworkRows.has(store))shelfArtworkRows.set(store,(async()=>{
     const scope='store_id=eq.'+encodeURIComponent(store);
-    const [renders,slots,anchors,catalog]=await Promise.all([
+    const [renders,slots,catalog]=await Promise.all([
       rows(`aisle_renders?select=store_id,aisle,render_no,image_path,publish_status,width,height&${scope}&publish_status=in.(held,draft,ready)&order=aisle,render_no`),
-      rows(`aisle_slots_v?select=store_id,aisle,render_no,slot,product_id,name,description&${scope}&order=aisle,render_no,slot`),
-      rows(`aisle_slots?select=aisle,render_no,slot,product_id,tag_x,tag_y,tag_w,tag_h&${scope}&order=aisle,render_no,slot`),
-      rows(`store_info_items?select=product_id,store_brand,category,size,store_name&${scope}&order=product_id`)
+      rows(`aisle_slots?select=store_id,aisle,render_no,slot,product_id,tag_x,tag_y,tag_w,tag_h&${scope}&order=aisle,render_no,slot`),
+      rows(`store_info_items?select=product_id,name,store_brand,category,size,store_name&${scope}&order=product_id`)
     ]);
     const key=r=>[r.aisle,r.render_no].join('|'),slotKey=r=>key(r)+'|'+r.slot+'|'+r.product_id;
     const images=new Map(renders.filter(r=>artworkURL(r.image_path)&&r.width>0&&r.height>0).map(r=>[key(r),r]));
-    const good=new Set(anchors.filter(s=>s.tag_x!=null&&s.tag_y!=null&&+s.tag_w>0&&+s.tag_h>0&&+s.tag_x>=0&&+s.tag_y>=0&&+s.tag_x + +s.tag_w<=1.000001&&+s.tag_y + +s.tag_h<=1.000001).map(slotKey));
+    const good=new Set(slots.filter(s=>s.tag_x!=null&&s.tag_y!=null&&+s.tag_w>0&&+s.tag_h>0&&+s.tag_x>=0&&+s.tag_y>=0&&+s.tag_x + +s.tag_w<=1.000001&&+s.tag_y + +s.tag_h<=1.000001).map(slotKey));
     const items=new Map(catalog.map(p=>[p.product_id,p])),out=new Map();
     for(const s of slots){
       const r=images.get(key(s)),p=items.get(s.product_id);if(!r||!p||!good.has(slotKey(s)))continue;
       // Exclude the Deli images withheld from the visible Studio preview.
       if(publixStore(store)&&s.aisle==='Deli & Prepared Foods'&&[7,8,9,10,11,35,43].includes(s.render_no))continue;
       if(out.has(s.product_id))continue;
-      out.set(s.product_id,{...s,...p,name:s.name,category:s.aisle,render_path:r.image_path,publish_status:r.publish_status,artwork_kind:'Shelf reference',crop:null});
+      out.set(s.product_id,{...s,...p,name:p.name,category:s.aisle,render_path:r.image_path,publish_status:r.publish_status,artwork_kind:'Shelf reference',crop:null});
     }
     return [...out.values()];
   })().catch(e=>{shelfArtworkRows.delete(store);throw e;}));
