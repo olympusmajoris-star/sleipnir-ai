@@ -9,3 +9,18 @@
 .ev .ev-main,.ev .ev-phone .ev-main{left:33%;width:34%;top:32%;height:21%}
 .ev .ev-status,.ev .ev-phone .ev-status{left:72%;width:16%;top:48%;height:12%}
 .ev .ev-aux{left:10%;width:15%;top:34%;height:14%}
+/* Both viewports use the passenger dash rail in the cabin photograph. */
+.ev .ev-scene .ev-input,.ev .ev-phone .ev-input{
+  left:36.8%;right:14.2%;top:25.3%;transform:none;height:36px;
+  max-height:6.8%;align-items:center;border-radius:7px;
+  border:1px solid #8e8e87;background:linear-gradient(#11171a,#101416);
+  box-shadow:inset 0 1px 3px #0009,0 1px 1px #eee4d0;
+}
+.ev .ev-phone .ev-input{height:40px;max-height:none}
+.ev .ev-input input,.ev .ev-phone .ev-input input{
+  min-width:0;height:100%;padding:0 8px;font:400 16px/1.2 system-ui;color:#f7fafb;
+  border-radius:inherit;outline-offset:-2px
+}
+.ev .ev-input input::placeholder{color:#acb7bc}
+.ev .ev-input button{flex:0 0 34px;height:100%;padding:0;display:grid;place-items:center}
+.ev .ev-input button:disabled{color:#818f95}
