@@ -31,7 +31,7 @@
   function mount(host, options) {
     if (!host || !options?.store || !options?.aisle) throw Error('Choose a store and aisle for this shelf.');
     instances.get(host)?.destroy();
-    const state = {showPopups:true,showPrices:true,destroyed:false,ticket:0,abort:null,data:null,layout:null,revision:0,saving:false,items:[],byId:new Map(),sourceIndex:new Map(),groups:new Map(),
+    const state = {showPopups:true,showPrices:true,priceTagScale:1.4,priceTextSize:13,destroyed:false,ticket:0,abort:null,data:null,layout:null,revision:0,saving:false,items:[],byId:new Map(),sourceIndex:new Map(),groups:new Map(),
       group:'',page:0,query:'',selection:null,geometry:null,scales:{...(options.scales || {})},previewScales:{...(options.draftScales || {})},shopping:options.shopping===true};
     const events = [];
     const listen = (target,name,fn,capture=false) => {target.addEventListener(name,fn,capture);events.push(()=>target.removeEventListener(name,fn,capture));};
@@ -48,6 +48,9 @@
     const prefs=node('div','dg-shelf-preferences');
     const pref=(label,key,field)=>{const wrap=node('label');const input=node('input');input.type='checkbox';try{input.checked=localStorage.getItem(key)!=='0';}catch{input.checked=true;}state[field]=input.checked;input.onchange=()=>{state[field]=input.checked;try{localStorage.setItem(key,input.checked?'1':'0')}catch{}paint();};wrap.append(input,document.createTextNode(label));prefs.append(wrap);};
     pref('Prices','sleipnir-shelf-prices','showPrices');pref('Product info','sleipnir-product-popups','showPopups');
+    const range=(label,key,field,min,max,step,initial,mult=1)=>{const wrap=node('label');wrap.title=label;const text=node('span',null,label);const input=node('input');input.type='range';input.min=min;input.max=max;input.step=step;let val=initial;try{const read=localStorage.getItem(key);if(read!=null)val=Math.max(min,Math.min(max,+read||initial));}catch{}input.value=val;state[field]=val*mult;input.setAttribute('aria-label',label);input.oninput=()=>{state[field]=+input.value*mult;try{localStorage.setItem(key,input.value);}catch{}paint();};wrap.append(text,input);prefs.append(wrap);};
+    range('Tag size','sleipnir-dg-price-scale','priceTagScale',75,220,5,140,.01);range('Text','sleipnir-dg-price-text','priceTextSize',9,22,1,13);
+
     const tabs = node('nav','dg-shelf-tabs');tabs.setAttribute('aria-label','Product groups');
     const chooser = node('div','dg-shelf-group-list');chooser.hidden=true;
     header.append(form,prefs,tabs,chooser);
@@ -143,8 +146,9 @@
       for(const [id,scale] of Object.entries(state.previewScales))if(finite(scale))transforms[id]={...transforms[id],scale};
       state.geometry=root.ShelfLayoutCanvas.render(surface,{items,fixture:state.data.fixture,plate:state.data.plate,theme:THEME,
         rows:state.layout.rows,rail:state.layout.rail,productsPerRow:state.layout.productsPerRow,facings:state.layout.facings,
-        showPrices:state.showPrices,showPopups:state.showPopups,autoStockHeight:state.layout.autoStockHeight,transforms,page:state.page,anchorId,selected:state.selection?[state.selection]:[]});
+        showPrices:state.showPrices,showPopups:state.showPopups,priceTagScale:state.priceTagScale,priceTextSize:state.priceTextSize,autoStockHeight:state.layout.autoStockHeight,transforms,page:state.page,anchorId,selected:state.selection?[state.selection]:[]});
       state.page=state.geometry.page;
+      if(!state.geometry.pendingPhotos&&state.geometry.page+1<state.geometry.pages)root.ShelfLayoutCanvas.prefetch(state.geometry.allSlots.filter(slot=>slot.page===state.geometry.page+1).map(slot=>slot.item),THEME);
       if(state.layout.groupBy!=='type' && !anchorId && state.geometry.slots[0])state.group=groupOf(state.geometry.slots[0].item);
       const names=[...state.groups.keys()],groupIndex=names.indexOf(state.group),grouped=state.layout.groupBy==='type';
       previous.disabled=state.page<=0 && (!grouped || groupIndex<=0);
