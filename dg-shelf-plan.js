@@ -5,7 +5,7 @@
 
   function defaults(saved, authored) {
     return {
-      rows: 3,
+      rows: 4,
       rail: 5,
       tabHeight: 32,
       facings: 1,
@@ -103,7 +103,7 @@
       const move = transforms instanceof Map ? transforms.get(item.id) : transforms[item.id];
       const facings = Math.min(3, Math.max(1, move?.facings || defaultFacings));
       const packageWidth = estimatedAspect(item) * referenceHeight * .67;
-      const desired = Math.min(available * .62, Math.max(available / 5, packageWidth + available * .018));
+      const desired = Math.min(available * .62, Math.max(available / 4, packageWidth + available * .018));
       const width = Math.min(available, desired * facings);
       if (row.length && used + width > available + .001) place(false);
       row.push([item.id, width]);
@@ -116,3 +116,4 @@
   root.DollarGeneralPlan = plan;
   if (typeof module !== 'undefined' && module.exports) module.exports = plan;
 })(typeof window === 'undefined' ? globalThis : window);
+
